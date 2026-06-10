@@ -112,12 +112,14 @@ const trackSubtitle = {
   fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 10, fontStyle: 'italic',
 }
 const stickyHead = {
-  position: 'sticky', left: 0, zIndex: 3, background: 'var(--bg-elevated)',
+  position: 'sticky', top: 0, left: 0, zIndex: 3, background: 'var(--bg-elevated)',
   textAlign: 'left', padding: '10px 16px', fontSize: '0.75rem', fontWeight: 600,
   color: 'var(--text-secondary)', whiteSpace: 'nowrap',
-  borderBottom: '1px solid var(--border)', borderRight: '1px solid var(--border)', minWidth: 170,
+  borderBottom: '1px solid var(--border)', borderRight: '1px solid var(--border)', minWidth: 170, maxWidth: 180,
+  overflow: 'hidden', textOverflow: 'ellipsis',
 }
 const baseHead = {
+  position: 'sticky', top: 0,
   padding: '10px 12px', fontSize: '0.75rem', fontWeight: 600,
   color: 'var(--text-secondary)', whiteSpace: 'nowrap',
   borderBottom: '1px solid var(--border)', background: 'var(--bg-elevated)',
