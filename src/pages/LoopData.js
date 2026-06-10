@@ -8,10 +8,7 @@ const SERIES_OPTIONS = [
 ]
 
 // Identity columns from entry list (text, left-aligned)
-const ENTRY_COLS = [
-  { key: 'car_number',   label: '#',    isText: true, minWidth: 44 },
-  { key: 'organization', label: 'Team', isText: true, minWidth: 150 },
-]
+const ENTRY_COLS = []
 
 // Stat columns (numeric averages)
 const STAT_COLS = [
@@ -217,6 +214,7 @@ function DataTable({ rows, title, subtitle, loading, yearCols = [] }) {
                       marginRight: 8, color: 'var(--text-muted)', fontSize: '0.7rem',
                       fontFamily: 'var(--font-mono)', minWidth: 18, display: 'inline-block',
                     }}>{i + 1}</span>
+                    {row.car_number && <span style={{ marginRight: 6, color: 'var(--text-muted)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>{row.car_number}</span>}
                     {row.driver}
                   </td>
                   {allCols.map(col => {
