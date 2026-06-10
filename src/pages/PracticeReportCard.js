@@ -156,7 +156,7 @@ export default function PracticeReportCard({ isSubscriber }) {
                   <th>Late Run</th>
                   <th>Best Lap</th>
                   <th>Stints</th>
-                  <th>Lng Stint</th>
+                  <th>Longest Stint</th>
                   <th>Trend</th>
                 </tr>
               </thead>
