@@ -245,8 +245,10 @@ function EntryListManager() {
         const s = ne[i].trim()
         if (/^\d{1,3}$/.test(s) && +s < 200) {
           const drv = ne[i+1] ? cleanName(ne[i+1]) : ''
-          const rawOrg1 = ne[i+2] ? ne[i+2].trim() : ''
-      const org = /^\([a-zA-Z]\)$/.test(rawOrg1) ? (ne[i+3] ? ne[i+3].trim() : '') : rawOrg1
+          const isMfrOrInd = n => /^\([a-zA-Z]\)$/.test(n) || /^(chevrolet|chevy|ford|toyota|tundra|silverado|f-?150)/i.test(n)
+      let orgPick = i+2
+      while (orgPick <= i+5 && isMfrOrInd(ne[orgPick] ? ne[orgPick].trim() : '')) orgPick++
+      const org = ne[orgPick] ? ne[orgPick].trim() : ''
           if (drv && /[A-Z]/.test(drv) && drv.length > 3 && !/^\d/.test(drv)) {
             rows.push(s + ',' + drv + ',' + org)
           }
