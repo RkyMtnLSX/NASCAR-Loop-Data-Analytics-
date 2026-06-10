@@ -22,8 +22,6 @@ const STAT_COLS = [
   { key: 'avg_laps_led_pct', label: 'Laps Led%', decimals: 1, pct: true },
   { key: 'avg_top15_pct',    label: 'Top 15%',   decimals: 1, pct: true },
   { key: 'avg_fastest',      label: 'Fast Laps', decimals: 1 },
-  { key: 'avg_stage1',       label: 'Stg 1',     decimals: 1 },
-  { key: 'avg_stage2',       label: 'Stg 2',     decimals: 1 },
 ]
 
 function computeDriverAvg(rows) {
@@ -41,8 +39,6 @@ function computeDriverAvg(rows) {
     avg_laps_led_pct: sum('pct_laps_led') / n,
     avg_top15_pct:    sum('pct_top15_laps') / n,
     avg_fastest:      sum('fastest_laps') / n,
-    avg_stage1:       sum('stage1_finish') / n,
-    avg_stage2:       sum('stage2_finish') / n,
   }
 }
 
