@@ -148,6 +148,7 @@ export default function PracticeReportCard({ isSubscriber }) {
                 <tr>
                   <th style={{ width: 36 }}>#</th>
                   <th className="left">Driver</th>
+                  <th>Start</th>
                   <th>Grade</th>
                   <th>Score</th>
                   <th>Laps</th>
@@ -169,6 +170,9 @@ export default function PracticeReportCard({ isSubscriber }) {
                       </td>
                       <td className="left" style={{ fontWeight: i < 3 ? 600 : 400 }}>
                         {d.driver_name}
+                      </td>
+                      <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
+                        {d.qualifying_position ?? '—'}
                       </td>
                       <td>
                         <span className="grade-pill" style={{ background: gc.bg, color: gc.text }}>
