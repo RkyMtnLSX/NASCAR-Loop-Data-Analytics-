@@ -16,7 +16,6 @@ export default function Admin() {
   const [password, setPassword]     = useState('')
   const [authError, setAuthError]   = useState('')
 
-  // Upload state
   const [series, setSeries]         = useState('cup')
   const [trackName, setTrackName]   = useState('')
   const [year, setYear]             = useState(new Date().getFullYear())
@@ -58,7 +57,6 @@ export default function Admin() {
     setUploadStatus(null)
 
     try {
-      // Get or create race record
       let raceId = null
       const { data: existingRace } = await supabase
         .from('races')
@@ -73,20 +71,13 @@ export default function Admin() {
       } else {
         const { data: newRace, error: raceError } = await supabase
           .from('races')
-          .insert({
-            race_name: `${trackName} ${year}`,
-            series,
-            year,
-            track_name: trackName,
-          })
+          .insert({ race_name: `${trackName} ${year}`, series, year, track_name: trackName })
           .select('id')
           .single()
-
         if (raceError) throw raceError
         raceId = newRace.id
       }
 
-      // Delete existing practice session data for this race/series/session
       await supabase
         .from('practice_sessions')
         .delete()
@@ -94,25 +85,26 @@ export default function Admin() {
         .eq('series', series)
         .eq('session_number', sessionNum)
 
-      // Insert graded rows
       const rows = preview.graded.map(d => ({
-        race_id: raceId,
-        driver_name: d.driver,
+        race_id:              raceId,
+        driver_name:          d.driver,
         series,
         year,
-        track_name: trackName,
-        session_number: sessionNum,
-        qualifying_position: d.start,
-        total_laps: d.totalLaps,
-        best_lap: d.bestLap,
-        overall_avg: d.overallAvg,
-        late_run_avg: d.lateRunAvg,
-        trend_slope: d.trendSlope,
-        num_stints: d.stints,
-        longest_stint: d.longestStint,
-        practice_score: d.composite,
-        practice_grade: d.grade,
-        notes: d.notes || null,
+        track_name:           trackName,
+        session_number:       sessionNum,
+        qualifying_position:  d.start,
+        car_number:           d.carNumber || null,
+        practice_group:       d.group     || null,
+        total_laps:           d.totalLaps,
+        best_lap:             d.bestLap,
+        overall_avg:          d.overallAvg,
+        late_run_avg:         d.lateRunAvg,
+        trend_slope:          d.trendSlope,
+        num_stints:           d.stints,
+        longest_stint:        d.longestStint,
+        practice_score:       d.composite,
+        practice_grade:       d.grade,
+        notes:                d.notes || null,
       }))
 
       const { error: insertError } = await supabase
@@ -132,20 +124,11 @@ export default function Admin() {
     }
   }
 
-  // Login screen
   if (!authed) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 20,
-      }}>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
         <div className="card" style={{ width: '100%', maxWidth: 360 }}>
-          <h2 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: 20 }}>
-            Admin Access
-          </h2>
+          <h2 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: 20 }}>Admin Access</h2>
           <form onSubmit={handleLogin}>
             <div style={{ marginBottom: 12 }}>
               <input
@@ -154,26 +137,15 @@ export default function Admin() {
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  background: 'var(--bg-elevated)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 'var(--radius-md)',
-                  color: 'var(--text-primary)',
-                  fontFamily: 'var(--font-sans)',
-                  fontSize: '0.875rem',
-                  outline: 'none',
+                  width: '100%', padding: '8px 12px',
+                  background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-md)', color: 'var(--text-primary)',
+                  fontFamily: 'var(--font-sans)', fontSize: '0.875rem', outline: 'none',
                 }}
               />
             </div>
-            {authError && (
-              <p style={{ color: '#E74C3C', fontSize: '0.75rem', marginBottom: 12 }}>
-                {authError}
-              </p>
-            )}
-            <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
-              Sign in
-            </button>
+            {authError && <p style={{ color: '#E74C3C', fontSize: '0.75rem', marginBottom: 12 }}>{authError}</p>}
+            <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Sign in</button>
           </form>
         </div>
       </div>
@@ -187,103 +159,48 @@ export default function Admin() {
         <p className="page-subtitle">Upload and manage practice session data</p>
       </div>
 
-      {/* Upload form */}
       <div className="card" style={{ marginBottom: 20 }}>
-        <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 20 }}>
-          Upload Practice Session
-        </h2>
+        <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 20 }}>Upload Practice Session</h2>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 16 }}>
-          {/* Series */}
           <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: 6 }}>
-              Series
-            </label>
+            <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: 6 }}>Series</label>
             <select
               value={series}
               onChange={e => setSeries(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '8px 10px',
-                background: 'var(--bg-elevated)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-md)',
-                color: 'var(--text-primary)',
-                fontFamily: 'var(--font-sans)',
-                fontSize: '0.875rem',
-              }}
+              style={{ width: '100%', padding: '8px 10px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', fontSize: '0.875rem' }}
             >
-              {SERIES_OPTIONS.map(o => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
+              {SERIES_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </div>
 
-          {/* Track */}
           <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: 6 }}>
-              Track Name
-            </label>
+            <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: 6 }}>Track Name</label>
             <input
               type="text"
               placeholder="e.g. Pocono Raceway"
               value={trackName}
               onChange={e => setTrackName(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '8px 10px',
-                background: 'var(--bg-elevated)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-md)',
-                color: 'var(--text-primary)',
-                fontFamily: 'var(--font-sans)',
-                fontSize: '0.875rem',
-                outline: 'none',
-              }}
+              style={{ width: '100%', padding: '8px 10px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', fontSize: '0.875rem', outline: 'none' }}
             />
           </div>
 
-          {/* Year */}
           <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: 6 }}>
-              Year
-            </label>
+            <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: 6 }}>Year</label>
             <input
               type="number"
               value={year}
               onChange={e => setYear(parseInt(e.target.value))}
-              style={{
-                width: '100%',
-                padding: '8px 10px',
-                background: 'var(--bg-elevated)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-md)',
-                color: 'var(--text-primary)',
-                fontFamily: 'var(--font-sans)',
-                fontSize: '0.875rem',
-                outline: 'none',
-              }}
+              style={{ width: '100%', padding: '8px 10px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', fontSize: '0.875rem', outline: 'none' }}
             />
           </div>
 
-          {/* Session number */}
           <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: 6 }}>
-              Session #
-            </label>
+            <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: 6 }}>Session #</label>
             <select
               value={sessionNum}
               onChange={e => setSessionNum(parseInt(e.target.value))}
-              style={{
-                width: '100%',
-                padding: '8px 10px',
-                background: 'var(--bg-elevated)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-md)',
-                color: 'var(--text-primary)',
-                fontFamily: 'var(--font-sans)',
-                fontSize: '0.875rem',
-              }}
+              style={{ width: '100%', padding: '8px 10px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', fontSize: '0.875rem' }}
             >
               <option value={1}>Session 1</option>
               <option value={2}>Session 2</option>
@@ -291,36 +208,21 @@ export default function Admin() {
           </div>
         </div>
 
-        {/* File upload */}
         <div style={{ marginBottom: 16 }}>
           <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: 6 }}>
-            Practice Excel File (cleaned, outliers removed)
+            Practice Excel File — optional columns: Car # and Group (A/B)
           </label>
           <input
             type="file"
             accept=".xlsx,.xls"
             onChange={handleFileSelect}
-            style={{
-              width: '100%',
-              padding: '8px 10px',
-              background: 'var(--bg-elevated)',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-md)',
-              color: 'var(--text-secondary)',
-              fontFamily: 'var(--font-sans)',
-              fontSize: '0.8125rem',
-              cursor: 'pointer',
-            }}
+            style={{ width: '100%', padding: '8px 10px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', color: 'var(--text-secondary)', fontFamily: 'var(--font-sans)', fontSize: '0.8125rem', cursor: 'pointer' }}
           />
         </div>
 
-        {/* Status message */}
         {uploadStatus && (
           <div style={{
-            padding: '10px 14px',
-            borderRadius: 'var(--radius-md)',
-            marginBottom: 16,
-            fontSize: '0.8125rem',
+            padding: '10px 14px', borderRadius: 'var(--radius-md)', marginBottom: 16, fontSize: '0.8125rem',
             background: uploadStatus.type === 'success' ? '#145A3220' : '#922B2120',
             border: `1px solid ${uploadStatus.type === 'success' ? '#145A3240' : '#922B2140'}`,
             color: uploadStatus.type === 'success' ? '#27AE60' : '#E74C3C',
@@ -329,28 +231,20 @@ export default function Admin() {
           </div>
         )}
 
-        {/* Preview and upload button */}
         {preview && (
           <div>
-            <div style={{
-              padding: '10px 14px',
-              background: 'var(--bg-elevated)',
-              borderRadius: 'var(--radius-md)',
-              marginBottom: 16,
-              fontSize: '0.8125rem',
-              color: 'var(--text-secondary)',
-            }}>
-              Parsed {preview.parsed.totalDrivers} drivers from sheet "{preview.parsed.sheetName}" —
-              ready to grade and upload
+            <div style={{ padding: '10px 14px', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)', marginBottom: 16, fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+              Parsed {preview.parsed.totalDrivers} drivers from sheet "{preview.parsed.sheetName}" — ready to grade and upload
             </div>
 
-            {/* Preview table - top 5 */}
             <div className="table-wrap" style={{ marginBottom: 16 }}>
               <table>
                 <thead>
                   <tr>
                     <th>#</th>
+                    <th style={{ width: 52 }}>Car</th>
                     <th className="left">Driver</th>
+                    <th style={{ width: 60 }}>Group</th>
                     <th>Laps</th>
                     <th>Avg Lap</th>
                     <th>Late Run</th>
@@ -364,19 +258,24 @@ export default function Admin() {
                     const gc = d.grade ? { bg: '#1A5276', text: '#fff' } : { bg: '#333', text: '#fff' }
                     return (
                       <tr key={d.driver}>
-                        <td style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>
-                          {i + 1}
+                        <td style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>{i + 1}</td>
+                        <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', fontSize: '0.8125rem' }}>
+                          {d.carNumber ? `#${d.carNumber}` : '—'}
                         </td>
                         <td className="left" style={{ fontWeight: i < 3 ? 600 : 400 }}>{d.driver}</td>
+                        <td>
+                          {d.group
+                            ? <span className="grade-pill" style={{ background: d.group === 'A' ? '#1A5276' : '#6E2F8D', color: '#fff', fontSize: '0.7rem', padding: '2px 8px' }}>{d.group}</span>
+                            : '—'
+                          }
+                        </td>
                         <td style={{ fontFamily: 'var(--font-mono)' }}>{d.totalLaps}</td>
                         <td style={{ fontFamily: 'var(--font-mono)' }}>{d.overallAvg?.toFixed(3) || '—'}</td>
                         <td style={{ fontFamily: 'var(--font-mono)' }}>{d.lateRunAvg?.toFixed(3) || '—'}</td>
                         <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent)' }}>{d.bestLap?.toFixed(3) || '—'}</td>
                         <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{d.composite?.toFixed(1) || '—'}</td>
                         <td>
-                          <span className="grade-pill" style={{ background: gc.bg, color: gc.text }}>
-                            {d.grade || '—'}
-                          </span>
+                          <span className="grade-pill" style={{ background: gc.bg, color: gc.text }}>{d.grade || '—'}</span>
                         </td>
                       </tr>
                     )
@@ -392,10 +291,7 @@ export default function Admin() {
               style={{ minWidth: 160 }}
             >
               {uploading ? (
-                <>
-                  <div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />
-                  Uploading...
-                </>
+                <><div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />Uploading...</>
               ) : (
                 `Upload ${preview.graded.length} drivers`
               )}
