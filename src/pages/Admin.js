@@ -13,7 +13,7 @@ const SERIES_OPTIONS = [
 
 const ALL_YEARS = [2022, 2023, 2024, 2025, 2026]
 
-// ─── Weekend Config Section ────────────────────────────────────
+// âââ Weekend Config Section ââââââââââââââââââââââââââââââââââââ
 function WeekendConfig() {
   const [configs, setConfigs]       = useState({})
   const [tracks, setTracks]         = useState([])
@@ -189,7 +189,216 @@ function WeekendConfig() {
   )
 }
 
-// ─── Main Admin Page ───────────────────────────────────────────
+// âââ Main Admin Page âââââââââââââââââââââââââââââââââââââââââââ
+
+// ─── Entry List Manager ─────────────────────────────────────────────────────
+const SERIES_OPTS = [
+  { value: 'cup',     label: 'Cup Series' },
+  { value: 'oreilly', label: "O'Reilly Series" },
+  { value: 'trucks',  label: 'Truck Series' },
+]
+
+function EntryListManager() {
+  const [series, setSeries]         = React.useState('cup')
+  const [cfg, setCfg]               = React.useState(null)
+  const [entries, setEntries]       = React.useState([])
+  const [newCar, setNewCar]         = React.useState('')
+  const [newDriver, setNewDriver]   = React.useState('')
+  const [newOrg, setNewOrg]         = React.useState('')
+  const [bulkText, setBulkText]     = React.useState('')
+  const [showBulk, setShowBulk]     = React.useState(false)
+  const [status, setStatus]         = React.useState(null)
+
+  const showStatus = (msg, isErr) => {
+    setStatus({ msg, isErr })
+    setTimeout(() => setStatus(null), 3000)
+  }
+
+  const loadEntries = async (s, config) => {
+    if (!config) return
+    const { data } = await supabase
+      .from('entry_list')
+      .select('*')
+      .eq('series', s)
+      .eq('race_year', config.correlation_year)
+      .eq('track_name', config.track_name)
+      .order('car_number')
+    setEntries(data || [])
+  }
+
+  React.useEffect(() => {
+    supabase.from('featured_weekend').select('*').eq('series', series).single()
+      .then(({ data }) => { setCfg(data); loadEntries(series, data) })
+  }, [series])
+
+  const addEntry = async () => {
+    if (!newDriver.trim() || !cfg) return
+    const { error } = await supabase.from('entry_list').upsert({
+      series, race_year: cfg.correlation_year, track_name: cfg.track_name,
+      car_number: newCar.trim() || null,
+      driver_name: newDriver.trim(),
+      organization: newOrg.trim() || null,
+    })
+    if (error) { showStatus('Error: ' + error.message, true); return }
+    setNewCar(''); setNewDriver(''); setNewOrg('')
+    await loadEntries(series, cfg)
+    showStatus('Added ' + newDriver.trim())
+  }
+
+  const deleteEntry = async (id) => {
+    await supabase.from('entry_list').delete().eq('id', id)
+    setEntries(p => p.filter(e => e.id !== id))
+  }
+
+  const clearAll = async () => {
+    if (!cfg || !window.confirm('Clear all entries for this race weekend?')) return
+    await supabase.from('entry_list').delete()
+      .eq('series', series).eq('race_year', cfg.correlation_year).eq('track_name', cfg.track_name)
+    setEntries([])
+    showStatus('Cleared')
+  }
+
+  const bulkImport = async () => {
+    if (!cfg || !bulkText.trim()) return
+    const lines = bulkText.trim().split('\n').filter(l => l.trim())
+    const rows = []
+    for (const line of lines) {
+      const parts = line.split(',').map(p => p.trim())
+      if (parts.length >= 2 && parts[1]) {
+        rows.push({
+          series, race_year: cfg.correlation_year, track_name: cfg.track_name,
+          car_number: parts[0] || null,
+          driver_name: parts[1],
+          organization: parts[2] || null,
+        })
+      }
+    }
+    if (!rows.length) { showStatus('No valid lines parsed', true); return }
+    const { error } = await supabase.from('entry_list').upsert(rows)
+    if (error) { showStatus('Error: ' + error.message, true); return }
+    await loadEntries(series, cfg)
+    setBulkText(''); setShowBulk(false)
+    showStatus('Imported ' + rows.length + ' drivers')
+  }
+
+  const inp = {
+    padding: '7px 10px', borderRadius: 6, border: '1px solid var(--border)',
+    background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontSize: '0.825rem',
+  }
+  const btn = (extra) => ({
+    padding: '7px 14px', borderRadius: 6, border: '1px solid var(--border)',
+    background: 'var(--accent)', color: '#fff', cursor: 'pointer',
+    fontSize: '0.825rem', fontWeight: 600, ...extra,
+  })
+
+  return (
+    <div className="card" style={{ marginBottom: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+        <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, margin: 0 }}>
+          Entry List{cfg ? ' — ' + cfg.track_label + ' ' + cfg.correlation_year : ''}
+        </h2>
+        <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{entries.length} drivers</span>
+      </div>
+
+      {/* Series tabs */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+        {SERIES_OPTS.map(o => (
+          <button key={o.value} onClick={() => setSeries(o.value)} style={btn({
+            background: series === o.value ? 'var(--accent)' : 'transparent',
+            color: series === o.value ? '#fff' : 'var(--text-secondary)',
+            border: '1px solid var(--border)', padding: '5px 12px', fontWeight: 500,
+          })}>{o.label}</button>
+        ))}
+      </div>
+
+      {/* Add single driver */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+        <input placeholder="Car #" value={newCar} onChange={e => setNewCar(e.target.value)}
+          style={{ ...inp, width: 64 }} />
+        <input placeholder="Driver Name" value={newDriver} onChange={e => setNewDriver(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && addEntry()}
+          style={{ ...inp, flex: 1, minWidth: 160 }} />
+        <input placeholder="Organization" value={newOrg} onChange={e => setNewOrg(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && addEntry()}
+          style={{ ...inp, flex: 1, minWidth: 160 }} />
+        <button onClick={addEntry} style={btn({})}>+ Add</button>
+      </div>
+
+      {/* Bulk import toggle */}
+      <div style={{ marginBottom: 12 }}>
+        <button onClick={() => setShowBulk(p => !p)} style={btn({
+          background: 'transparent', color: 'var(--accent)',
+          border: '1px solid var(--accent)', fontSize: '0.78rem', padding: '5px 12px',
+        })}>
+          {showBulk ? '▲ Hide Bulk Import' : '▼ Bulk Import (Jayski paste)'}
+        </button>
+        {showBulk && (
+          <div style={{ marginTop: 10 }}>
+            <p style={{ fontSize: '0.775rem', color: 'var(--text-muted)', marginBottom: 6 }}>
+              One driver per line: <code>car#, Driver Name, Organization</code>
+            </p>
+            <textarea value={bulkText} onChange={e => setBulkText(e.target.value)}
+              rows={8}
+              placeholder={"12, Ryan Blaney, Team Penske\n5, Kyle Larson, Hendrick Motorsports"}
+              style={{ width: '100%', fontFamily: 'monospace', fontSize: '0.8rem',
+                padding: '8px', borderRadius: 6, border: '1px solid var(--border)',
+                background: 'var(--bg-elevated)', color: 'var(--text-primary)',
+                resize: 'vertical', boxSizing: 'border-box' }}
+            />
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <button onClick={bulkImport} style={btn({})}>Import</button>
+              <button onClick={clearAll} style={btn({
+                background: 'transparent', color: '#ef4444', border: '1px solid #ef4444',
+              })}>Clear All</button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {status && (
+        <div style={{ fontSize: '0.8rem', color: status.isErr ? '#ef4444' : '#22c55e', marginBottom: 8 }}>
+          {status.msg}
+        </div>
+      )}
+
+      {/* Entries table */}
+      {entries.length > 0 && (
+        <div style={{ overflowX: 'auto', borderRadius: 7, border: '1px solid var(--border)' }}>
+          <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: '0.8125rem' }}>
+            <thead>
+              <tr style={{ background: 'var(--bg-elevated)' }}>
+                {['#','Driver','Organization',''].map((h, i) => (
+                  <th key={i} style={{ padding: '8px 12px', textAlign: 'left',
+                    color: 'var(--text-secondary)', fontWeight: 600,
+                    borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {entries.map((e, i) => (
+                <tr key={e.id} style={{ background: i % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-elevated)' }}>
+                  <td style={{ padding: '6px 12px', fontFamily: 'monospace', color: 'var(--text-muted)', width: 50 }}>{e.car_number || '—'}</td>
+                  <td style={{ padding: '6px 12px' }}>{e.driver_name}</td>
+                  <td style={{ padding: '6px 12px', color: 'var(--text-secondary)' }}>{e.organization || '—'}</td>
+                  <td style={{ padding: '6px 4px', width: 32 }}>
+                    <button onClick={() => deleteEntry(e.id)}
+                      style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.9rem', padding: '2px 6px' }}>✕</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {entries.length === 0 && (
+        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic', margin: 0 }}>
+          No entries yet. Add drivers above or use Bulk Import from Jayski.
+        </p>
+      )}
+    </div>
+  )
+}
+
 export default function Admin() {
   const [authed, setAuthed]         = useState(false)
   const [password, setPassword]     = useState('')
@@ -278,7 +487,7 @@ export default function Admin() {
       const { error: insertError } = await supabase.from('practice_sessions').insert(rows)
       if (insertError) throw insertError
 
-      setUploadStatus({ type: 'success', message: `Uploaded ${rows.length} drivers — ${trackName} ${year} ${series} Session ${sessionNum}` })
+      setUploadStatus({ type: 'success', message: `Uploaded ${rows.length} drivers â ${trackName} ${year} ${series} Session ${sessionNum}` })
     } catch (err) {
       setUploadStatus({ type: 'error', message: err.message })
     } finally {
@@ -313,6 +522,7 @@ export default function Admin() {
       </div>
 
       <WeekendConfig />
+      <EntryListManager />
 
       <div className="card" style={{ marginBottom: 20 }}>
         <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 20 }}>Upload Practice Session</h2>
@@ -345,7 +555,7 @@ export default function Admin() {
 
         <div style={{ marginBottom: 16 }}>
           <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: 6 }}>
-            Practice Excel File — optional columns: Car # and Group (A/B)
+            Practice Excel File â optional columns: Car # and Group (A/B)
           </label>
           <input type="file" accept=".xlsx,.xls" onChange={handleFileSelect}
             style={{ width: '100%', padding: '8px 10px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', color: 'var(--text-secondary)', fontFamily: 'var(--font-sans)', fontSize: '0.8125rem', cursor: 'pointer' }} />
@@ -360,7 +570,7 @@ export default function Admin() {
         {preview && (
           <div>
             <div style={{ padding: '10px 14px', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)', marginBottom: 16, fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
-              Parsed {preview.parsed.totalDrivers} drivers from sheet "{preview.parsed.sheetName}" — ready to grade and upload
+              Parsed {preview.parsed.totalDrivers} drivers from sheet "{preview.parsed.sheetName}" â ready to grade and upload
             </div>
             <div className="table-wrap" style={{ marginBottom: 16 }}>
               <table>
@@ -375,15 +585,15 @@ export default function Admin() {
                   {preview.graded.slice(0, 10).map((d, i) => (
                     <tr key={d.driver}>
                       <td style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>{i + 1}</td>
-                      <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', fontSize: '0.8125rem' }}>{d.carNumber ? `#${d.carNumber}` : '—'}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', fontSize: '0.8125rem' }}>{d.carNumber ? `#${d.carNumber}` : 'â'}</td>
                       <td className="left" style={{ fontWeight: i < 3 ? 600 : 400 }}>{d.driver}</td>
-                      <td>{d.group ? <span className="grade-pill" style={{ background: d.group === 'A' ? '#1A5276' : '#6E2F8D', color: '#fff', fontSize: '0.7rem', padding: '2px 8px' }}>{d.group}</span> : '—'}</td>
+                      <td>{d.group ? <span className="grade-pill" style={{ background: d.group === 'A' ? '#1A5276' : '#6E2F8D', color: '#fff', fontSize: '0.7rem', padding: '2px 8px' }}>{d.group}</span> : 'â'}</td>
                       <td style={{ fontFamily: 'var(--font-mono)' }}>{d.totalLaps}</td>
-                      <td style={{ fontFamily: 'var(--font-mono)' }}>{d.overallAvg?.toFixed(3) || '—'}</td>
-                      <td style={{ fontFamily: 'var(--font-mono)' }}>{d.lateRunAvg?.toFixed(3) || '—'}</td>
-                      <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent)' }}>{d.bestLap?.toFixed(3) || '—'}</td>
-                      <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{d.composite?.toFixed(1) || '—'}</td>
-                      <td><span className="grade-pill" style={{ background: '#1A5276', color: '#fff' }}>{d.grade || '—'}</span></td>
+                      <td style={{ fontFamily: 'var(--font-mono)' }}>{d.overallAvg?.toFixed(3) || 'â'}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)' }}>{d.lateRunAvg?.toFixed(3) || 'â'}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent)' }}>{d.bestLap?.toFixed(3) || 'â'}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{d.composite?.toFixed(1) || 'â'}</td>
+                      <td><span className="grade-pill" style={{ background: '#1A5276', color: '#fff' }}>{d.grade || 'â'}</span></td>
                     </tr>
                   ))}
                 </tbody>
