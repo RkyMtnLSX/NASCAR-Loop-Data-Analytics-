@@ -282,7 +282,7 @@ export default function LoopData({ isSubscriber }) {
             // 2b. Name aliases
         const { data: aliasData } = await supabase.from('driver_aliases').select('alias, canonical_name')
         const aliasLookup = new Map((aliasData || []).map(a => [a.alias, a.canonical_name]))
-        const normalize = n => aliasLookup.get(n) || n
+        const normalize = n => { const clean = n.trim().replace(/\s*\([a-zA-Z]\)\s*$/, ''); return aliasLookup.get(clean) || aliasLookup.get(n) || clean; }
         const entryMap = entryData && entryData.length
           ? new Map(entryData.map(e => { const n = normalize(e.driver_name); return [n, {...e, driver_name: n}] }))
           : null
