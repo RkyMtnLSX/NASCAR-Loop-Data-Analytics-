@@ -117,6 +117,7 @@ const stickyHead = {
   color: 'var(--text-secondary)', whiteSpace: 'nowrap',
   borderBottom: '1px solid var(--border)', borderRight: '1px solid var(--border)', minWidth: 170, maxWidth: 180,
   overflow: 'hidden', textOverflow: 'ellipsis',
+  background: 'var(--bg-base)',
 }
 const baseHead = {
   position: 'sticky', top: 0,
@@ -176,7 +177,7 @@ function DataTable({ rows, title, subtitle, loading, yearCols = [] }) {
     <div style={{ marginBottom: 40 }}>
       <h3 style={sectionHead}>{title}</h3>
       {subtitle && <div style={trackSubtitle}>{subtitle}</div>}
-      <div style={{ overflowX: 'auto', borderRadius: 8, border: '1px solid var(--border)' }}>
+      <div style={{ overflow: 'auto', maxHeight: '72vh', borderRadius: 8, border: '1px solid var(--border)' }}>
         <table style={{ borderCollapse: 'collapse', width: '100%' }}>
           <thead>
             <tr>
