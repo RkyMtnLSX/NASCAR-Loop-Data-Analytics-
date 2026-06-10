@@ -246,9 +246,13 @@ function EntryListManager() {
         if (/^\d{1,3}$/.test(s) && +s < 200) {
           const drv = ne[i+1] ? cleanName(ne[i+1]) : ''
           const isMfrOrInd = n => /^\([a-zA-Z]\)$/.test(n) || /^(chevrolet|chevy|ford|toyota|tundra|silverado|f-?150)/i.test(n)
-      let orgPick = i+2
-      while (orgPick <= i+5 && isMfrOrInd(ne[orgPick] ? ne[orgPick].trim() : '')) orgPick++
-      const org = ne[orgPick] ? ne[orgPick].trim() : ''
+          const isTeamName = n => /motorsport|racing|team|motor|enterprises|competition|performance|garage|club/i.test(n)
+          const candidates = []
+          for (let j = i+2; j <= i+6; j++) {
+            const cv = ne[j] ? ne[j].trim() : ''
+            if (cv && !isMfrOrInd(cv)) candidates.push(cv)
+          }
+          const org = candidates.find(c => isTeamName(c)) || candidates[0] || ''
           if (drv && /[A-Z]/.test(drv) && drv.length > 3 && !/^\d/.test(drv)) {
             rows.push(s + ',' + drv + ',' + org)
           }
