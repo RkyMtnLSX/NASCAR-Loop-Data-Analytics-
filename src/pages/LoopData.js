@@ -194,7 +194,7 @@ function DataTable({ rows, title, subtitle, loading, yearCols = [] }) {
                       textAlign: col.isText ? 'left' : 'right',
                       minWidth: col.minWidth,
                       color: isActive ? 'var(--accent)' : isYear ? 'var(--text-primary)' : 'var(--text-secondary)',
-                      background: isActive ? 'var(--bg-card)' : isYear ? 'rgba(99,102,241,0.07)' : 'var(--bg-elevated)',
+                      background: isActive ? 'var(--bg-surface)' : isYear ? 'rgba(99,102,241,0.07)' : 'var(--bg-elevated)',
                       borderLeft: isYear ? '1px solid var(--border)' : undefined,
                     }}
                     onClick={() => handleSort(col.key)}
@@ -209,7 +209,7 @@ function DataTable({ rows, title, subtitle, loading, yearCols = [] }) {
           </thead>
           <tbody>
             {sortedRows.map((row, i) => {
-              const bg = i % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-elevated)'
+              const bg = i % 2 === 0 ? 'var(--bg-surface)' : 'var(--bg-elevated)'
               return (
                 <tr key={row.driver} style={{ background: bg }}>
                   <td style={{ ...stickyCell, background: bg, fontWeight: i < 3 ? 600 : 400 }}>
@@ -352,7 +352,7 @@ export default function LoopData({ isSubscriber }) {
         {SERIES_OPTIONS.map(opt => (
           <button key={opt.value} onClick={() => setSeries(opt.value)} style={{
             padding: '7px 18px', borderRadius: 6, border: '1px solid var(--border)',
-            background: series === opt.value ? 'var(--accent)' : 'var(--bg-card)',
+            background: series === opt.value ? 'var(--accent)' : 'var(--bg-surface)',
             color: series === opt.value ? '#fff' : 'var(--text-secondary)',
             fontWeight: series === opt.value ? 600 : 400, cursor: 'pointer',
             fontSize: '0.85rem', transition: 'all 0.15s',
