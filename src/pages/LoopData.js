@@ -120,7 +120,7 @@ const stickyHead = {
   background: 'var(--bg-base)',
 }
 const baseHead = {
-  position: 'sticky', top: 0,
+  position: 'sticky', top: 0, background: 'var(--bg-elevated)',
   padding: '10px 12px', fontSize: '0.75rem', fontWeight: 600,
   color: 'var(--text-secondary)', whiteSpace: 'nowrap',
   borderBottom: '1px solid var(--border)', background: 'var(--bg-elevated)',
@@ -129,7 +129,9 @@ const baseHead = {
 const stickyCell = {
   position: 'sticky', left: 0, zIndex: 1, padding: '8px 16px',
   fontSize: '0.8125rem', whiteSpace: 'nowrap',
-  borderRight: '1px solid var(--border)', minWidth: 170,
+  borderRight: '1px solid var(--border)', minWidth: 170, maxWidth: 180,
+  overflow: 'hidden', textOverflow: 'ellipsis',
+  background: 'var(--bg-base)',
 }
 const numCell = {
   padding: '8px 12px', fontSize: '0.8125rem',
