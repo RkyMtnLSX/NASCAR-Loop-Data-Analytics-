@@ -240,10 +240,11 @@ function EntryListManager() {
       }
       const rows = []
       const ne = allItems.filter(s => s.trim())
-      for (let i = 0; i < ne.length - 2; i++) {
+      const cleanName = n => n.trim().replace(/\s*\([a-zA-Z]\)\s*$/, '').trim()
+            for (let i = 0; i < ne.length - 2; i++) {
         const s = ne[i].trim()
         if (/^\d{1,3}$/.test(s) && +s < 200) {
-          const drv = ne[i+1] ? ne[i+1].trim() : ''
+          const drv = ne[i+1] ? cleanName(ne[i+1]) : ''
           const org = ne[i+2] ? ne[i+2].trim() : ''
           if (drv && /[A-Z]/.test(drv) && drv.length > 3 && !/^\d/.test(drv)) {
             rows.push(s + ',' + drv + ',' + org)
@@ -262,7 +263,7 @@ function EntryListManager() {
         for (let i = 0; i < ne.length - 1; i++) {
           const m = ne[i].trim().match(/^#?(\d{1,3})\.?$/)
           if (m && +m[1] < 200) {
-            const drv = ne[i+1] ? ne[i+1].trim() : ''
+            const drv = ne[i+1] ? cleanName(ne[i+1]) : ''
             const org = ne[i+2] ? ne[i+2].trim() : ''
             if (drv && /[A-Za-z]{2}/.test(drv)) { rows.push(m[1]+','+drv+','+org); i+=2 }
           }
