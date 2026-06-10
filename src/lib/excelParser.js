@@ -2,6 +2,7 @@ import * as XLSX from 'xlsx'
 
 // Parse uploaded practice Excel file into driver lap data
 // Expected format: columns for Driver, Start, then lap numbers (1, 2, 3...)
+// Optional columns: Car # (or #, Car, No.), Group (or Grp)
 export function parsePracticeExcel(file, series = 'cup') {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -14,9 +15,9 @@ export function parsePracticeExcel(file, series = 'cup') {
         let sheetName = sheetNames[0]
 
         const seriesSheetMap = {
-          cup:     ['CUP', 'Cup', 'cup'],
-          xfinity: ['XFINITY', 'Xfinity', 'xfinity', 'NXS'],
-          trucks:  ['TRUCKS', 'Trucks', 'trucks', 'NCWTS'],
+          cup:      ['CUP', 'Cup', 'cup'],
+          xfinity:  ['XFINITY', 'Xfinity', 'xfinity', 'NXS', 'NOAPS', 'Noaps', 'noaps'],
+          trucks:   ['TRUCKS', 'Trucks', 'trucks', 'NCWTS'],
         }
 
         const candidates = seriesSheetMap[series] || []
@@ -42,6 +43,20 @@ export function parsePracticeExcel(file, series = 'cup') {
 
         if (driverColIndex === -1) { reject(new Error('Could not find Driver column in spreadsheet')); return }
 
+        // Car number column — match "Car #", "Car#", "Car No", "Car Number", "No.", "#"
+        const carColIndex = headers.findIndex(h =>
+          /^(car\s*#|car#|car\s*no\.?|car\s*number|no\.)$/i.test(h)
+        )
+        // Fallback: bare "#" only if no better match found
+        const carColIndexFallback = carColIndex !== -1
+          ? carColIndex
+          : headers.findIndex(h => h === '#')
+
+        // Group column — match "Group", "Grp", "Practice Group", "Prac Group"
+        const groupColIndex = headers.findIndex(h =>
+          /^(group|grp|practice\s*group|prac\s*group)$/i.test(h)
+        )
+
         // Accept: "1", "Lap 1", "LAP1", "L1", "lap_1"
         const lapColumns = []
         headers.forEach((h, i) => {
@@ -66,7 +81,17 @@ export function parsePracticeExcel(file, series = 'cup') {
           const driverName = String(row[driverColIndex] || '').trim()
           if (!driverName || driverName === 'undefined') continue
 
-          const startPos = startColIndex !== -1 ? parseInt(row[startColIndex]) || null : null
+          const startPos  = startColIndex !== -1
+            ? parseInt(row[startColIndex]) || null
+            : null
+
+          const carNumber = carColIndexFallback !== -1
+            ? String(row[carColIndexFallback] ?? '').trim() || null
+            : null
+
+          const group = groupColIndex !== -1
+            ? String(row[groupColIndex] ?? '').trim().toUpperCase() || null
+            : null
 
           const lapData = {}
           for (const { index, lapNum } of lapColumns) {
@@ -80,7 +105,7 @@ export function parsePracticeExcel(file, series = 'cup') {
           }
 
           if (Object.keys(lapData).length > 0) {
-            drivers.push({ driver: driverName, start: startPos, lapData })
+            drivers.push({ driver: driverName, start: startPos, carNumber, group, lapData })
           }
         }
 
