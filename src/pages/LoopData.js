@@ -180,7 +180,7 @@ function DataTable({ rows, title, subtitle, loading, yearCols = [] }) {
       <h3 style={sectionHead}>{title}</h3>
       {subtitle && <div style={trackSubtitle}>{subtitle}</div>}
       <div style={{ overflow: 'auto', maxHeight: '72vh', borderRadius: 8, border: '1px solid var(--border)' }}>
-        <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+        <table style={{ borderCollapse: 'separate', borderSpacing: 0, width: '100%' }}>
           <thead>
             <tr>
               <th style={stickyHead}>Driver</th>
