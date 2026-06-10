@@ -245,14 +245,16 @@ function EntryListManager() {
         const s = ne[i].trim()
         if (/^\d{1,3}$/.test(s) && +s < 200) {
           const drv = ne[i+1] ? cleanName(ne[i+1]) : ''
-          const isMfrOrInd = n => /^\([a-zA-Z]\)$/.test(n) || /^(chevrolet|chevy|ford|toyota|tundra|silverado|f-?150)/i.test(n)
-          const isTeamName = n => /motorsport|racing|team|motor|enterprises|competition|performance|garage|club/i.test(n)
-          const candidates = []
-          for (let j = i+2; j <= i+6; j++) {
-            const cv = ne[j] ? ne[j].trim() : ''
-            if (cv && !isMfrOrInd(cv)) candidates.push(cv)
+                    const isMfrOrInd = n => /^\([a-zA-Z]\)$/.test(n) || /^(chevrolet|chevy|ford|toyota|tundra|silverado|f-?150|ram|dodge)/i.test(n)
+          let org
+          if (series === 'trucks') {
+            // Truck PDF: car# | driver | mfg | sponsor | owner | crew chief
+            org = ne[i+4] ? ne[i+4].trim() : ''
+          } else {
+            // Cup/Xfinity: car# | driver | org | ...
+            const rawOrg = ne[i+2] ? ne[i+2].trim() : ''
+            org = isMfrOrInd(rawOrg) ? (ne[i+3] ? ne[i+3].trim() : '') : rawOrg
           }
-          const org = candidates.find(c => isTeamName(c)) || candidates[0] || ''
           if (drv && /[A-Z]/.test(drv) && drv.length > 3 && !/^\d/.test(drv)) {
             rows.push(s + ',' + drv + ',' + org)
           }
