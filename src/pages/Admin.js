@@ -232,26 +232,50 @@ function EntryListManager() {
       }
       const arrayBuffer = await file.arrayBuffer()
       const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise
-      const rows = []
+      const allItems = []
       for (let p = 1; p <= pdf.numPages; p++) {
         const page = await pdf.getPage(p)
         const content = await page.getTextContent()
-        const items = content.items.map(it => it.str)
-        for (let i = 0; i < items.length; i++) {
-          if (items[i] === '') {
-            const carNum = items[i + 2] || ''
-            const driver = items[i + 4] || ''
-            const org    = items[i + 6] || ''
-            if (carNum.match(/^\d/) && driver.trim()) {
-              rows.push(carNum.trim() + ',' + driver.trim() + ',' + org.trim())
-            }
+        allItems.push(...content.items.map(it => it.str))
+      }
+      const rows = []
+      const ne = allItems.filter(s => s.trim())
+      for (let i = 0; i < ne.length - 2; i++) {
+        const s = ne[i].trim()
+        if (/^\d{1,3}$/.test(s) && +s < 200) {
+          const drv = ne[i+1] ? ne[i+1].trim() : ''
+          const org = ne[i+2] ? ne[i+2].trim() : ''
+          if (drv && /[A-Z]/.test(drv) && drv.length > 3 && !/^\d/.test(drv)) {
+            rows.push(s + ',' + drv + ',' + org)
+          }
+        }
+      }
+      if (!rows.length) {
+        for (let i = 0; i < allItems.length; i++) {
+          if (allItems[i] === '') {
+            const c2 = allItems[i+2]||'', drv = allItems[i+4]||'', o = allItems[i+6]||''
+            if (c2.match(/^\d/) && drv.trim()) rows.push(c2.trim()+','+drv.trim()+','+o.trim())
+          }
+        }
+      }
+      if (!rows.length) {
+        for (let i = 0; i < ne.length - 1; i++) {
+          const m = ne[i].trim().match(/^#?(\d{1,3})\.?$/)
+          if (m && +m[1] < 200) {
+            const drv = ne[i+1] ? ne[i+1].trim() : ''
+            const org = ne[i+2] ? ne[i+2].trim() : ''
+            if (drv && /[A-Za-z]{2}/.test(drv)) { rows.push(m[1]+','+drv+','+org); i+=2 }
           }
         }
       }
       setBulkText(rows.join('\n'))
       setShowBulk(true)
-      setPdfStatus('Found ' + rows.length + ' drivers -- scroll down to import')
-    } catch (err) {
+      if (rows.length > 0) {
+        setPdfStatus('Found ' + rows.length + ' drivers -- scroll down to import')
+      } else {
+        setPdfStatus('No drivers found. First items: ' + ne.slice(0,6).join(' | '))
+      }
+    } catch(err) {
       setPdfStatus('Error: ' + (err.message || 'PDF parse failed'))
     }
     setPdfParsing(false)
