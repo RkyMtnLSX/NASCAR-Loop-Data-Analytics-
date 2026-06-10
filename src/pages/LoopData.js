@@ -60,7 +60,7 @@ function groupByDriver(rows, entryMap, trackYears) {
   })
 
   const entries = entryMap
-    ? Object.entries(map).filter(([d]) => entryMap.has(d))
+    ? [...entryMap.keys()].map(d => [d, map[d] || []])
     : Object.entries(map)
 
   return entries
