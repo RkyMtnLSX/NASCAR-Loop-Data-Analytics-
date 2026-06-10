@@ -390,11 +390,6 @@ function EntryListManager() {
           </div>
         )}
       </div>
-        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 6 }}>
-          Paste the Jayski entry list page URL (not the PDF link). Auto-fills the import box below.
-        </div>
-      </div>
-
       {/* Bulk import toggle */}
       <div style={{ marginBottom: 12 }}>
         <button onClick={() => setShowBulk(p => !p)} style={btn({
