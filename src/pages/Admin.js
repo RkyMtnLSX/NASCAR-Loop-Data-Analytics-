@@ -367,29 +367,30 @@ function EntryListManager() {
         <button onClick={addEntry} style={btn({})}>+ Add</button>
       </div>
 
-                {/* PDF upload */}
-          <div style={{ marginBottom: 16, padding: '12px 14px', background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 8 }}>
-            <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--accent)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Import from PDF
-            </div>
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-              <label style={{ cursor: pdfParsing ? 'wait' : 'pointer', display: 'inline-block' }}>
-                <input type="file" accept=".pdf,application/pdf" style={{ display: 'none' }} disabled={pdfParsing}
-                  onChange={e => { const f = e.target.files && e.target.files[0]; if (f) parsePdf(f); e.target.value = '' }} />
-                <span style={{ padding: '6px 18px', borderRadius: 5, background: 'var(--accent)', color: '#fff', fontWeight: 600, fontSize: '0.82rem', opacity: pdfParsing ? 0.7 : 1 }}>
-                  {pdfParsing ? 'Parsing...' : 'Choose Entry List PDF'}
-                </span>
-              </label>
-              <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
-                Download from Jayski, then upload here -- auto-fills the import box below
-              </span>
-            </div>
-            {pdfStatus && (
-              <div style={{ marginTop: 7, fontSize: '0.78rem', color: pdfStatus.startsWith('Error') ? '#f87171' : pdfStatus.startsWith('Found') ? '#4ade80' : 'var(--text-muted)' }}>
-                {pdfStatus}
-              </div>
-            )}
-          </div>        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 6 }}>
+      {/* PDF upload */}
+      <div style={{ marginBottom: 16, padding: '12px 14px', background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 8 }}>
+        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--accent)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          Import from PDF
+        </div>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <label style={{ cursor: pdfParsing ? 'wait' : 'pointer', display: 'inline-block' }}>
+            <input type="file" accept=".pdf,application/pdf" style={{ display: 'none' }} disabled={pdfParsing}
+              onChange={e => { const f = e.target.files && e.target.files[0]; if (f) parsePdf(f); e.target.value = '' }} />
+            <span style={{ padding: '6px 18px', borderRadius: 5, background: 'var(--accent)', color: '#fff', fontWeight: 600, fontSize: '0.82rem', opacity: pdfParsing ? 0.7 : 1 }}>
+              {pdfParsing ? 'Parsing...' : 'Choose Entry List PDF'}
+            </span>
+          </label>
+          <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
+            Download from Jayski, then upload here -- auto-fills the import box below
+          </span>
+        </div>
+        {pdfStatus && (
+          <div style={{ marginTop: 7, fontSize: '0.78rem', color: pdfStatus.startsWith('Error') ? '#f87171' : pdfStatus.startsWith('Found') ? '#4ade80' : 'var(--text-muted)' }}>
+            {pdfStatus}
+          </div>
+        )}
+      </div>
+        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 6 }}>
           Paste the Jayski entry list page URL (not the PDF link). Auto-fills the import box below.
         </div>
       </div>
