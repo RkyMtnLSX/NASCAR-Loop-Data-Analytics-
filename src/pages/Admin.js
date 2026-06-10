@@ -207,57 +207,54 @@ function EntryListManager() {
   const [newOrg, setNewOrg]         = React.useState('')
   const [bulkText, setBulkText]     = React.useState('')
   const [showBulk, setShowBulk]     = React.useState(false)
-  const [pdfParsing, setPdfParsing]   = React.useState(false)
-  const [pdfStatus, setPdfStatus]     = React.useState('')
+  const [pdfParsing, setPdfParsing]    = React.useState(false)
+  const [pdfStatus, setPdfStatus]      = React.useState('')
+  const [status, setStatus]         = React.useState(null)
+
   const showStatus = (msg, isErr) => {
     setStatus({ msg, isErr })
     setTimeout(() => setStatus(null), 3000)
   }
 
   const parsePdf = async (file) => {
-    if (!file || file.type !== 'application/pdf') {
-      setPdfStatus('Please select a PDF file')
-      return
-    }
     setPdfParsing(true)
-    setPdfStatus('Parsing PDF...')
+    setPdfStatus('Loading pdf.js...')
     try {
-      const arrayBuffer = await file.arrayBuffer()
       if (!window.pdfjsLib) {
-        await new Promise((resolve, reject) => {
+        await new Promise((res, rej) => {
           const s = document.createElement('script')
           s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'
-          s.onload = resolve; s.onerror = reject
+          s.onload = res; s.onerror = rej
           document.head.appendChild(s)
         })
         window.pdfjsLib.GlobalWorkerOptions.workerSrc =
           'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
       }
-      const pdfDoc = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise
-      const entries = []
-      for (let p = 1; p <= pdfDoc.numPages; p++) {
-        const page = await pdfDoc.getPage(p)
+      const arrayBuffer = await file.arrayBuffer()
+      const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise
+      const rows = []
+      for (let p = 1; p <= pdf.numPages; p++) {
+        const page = await pdf.getPage(p)
         const content = await page.getTextContent()
-        const items = content.items.map(i => i.str)
-        let group = [], started = false
-        for (const item of items) {
-          if (!started) { if (/^\d+$/.test(item) && group.length === 0) started = true; else continue }
-          if (item === '' && group.length > 0) {
-            if (group.length >= 7) entries.push({ car_number: group[2], driver_name: group[4], organization: group[6] || '' })
-            group = []
-          } else { group.push(item) }
+        const items = content.items.map(it => it.str)
+        for (let i = 0; i < items.length; i++) {
+          if (items[i] === '') {
+            const carNum = items[i + 2] || ''
+            const driver = items[i + 4] || ''
+            const org    = items[i + 6] || ''
+            if (carNum.match(/^\d/) && driver.trim()) {
+              rows.push(carNum.trim() + ',' + driver.trim() + ',' + org.trim())
+            }
+          }
         }
-        if (group.length >= 7) entries.push({ car_number: group[2], driver_name: group[4], organization: group[6] || '' })
       }
-      if (!entries.length) throw new Error('No entries found  check this is a NASCAR entry list PDF')
-      setBulkText(entries.map(e => e.car_number + ', ' + e.driver_name + ', ' + e.organization).join('\n'))
+      setBulkText(rows.join('\n'))
       setShowBulk(true)
-      setPdfStatus('Found ' + entries.length + ' drivers  review below and click Import')
-    } catch (e) {
-      setPdfStatus('Error: ' + e.message)
-    } finally {
-      setPdfParsing(false)
+      setPdfStatus('Found ' + rows.length + ' drivers -- scroll down to import')
+    } catch (err) {
+      setPdfStatus('Error: ' + (err.message || 'PDF parse failed'))
     }
+    setPdfParsing(false)
   }
 
   const loadEntries = async (s, config) => {
@@ -370,33 +367,31 @@ function EntryListManager() {
         <button onClick={addEntry} style={btn({})}>+ Add</button>
       </div>
 
-      {/* PDF upload */}
-      <div style={{ marginBottom: 16, padding: '12px 14px', background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 8 }}>
-        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--accent)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          Import from PDF
+                {/* PDF upload */}
+          <div style={{ marginBottom: 16, padding: '12px 14px', background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 8 }}>
+            <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--accent)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Import from PDF
+            </div>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+              <label style={{ cursor: pdfParsing ? 'wait' : 'pointer', display: 'inline-block' }}>
+                <input type="file" accept=".pdf,application/pdf" style={{ display: 'none' }} disabled={pdfParsing}
+                  onChange={e => { const f = e.target.files && e.target.files[0]; if (f) parsePdf(f); e.target.value = '' }} />
+                <span style={{ padding: '6px 18px', borderRadius: 5, background: 'var(--accent)', color: '#fff', fontWeight: 600, fontSize: '0.82rem', opacity: pdfParsing ? 0.7 : 1 }}>
+                  {pdfParsing ? 'Parsing...' : 'Choose Entry List PDF'}
+                </span>
+              </label>
+              <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
+                Download from Jayski, then upload here -- auto-fills the import box below
+              </span>
+            </div>
+            {pdfStatus && (
+              <div style={{ marginTop: 7, fontSize: '0.78rem', color: pdfStatus.startsWith('Error') ? '#f87171' : pdfStatus.startsWith('Found') ? '#4ade80' : 'var(--text-muted)' }}>
+                {pdfStatus}
+              </div>
+            )}
+          </div>        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 6 }}>
+          Paste the Jayski entry list page URL (not the PDF link). Auto-fills the import box below.
         </div>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-          <label style={{ cursor: pdfParsing ? 'wait' : 'pointer', display: 'inline-block' }}>
-            <input
-              type="file"
-              accept=".pdf,application/pdf"
-              style={{ display: 'none' }}
-              disabled={pdfParsing}
-              onChange={e => { const f = e.target.files && e.target.files[0]; if (f) parsePdf(f); e.target.value = '' }}
-            />
-            <span style={{ padding: '6px 18px', borderRadius: 5, background: 'var(--accent)', color: '#fff', fontWeight: 600, fontSize: '0.82rem', opacity: pdfParsing ? 0.7 : 1, pointerEvents: pdfParsing ? 'none' : 'auto' }}>
-              {pdfParsing ? 'Parsing...' : 'Choose Entry List PDF'}
-            </span>
-          </label>
-          <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
-            Download from Jayski, then upload here  auto-fills the import box below
-          </span>
-        </div>
-        {pdfStatus && (
-          <div style={{ marginTop: 7, fontSize: '0.78rem', color: pdfStatus.startsWith('Error') ? '#f87171' : pdfStatus.startsWith('Found') ? '#4ade80' : 'var(--text-muted)' }}>
-            {pdfStatus}
-          </div>
-        )}
       </div>
 
       {/* Bulk import toggle */}
