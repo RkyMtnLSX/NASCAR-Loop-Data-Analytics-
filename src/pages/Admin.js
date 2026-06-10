@@ -13,7 +13,7 @@ const SERIES_OPTIONS = [
 
 const ALL_YEARS = [2022, 2023, 2024, 2025, 2026]
 
-// Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ Weekend Config Section Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Weekend Config Section ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 function WeekendConfig() {
   const [configs, setConfigs]       = useState({})
   const [tracks, setTracks]         = useState([])
@@ -189,9 +189,9 @@ function WeekendConfig() {
   )
 }
 
-// Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ Main Admin Page Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Main Admin Page ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 
-// âââ Entry List Manager âââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ Entry List Manager Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
 const SERIES_OPTS = [
   { value: 'cup',     label: 'Cup Series' },
   { value: 'oreilly', label: "O'Reilly Series" },
@@ -223,13 +223,26 @@ function EntryListManager() {
       return
     }
     setJayskiLoading(true)
-    setJayskiStatus('Fetching PDF from Jayski...')
+    setJayskiStatus('Finding PDF on Jayski page...')
     try {
-      const res = await fetch('/api/jayski?url=' + encodeURIComponent(jayskiUrl))
+      // Step 1: browser fetches Jayski HTML via CORS proxy (avoids server-side bot detection)
+      const proxyRes = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent(jayskiUrl))
+      if (!proxyRes.ok) throw new Error('CORS proxy unavailable')
+      const proxyData = await proxyRes.json()
+      const html = proxyData.contents || ''
+      const pdfMatch = html.match(/https?:[^\s"'<>]*\.pdf/i)
+      if (!pdfMatch) throw new Error('No PDF found on Jayski page — is the entry list published yet?')
+      const pdfUrl = pdfMatch[0]
+
+      // Step 2: our API proxies just the PDF bytes (simple CDN file, not bot-protected)
+      setJayskiStatus('Downloading entry list PDF...')
+      const res = await fetch('/api/jayski?pdfUrl=' + encodeURIComponent(pdfUrl))
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        throw new Error(err.error || 'HTTP ' + res.status)
+        throw new Error(err.error || 'PDF download failed: HTTP ' + res.status)
       }
+
+      // Step 3: parse PDF with pdf.js
       setJayskiStatus('Parsing PDF...')
       const pdfBytes = await res.arrayBuffer()
       if (!window.pdfjsLib) {
@@ -258,7 +271,7 @@ function EntryListManager() {
         }
         if (group.length >= 7) entries.push({ car_number: group[2], driver_name: group[4], organization: group[6] || '' })
       }
-      if (!entries.length) throw new Error('No entries found in PDF')
+      if (!entries.length) throw new Error('No entries found in PDF — format may have changed')
       setBulkText(entries.map(e => e.car_number + ', ' + e.driver_name + ', ' + e.organization).join('\n'))
       setShowBulk(true)
       setJayskiStatus('Found ' + entries.length + ' drivers — review below and click Import')
@@ -350,7 +363,7 @@ function EntryListManager() {
     <div className="card" style={{ marginBottom: 20 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
         <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, margin: 0 }}>
-          Entry List{cfg ? ' â ' + cfg.track_label + ' ' + cfg.correlation_year : ''}
+          Entry List{cfg ? ' Ã¢ÂÂ ' + cfg.track_label + ' ' + cfg.correlation_year : ''}
         </h2>
         <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{entries.length} drivers</span>
       </div>
@@ -411,7 +424,7 @@ function EntryListManager() {
           background: 'transparent', color: 'var(--accent)',
           border: '1px solid var(--accent)', fontSize: '0.78rem', padding: '5px 12px',
         })}>
-          {showBulk ? 'â² Hide Bulk Import' : 'â¼ Bulk Import (Jayski paste)'}
+          {showBulk ? 'Ã¢ÂÂ² Hide Bulk Import' : 'Ã¢ÂÂ¼ Bulk Import (Jayski paste)'}
         </button>
         {showBulk && (
           <div style={{ marginTop: 10 }}>
@@ -458,12 +471,12 @@ function EntryListManager() {
             <tbody>
               {entries.map((e, i) => (
                 <tr key={e.id} style={{ background: i % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-elevated)' }}>
-                  <td style={{ padding: '6px 12px', fontFamily: 'monospace', color: 'var(--text-muted)', width: 50 }}>{e.car_number || 'â'}</td>
+                  <td style={{ padding: '6px 12px', fontFamily: 'monospace', color: 'var(--text-muted)', width: 50 }}>{e.car_number || 'Ã¢ÂÂ'}</td>
                   <td style={{ padding: '6px 12px' }}>{e.driver_name}</td>
-                  <td style={{ padding: '6px 12px', color: 'var(--text-secondary)' }}>{e.organization || 'â'}</td>
+                  <td style={{ padding: '6px 12px', color: 'var(--text-secondary)' }}>{e.organization || 'Ã¢ÂÂ'}</td>
                   <td style={{ padding: '6px 4px', width: 32 }}>
                     <button onClick={() => deleteEntry(e.id)}
-                      style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.9rem', padding: '2px 6px' }}>â</button>
+                      style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.9rem', padding: '2px 6px' }}>Ã¢ÂÂ</button>
                   </td>
                 </tr>
               ))}
@@ -568,7 +581,7 @@ export default function Admin() {
       const { error: insertError } = await supabase.from('practice_sessions').insert(rows)
       if (insertError) throw insertError
 
-      setUploadStatus({ type: 'success', message: `Uploaded ${rows.length} drivers Ã¢ÂÂ ${trackName} ${year} ${series} Session ${sessionNum}` })
+      setUploadStatus({ type: 'success', message: `Uploaded ${rows.length} drivers ÃÂ¢ÃÂÃÂ ${trackName} ${year} ${series} Session ${sessionNum}` })
     } catch (err) {
       setUploadStatus({ type: 'error', message: err.message })
     } finally {
@@ -636,7 +649,7 @@ export default function Admin() {
 
         <div style={{ marginBottom: 16 }}>
           <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: 6 }}>
-            Practice Excel File Ã¢ÂÂ optional columns: Car # and Group (A/B)
+            Practice Excel File ÃÂ¢ÃÂÃÂ optional columns: Car # and Group (A/B)
           </label>
           <input type="file" accept=".xlsx,.xls" onChange={handleFileSelect}
             style={{ width: '100%', padding: '8px 10px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', color: 'var(--text-secondary)', fontFamily: 'var(--font-sans)', fontSize: '0.8125rem', cursor: 'pointer' }} />
@@ -651,7 +664,7 @@ export default function Admin() {
         {preview && (
           <div>
             <div style={{ padding: '10px 14px', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)', marginBottom: 16, fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
-              Parsed {preview.parsed.totalDrivers} drivers from sheet "{preview.parsed.sheetName}" Ã¢ÂÂ ready to grade and upload
+              Parsed {preview.parsed.totalDrivers} drivers from sheet "{preview.parsed.sheetName}" ÃÂ¢ÃÂÃÂ ready to grade and upload
             </div>
             <div className="table-wrap" style={{ marginBottom: 16 }}>
               <table>
@@ -666,15 +679,15 @@ export default function Admin() {
                   {preview.graded.slice(0, 10).map((d, i) => (
                     <tr key={d.driver}>
                       <td style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>{i + 1}</td>
-                      <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', fontSize: '0.8125rem' }}>{d.carNumber ? `#${d.carNumber}` : 'Ã¢ÂÂ'}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', fontSize: '0.8125rem' }}>{d.carNumber ? `#${d.carNumber}` : 'ÃÂ¢ÃÂÃÂ'}</td>
                       <td className="left" style={{ fontWeight: i < 3 ? 600 : 400 }}>{d.driver}</td>
-                      <td>{d.group ? <span className="grade-pill" style={{ background: d.group === 'A' ? '#1A5276' : '#6E2F8D', color: '#fff', fontSize: '0.7rem', padding: '2px 8px' }}>{d.group}</span> : 'Ã¢ÂÂ'}</td>
+                      <td>{d.group ? <span className="grade-pill" style={{ background: d.group === 'A' ? '#1A5276' : '#6E2F8D', color: '#fff', fontSize: '0.7rem', padding: '2px 8px' }}>{d.group}</span> : 'ÃÂ¢ÃÂÃÂ'}</td>
                       <td style={{ fontFamily: 'var(--font-mono)' }}>{d.totalLaps}</td>
-                      <td style={{ fontFamily: 'var(--font-mono)' }}>{d.overallAvg?.toFixed(3) || 'Ã¢ÂÂ'}</td>
-                      <td style={{ fontFamily: 'var(--font-mono)' }}>{d.lateRunAvg?.toFixed(3) || 'Ã¢ÂÂ'}</td>
-                      <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent)' }}>{d.bestLap?.toFixed(3) || 'Ã¢ÂÂ'}</td>
-                      <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{d.composite?.toFixed(1) || 'Ã¢ÂÂ'}</td>
-                      <td><span className="grade-pill" style={{ background: '#1A5276', color: '#fff' }}>{d.grade || 'Ã¢ÂÂ'}</span></td>
+                      <td style={{ fontFamily: 'var(--font-mono)' }}>{d.overallAvg?.toFixed(3) || 'ÃÂ¢ÃÂÃÂ'}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)' }}>{d.lateRunAvg?.toFixed(3) || 'ÃÂ¢ÃÂÃÂ'}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent)' }}>{d.bestLap?.toFixed(3) || 'ÃÂ¢ÃÂÃÂ'}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{d.composite?.toFixed(1) || 'ÃÂ¢ÃÂÃÂ'}</td>
+                      <td><span className="grade-pill" style={{ background: '#1A5276', color: '#fff' }}>{d.grade || 'ÃÂ¢ÃÂÃÂ'}</span></td>
                     </tr>
                   ))}
                 </tbody>
