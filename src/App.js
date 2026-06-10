@@ -7,13 +7,13 @@ import Landing from './pages/Landing'
 import PracticeReportCard from './pages/PracticeReportCard'
 import Admin from './pages/Admin'
 
-// Placeholder pages — built out in next session
+// Placeholder pages â built out in next session
 function LoopData({ isSubscriber }) {
   return (
     <div className="page">
       <div className="page-header">
         <h1 className="page-title">Loop Data</h1>
-        <p className="page-subtitle">Historical loop data by track — coming soon</p>
+        <p className="page-subtitle">Historical loop data by track â coming soon</p>
       </div>
       <div className="empty-state">
         <h3>Coming soon</h3>
@@ -28,7 +28,7 @@ function Correlations({ isSubscriber }) {
     <div className="page">
       <div className="page-header">
         <h1 className="page-title">Track Correlations</h1>
-        <p className="page-subtitle">Current year loop data across correlated tracks — coming soon</p>
+        <p className="page-subtitle">Current year loop data across correlated tracks â coming soon</p>
       </div>
       <div className="empty-state">
         <h3>Coming soon</h3>
@@ -55,8 +55,8 @@ function Subscribe() {
 }
 
 export default function App() {
-  // Temporary subscriber state — will be replaced with real auth
-  const [isSubscriber] = useState(false)
+  // Temporary subscriber state â will be replaced with real auth
+  const [isSubscriber] = useState(true)
 
   return (
     <BrowserRouter>
