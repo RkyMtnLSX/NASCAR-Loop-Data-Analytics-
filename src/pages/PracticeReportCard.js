@@ -3,15 +3,20 @@ import { supabase } from '../lib/supabase'
 import { gradeColor, trendLabel } from '../lib/practiceGrader'
 
 const SERIES_TABS = [
-  { value: 'cup',     label: 'Cup Series' },
-  { value: 'xfinity', label: "O'Reilly Series" },
-  { value: 'trucks',  label: 'Truck Series' },
+  { value: 'cup',      label: 'Cup Series' },
+  { value: 'xfinity',  label: "O'Reilly Series" },
+  { value: 'trucks',   label: 'Truck Series' },
 ]
+
+const GROUP_COLORS = {
+  A: { bg: '#1A5276', text: '#ffffff' },
+  B: { bg: '#6E2F8D', text: '#ffffff' },
+}
 
 export default function PracticeReportCard({ isSubscriber }) {
   const [series, setSeries]     = useState('cup')
-  const [sessions, setSessions] = useState([])  // list of distinct sessions
-  const [selected, setSelected] = useState(null) // selected session key
+  const [sessions, setSessions] = useState([])
+  const [selected, setSelected] = useState(null)
   const [rows, setRows]         = useState([])
   const [loading, setLoading]   = useState(true)
   const [error, setError]       = useState(null)
@@ -33,7 +38,6 @@ export default function PracticeReportCard({ isSubscriber }) {
 
       if (error) { setError(error.message); setLoading(false); return }
 
-      // Deduplicate
       const seen = new Set()
       const unique = []
       for (const row of (data || [])) {
@@ -75,7 +79,11 @@ export default function PracticeReportCard({ isSubscriber }) {
   }, [selected, sessions])
 
   const visibleRows = isSubscriber ? rows : rows.slice(0, 10)
-  const blurred = !isSubscriber && rows.length > 10
+  const blurred     = !isSubscriber && rows.length > 10
+
+  // Check if this session has group or car number data
+  const hasGroup     = rows.some(r => r.practice_group)
+  const hasCarNumber = rows.some(r => r.car_number)
 
   return (
     <div className="page">
@@ -108,9 +116,9 @@ export default function PracticeReportCard({ isSubscriber }) {
               style={{
                 fontSize: '0.75rem',
                 padding: '5px 12px',
-                background: selected === s.key ? 'var(--bg-elevated)' : 'transparent',
-                color: selected === s.key ? 'var(--text-primary)' : 'var(--text-secondary)',
-                borderColor: selected === s.key ? 'var(--accent)60' : 'var(--border)',
+                background:   selected === s.key ? 'var(--bg-elevated)' : 'transparent',
+                color:        selected === s.key ? 'var(--text-primary)' : 'var(--text-secondary)',
+                borderColor:  selected === s.key ? 'var(--accent)60'     : 'var(--border)',
               }}
             >
               {s.track_name} {s.year} — S{s.session_number}
@@ -147,7 +155,9 @@ export default function PracticeReportCard({ isSubscriber }) {
               <thead>
                 <tr>
                   <th style={{ width: 36 }}>#</th>
+                  {hasCarNumber && <th style={{ width: 52 }}>Car</th>}
                   <th className="left">Driver</th>
+                  {hasGroup && <th style={{ width: 60 }}>Group</th>}
                   <th>Start</th>
                   <th>Grade</th>
                   <th>Score</th>
@@ -162,16 +172,31 @@ export default function PracticeReportCard({ isSubscriber }) {
               </thead>
               <tbody>
                 {visibleRows.map((d, i) => {
-                  const gc = d.practice_grade ? gradeColor(d.practice_grade) : { bg: '#333', text: '#fff' }
+                  const gc    = d.practice_grade ? gradeColor(d.practice_grade) : { bg: '#333', text: '#fff' }
                   const trend = d.trend_slope !== null ? trendLabel(d.trend_slope) : null
+                  const grpColors = d.practice_group ? (GROUP_COLORS[d.practice_group] || { bg: '#555', text: '#fff' }) : null
                   return (
                     <tr key={d.id}>
                       <td style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>
                         {i + 1}
                       </td>
+                      {hasCarNumber && (
+                        <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', fontSize: '0.8125rem' }}>
+                          {d.car_number ? `#${d.car_number}` : '—'}
+                        </td>
+                      )}
                       <td className="left" style={{ fontWeight: i < 3 ? 600 : 400 }}>
                         {d.driver_name}
                       </td>
+                      {hasGroup && (
+                        <td>
+                          {grpColors ? (
+                            <span className="grade-pill" style={{ background: grpColors.bg, color: grpColors.text, fontSize: '0.7rem', padding: '2px 8px' }}>
+                              {d.practice_group}
+                            </span>
+                          ) : '—'}
+                        </td>
+                      )}
                       <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
                         {d.qualifying_position ?? '—'}
                       </td>
@@ -205,9 +230,7 @@ export default function PracticeReportCard({ isSubscriber }) {
           {blurred && (
             <div style={{
               position: 'absolute',
-              bottom: 0,
-              left: 0,
-              right: 0,
+              bottom: 0, left: 0, right: 0,
               height: 160,
               background: 'linear-gradient(to bottom, transparent, var(--bg-base) 80%)',
               display: 'flex',
