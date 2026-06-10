@@ -7,19 +7,26 @@ const SERIES_OPTIONS = [
   { value: 'trucks',  label: 'Truck Series' },
 ]
 
-const COLS = [
-  { key: 'races',            label: 'Races',      decimals: 0 },
-  { key: 'avg_start',        label: 'Avg St',     decimals: 1 },
-  { key: 'avg_finish',       label: 'Avg Fin',    decimals: 1 },
-  { key: 'avg_mid',          label: 'Avg Mid',    decimals: 1 },
-  { key: 'avg_rating',       label: 'Drv Rtg',    decimals: 1, highlight: true },
-  { key: 'avg_qp',           label: 'Qual Pass',  decimals: 1 },
-  { key: 'avg_pass_diff',    label: 'Pass Diff',  decimals: 1, signed: true },
-  { key: 'avg_laps_led_pct', label: 'Laps Led%',  decimals: 1, pct: true },
-  { key: 'avg_top15_pct',    label: 'Top 15%',    decimals: 1, pct: true },
-  { key: 'avg_fastest',      label: 'Fast Laps',  decimals: 1 },
-  { key: 'avg_stage1',       label: 'Stg 1',      decimals: 1 },
-  { key: 'avg_stage2',       label: 'Stg 2',      decimals: 1 },
+// Identity columns from entry list (text, left-aligned)
+const ENTRY_COLS = [
+  { key: 'car_number',   label: '#',    isText: true, minWidth: 44 },
+  { key: 'organization', label: 'Team', isText: true, minWidth: 150 },
+]
+
+// Stat columns (numeric averages)
+const STAT_COLS = [
+  { key: 'races',            label: 'Races',     decimals: 0 },
+  { key: 'avg_start',        label: 'Avg St',    decimals: 1 },
+  { key: 'avg_finish',       label: 'Avg Fin',   decimals: 1 },
+  { key: 'avg_mid',          label: 'Avg Mid',   decimals: 1 },
+  { key: 'avg_rating',       label: 'Drv Rtg',   decimals: 1, highlight: true },
+  { key: 'avg_qp',           label: 'Qual Pass', decimals: 1 },
+  { key: 'avg_pass_diff',    label: 'Pass Diff', decimals: 1, signed: true },
+  { key: 'avg_laps_led_pct', label: 'Laps Led%', decimals: 1, pct: true },
+  { key: 'avg_top15_pct',    label: 'Top 15%',   decimals: 1, pct: true },
+  { key: 'avg_fastest',      label: 'Fast Laps', decimals: 1 },
+  { key: 'avg_stage1',       label: 'Stg 1',     decimals: 1 },
+  { key: 'avg_stage2',       label: 'Stg 2',     decimals: 1 },
 ]
 
 function computeDriverAvg(rows) {
@@ -42,20 +49,52 @@ function computeDriverAvg(rows) {
   }
 }
 
-function groupByDriver(rows) {
+// entryMap: Map<driver_name, {car_number, organization}> | null
+// trackYears: int[] for per-year finish columns, null = skip
+function groupByDriver(rows, entryMap, trackYears) {
   const map = {}
   rows.forEach(row => {
     const name = row.driver_name
     if (!map[name]) map[name] = []
     map[name].push(row)
   })
-  return Object.entries(map)
-    .map(([driver, dRows]) => ({ driver, ...computeDriverAvg(dRows) }))
+
+  const entries = entryMap
+    ? Object.entries(map).filter(([d]) => entryMap.has(d))
+    : Object.entries(map)
+
+  return entries
+    .map(([driver, dRows]) => {
+      const entry = entryMap ? (entryMap.get(driver) || {}) : {}
+      const stats = computeDriverAvg(dRows)
+
+      // Per-year finish at this track
+      const yearFinishes = {}
+      if (trackYears) {
+        dRows.forEach(r => {
+          const yr = parseInt(r.year)
+          if (yr && trackYears.includes(yr)) {
+            const fin = parseInt(r.finish_position)
+            const existing = yearFinishes['y_' + yr]
+            if (fin && (!existing || fin < existing)) yearFinishes['y_' + yr] = fin
+          }
+        })
+      }
+
+      return {
+        driver,
+        car_number:   entry.car_number   || null,
+        organization: entry.organization || null,
+        ...stats,
+        ...yearFinishes,
+      }
+    })
     .sort((a, b) => (b.avg_rating || 0) - (a.avg_rating || 0))
 }
 
 function fmtVal(val, col) {
   if (val == null || (typeof val === 'number' && isNaN(val))) return '—'
+  if (col.isText || col.isYear) return val != null ? String(val) : '—'
   const v = parseFloat(val)
   if (isNaN(v)) return '—'
   const fixed = v.toFixed(col.decimals)
@@ -64,85 +103,55 @@ function fmtVal(val, col) {
   return fixed
 }
 
-// ─────────────────────────────────────────────
-// Styles
-// ─────────────────────────────────────────────
+// ─── Styles ────────────────────────────────────
 const sectionHead = {
-  fontSize: '0.85rem',
-  fontWeight: 700,
-  color: 'var(--text-primary)',
-  margin: '0 0 4px 0',
-  textTransform: 'uppercase',
-  letterSpacing: '0.06em',
+  fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)',
+  margin: '0 0 4px 0', textTransform: 'uppercase', letterSpacing: '0.06em',
 }
 const trackSubtitle = {
-  fontSize: '0.72rem',
-  color: 'var(--text-muted)',
-  marginBottom: 10,
-  fontStyle: 'italic',
+  fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 10, fontStyle: 'italic',
 }
 const stickyHead = {
-  position: 'sticky',
-  left: 0,
-  zIndex: 3,
-  background: 'var(--bg-elevated)',
-  textAlign: 'left',
-  padding: '10px 16px',
-  fontSize: '0.75rem',
-  fontWeight: 600,
-  color: 'var(--text-secondary)',
-  whiteSpace: 'nowrap',
-  borderBottom: '1px solid var(--border)',
-  borderRight: '1px solid var(--border)',
-  minWidth: 180,
+  position: 'sticky', left: 0, zIndex: 3, background: 'var(--bg-elevated)',
+  textAlign: 'left', padding: '10px 16px', fontSize: '0.75rem', fontWeight: 600,
+  color: 'var(--text-secondary)', whiteSpace: 'nowrap',
+  borderBottom: '1px solid var(--border)', borderRight: '1px solid var(--border)', minWidth: 170,
 }
-const numHead = {
-  padding: '10px 12px',
-  fontSize: '0.75rem',
-  fontWeight: 600,
-  color: 'var(--text-secondary)',
-  textAlign: 'right',
-  whiteSpace: 'nowrap',
-  borderBottom: '1px solid var(--border)',
-  background: 'var(--bg-elevated)',
-  cursor: 'pointer',
-  userSelect: 'none',
+const baseHead = {
+  padding: '10px 12px', fontSize: '0.75rem', fontWeight: 600,
+  color: 'var(--text-secondary)', whiteSpace: 'nowrap',
+  borderBottom: '1px solid var(--border)', background: 'var(--bg-elevated)',
+  cursor: 'pointer', userSelect: 'none',
 }
 const stickyCell = {
-  position: 'sticky',
-  left: 0,
-  zIndex: 1,
-  padding: '8px 16px',
-  fontSize: '0.8125rem',
-  whiteSpace: 'nowrap',
-  borderRight: '1px solid var(--border)',
-  minWidth: 180,
+  position: 'sticky', left: 0, zIndex: 1, padding: '8px 16px',
+  fontSize: '0.8125rem', whiteSpace: 'nowrap',
+  borderRight: '1px solid var(--border)', minWidth: 170,
 }
 const numCell = {
-  padding: '8px 12px',
-  fontSize: '0.8125rem',
-  fontFamily: 'var(--font-mono)',
-  textAlign: 'right',
-  whiteSpace: 'nowrap',
+  padding: '8px 12px', fontSize: '0.8125rem',
+  fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap',
 }
 
-// ─────────────────────────────────────────────
-// DataTable component
-// ─────────────────────────────────────────────
-function DataTable({ rows, title, subtitle, loading }) {
+// ─── DataTable ──────────────────────────────────
+function DataTable({ rows, title, subtitle, loading, yearCols = [] }) {
   const [sortKey, setSortKey] = useState('avg_rating')
   const [sortDir, setSortDir] = useState('desc')
 
+  const allCols = [...ENTRY_COLS, ...yearCols, ...STAT_COLS]
+
   const handleSort = (key) => {
-    if (sortKey === key) {
-      setSortDir(d => d === 'desc' ? 'asc' : 'desc')
-    } else {
-      setSortKey(key)
-      setSortDir('desc')
-    }
+    if (sortKey === key) setSortDir(d => d === 'desc' ? 'asc' : 'desc')
+    else { setSortKey(key); setSortDir('desc') }
   }
 
   const sortedRows = [...rows].sort((a, b) => {
+    const col = allCols.find(c => c.key === sortKey)
+    if (col && col.isText) {
+      const av = (a[sortKey] || '').toString()
+      const bv = (b[sortKey] || '').toString()
+      return sortDir === 'desc' ? bv.localeCompare(av) : av.localeCompare(bv)
+    }
     const av = parseFloat(a[sortKey]) || 0
     const bv = parseFloat(b[sortKey]) || 0
     return sortDir === 'desc' ? bv - av : av - bv
@@ -166,66 +175,68 @@ function DataTable({ rows, title, subtitle, loading }) {
       <h3 style={sectionHead}>{title}</h3>
       {subtitle && <div style={trackSubtitle}>{subtitle}</div>}
       <div style={{ overflowX: 'auto', borderRadius: 8, border: '1px solid var(--border)' }}>
-        <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 800 }}>
+        <table style={{ borderCollapse: 'collapse', width: '100%' }}>
           <thead>
             <tr>
               <th style={stickyHead}>Driver</th>
-              {COLS.map(col => {
+              {allCols.map(col => {
                 const isActive = sortKey === col.key
+                const isYear   = !!col.isYear
                 return (
-                  <th
-                    key={col.key}
+                  <th key={col.key}
                     style={{
-                      ...numHead,
-                      color: isActive ? 'var(--accent)' : 'var(--text-secondary)',
-                      background: isActive ? 'var(--bg-card)' : 'var(--bg-elevated)',
+                      ...baseHead,
+                      textAlign: col.isText ? 'left' : 'right',
+                      minWidth: col.minWidth,
+                      color: isActive ? 'var(--accent)' : isYear ? 'var(--text-primary)' : 'var(--text-secondary)',
+                      background: isActive ? 'var(--bg-card)' : isYear ? 'rgba(99,102,241,0.07)' : 'var(--bg-elevated)',
+                      borderLeft: isYear ? '1px solid var(--border)' : undefined,
                     }}
                     onClick={() => handleSort(col.key)}
-                    title={`Sort by ${col.label}`}
+                    title={'Sort by ' + col.label}
                   >
                     {col.label}
-                    {isActive && (
-                      <span style={{ marginLeft: 4, fontSize: '0.65rem' }}>
-                        {sortDir === 'desc' ? '▼' : '▲'}
-                      </span>
-                    )}
+                    {isActive && <span style={{ marginLeft: 4, fontSize: '0.65rem' }}>{sortDir === 'desc' ? '▼' : '▲'}</span>}
                   </th>
                 )
               })}
             </tr>
           </thead>
           <tbody>
-            {sortedRows.map((row, i) => (
-              <tr key={row.driver} style={{ background: i % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-elevated)' }}>
-                <td style={{
-                  ...stickyCell,
-                  background: i % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-elevated)',
-                  fontWeight: i < 3 ? 600 : 400,
-                }}>
-                  <span style={{
-                    marginRight: 8,
-                    color: 'var(--text-muted)',
-                    fontSize: '0.75rem',
-                    fontFamily: 'var(--font-mono)',
-                    minWidth: 20,
-                    display: 'inline-block',
-                  }}>{i + 1}</span>
-                  {row.driver}
-                </td>
-                {COLS.map(col => (
-                  <td key={col.key} style={{
-                    ...numCell,
-                    color: col.highlight ? 'var(--accent)' : undefined,
-                    fontWeight: col.highlight ? 600 : undefined,
-                    background: sortKey === col.key
-                      ? (i % 2 === 0 ? 'rgba(var(--accent-rgb,99,102,241),0.06)' : 'rgba(var(--accent-rgb,99,102,241),0.04)')
-                      : undefined,
-                  }}>
-                    {fmtVal(row[col.key], col)}
+            {sortedRows.map((row, i) => {
+              const bg = i % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-elevated)'
+              return (
+                <tr key={row.driver} style={{ background: bg }}>
+                  <td style={{ ...stickyCell, background: bg, fontWeight: i < 3 ? 600 : 400 }}>
+                    <span style={{
+                      marginRight: 8, color: 'var(--text-muted)', fontSize: '0.7rem',
+                      fontFamily: 'var(--font-mono)', minWidth: 18, display: 'inline-block',
+                    }}>{i + 1}</span>
+                    {row.driver}
                   </td>
-                ))}
-              </tr>
-            ))}
+                  {allCols.map(col => {
+                    const isYear   = !!col.isYear
+                    const isActive = sortKey === col.key
+                    return (
+                      <td key={col.key} style={{
+                        ...numCell,
+                        textAlign: col.isText ? 'left' : 'right',
+                        color: col.highlight ? 'var(--accent)' : isYear ? 'var(--text-primary)' : undefined,
+                        fontWeight: col.highlight ? 600 : isYear ? 500 : undefined,
+                        borderLeft: isYear ? '1px solid var(--border)' : undefined,
+                        background: isActive
+                          ? (i % 2 === 0 ? 'rgba(99,102,241,0.06)' : 'rgba(99,102,241,0.04)')
+                          : isYear
+                          ? (i % 2 === 0 ? 'rgba(99,102,241,0.04)' : 'rgba(99,102,241,0.02)')
+                          : undefined,
+                      }}>
+                        {fmtVal(row[col.key], col)}
+                      </td>
+                    )
+                  })}
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>
@@ -233,26 +244,22 @@ function DataTable({ rows, title, subtitle, loading }) {
   )
 }
 
-// ─────────────────────────────────────────────
-// Main LoopData page
-// ─────────────────────────────────────────────
+// ─── Main page ──────────────────────────────────
 export default function LoopData({ isSubscriber }) {
-  const [series, setSeries]       = useState('cup')
-  const [config, setConfig]       = useState(null)
-  const [mainRows, setMainRows]   = useState([])
-  const [corrRows, setCorrRows]   = useState([])
-  const [corrNames, setCorrNames] = useState([])
-  const [loading, setLoading]     = useState(true)
-  const [error, setError]         = useState(null)
+  const [series, setSeries]             = useState('cup')
+  const [config, setConfig]             = useState(null)
+  const [mainRows, setMainRows]         = useState([])
+  const [corrRows, setCorrRows]         = useState([])
+  const [corrNames, setCorrNames]       = useState([])
+  const [hasEntryList, setHasEntryList] = useState(false)
+  const [loading, setLoading]           = useState(true)
+  const [error, setError]               = useState(null)
 
   useEffect(() => {
     let cancelled = false
-    setLoading(true)
-    setError(null)
-    setConfig(null)
-    setMainRows([])
-    setCorrRows([])
-    setCorrNames([])
+    setLoading(true); setError(null); setConfig(null)
+    setMainRows([]); setCorrRows([]); setCorrNames([])
+    setHasEntryList(false)
 
     async function load() {
       try {
@@ -260,49 +267,50 @@ export default function LoopData({ isSubscriber }) {
 
         // 1. Featured weekend config
         const { data: cfg, error: cfgErr } = await supabase
-          .from('featured_weekend')
-          .select('*')
-          .eq('series', s)
-          .single()
+          .from('featured_weekend').select('*').eq('series', s).single()
         if (cfgErr) throw new Error('Weekend config not set for this series.')
         if (cancelled) return
         setConfig(cfg)
 
-        // 2. Track-specific averages
+        // 2. Entry list
+        const { data: entryData } = await supabase
+          .from('entry_list')
+          .select('driver_name, car_number, organization')
+          .eq('series', s)
+          .eq('race_year', cfg.correlation_year)
+          .eq('track_name', cfg.track_name)
+        const entryMap = entryData && entryData.length
+          ? new Map(entryData.map(e => [e.driver_name, e]))
+          : null
+        if (cancelled) return
+        setHasEntryList(!!entryMap)
+
+        // 3. Main track data
         const { data: trackData, error: trackErr } = await supabase
           .from('loop_data')
-          .select('driver_name, start_position, finish_position, avg_position, driver_rating, quality_passes, pass_diff, pct_laps_led, pct_top15_laps, fastest_laps, stage1_finish, stage2_finish')
-          .eq('track_name', cfg.track_name)
-          .eq('series', s)
-          .in('year', cfg.track_years)
+          .select('driver_name, year, finish_position, start_position, avg_position, driver_rating, quality_passes, pass_diff, pct_laps_led, pct_top15_laps, fastest_laps, stage1_finish, stage2_finish')
+          .eq('track_name', cfg.track_name).eq('series', s).in('year', cfg.track_years)
         if (trackErr) throw trackErr
         if (cancelled) return
-        setMainRows(groupByDriver(trackData || []))
+        setMainRows(groupByDriver(trackData || [], entryMap, cfg.track_years))
 
-        // 3. Get correlated track names (all tracks in the same group)
+        // 4. Correlated track names
         const { data: correlated, error: corrTrackErr } = await supabase
-          .from('tracks')
-          .select('name')
-          .eq('correlation_group_label', cfg.correlation_label)
+          .from('tracks').select('name').eq('correlation_group_label', cfg.correlation_label)
         if (corrTrackErr) throw corrTrackErr
         const corrNameList = (correlated || []).map(t => t.name)
         if (cancelled) return
         setCorrNames(corrNameList)
 
-        // 4. Correlated tracks for the selected year
-        let corrData = []
+        // 5. Correlated loop data
         if (corrNameList.length) {
           const { data: cd, error: corrErr } = await supabase
             .from('loop_data')
-            .select('driver_name, start_position, finish_position, avg_position, driver_rating, quality_passes, pass_diff, pct_laps_led, pct_top15_laps, fastest_laps, stage1_finish, stage2_finish')
-            .in('track_name', corrNameList)
-            .eq('series', s)
-            .eq('year', cfg.correlation_year)
+            .select('driver_name, year, finish_position, start_position, avg_position, driver_rating, quality_passes, pass_diff, pct_laps_led, pct_top15_laps, fastest_laps, stage1_finish, stage2_finish')
+            .in('track_name', corrNameList).eq('series', s).eq('year', cfg.correlation_year)
           if (corrErr) throw corrErr
-          corrData = cd || []
+          if (!cancelled) setCorrRows(groupByDriver(cd || [], entryMap, null))
         }
-        if (cancelled) return
-        setCorrRows(groupByDriver(corrData))
       } catch (e) {
         if (!cancelled) setError(e.message)
       } finally {
@@ -315,72 +323,58 @@ export default function LoopData({ isSubscriber }) {
   }, [series])
 
   const mainTitle = config
-    ? `${config.track_label} Averages ${config.track_years.slice().sort().join('–')}`
+    ? config.track_label + ' Averages ' + config.track_years.slice().sort().join('–')
     : 'Track Averages'
-
   const corrTitle = config
-    ? `${config.correlation_label} Averages ${config.correlation_year}`
+    ? config.correlation_label + ' Averages ' + config.correlation_year
     : 'Correlated Track Averages'
+  const corrSubtitle = corrNames.length ? corrNames.slice().sort().join(' • ') : null
 
-  const corrSubtitle = corrNames.length
-    ? corrNames.slice().sort().join(' • ')
-    : null
+  const yearCols = config
+    ? [...config.track_years].sort((a, b) => a - b).map(yr => ({
+        key: 'y_' + yr, label: String(yr), decimals: 0, isYear: true, minWidth: 52,
+      }))
+    : []
 
   return (
-    <div style={{ padding: '24px 20px', maxWidth: 1200, margin: '0 auto' }}>
-      {/* Series tabs */}
+    <div style={{ padding: '24px 20px', maxWidth: 1300, margin: '0 auto' }}>
+
       <div style={{ display: 'flex', gap: 8, marginBottom: 28 }}>
         {SERIES_OPTIONS.map(opt => (
-          <button
-            key={opt.value}
-            onClick={() => setSeries(opt.value)}
-            style={{
-              padding: '7px 18px',
-              borderRadius: 6,
-              border: '1px solid var(--border)',
-              background: series === opt.value ? 'var(--accent)' : 'var(--bg-card)',
-              color: series === opt.value ? '#fff' : 'var(--text-secondary)',
-              fontWeight: series === opt.value ? 600 : 400,
-              cursor: 'pointer',
-              fontSize: '0.85rem',
-              transition: 'all 0.15s',
-            }}
-          >
-            {opt.label}
-          </button>
+          <button key={opt.value} onClick={() => setSeries(opt.value)} style={{
+            padding: '7px 18px', borderRadius: 6, border: '1px solid var(--border)',
+            background: series === opt.value ? 'var(--accent)' : 'var(--bg-card)',
+            color: series === opt.value ? '#fff' : 'var(--text-secondary)',
+            fontWeight: series === opt.value ? 600 : 400, cursor: 'pointer',
+            fontSize: '0.85rem', transition: 'all 0.15s',
+          }}>{opt.label}</button>
         ))}
       </div>
 
       {error && (
         <div style={{
-          padding: '12px 16px',
-          background: 'rgba(239,68,68,0.1)',
-          border: '1px solid rgba(239,68,68,0.3)',
-          borderRadius: 8,
-          color: 'var(--text-primary)',
-          fontSize: '0.875rem',
-          marginBottom: 24,
+          padding: '12px 16px', background: 'rgba(239,68,68,0.1)',
+          border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8,
+          color: 'var(--text-primary)', fontSize: '0.875rem', marginBottom: 24,
+        }}>{error}</div>
+      )}
+
+      {!loading && !error && !hasEntryList && (
+        <div style={{
+          padding: '9px 14px', background: 'rgba(234,179,8,0.07)',
+          border: '1px solid rgba(234,179,8,0.22)', borderRadius: 7,
+          color: 'var(--text-secondary)', fontSize: '0.8rem', marginBottom: 20,
         }}>
-          {error}
+          Entry list not yet configured — showing all available drivers. Add this week’s entry list in Admin once Jayski publishes it.
         </div>
       )}
 
-      {/* Main track table */}
-      <DataTable
-        rows={mainRows}
-        title={mainTitle}
-        loading={loading}
-      />
+      <DataTable rows={mainRows} title={mainTitle} loading={loading} yearCols={yearCols} />
 
-      {/* Correlated tracks table */}
       {!loading && !error && (
-        <DataTable
-          rows={corrRows}
-          title={corrTitle}
-          subtitle={corrSubtitle}
-          loading={false}
-        />
+        <DataTable rows={corrRows} title={corrTitle} subtitle={corrSubtitle} loading={false} yearCols={[]} />
       )}
+
     </div>
   )
 }
