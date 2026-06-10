@@ -156,6 +156,7 @@ export default function PracticeReportCard({ isSubscriber }) {
                   <th>Late Run</th>
                   <th>Best Lap</th>
                   <th>Stints</th>
+                  <th>Lng Stint</th>
                   <th>Trend</th>
                 </tr>
               </thead>
@@ -189,6 +190,7 @@ export default function PracticeReportCard({ isSubscriber }) {
                         {d.best_lap?.toFixed(3) || '—'}
                       </td>
                       <td style={{ fontFamily: 'var(--font-mono)' }}>{d.num_stints ?? '—'}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)' }}>{d.longest_stint ?? '—'}</td>
                       <td style={{ fontSize: '0.75rem', color: trend?.color }}>
                         {trend?.label || '—'}
                       </td>
