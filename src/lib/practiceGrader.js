@@ -1,6 +1,6 @@
 // ============================================================
 // NASCAR Practice Session Grader
-// Stint-aware methodology — V3 (updated weights + grade scale)
+// Stint-aware methodology — V3 (updated weights + percentile grade scale)
 // Weights are fixed and not exposed to users
 // ============================================================
 
@@ -88,17 +88,20 @@ function scaleValues(values, higherIsBetter = true) {
   })
 }
 
-function letterGrade(score) {
-  if (score >= 93) return 'A+'
-  if (score >= 87) return 'A'
-  if (score >= 82) return 'A-'
-  if (score >= 78) return 'B+'
-  if (score >= 74) return 'B'
-  if (score >= 70) return 'B-'
-  if (score >= 64) return 'C+'
-  if (score >= 58) return 'C'
-  if (score >= 50) return 'C-'
-  if (score >= 40) return 'D'
+// Percentile-based grade — rank within field determines grade
+// Thresholds tuned for ~36-40 driver fields
+function percentileGrade(rank, total) {
+  const pct = rank / total
+  if (pct <= 0.03) return 'A+'
+  if (pct <= 0.08) return 'A'
+  if (pct <= 0.13) return 'A-'
+  if (pct <= 0.21) return 'B+'
+  if (pct <= 0.32) return 'B'
+  if (pct <= 0.42) return 'B-'
+  if (pct <= 0.55) return 'C+'
+  if (pct <= 0.68) return 'C'
+  if (pct <= 0.79) return 'C-'
+  if (pct <= 0.89) return 'D'
   return 'F'
 }
 
@@ -121,16 +124,17 @@ export function gradeColor(grade) {
 
 export function trendLabel(slope) {
   if (slope < -0.010) return { label: '↑↑ Strong Gain', color: '#1E8449' }
-  if (slope < -0.004) return { label: '↑ Gaining',           color: '#27AE60' }
-  if (slope < 0.004)  return { label: '→ Stable',            color: '#2471A3' }
-  if (slope < 0.010)  return { label: '↓ Fading',            color: '#B7950B' }
-  return                     { label: '↓↓ Falling Off', color: '#922B21' }
+  if (slope < -0.004) return { label: '↑ Gaining',      color: '#27AE60' }
+  if (slope < 0.004)  return { label: '→ Stable',        color: '#2471A3' }
+  if (slope < 0.010)  return { label: '↓ Fading',        color: '#B7950B' }
+  return                     { label: '↓↓ Falling Off',  color: '#922B21' }
 }
 
 // Main grading function
 // Input: array of { driver, start, lapData: { '1': 37.5, '2': 37.8, ... } }
 // Output: array of graded driver objects sorted by composite score
 export function gradePracticeSession(drivers) {
+  // Parse stints and calculate raw metrics for each driver
   const parsed = drivers.map(d => {
     const stints = parseStints(d.lapData || {})
     const allLaps = stints.flat().map(([, t]) => t)
@@ -171,6 +175,7 @@ export function gradePracticeSession(drivers) {
     }
   })
 
+  // Scale each metric across the full field
   const overallAvgScores   = scaleValues(parsed.map(d => d.overallAvg),   false)
   const lateRunAvgScores   = scaleValues(parsed.map(d => d.lateRunAvg),   false)
   const bestLapScores      = scaleValues(parsed.map(d => d.bestLap),      false)
@@ -178,7 +183,8 @@ export function gradePracticeSession(drivers) {
   const consistencyScores  = scaleValues(parsed.map(d => d.consistency),  false)
   const longestStintScores = scaleValues(parsed.map(d => d.longestStint), true)
 
-  const graded = parsed.map((d, i) => {
+  // Calculate composite score using fixed weights (no grade yet — needs rank first)
+  const scored = parsed.map((d, i) => {
     const s_overall = overallAvgScores[i]
     const s_late    = lateRunAvgScores[i]
     const s_best    = bestLapScores[i]
@@ -189,22 +195,19 @@ export function gradePracticeSession(drivers) {
     let composite = null
     if (s_overall !== null) {
       composite = (
-        s_overall * WEIGHTS.overallAvg   +
-        s_late    * WEIGHTS.lateRunAvg   +
-        s_best    * WEIGHTS.bestLap      +
-        s_trend   * WEIGHTS.trendSlope   +
-        s_consist * WEIGHTS.consistency  +
-        s_longest * WEIGHTS.longestStint
+        (s_overall ?? 50) * WEIGHTS.overallAvg   +
+        (s_late    ?? 50) * WEIGHTS.lateRunAvg   +
+        (s_best    ?? 50) * WEIGHTS.bestLap      +
+        (s_trend   ?? 50) * WEIGHTS.trendSlope   +
+        (s_consist ?? 50) * WEIGHTS.consistency  +
+        (s_longest ?? 50) * WEIGHTS.longestStint
       )
       composite = Math.round(composite * 10) / 10
     }
 
-    const grade = composite !== null ? letterGrade(composite) : null
-
     return {
       ...d,
       composite,
-      grade,
       scores: {
         overallAvg:   s_overall !== null ? Math.round(s_overall * 10) / 10 : null,
         lateRunAvg:   s_late    !== null ? Math.round(s_late    * 10) / 10 : null,
@@ -216,11 +219,19 @@ export function gradePracticeSession(drivers) {
     }
   })
 
-  graded.sort((a, b) => {
+  // Sort by composite score descending, nulls at bottom
+  scored.sort((a, b) => {
     if (a.composite === null) return 1
     if (b.composite === null) return -1
     return b.composite - a.composite
   })
 
-  return graded.map((d, i) => ({ ...d, rank: i + 1 }))
+  // Assign rank and percentile grade now that sort order is known
+  const scoredCount = scored.filter(d => d.composite !== null).length
+
+  return scored.map((d, i) => ({
+    ...d,
+    rank: i + 1,
+    grade: d.composite !== null ? percentileGrade(i + 1, scoredCount) : null,
+  }))
 }
