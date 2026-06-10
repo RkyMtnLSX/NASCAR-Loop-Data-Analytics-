@@ -117,7 +117,7 @@ const stickyHead = {
   background: 'var(--bg-base)',
 }
 const baseHead = {
-  position: 'sticky', top: 0, background: 'var(--bg-elevated)',
+  position: 'sticky', top: 0, zIndex: 2, background: 'var(--bg-elevated)',
   padding: '10px 12px', fontSize: '0.75rem', fontWeight: 600,
   color: 'var(--text-secondary)', whiteSpace: 'nowrap',
   borderBottom: '1px solid var(--border)', background: 'var(--bg-elevated)',
@@ -191,13 +191,13 @@ function DataTable({ rows, title, subtitle, loading, yearCols = [] }) {
                       textAlign: col.isText ? 'left' : 'right',
                       minWidth: col.minWidth,
                       color: isActive ? 'var(--accent)' : isYear ? 'var(--text-primary)' : 'var(--text-secondary)',
-                      background: isActive ? 'var(--bg-surface)' : isYear ? 'rgba(99,102,241,0.07)' : 'var(--bg-elevated)',
+                      background: isActive ? 'var(--bg-surface)' : 'var(--bg-elevated)',
                       borderLeft: isYear ? '1px solid var(--border)' : undefined,
                     }}
                     onClick={() => handleSort(col.key)}
                     title={'Sort by ' + col.label}
                   >
-                    {col.label}
+                    {isYear ? <><div style={{fontSize:'0.6rem',opacity:0.6,letterSpacing:'0.06em',marginBottom:1}}>FIN</div>{col.label}</> : col.label}
                     {isActive && <span style={{ marginLeft: 4, fontSize: '0.65rem' }}>{sortDir === 'desc' ? '▼' : '▲'}</span>}
                   </th>
                 )
