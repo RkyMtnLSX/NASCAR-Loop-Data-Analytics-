@@ -279,8 +279,12 @@ export default function LoopData({ isSubscriber }) {
           .eq('series', s)
           .eq('race_year', cfg.correlation_year)
           .eq('track_name', cfg.track_name)
+            // 2b. Name aliases
+        const { data: aliasData } = await supabase.from('driver_aliases').select('alias, canonical_name')
+        const aliasLookup = new Map((aliasData || []).map(a => [a.alias, a.canonical_name]))
+        const normalize = n => aliasLookup.get(n) || n
         const entryMap = entryData && entryData.length
-          ? new Map(entryData.map(e => [e.driver_name, e]))
+          ? new Map(entryData.map(e => { const n = normalize(e.driver_name); return [n, {...e, driver_name: n}] }))
           : null
         if (cancelled) return
         setHasEntryList(!!entryMap)
