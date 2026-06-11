@@ -16,10 +16,11 @@ function fmtTime(sec) {
 
 // Map a normalized value 0 (fastest) → 1 (slowest) to a heatmap color
 function heatColor(t) {
-  // Green (120) → Yellow (60) → Red (0) in HSL
-  const hue = Math.round(120 - t * 120)
-  const sat = 72
-  const light = 36
+  // t=0 fastest (green 120°) → t=1 slowest (red 0°)
+  const hue = Math.round(120 * (1 - t))
+  const sat = 82
+  // Lift lightness near midpoint so yellow reads vivid, not muddy
+  const light = Math.round(37 + Math.sin(t * Math.PI) * 8)
   return {
     bg: `hsl(${hue}, ${sat}%, ${light}%)`,
     text: '#fff',
@@ -139,7 +140,7 @@ export default function PracticeLapTable({ isSubscriber }) {
   return (
     <div className="page">
       <div className="page-header">
-        <h1 className="page-title">Raw Lap Times</h1>
+        <h1 className="page-title">Lap By Lap Data</h1>
         <p className="page-subtitle">
           Full lap-by-lap breakdown — color coded fastest
           <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: 2, background: 'hsl(120,72%,36%)', verticalAlign: 'middle', margin: '0 4px' }} />
