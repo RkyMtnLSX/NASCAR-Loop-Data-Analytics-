@@ -181,7 +181,7 @@ export default function LapComparison({ isSubscriber }) {
   // Y-axis domain: pad around min/max of visible laps
   const yDomain = (() => {
     const active = allDrivers.filter(d => selectedDrivers.includes(d.driver_name))
-    if (!active.length) return ['_auto', 'auto']
+    if (!active.length) return ['auto', 'auto']
     const times = active.flatMap(d => d.laps.map(l => l.time))
     if (!times.length) return ['auto', 'auto']
     const mn = Math.min(...times)
@@ -439,6 +439,7 @@ CREATE INDEX ON practice_laps (series, year, track_name, session_number);`}</pre
                   </div>
                 )}
               </div>
+            </div>
             )}
           </>
         )}
