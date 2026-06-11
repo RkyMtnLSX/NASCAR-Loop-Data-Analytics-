@@ -150,6 +150,22 @@ export default function Nav({ isAdmin, onAdminClick }) {
             Track Correlations
           </Link>
 
+          {/* Betting Odds — free, no paywall */}
+          <Link to="/odds" style={{
+            ...linkStyle(location.pathname === '/odds'),
+            display: 'flex', alignItems: 'center', gap: 5,
+          }}>
+            Betting Odds
+            <span style={{
+              fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.06em',
+              padding: '1px 5px', borderRadius: 10,
+              background: 'rgba(34,197,94,0.12)', color: '#22c55e',
+              border: '1px solid rgba(34,197,94,0.25)',
+            }}>
+              FREE
+            </span>
+          </Link>
+
         </div>
 
         {/* Right side */}
