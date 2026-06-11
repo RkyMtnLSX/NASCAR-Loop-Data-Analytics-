@@ -187,7 +187,7 @@ export default function LapComparison({ isSubscriber }) {
     const mn = Math.min(...times)
     const mx = Math.max(...times)
     const pad = (mx - mn) * 0.1 || 0.5
-    return [Math.floor(mn - pad) * 1000) / 1000, Math.ceil((mx + pad) * 1000) / 1000]
+    return [Math.floor((mn - pad) * 1000) / 1000, Math.ceil((mx + pad) * 1000) / 1000]
   })()
 
   if (noTable) return (
