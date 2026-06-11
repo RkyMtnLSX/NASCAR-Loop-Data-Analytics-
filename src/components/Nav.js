@@ -150,6 +150,11 @@ export default function Nav({ isAdmin, onAdminClick }) {
             Track Correlations
           </Link>
 
+          {/* Qualifying Center */}
+          <Link to="/qualifying" style={linkStyle(location.pathname === '/qualifying')}>
+            Qualifying
+          </Link>
+
         </div>
 
         {/* Right side */}
