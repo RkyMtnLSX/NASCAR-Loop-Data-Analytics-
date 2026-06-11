@@ -254,7 +254,7 @@ export default function PracticeLapTable({ isSubscriber }) {
                         <td style={{ ...stickyTd(104, ri), minWidth: 160, fontWeight: 600, color: 'var(--text-primary)', borderRight: '1px solid var(--border)' }}>
                           {d.name}
                         </td>
-                        <td style={{ padding: '5px 12px 5px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text-primary)', borderRight: '1px solid var(--border)' }}>
+                        <td style={{ padding: '5px 12px 5px 8px', textAlign: 'right', fontWeight: 600, color: 'var(--text-primary)', borderRight: '1px solid var(--border)' }}>
                           {fmtTime(avg)}
                         </td>
                         {lapNumbers.map(n => {
