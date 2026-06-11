@@ -8,6 +8,7 @@ import PracticeReportCard from './pages/PracticeReportCard'
 import LapComparison from './pages/LapComparison'
 import PracticeLapTable from './pages/PracticeLapTable'
 import LoopData from './pages/LoopData'
+import OddsPage from './pages/OddsPage'
 import Admin from './pages/Admin'
 
 function Correlations({ isSubscriber }) {
@@ -55,6 +56,7 @@ export default function App() {
         <Route path="/practice-lap-table" element={<PracticeLapTable isSubscriber={isSubscriber} />} />
         <Route path="/loop-data" element={<LoopData isSubscriber={isSubscriber} />} />
         <Route path="/correlations" element={<Correlations isSubscriber={isSubscriber} />} />
+        <Route path="/odds" element={<OddsPage />} />
         <Route path="/subscribe" element={<Subscribe />} />
         <Route path="/admin" element={<Admin />} />
       </Routes>
