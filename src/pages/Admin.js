@@ -597,6 +597,7 @@ export default function Admin() {
               series, year, track_name: trackName, session_number: sessionNum,
               driver_name: d.driver,
               car_number: d.carNumber || null,
+              starting_position: d.start || null,
               lap_number: parseInt(lapNum),
               lap_time: t,
             })
