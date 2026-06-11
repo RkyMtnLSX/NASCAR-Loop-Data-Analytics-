@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 
 const PRACTICE_LINKS = [
@@ -15,6 +15,16 @@ const TOP_LINKS = [
 export default function Nav({ isAdmin, onAdminClick }) {
   const location = useLocation()
   const [practiceOpen, setPracticeOpen] = useState(false)
+  const closeTimer = useRef(null)
+
+  function openDropdown() {
+    if (closeTimer.current) clearTimeout(closeTimer.current)
+    setPracticeOpen(true)
+  }
+
+  function scheduleClose() {
+    closeTimer.current = setTimeout(() => setPracticeOpen(false), 200)
+  }
 
   const isPracticePage = location.pathname === '/practice' || location.pathname === '/lap-comparison'
 
@@ -76,8 +86,8 @@ export default function Nav({ isAdmin, onAdminClick }) {
           {/* Practice Center dropdown */}
           <div
             style={{ position: 'relative' }}
-            onMouseEnter={() => setPracticeOpen(true)}
-            onMouseLeave={() => setPracticeOpen(false)}
+            onMouseEnter={openDropdown}
+            onMouseLeave={scheduleClose}
           >
             <button style={{
               ...linkStyle(isPracticePage),
@@ -95,7 +105,7 @@ export default function Nav({ isAdmin, onAdminClick }) {
             {practiceOpen && (
               <div style={{
                 position: 'absolute',
-                top: 'calc(100% + 4px)',
+                top: '100%',
                 left: 0,
                 background: 'var(--bg-surface)',
                 border: '1px solid var(--border)',
@@ -156,9 +166,6 @@ export default function Nav({ isAdmin, onAdminClick }) {
               >
                 Sign In
               </button>
-              <Link to="/subscribe" className="btn btn-primary" style={{ fontSize: '0.75rem' }}>
-                Subscribe
-              </Link>
             </>
           )}
         </div>
