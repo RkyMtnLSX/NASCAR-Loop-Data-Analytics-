@@ -25,7 +25,7 @@ function heatColor(t) {
   const light = Math.round(40 + Math.sin(t * Math.PI) * 10)
   return {
     bg: `hsl(${hue}, ${sat}%, ${light}%)`,
-    text: '#fff',
+    text: '#000',
   }
 }
 
