@@ -3,8 +3,8 @@ import { Link, useLocation } from 'react-router-dom'
 
 const PRACTICE_LINKS = [
   { path: '/practice', label: 'Practice Report Cards' },
-  { path: '/lap-comparison', label: 'Lap by Lap Practice Data' },
-  { path: '/practice-lap-table', label: 'Raw Lap Times' },
+  { path: '/lap-comparison', label: 'Practice Comparison Tool' },
+  { path: '/practice-lap-table', label: 'Lap By Lap Data' },
 ]
 
 const TOP_LINKS = [
