@@ -1,0 +1,332 @@
+import React, { useState, useEffect, useMemo } from 'react'
+import { supabase } from '../lib/supabase'
+
+const SERIES_TABS = [
+  { value: 'cup',     label: 'Cup Series' },
+  { value: 'xfinity', label: "O'Reilly Series" },
+  { value: 'trucks',  label: 'Truck Series' },
+]
+
+function fmtTime(sec) {
+  if (sec == null || isNaN(sec)) return null
+  const m = Math.floor(sec / 60)
+  const s = (sec % 60).toFixed(3).padStart(6, '0')
+  return m > 0 ? `${m}:${s}` : sec.toFixed(3)
+}
+
+// Map a normalized value 0 (fastest) → 1 (slowest) to a heatmap color
+function heatColor(t) {
+  // Green (120) → Yellow (60) → Red (0) in HSL
+  const hue = Math.round(120 - t * 120)
+  const sat = 72
+  const light = 36
+  return {
+    bg: `hsl(${hue}, ${sat}%, ${light}%)`,
+    text: '#fff',
+  }
+}
+
+export default function PracticeLapTable({ isSubscriber }) {
+  const [series, setSeries]               = useState('cup')
+  const [sessions, setSessions]           = useState([])
+  const [selectedSession, setSelectedSession] = useState(null)
+  const [rows, setRows]                   = useState([])   // raw practice_laps rows
+  const [loading, setLoading]             = useState(false)
+  const [error, setError]                 = useState(null)
+
+  // Load available sessions
+  useEffect(() => {
+    let cancelled = false
+    setSessions([])
+    setSelectedSession(null)
+    setRows([])
+    setError(null)
+
+    supabase
+      .from('practice_laps')
+      .select('track_name, year, session_number, series')
+      .eq('series', series)
+      .order('year', { ascending: false })
+      .order('track_name')
+      .then(({ data, error: err }) => {
+        if (cancelled) return
+        if (err) { setError(err.message); return }
+        const seen = new Set()
+        const unique = []
+        for (const row of (data || [])) {
+          const key = `${row.year}|${row.track_name}|${row.session_number}`
+          if (!seen.has(key)) { seen.add(key); unique.push({ ...row, key }) }
+        }
+        setSessions(unique)
+        if (unique.length > 0) setSelectedSession(unique[0])
+      })
+
+    return () => { cancelled = true }
+  }, [series])
+
+  // Load lap data for selected session
+  useEffect(() => {
+    if (!selectedSession) { setRows([]); return }
+    let cancelled = false
+    setLoading(true)
+    setRows([])
+
+    supabase
+      .from('practice_laps')
+      .select('driver_name, car_number, starting_position, lap_number, lap_time')
+      .eq('series', selectedSession.series)
+      .eq('year', selectedSession.year)
+      .eq('track_name', selectedSession.track_name)
+      .eq('session_number', selectedSession.session_number)
+      .order('lap_number', { ascending: true })
+      .then(({ data, error: err }) => {
+        if (cancelled) return
+        setLoading(false)
+        if (err) { setError(err.message); return }
+        setRows(data || [])
+      })
+
+    return () => { cancelled = true }
+  }, [selectedSession])
+
+  // Build pivot table: drivers × lap columns
+  const { drivers, lapNumbers, globalMin, globalMax } = useMemo(() => {
+    if (!rows.length) return { drivers: [], lapNumbers: [], globalMin: 0, globalMax: 1 }
+
+    // Collect all lap numbers
+    const lapSet = new Set(rows.map(r => r.lap_number))
+    const lapNumbers = [...lapSet].sort((a, b) => a - b)
+
+    // Group by driver
+    const driverMap = {}
+    for (const row of rows) {
+      if (!driverMap[row.driver_name]) {
+        driverMap[row.driver_name] = {
+          name: row.driver_name,
+          car: row.car_number,
+          startPos: row.starting_position,
+          lapTimes: {},
+        }
+      }
+      driverMap[row.driver_name].lapTimes[row.lap_number] = row.lap_time
+    }
+
+    // Sort by starting position, then by avg lap time
+    const drivers = Object.values(driverMap).sort((a, b) => {
+      if (a.startPos != null && b.startPos != null) return a.startPos - b.startPos
+      if (a.startPos != null) return -1
+      if (b.startPos != null) return 1
+      const aAvg = Object.values(a.lapTimes).reduce((s, t) => s + t, 0) / Object.values(a.lapTimes).length
+      const bAvg = Object.values(b.lapTimes).reduce((s, t) => s + t, 0) / Object.values(b.lapTimes).length
+      return aAvg - bAvg
+    })
+
+    // Find global min/max for color scaling
+    const allTimes = rows.map(r => r.lap_time)
+    const globalMin = Math.min(...allTimes)
+    const globalMax = Math.max(...allTimes)
+
+    return { drivers, lapNumbers, globalMin, globalMax }
+  }, [rows])
+
+  const normalizeTime = (t) => (t - globalMin) / Math.max(globalMax - globalMin, 0.001)
+
+  const avgLap = (d) => {
+    const times = Object.values(d.lapTimes)
+    return times.reduce((s, t) => s + t, 0) / times.length
+  }
+
+  return (
+    <div className="page">
+      <div className="page-header">
+        <h1 className="page-title">Raw Lap Times</h1>
+        <p className="page-subtitle">
+          Full lap-by-lap breakdown — color coded fastest
+          <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: 2, background: 'hsl(120,72%,36%)', verticalAlign: 'middle', margin: '0 4px' }} />
+          to slowest
+          <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: 2, background: 'hsl(0,72%,36%)', verticalAlign: 'middle', margin: '0 4px' }} />
+        </p>
+      </div>
+
+      {/* Series tabs */}
+      <div className="tabs" style={{ marginBottom: 20 }}>
+        {SERIES_TABS.map(t => (
+          <button
+            key={t.value}
+            className={`tab ${series === t.value ? 'active' : ''}`}
+            onClick={() => setSeries(t.value)}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {error && (
+        <div style={{ padding: '10px 14px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, color: '#ef4444', fontSize: '0.8125rem', marginBottom: 20 }}>
+          {error}
+        </div>
+      )}
+
+      {!loading && !error && sessions.length === 0 && (
+        <div className="empty-state">
+          <h3>No lap data yet</h3>
+          <p>Upload a practice session in Admin to populate individual lap times.</p>
+        </div>
+      )}
+
+      {sessions.length > 0 && (
+        <>
+          {/* Session selector */}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 24 }}>
+            {sessions.map(s => (
+              <button
+                key={s.key}
+                onClick={() => setSelectedSession(s)}
+                className="btn btn-secondary"
+                style={{
+                  fontSize: '0.75rem', padding: '5px 12px',
+                  background: selectedSession?.key === s.key ? 'var(--bg-elevated)' : 'transparent',
+                  color: selectedSession?.key === s.key ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  borderColor: selectedSession?.key === s.key ? 'var(--accent)60' : 'var(--border)',
+                }}
+              >
+                {s.track_name} {s.year} — S{s.session_number}
+              </button>
+            ))}
+          </div>
+
+          {loading && (
+            <div className="empty-state">
+              <div className="spinner" style={{ margin: '0 auto 12px' }} />
+              <p>Loading lap data…</p>
+            </div>
+          )}
+
+          {!loading && drivers.length > 0 && (
+            <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid var(--border)' }}>
+              <table style={{
+                borderCollapse: 'collapse',
+                fontSize: '0.74rem',
+                whiteSpace: 'nowrap',
+                minWidth: '100%',
+              }}>
+                <thead>
+                  <tr style={{ background: 'var(--bg-elevated)', borderBottom: '2px solid var(--border)' }}>
+                    {/* Sticky left columns */}
+                    <th style={stickyTh(0)}>Start</th>
+                    <th style={stickyTh(52)}>Car</th>
+                    <th style={stickyTh(104, 160)}>Driver</th>
+                    <th style={{ ...th, textAlign: 'right', paddingRight: 12, borderRight: '1px solid var(--border)' }}>Avg Lap</th>
+                    {/* Lap number columns */}
+                    {lapNumbers.map(n => (
+                      <th key={n} style={{ ...th, textAlign: 'center', minWidth: 64 }}>
+                        {n}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {drivers.map((d, ri) => {
+                    const avg = avgLap(d)
+                    return (
+                      <tr
+                        key={d.name}
+                        style={{ background: ri % 2 === 0 ? 'var(--bg-surface)' : 'var(--bg-elevated)', borderBottom: '1px solid var(--border)' }}
+                      >
+                        {/* Start position */}
+                        <td style={stickyTd(0, ri)}>
+                          {d.startPos != null ? (
+                            <span style={{ fontFamily: 'var(--font-mono)', color: '#f59e0b', fontWeight: 600 }}>
+                              {d.startPos}
+                            </span>
+                          ) : '—'}
+                        </td>
+                        {/* Car number */}
+                        <td style={stickyTd(52, ri)}>
+                          <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
+                            {d.car ? `#${d.car}` : '—'}
+                          </span>
+                        </td>
+                        {/* Driver name */}
+                        <td style={{ ...stickyTd(104, ri), minWidth: 160, fontWeight: 600, color: 'var(--text-primary)', borderRight: '1px solid var(--border)' }}>
+                          {d.name}
+                        </td>
+                        {/* Average lap */}
+                        <td style={{ padding: '5px 12px 5px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text-primary)', borderRight: '1px solid var(--border)' }}>
+                          {fmtTime(avg)}
+                        </td>
+                        {/* Individual laps */}
+                        {lapNumbers.map(n => {
+                          const t = d.lapTimes[n]
+                          if (t == null) {
+                            return <td key={n} style={{ padding: '4px 0', textAlign: 'center', color: 'var(--text-muted)', opacity: 0.3 }}>—</td>
+                          }
+                          const norm = normalizeTime(t)
+                          const { bg, text } = heatColor(norm)
+                          return (
+                            <td
+                              key={n}
+                              title={`Lap ${n}: ${fmtTime(t)}`}
+                              style={{
+                                padding: '4px 6px',
+                                textAlign: 'center',
+                                background: bg,
+                                color: text,
+                                fontFamily: 'var(--font-mono)',
+                                fontWeight: 500,
+                                cursor: 'default',
+                              }}
+                            >
+                              {fmtTime(t)}
+                            </td>
+                          )
+                        })}
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
+// Shared header cell style
+const th = {
+  padding: '8px 6px',
+  fontWeight: 700,
+  fontSize: '0.7rem',
+  textTransform: 'uppercase',
+  letterSpacing: '0.04em',
+  color: 'var(--text-secondary)',
+  textAlign: 'left',
+}
+
+// Sticky header cells (for first 3 columns)
+function stickyTh(left, minWidth = 52) {
+  return {
+    ...th,
+    position: 'sticky',
+    left,
+    zIndex: 2,
+    background: 'var(--bg-elevated)',
+    minWidth,
+    borderRight: left === 104 ? '1px solid var(--border)' : undefined,
+  }
+}
+
+// Sticky body cells
+function stickyTd(left, rowIndex) {
+  return {
+    padding: '5px 6px',
+    position: 'sticky',
+    left,
+    zIndex: 1,
+    background: rowIndex % 2 === 0 ? 'var(--bg-surface)' : 'var(--bg-elevated)',
+    textAlign: 'left',
+    color: 'var(--text-secondary)',
+  }
+}
