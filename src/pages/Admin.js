@@ -13,6 +13,123 @@ const SERIES_OPTIONS = [
 
 const ALL_YEARS = [2022, 2023, 2024, 2025, 2026]
 
+// ── Load New Race ─────────────────────────────────────────────────────────────
+const SERIES_RR_CODES = { cup: 'W', oreilly: 'B', trucks: 'C' }
+
+function LoadNewRace() {
+  const [series, setSeries]           = useState('cup')
+  const [year, setYear]               = useState(new Date().getFullYear())
+  const [raceNumber, setRaceNumber]   = useState('')
+  const [loading, setLoading]         = useState(false)
+  const [log, setLog]                 = useState([])
+  const [result, setResult]           = useState(null)
+
+  const raceNumPadded = String(raceNumber || '').padStart(2, '0')
+  const previewUrl = raceNumber
+    ? `https://www.racing-reference.info/loopdata/${year}-${raceNumPadded}/${SERIES_RR_CODES[series]}`
+    : ''
+
+  function addLog(msg) {
+    setLog(prev => [...prev, msg])
+  }
+
+  async function handleLoad() {
+    if (!raceNumber) return
+    setLoading(true)
+    setLog([`Fetching: ${previewUrl}`])
+    setResult(null)
+    try {
+      const resp = await fetch('/api/load-race', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ year: parseInt(year), raceNumber: parseInt(raceNumber), series }),
+      })
+      const data = await resp.json()
+      if (!resp.ok) {
+        addLog(`✗ ${data.error || 'Unknown error'}`)
+        if (data.message) addLog(`  ${data.message}`)
+        setResult({ type: 'error', message: data.error || 'Failed' })
+      } else {
+        addLog(`✓ Race created: ${data.trackName} ${year} (${data.racingRefId})`)
+        addLog(`✓ Winner: ${data.winningDriver || 'unknown'}`)
+        addLog(`✓ ${data.driversLoaded} drivers loaded`)
+        if (data.errors > 0) {
+          addLog(`⚠ ${data.errors} row error(s):`)
+          ;(data.errorLog || []).forEach(e => addLog(`  · ${e}`))
+        }
+        setResult({ type: 'success', message: data.message })
+        setRaceNumber('')
+      }
+    } catch (err) {
+      addLog(`✗ ${err.message}`)
+      setResult({ type: 'error', message: err.message })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const inp = {
+    padding: '7px 10px', borderRadius: 6, border: '1px solid var(--border)',
+    background: 'var(--bg-elevated)', color: 'var(--text-primary)',
+    fontFamily: 'var(--font-sans)', fontSize: '0.8125rem', outline: 'none',
+  }
+  const labelSt = {
+    display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)',
+    marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.04em',
+  }
+
+  return (
+    <div className="card" style={{ marginBottom: 20 }}>
+      <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 6 }}>Load New Race</h2>
+      <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 20 }}>
+        Fetches loop data from Racing Reference and saves it to the database. Run once after each race weekend.
+      </p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 16 }}>
+        <div>
+          <label style={labelSt}>Series</label>
+          <select value={series} onChange={e => setSeries(e.target.value)} style={{ ...inp, width: '100%' }}>
+            {SERIES_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </div>
+        <div>
+          <label style={labelSt}>Year</label>
+          <input type="number" value={year} onChange={e => setYear(parseInt(e.target.value))} style={{ ...inp, width: '100%' }} />
+        </div>
+        <div>
+          <label style={labelSt}>Race Number</label>
+          <input
+            type="number" placeholder="e.g. 16" value={raceNumber}
+            onChange={e => setRaceNumber(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleLoad()}
+            style={{ ...inp, width: '100%' }}
+          />
+        </div>
+      </div>
+      {previewUrl && (
+        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 16, fontFamily: 'var(--font-mono)', wordBreak: 'break-all' }}>
+          {previewUrl}
+        </div>
+      )}
+      <button className="btn btn-primary" onClick={handleLoad} disabled={loading || !raceNumber} style={{ minWidth: 140, marginBottom: log.length > 0 ? 16 : 0 }}>
+        {loading ? 'Loading…' : 'Fetch & Load Race'}
+      </button>
+      {log.length > 0 && (
+        <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, padding: '12px 14px', fontFamily: 'var(--font-mono)', fontSize: '0.775rem', lineHeight: 1.7, marginTop: 16 }}>
+          {log.map((line, i) => (
+            <div key={i} style={{ color: line.startsWith('✓') ? '#22c55e' : line.startsWith('✗') ? '#ef4444' : line.startsWith('⚠') ? '#f59e0b' : 'var(--text-secondary)' }}>{line}</div>
+          ))}
+        </div>
+      )}
+      {result && (
+        <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 8, fontSize: '0.8125rem', background: result.type === 'success' ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)', border: `1px solid ${result.type === 'success' ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`, color: result.type === 'success' ? '#22c55e' : '#ef4444' }}>
+          {result.message}
+        </div>
+      )}
+    </div>
+  )
+}
+
+
 // Weekend Config Section
 function WeekendConfig() {
   const [configs, setConfigs] = useState({})
@@ -651,9 +768,10 @@ export default function Admin() {
     <div className="page" style={{ maxWidth: 960 }}>
       <div className="page-header">
         <h1 className="page-title">Admin</h1>
-        <p className="page-subtitle">Upload practice data &amp; configure featured weekends</p>
+        <p className="page-subtitle">Upload practice data, load race results &amp; configure featured weekends</p>
       </div>
 
+      <LoadNewRace />
       <WeekendConfig />
       <EntryListManager />
 
