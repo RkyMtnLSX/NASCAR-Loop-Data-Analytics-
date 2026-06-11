@@ -2,9 +2,9 @@ import React, { useState, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 
 const PRACTICE_LINKS = [
-  { path: '/practice', label: 'Practice Report Cards' },
-  { path: '/lap-comparison', label: 'Practice Comparison Tool' },
-  { path: '/practice-lap-table', label: 'Lap By Lap Data' },
+  { path: '/practice',           label: 'Practice Report Cards' },
+  { path: '/lap-comparison',     label: 'Practice Comparison Tool' },
+  { path: '/practice-lap-table', label: 'Raw Lap Times' },
 ]
 
 const TOP_LINKS = [
@@ -27,7 +27,7 @@ export default function Nav({ isAdmin, onAdminClick }) {
     closeTimer.current = setTimeout(() => setPracticeOpen(false), 200)
   }
 
-  const isPracticePage = location.pathname === '/practice' || location.pathname === '/lap-comparison'
+  const isPracticePage = PRACTICE_LINKS.some(l => location.pathname === l.path)
 
   const linkStyle = (active) => ({
     padding: '6px 12px',
@@ -148,22 +148,6 @@ export default function Nav({ isAdmin, onAdminClick }) {
           {/* Track Correlations */}
           <Link to="/correlations" style={linkStyle(location.pathname === '/correlations')}>
             Track Correlations
-          </Link>
-
-          {/* Betting Odds — free, no paywall */}
-          <Link to="/odds" style={{
-            ...linkStyle(location.pathname === '/odds'),
-            display: 'flex', alignItems: 'center', gap: 5,
-          }}>
-            Betting Odds
-            <span style={{
-              fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.06em',
-              padding: '1px 5px', borderRadius: 10,
-              background: 'rgba(34,197,94,0.12)', color: '#22c55e',
-              border: '1px solid rgba(34,197,94,0.25)',
-            }}>
-              FREE
-            </span>
           </Link>
 
         </div>
