@@ -166,6 +166,9 @@ export default function Nav({ isAdmin, onAdminClick }) {
               >
                 Sign In
               </button>
+              <Link to="/subscribe" className="btn btn-primary" style={{ fontSize: '0.75rem' }}>
+                Subscribe
+              </Link>
             </>
           )}
         </div>
