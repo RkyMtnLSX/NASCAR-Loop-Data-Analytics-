@@ -96,7 +96,7 @@ function fmtVal(val, col) {
   return fixed
 }
 
-// ─── Styles ────────────────────────────────────
+// Styles
 const sectionHead = {
   fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)',
   margin: '0 0 4px 0', textTransform: 'uppercase', letterSpacing: '0.06em',
@@ -108,8 +108,7 @@ const stickyHead = {
   position: 'sticky', top: 0, left: 0, zIndex: 3, background: 'var(--bg-elevated)',
   textAlign: 'left', padding: '10px 16px', fontSize: '0.75rem', fontWeight: 600,
   color: 'var(--text-secondary)', whiteSpace: 'nowrap',
-  borderBottom: '1px solid var(--border)', borderRight: '1px solid var(--border)', minWidth: 170, maxWidth: 180,
-  overflow: 'hidden', textOverflow: 'ellipsis',
+  borderBottom: '1px solid var(--border)', borderRight: '1px solid var(--border)', minWidth: 200,
   background: 'var(--bg-base)',
 }
 const baseHead = {
@@ -122,8 +121,7 @@ const baseHead = {
 const stickyCell = {
   position: 'sticky', left: 0, zIndex: 1, padding: '8px 16px',
   fontSize: '0.8125rem', whiteSpace: 'nowrap',
-  borderRight: '1px solid var(--border)', minWidth: 170, maxWidth: 180,
-  overflow: 'hidden', textOverflow: 'ellipsis',
+  borderRight: '1px solid var(--border)', minWidth: 200,
   background: 'var(--bg-base)',
 }
 const numCell = {
@@ -131,7 +129,7 @@ const numCell = {
   fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap',
 }
 
-// ─── DataTable ──────────────────────────────────
+// DataTable
 function DataTable({ rows, title, subtitle, loading, yearCols = [] }) {
   const [sortKey, setSortKey] = useState('avg_rating')
   const [sortDir, setSortDir] = useState('desc')
@@ -194,7 +192,7 @@ function DataTable({ rows, title, subtitle, loading, yearCols = [] }) {
                     title={'Sort by ' + col.label}
                   >
                     {isYear ? <><div style={{fontSize:'0.6rem',opacity:0.6,letterSpacing:'0.06em',marginBottom:1}}>FIN</div>{col.label}</> : col.label}
-                    {isActive && <span style={{ marginLeft: 4, fontSize: '0.65rem' }}>{sortDir === 'desc' ? '▼' : '▲'}</span>}
+                    {isActive && <span style={{ marginLeft: 4, fontSize: '0.65rem' }}>{sortDir === 'desc' ? '▼' : '�V�'}</span>}
                   </th>
                 )
               })}
@@ -206,12 +204,19 @@ function DataTable({ rows, title, subtitle, loading, yearCols = [] }) {
               return (
                 <tr key={row.driver} style={{ background: bg }}>
                   <td style={{ ...stickyCell, background: bg, fontWeight: i < 3 ? 600 : 400 }}>
-                    <span style={{
-                      marginRight: 8, color: 'var(--text-muted)', fontSize: '0.7rem',
-                      fontFamily: 'var(--font-mono)', minWidth: 18, display: 'inline-block',
-                    }}>{i + 1}</span>
-                    {row.car_number && <span style={{ marginRight: 6, color: 'var(--text-muted)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>{row.car_number}</span>}
-                    {row.driver}
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                      <span style={{
+                        color: 'var(--text-muted)', fontSize: '0.7rem',
+                        fontFamily: 'var(--font-mono)', minWidth: 18, flexShrink: 0, marginTop: 2,
+                      }}>{i + 1}</span>
+                      <div>
+                        <div>
+                          {row.car_number && <span style={{ marginRight: 6, color: 'var(--text-muted)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>{row.car_number}</span>}
+                          {row.driver}
+                        </div>
+                        {row.organization && <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: 1, fontWeight: 400 }}>{row.organization}</div>}
+                      </div>
+                    </div>
                   </td>
                   {allCols.map(col => {
                     const isYear   = !!col.isYear
@@ -243,7 +248,7 @@ function DataTable({ rows, title, subtitle, loading, yearCols = [] }) {
   )
 }
 
-// ─── Main page ──────────────────────────────────
+// Main page
 export default function LoopData({ isSubscriber }) {
   const [series, setSeries]             = useState('cup')
   const [config, setConfig]             = useState(null)
@@ -368,7 +373,7 @@ export default function LoopData({ isSubscriber }) {
           border: '1px solid rgba(234,179,8,0.22)', borderRadius: 7,
           color: 'var(--text-secondary)', fontSize: '0.8rem', marginBottom: 20,
         }}>
-          Entry list not yet configured — showing all available drivers. Add this week’s entry list in Admin once Jayski publishes it.
+          Entry list not yet configured — showing all available drivers. Add this week's entry list in Admin once Jayski publishes it.
         </div>
       )}
 
