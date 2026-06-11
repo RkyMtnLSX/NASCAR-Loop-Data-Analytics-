@@ -151,6 +151,9 @@ function WeekendConfig() {
     })
   }, [])
 
+  // Unique sorted list of all correlation group labels for the dropdown
+  const allGroups = [...new Set((tracks || []).map(t => t.correlation_group_label).filter(Boolean))].sort()
+
   function updateField(series, field, value) {
     setConfigs(prev => ({
       ...prev,
@@ -244,13 +247,16 @@ function WeekendConfig() {
 
               <div>
                 <label style={labelStyle}>Correlation Group</label>
-                <input
-                  type="text"
+                <select
                   value={cfg.correlation_label || ''}
                   onChange={e => updateField(s, 'correlation_label', e.target.value)}
-                  placeholder="e.g. High Speed Intermediates"
                   style={inputStyle}
-                />
+                >
+                  <option value="">Select group...</option>
+                  {allGroups.map(g => (
+                    <option key={g} value={g}>{g}</option>
+                  ))}
+                </select>
               </div>
 
               <div>
