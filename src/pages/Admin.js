@@ -6,18 +6,18 @@ import { gradePracticeSession } from '../lib/practiceGrader'
 const ADMIN_PASSWORD = process.env.REACT_APP_ADMIN_PASSWORD
 
 const SERIES_OPTIONS = [
-  { value: 'cup',     label: 'Cup Series' },
+  { value: 'cup', label: 'Cup Series' },
   { value: 'oreilly', label: "O'Reilly Series" },
-  { value: 'trucks',  label: 'Truck Series' },
+  { value: 'trucks', label: 'Truck Series' },
 ]
 
 const ALL_YEARS = [2022, 2023, 2024, 2025, 2026]
 
-//  Weekend Config Section 
+// Weekend Config Section
 function WeekendConfig() {
-  const [configs, setConfigs]       = useState({})
-  const [tracks, setTracks]         = useState([])
-  const [saving, setSaving]         = useState({})
+  const [configs, setConfigs] = useState({})
+  const [tracks, setTracks] = useState([])
+  const [saving, setSaving] = useState({})
   const [saveStatus, setSaveStatus] = useState({})
 
   useEffect(() => {
@@ -58,12 +58,12 @@ function WeekendConfig() {
       const track = tracks.find(t => t.name === cfg.track_name)
       const payload = {
         series,
-        track_name:        cfg.track_name,
-        track_label:       cfg.track_label || cfg.track_name.replace(/ Raceway| Motor Speedway| Superspeedway| International Speedway| Speedway/g, '').trim(),
-        track_years:       cfg.track_years || [],
+        track_name: cfg.track_name,
+        track_label: cfg.track_label || cfg.track_name.replace(/ Raceway| Motor Speedway| Superspeedway| International Speedway| Speedway/g, '').trim(),
+        track_years: cfg.track_years || [],
         correlation_label: cfg.correlation_label || (track ? track.correlation_group_label : ''),
-        correlation_year:  parseInt(cfg.correlation_year) || new Date().getFullYear(),
-        updated_at:        new Date().toISOString(),
+        correlation_year: parseInt(cfg.correlation_year) || new Date().getFullYear(),
+        updated_at: new Date().toISOString(),
       }
       const { error } = await supabase
         .from('featured_weekend')
@@ -189,27 +189,25 @@ function WeekendConfig() {
   )
 }
 
-//  Main Admin Page 
-
-//  Entry List Manager 
+// Entry List Manager
 const SERIES_OPTS = [
-  { value: 'cup',     label: 'Cup Series' },
+  { value: 'cup', label: 'Cup Series' },
   { value: 'oreilly', label: "O'Reilly Series" },
-  { value: 'trucks',  label: 'Truck Series' },
+  { value: 'trucks', label: 'Truck Series' },
 ]
 
 function EntryListManager() {
-  const [series, setSeries]         = React.useState('cup')
-  const [cfg, setCfg]               = React.useState(null)
-  const [entries, setEntries]       = React.useState([])
-  const [newCar, setNewCar]         = React.useState('')
-  const [newDriver, setNewDriver]   = React.useState('')
-  const [newOrg, setNewOrg]         = React.useState('')
-  const [bulkText, setBulkText]     = React.useState('')
-  const [showBulk, setShowBulk]     = React.useState(false)
-  const [pdfParsing, setPdfParsing]    = React.useState(false)
-  const [pdfStatus, setPdfStatus]      = React.useState('')
-  const [status, setStatus]         = React.useState(null)
+  const [series, setSeries] = React.useState('cup')
+  const [cfg, setCfg] = React.useState(null)
+  const [entries, setEntries] = React.useState([])
+  const [newCar, setNewCar] = React.useState('')
+  const [newDriver, setNewDriver] = React.useState('')
+  const [newOrg, setNewOrg] = React.useState('')
+  const [bulkText, setBulkText] = React.useState('')
+  const [showBulk, setShowBulk] = React.useState(false)
+  const [pdfParsing, setPdfParsing] = React.useState(false)
+  const [pdfStatus, setPdfStatus] = React.useState('')
+  const [status, setStatus] = React.useState(null)
 
   const showStatus = (msg, isErr) => {
     setStatus({ msg, isErr })
@@ -241,17 +239,15 @@ function EntryListManager() {
       const rows = []
       const ne = allItems.filter(s => s.trim())
       const cleanName = n => n.trim().replace(/\s*\([a-zA-Z]\)\s*$/, '').trim()
-            for (let i = 0; i < ne.length - 2; i++) {
+      for (let i = 0; i < ne.length - 2; i++) {
         const s = ne[i].trim()
         if (/^\d{1,3}$/.test(s) && +s < 200) {
           const drv = ne[i+1] ? cleanName(ne[i+1]) : ''
-                    const isMfrOrInd = n => /^\([a-zA-Z]\)$/.test(n) || /^(chevrolet|chevy|ford|toyota|tundra|silverado|f-?150|ram|dodge)/i.test(n)
+          const isMfrOrInd = n => /^\([a-zA-Z]\)$/.test(n) || /^(chevrolet|chevy|ford|toyota|tundra|silverado|f-?150|ram|dodge)/i.test(n)
           let org
           if (series === 'trucks') {
-            // Truck PDF: car# | driver | mfg | sponsor | owner | crew chief
             org = ne[i+4] ? ne[i+4].trim() : ''
           } else {
-            // Cup/Xfinity: car# | driver | org | ...
             const rawOrg = ne[i+2] ? ne[i+2].trim() : ''
             org = isMfrOrInd(rawOrg) ? (ne[i+3] ? ne[i+3].trim() : '') : rawOrg
           }
@@ -372,12 +368,11 @@ function EntryListManager() {
     <div className="card" style={{ marginBottom: 20 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
         <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, margin: 0 }}>
-          Entry List{cfg ? '  ' + cfg.track_label + ' ' + cfg.correlation_year : ''}
+          Entry List{cfg ? ' ' + cfg.track_label + ' ' + cfg.correlation_year : ''}
         </h2>
         <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{entries.length} drivers</span>
       </div>
 
-      {/* Series tabs */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
         {SERIES_OPTS.map(o => (
           <button key={o.value} onClick={() => setSeries(o.value)} style={btn({
@@ -388,7 +383,6 @@ function EntryListManager() {
         ))}
       </div>
 
-      {/* Add single driver */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
         <input placeholder="Car #" value={newCar} onChange={e => setNewCar(e.target.value)}
           style={{ ...inp, width: 64 }} />
@@ -401,7 +395,6 @@ function EntryListManager() {
         <button onClick={addEntry} style={btn({})}>+ Add</button>
       </div>
 
-      {/* PDF upload */}
       <div style={{ marginBottom: 16, padding: '12px 14px', background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 8 }}>
         <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--accent)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           Import from PDF
@@ -424,7 +417,7 @@ function EntryListManager() {
           </div>
         )}
       </div>
-      {/* Bulk import toggle */}
+
       <div style={{ marginBottom: 12 }}>
         <button onClick={() => setShowBulk(p => !p)} style={btn({
           background: 'transparent', color: 'var(--accent)',
@@ -461,7 +454,6 @@ function EntryListManager() {
         </div>
       )}
 
-      {/* Entries table */}
       {entries.length > 0 && (
         <div style={{ overflowX: 'auto', borderRadius: 7, border: '1px solid var(--border)' }}>
           <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: '0.8125rem' }}>
@@ -500,18 +492,18 @@ function EntryListManager() {
 }
 
 export default function Admin() {
-  const [authed, setAuthed]         = useState(false)
-  const [password, setPassword]     = useState('')
-  const [authError, setAuthError]   = useState('')
+  const [authed, setAuthed] = useState(false)
+  const [password, setPassword] = useState('')
+  const [authError, setAuthError] = useState('')
 
-  const [series, setSeries]         = useState('cup')
-  const [trackName, setTrackName]   = useState('')
-  const [year, setYear]             = useState(new Date().getFullYear())
+  const [series, setSeries] = useState('cup')
+  const [trackName, setTrackName] = useState('')
+  const [year, setYear] = useState(new Date().getFullYear())
   const [sessionNum, setSessionNum] = useState(1)
-  const [file, setFile]             = useState(null)
-  const [uploading, setUploading]   = useState(false)
+  const [file, setFile] = useState(null)
+  const [uploading, setUploading] = useState(false)
   const [uploadStatus, setUploadStatus] = useState(null)
-  const [preview, setPreview]       = useState(null)
+  const [preview, setPreview] = useState(null)
 
   function handleLogin(e) {
     e.preventDefault()
@@ -560,34 +552,74 @@ export default function Admin() {
         raceId = newRace.id
       }
 
+      // Delete and re-insert practice session summaries
       await supabase.from('practice_sessions').delete()
         .eq('race_id', raceId).eq('series', series).eq('session_number', sessionNum)
 
       const rows = preview.graded.map(d => ({
-        race_id:             raceId,
-        driver_name:         d.driver,
+        race_id: raceId,
+        driver_name: d.driver,
         series, year,
-        track_name:          trackName,
-        session_number:      sessionNum,
+        track_name: trackName,
+        session_number: sessionNum,
         qualifying_position: d.start,
-        car_number:          d.carNumber || null,
-        practice_group:      d.group     || null,
-        total_laps:          d.totalLaps,
-        best_lap:            d.bestLap,
-        overall_avg:         d.overallAvg,
-        late_run_avg:        d.lateRunAvg,
-        trend_slope:         d.trendSlope,
-        num_stints:          d.stints,
-        longest_stint:       d.longestStint,
-        practice_score:      d.composite,
-        practice_grade:      d.grade,
-        notes:               d.notes || null,
+        car_number: d.carNumber || null,
+        practice_group: d.group || null,
+        total_laps: d.totalLaps,
+        best_lap: d.bestLap,
+        overall_avg: d.overallAvg,
+        late_run_avg: d.lateRunAvg,
+        trend_slope: d.trendSlope,
+        num_stints: d.stints,
+        longest_stint: d.longestStint,
+        practice_score: d.composite,
+        practice_grade: d.grade,
+        notes: d.notes || null,
       }))
 
       const { error: insertError } = await supabase.from('practice_sessions').insert(rows)
       if (insertError) throw insertError
 
-      setUploadStatus({ type: 'success', message: `Uploaded ${rows.length} drivers  ${trackName} ${year} ${series} Session ${sessionNum}` })
+      // Also store individual lap times in practice_laps (if table exists and lapData is present)
+      try {
+        await supabase.from('practice_laps').delete()
+          .eq('series', series).eq('year', year)
+          .eq('track_name', trackName).eq('session_number', sessionNum)
+
+        const lapRows = []
+        for (const d of (preview.parsed.drivers || [])) {
+          if (!d.lapData) continue
+          const entries = Object.entries(d.lapData)
+          for (const [lapNum, lapTime] of entries) {
+            const t = parseFloat(lapTime)
+            if (isNaN(t) || t <= 0) continue
+            lapRows.push({
+              series, year, track_name: trackName, session_number: sessionNum,
+              driver_name: d.driver,
+              car_number: d.carNumber || null,
+              lap_number: parseInt(lapNum),
+              lap_time: t,
+            })
+          }
+        }
+
+        if (lapRows.length > 0) {
+          // Insert in batches of 500 to avoid request size limits
+          for (let i = 0; i < lapRows.length; i += 500) {
+            const batch = lapRows.slice(i, i + 500)
+            const { error: lapErr } = await supabase.from('practice_laps').insert(batch)
+            if (lapErr) throw lapErr
+          }
+        }
+      } catch (lapTableErr) {
+        // practice_laps table may not exist yet — don't fail the whole upload
+        console.warn('practice_laps insert skipped:', lapTableErr.message)
+      }
+
+      setUploadStatus({
+        type: 'success',
+        message: `Uploaded ${rows.length} drivers for ${trackName} ${year} ${series} Session ${sessionNum}`,
+      })
     } catch (err) {
       setUploadStatus({ type: 'error', message: err.message })
     } finally {
@@ -655,7 +687,7 @@ export default function Admin() {
 
         <div style={{ marginBottom: 16 }}>
           <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: 6 }}>
-            Practice Excel File  optional columns: Car # and Group (A/B)
+            Practice Excel File — optional columns: Car # and Group (A/B)
           </label>
           <input type="file" accept=".xlsx,.xls" onChange={handleFileSelect}
             style={{ width: '100%', padding: '8px 10px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', color: 'var(--text-secondary)', fontFamily: 'var(--font-sans)', fontSize: '0.8125rem', cursor: 'pointer' }} />
@@ -670,7 +702,7 @@ export default function Admin() {
         {preview && (
           <div>
             <div style={{ padding: '10px 14px', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)', marginBottom: 16, fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
-              Parsed {preview.parsed.totalDrivers} drivers from sheet "{preview.parsed.sheetName}"  ready to grade and upload
+              Parsed {preview.parsed.totalDrivers} drivers from sheet "{preview.parsed.sheetName}" — ready to grade and upload
             </div>
             <div className="table-wrap" style={{ marginBottom: 16 }}>
               <table>
