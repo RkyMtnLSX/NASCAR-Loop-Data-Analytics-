@@ -45,7 +45,7 @@ function Subscribe() {
 
 export default function App() {
   // Temporary subscriber state — will be replaced with real auth
-  const [isSubscriber] = useState(false)
+  const [isSubscriber] = useState(true) // TEMP: paywall disabled
 
   return (
     <BrowserRouter>
