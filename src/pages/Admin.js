@@ -183,6 +183,7 @@ function WeekendConfig() {
         track_years: cfg.track_years || [],
         correlation_label: cfg.correlation_label || (track ? track.correlation_group_label : ''),
         correlation_year: parseInt(cfg.correlation_year) || new Date().getFullYear(),
+        show_qual_sim: s === 'cup' ? (cfg.show_qual_sim || false) : undefined,
         updated_at: new Date().toISOString(),
       }
       const { error } = await supabase
@@ -290,6 +291,21 @@ function WeekendConfig() {
               </div>
             </div>
 
+            {s === 'cup' && (
+              <div style={{ marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <input
+                  type="checkbox"
+                  id="show_qual_sim"
+                  checked={cfg.show_qual_sim || false}
+                  onChange={e => updateField(s, 'show_qual_sim', e.target.checked)}
+                  style={{ accentColor: 'var(--accent)', width: 15, height: 15 }}
+                />
+                <label htmlFor="show_qual_sim" style={{ fontSize: '0.8125rem', color: 'var(--text-primary)', cursor: 'pointer' }}>
+                  Show Qualifying Simulation on Qualifying Center page
+                </label>
+              </div>
+            )}
+
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <button
                 className="btn btn-primary"
@@ -318,6 +334,99 @@ const SERIES_OPTS = [
   { value: 'oreilly', label: "O'Reilly Series" },
   { value: 'trucks', label: 'Truck Series' },
 ]
+
+// ── Load Qualifying ──────────────────────────────────────────────────────────
+function LoadQualifying() {
+  const [year, setYear] = useState(new Date().getFullYear())
+  const [raceNumber, setRaceNumber] = useState('')
+  const [trackName, setTrackName] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState(null)
+  const [log, setLog] = useState([])
+
+  function addLog(msg) { setLog(p => [...p, msg]) }
+
+  async function handleLoad() {
+    if (!year || !raceNumber || !trackName) {
+      setResult({ type: 'error', msg: 'Year, Race #, and Track Name are all required.' })
+      return
+    }
+    setLoading(true)
+    setResult(null)
+    setLog([])
+    addLog(`Fetching qualifying for race ${raceNumber} / ${year} at ${trackName}…`)
+    try {
+      const resp = await fetch('/api/load-qualifying', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ year, raceNumber: parseInt(raceNumber), series: 'cup', trackName }),
+      })
+      const data = await resp.json()
+      if (!resp.ok) {
+        addLog('Error: ' + (data.error || resp.statusText))
+        if (data.hint) addLog('Hint: ' + data.hint)
+        setResult({ type: 'error', msg: data.error || 'Unknown error' })
+      } else {
+        addLog(`✓ ${data.message}`)
+        if (data.pole) addLog(`Pole: ${data.pole}`)
+        setResult({ type: 'success', msg: `Loaded ${data.driversLoaded} qualifying results` })
+      }
+    } catch (err) {
+      addLog('Fetch error: ' + err.message)
+      setResult({ type: 'error', msg: err.message })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const inputStyle = {
+    background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+    borderRadius: 6, padding: '6px 10px', color: 'var(--text-primary)',
+    fontSize: '0.8125rem', width: '100%',
+  }
+  const labelStyle = { fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 4, display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }
+
+  return (
+    <div className="card" style={{ marginBottom: 24 }}>
+      <h3 style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: 16 }}>Load Qualifying Results</h3>
+      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 16 }}>
+        Cup Series only. Fetches from Racing Reference. Metric/rained-out sessions are automatically rejected.
+      </p>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr', gap: 12, marginBottom: 14 }}>
+        <div>
+          <label style={labelStyle}>Year</label>
+          <input type="number" value={year} onChange={e => setYear(parseInt(e.target.value))} style={inputStyle} min={2020} max={2030} />
+        </div>
+        <div>
+          <label style={labelStyle}>Race #</label>
+          <input type="number" value={raceNumber} onChange={e => setRaceNumber(e.target.value)} style={inputStyle} placeholder="e.g. 1" />
+        </div>
+        <div>
+          <label style={labelStyle}>Track Name (exact, for DB)</label>
+          <input type="text" value={trackName} onChange={e => setTrackName(e.target.value)} style={inputStyle} placeholder="e.g. Watkins Glen International" />
+        </div>
+      </div>
+      <button
+        onClick={handleLoad}
+        disabled={loading}
+        className="btn btn-primary"
+        style={{ fontSize: '0.8125rem', marginBottom: 12 }}
+      >
+        {loading ? '⟳ Loading…' : '↓ Fetch & Store Qualifying'}
+      </button>
+      {log.length > 0 && (
+        <div style={{ background: 'var(--bg-elevated)', borderRadius: 6, padding: '8px 12px', fontSize: '0.775rem', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', marginBottom: 10 }}>
+          {log.map((l, i) => <div key={i}>{l}</div>)}
+        </div>
+      )}
+      {result && (
+        <div style={{ padding: '8px 12px', borderRadius: 6, fontSize: '0.8rem', background: result.type === 'success' ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)', border: `1px solid ${result.type === 'success' ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`, color: result.type === 'success' ? '#22c55e' : '#ef4444' }}>
+          {result.msg}
+        </div>
+      )}
+    </div>
+  )
+}
 
 function EntryListManager() {
   const [series, setSeries] = React.useState('cup')
@@ -779,6 +888,7 @@ export default function Admin() {
 
       <LoadNewRace />
       <WeekendConfig />
+      <LoadQualifying />
       <EntryListManager />
 
       <div className="card" style={{ marginBottom: 20 }}>
