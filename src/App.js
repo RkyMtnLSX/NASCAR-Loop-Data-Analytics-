@@ -5,6 +5,7 @@ import './styles/global.css'
 import Nav from './components/Nav'
 import Landing from './pages/Landing'
 import PracticeReportCard from './pages/PracticeReportCard'
+import LapComparison from './pages/LapComparison'
 import LoopData from './pages/LoopData'
 import Admin from './pages/Admin'
 
@@ -47,12 +48,13 @@ export default function App() {
     <BrowserRouter>
       <Nav isAdmin={false} />
       <Routes>
-        <Route path="/"             element={<Landing />} />
-        <Route path="/practice"     element={<PracticeReportCard isSubscriber={isSubscriber} />} />
-        <Route path="/loop-data"    element={<LoopData isSubscriber={isSubscriber} />} />
+        <Route path="/" element={<Landing />} />
+        <Route path="/practice" element={<PracticeReportCard isSubscriber={isSubscriber} />} />
+        <Route path="/lap-comparison" element={<LapComparison isSubscriber={isSubscriber} />} />
+        <Route path="/loop-data" element={<LoopData isSubscriber={isSubscriber} />} />
         <Route path="/correlations" element={<Correlations isSubscriber={isSubscriber} />} />
-        <Route path="/subscribe"    element={<Subscribe />} />
-        <Route path="/admin"        element={<Admin />} />
+        <Route path="/subscribe" element={<Subscribe />} />
+        <Route path="/admin" element={<Admin />} />
       </Routes>
     </BrowserRouter>
   )
