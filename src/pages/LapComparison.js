@@ -119,7 +119,7 @@ export default function LapComparison({ isSubscriber }) {
     async function load() {
       const { data, error: err } = await supabase
         .from('practice_laps')
-        .select('driver_name, car_number, lap_number, lap_time')
+        .select('driver_name, car_number, lap_number, lap_time, starting_position')
         .eq('series', selectedSession.series)
         .eq('year', selectedSession.year)
         .eq('track_name', selectedSession.track_name)
@@ -135,7 +135,7 @@ export default function LapComparison({ isSubscriber }) {
       const map = {}
       for (const row of (data || [])) {
         if (!map[row.driver_name]) {
-          map[row.driver_name] = { driver_name: row.driver_name, car_number: row.car_number, laps: [] }
+          map[row.driver_name] = { driver_name: row.driver_name, car_number: row.car_number, starting_position: row.starting_position, laps: [] }
         }
         map[row.driver_name].laps.push({ lap: row.lap_number, time: row.lap_time })
       }
@@ -181,20 +181,20 @@ export default function LapComparison({ isSubscriber }) {
   // Y-axis domain: pad around min/max of visible laps
   const yDomain = (() => {
     const active = allDrivers.filter(d => selectedDrivers.includes(d.driver_name))
-    if (!active.length) return ['auto', 'auto']
+    if (!active.length) return ['_auto', 'auto']
     const times = active.flatMap(d => d.laps.map(l => l.time))
     if (!times.length) return ['auto', 'auto']
     const mn = Math.min(...times)
     const mx = Math.max(...times)
     const pad = (mx - mn) * 0.1 || 0.5
-    return [Math.floor((mn - pad) * 1000) / 1000, Math.ceil((mx + pad) * 1000) / 1000]
+    return [Math.floor(mn - pad) * 1000) / 1000, Math.ceil((mx + pad) * 1000) / 1000]
   })()
 
   if (noTable) return (
     <div className="page">
       <div className="page-header">
-        <h1 className="page-title">Lap by Lap Practice Data</h1>
-        <p className="page-subtitle">Compare raw lap times between drivers from the same practice session</p>
+        <h1 className="page-title">Practice Comparison Tool</h1>
+        <p className="page-subtitle">Head-to-head lap time comparison for matchup and group betting</p>
       </div>
       <div className="card" style={{ borderColor: 'rgba(99,102,241,0.3)' }}>
         <h3 style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: 8 }}>Setup required</h3>
@@ -229,8 +229,8 @@ CREATE INDEX ON practice_laps (series, year, track_name, session_number);`}</pre
   return (
     <div className="page">
       <div className="page-header">
-        <h1 className="page-title">Lap by Lap Practice Data</h1>
-        <p className="page-subtitle">Compare raw lap times between drivers from the same practice session</p>
+        <h1 className="page-title">Practice Comparison Tool</h1>
+        <p className="page-subtitle">Head-to-head lap time comparison for matchup and group betting</p>
       </div>
 
       {/* Series tabs */}
@@ -341,6 +341,7 @@ CREATE INDEX ON practice_laps (series, year, track_name, session_number);`}</pre
                           {d.driver_name}
                         </div>
                         <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                          {d.starting_position ? <span style={{ color: '#f59e0b', marginRight: 6 }}>P{d.starting_position}</span> : null}
                           {d.laps.length} laps · best {fmtTime(Math.min(...d.laps.map(l => l.time)))}
                         </div>
                       </div>
@@ -399,7 +400,7 @@ CREATE INDEX ON practice_laps (series, year, track_name, session_number);`}</pre
                       <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: '0.78rem' }}>
                         <thead>
                           <tr>
-                            {['Driver','Laps','Best','Avg','Late Run Avg (last 25%)'].map(h => (
+                            {['Driver','Start','Laps','Best','Avg','Late Run Avg (last 25%)'].map(h => (
                               <th key={h} style={{ padding: '6px 12px', textAlign: h === 'Driver' ? 'left' : 'right', color: 'var(--text-secondary)', fontWeight: 600, borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>{h}</th>
                             ))}
                           </tr>
@@ -415,15 +416,20 @@ CREATE INDEX ON practice_laps (series, year, track_name, session_number);`}</pre
                             const late = times.slice(-lateCount).reduce((s, t) => s + t, 0) / lateCount
                             return (
                               <tr key={name} style={{ background: idx % 2 === 0 ? 'var(--bg-surface)' : 'var(--bg-elevated)' }}>
-                                                     <td style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <td style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
                                   <div style={{ width: 10, height: 10, borderRadius: 2, background: DRIVER_COLORS[idx % DRIVER_COLORS.length], flexShrink: 0 }} />
                                   {d.car_number && <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', fontSize: '0.72rem' }}>#{d.car_number}</span>}
                                   <span style={{ fontWeight: 500 }}>{name}</span>
                                 </td>
+                                <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: '#f59e0b', fontWeight: 600 }}>
+                                  {d.starting_position ? `P${d.starting_position}` : '—'}
+                                </td>
                                 <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{times.length}</td>
                                 <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--accent)', fontWeight: 600 }}>{fmtTime(best)}</td>
                                 <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{fmtTime(avg)}</td>
-                                <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{fmtTime(late)}</td>
+                                <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: late < avg ? 'hsl(120,60%,50%)' : 'hsl(0,60%,50%)' }}>
+                                  {fmtTime(late)}
+                                </td>
                               </tr>
                             )
                           })}
@@ -433,10 +439,9 @@ CREATE INDEX ON practice_laps (series, year, track_name, session_number);`}</pre
                   </div>
                 )}
               </div>
-            </div>
-          )}
-        </>
-      )}
+            )}
+          </>
+        )}
     </div>
   )
 }
