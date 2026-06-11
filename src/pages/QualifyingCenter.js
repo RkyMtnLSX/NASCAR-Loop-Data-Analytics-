@@ -36,6 +36,42 @@ const TRACK_ABBR = {
   'North Wilkesboro Speedway': 'NWB',
 }
 
+// Qualifying format by track type (2026 rules)
+// 'road'         = Road Course: 20-min open session per group
+// 'superspeedway' = Daytona/Talladega/Atlanta: 2 rounds, top-10 advance
+// 'short-track'  = Bristol/Iowa/Martinsville/NWB/Richmond: 1 round, 2 laps
+// 'oval'         = All other ovals: 1 round, 1 lap
+const ROAD_COURSES = [
+  'Circuit of the Americas', 'Autodromo Hermanos Rodriguez',
+  'Grant Park Chicago', 'Chicago Street Course', 'Sonoma Raceway',
+  'Watkins Glen International', 'Charlotte Motor Speedway Roval',
+  'Indianapolis Motor Speedway Road Course', 'Road America',
+  'Mid-Ohio Sports Car Course', 'Portland International Raceway',
+]
+const SUPERSPEEDWAYS = [
+  'Daytona International Speedway', 'Talladega Superspeedway', 'Atlanta Motor Speedway',
+]
+const SHORT_TRACKS_2LAP = [
+  'Bristol Motor Speedway', 'Iowa Speedway', 'Martinsville Speedway',
+  'North Wilkesboro Speedway', 'Richmond Raceway',
+]
+
+function qualFormat(trackName) {
+  if (!trackName) return 'oval'
+  if (ROAD_COURSES.some(t => trackName.includes(t.split(' ')[0]))) return 'road'
+  if (SUPERSPEEDWAYS.some(t => trackName.includes(t.split(' ')[0]))) return 'superspeedway'
+  if (SHORT_TRACKS_2LAP.some(t => trackName.includes(t.split(' ')[0]))) return 'short-track'
+  return 'oval'
+}
+
+const QUAL_FORMAT_LABELS = {
+  'road':          { label: 'Road Course',   color: '#6366f1', desc: 'Open session per group' },
+  'superspeedway': { label: 'Superspeedway', color: '#f59e0b', desc: '2 rounds · top 10 advance' },
+  'short-track':   { label: 'Short Track',   color: '#22c55e', desc: '1 round · 2 laps' },
+  'oval':          { label: 'Oval',           color: '#64748b', desc: '1 round · 1 lap' },
+}
+
+
 function trackAbbr(trackName) {
   if (!trackName) return '?'
   for (const [full, abbr] of Object.entries(TRACK_ABBR)) {
@@ -332,6 +368,20 @@ export default function QualifyingCenter({ isSubscriber }) {
           <h1 className="page-title" style={{ margin: 0 }}>Qualifying Center</h1>
           <p className="page-subtitle" style={{ margin: '4px 0 0' }}>
             Cup Series · {config.track_name} · {config.correlation_label}
+            {(() => {
+              const fmt = qualFormat(config.track_name)
+              const { label, color, desc } = QUAL_FORMAT_LABELS[fmt]
+              return (
+                <span style={{
+                  display: 'inline-block', marginLeft: 10, fontSize: '0.65rem', fontWeight: 700,
+                  letterSpacing: '0.06em', padding: '2px 8px', borderRadius: 20,
+                  background: color + '22', color, border: `1px solid ${color}55`,
+                  textTransform: 'uppercase', verticalAlign: 'middle', cursor: 'default',
+                }} title={desc}>
+                  {label}
+                </span>
+              )
+            })()}
           </p>
         </div>
         <button
