@@ -210,7 +210,7 @@ const { data: elRows } = await supabase
 .eq('series', 'cup')
 .eq('race_year', new Date().getFullYear())
 .eq('track_name', cfg.track_name)
-setEntryList(elRows && elRows.length > 0 ? elRows.map(r => r.driver_name.replace(/\s*\(i\)\s*$/, '').trim()) : null)
+setEntryList(elRows && elRows.length > 0 ? elRows.map(r => r.driver_name.replace(/\s*\(i\)\s*$/, '').replace(/\s*[#*]\s*$/, '').trim()) : null)
 
 // 5. Qualifying draw order
 const { data: orderRows } = await supabase
@@ -302,7 +302,7 @@ function normName(n) { return n.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 const NAME_ALIASES = { 'john hunter nemechek': 'john h nemechek' }
 function resolveNorm(n) { const k = normName(n); return NAME_ALIASES[k] || k }
 for (const qo of qualOrderData) {
-const name = resolveNorm(qo.driver_name.replace(/\s*\(i\)\s*$/, '').trim())
+const name = resolveNorm(qo.driver_name.replace(/\s*\(i\)\s*$/, '').replace(/\s*[#*]\s*$/, '').trim())
 qualOrderMap[name] = { order: qo.qualifying_order, group: qo.qualifying_group, carNumber: qo.car_number }
 }
 for (const d of Object.values(driverMap)) {
