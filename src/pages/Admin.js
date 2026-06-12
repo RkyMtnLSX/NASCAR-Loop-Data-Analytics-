@@ -430,20 +430,29 @@ function LoadQualifying() {
 
 function LoadQualifyingOrder() {
   const [jayskiUrl, setJayskiUrl] = React.useState('')
-  const [year, setYear]           = React.useState(new Date().getFullYear())
+  const [pdfUrl, setPdfUrl] = React.useState('')
+  const [year, setYear] = React.useState(new Date().getFullYear())
   const [trackName, setTrackName] = React.useState('')
-  const [loading, setLoading]     = React.useState(false)
-  const [result, setResult]       = React.useState(null)
-  const [log, setLog]             = React.useState([])
+  const [raceNumber, setRaceNumber] = React.useState('')
+  const [loading, setLoading] = React.useState(false)
+  const [result, setResult] = React.useState(null)
+  const [log, setLog] = React.useState([])
 
   async function handleLoad() {
-    if (!jayskiUrl.trim() || !trackName.trim()) return
+    if ((!jayskiUrl.trim() && !pdfUrl.trim()) || !trackName.trim()) return
     setLoading(true); setResult(null); setLog([])
     try {
       const res = await fetch('/api/load-qualifying-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jayskiUrl: jayskiUrl.trim(), year, trackName: trackName.trim(), series: 'cup' }),
+        body: JSON.stringify({
+          jayskiUrl: jayskiUrl.trim() || undefined,
+          pdfUrl: pdfUrl.trim() || undefined,
+          year,
+          trackName: trackName.trim(),
+          series: 'cup',
+          raceNumber: raceNumber ? parseInt(raceNumber) : undefined,
+        }),
       })
       const data = await res.json()
       setLog(data.log || [])
@@ -461,12 +470,12 @@ function LoadQualifyingOrder() {
     <div className="card" style={{ marginBottom: 20 }}>
       <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 8 }}>Load Qualifying Order</h2>
       <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 16 }}>
-        Paste a Jayski qualifying order page URL. The server will scrape the PDF and store qualifying order, group, and metric score.
+        Paste a Jayski page URL or a direct PDF URL. Stores qualifying order, group, and metric score.
       </p>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 10, marginBottom: 12, alignItems: 'end' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: 10, marginBottom: 12, alignItems: 'end' }}>
         <div>
-          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Jayski Qualifying Order URL</label>
+          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Jayski Page URL</label>
           <input value={jayskiUrl} onChange={e => setJayskiUrl(e.target.value)} placeholder="https://www.jayski.com/nascar-cup-series/...-qualifying-order/" style={inp} />
         </div>
         <div>
@@ -474,12 +483,23 @@ function LoadQualifyingOrder() {
           <input type="number" value={year} onChange={e => setYear(parseInt(e.target.value))} style={{ ...inp, width: 80 }} />
         </div>
         <div>
+          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Race #</label>
+          <input type="number" value={raceNumber} onChange={e => setRaceNumber(e.target.value)} placeholder="opt." style={{ ...inp, width: 70 }} />
+        </div>
+        <div>
           <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Track Name</label>
           <input value={trackName} onChange={e => setTrackName(e.target.value)} placeholder="Pocono Raceway" style={{ ...inp, width: 160 }} />
         </div>
       </div>
 
-      <button className="btn btn-primary" onClick={handleLoad} disabled={loading || !jayskiUrl.trim() || !trackName.trim()} style={{ minWidth: 140, marginBottom: 14 }}>
+      <div style={{ marginBottom: 14 }}>
+        <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>
+          Direct PDF URL <span style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 400 }}>(optional — use if Jayski page gives 403)</span>
+        </label>
+        <input value={pdfUrl} onChange={e => setPdfUrl(e.target.value)} placeholder="https://www.jayski.com/.../qualifying-order.pdf" style={inp} />
+      </div>
+
+      <button className="btn btn-primary" onClick={handleLoad} disabled={loading || (!jayskiUrl.trim() && !pdfUrl.trim()) || !trackName.trim()} style={{ minWidth: 140, marginBottom: 14 }}>
         {loading ? 'Loading...' : 'Fetch Order PDF'}
       </button>
 
@@ -490,13 +510,12 @@ function LoadQualifyingOrder() {
       )}
       {result && (
         <div style={{ fontSize: '0.8125rem', padding: '8px 12px', borderRadius: 6, background: result.error ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)', color: result.error ? '#ef4444' : '#22c55e', border: `1px solid ${result.error ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)'}` }}>
-          {result.error ? `Error: ${result.error}` : `Updated ${result.updated} / ${result.total} drivers (${result.notFound} not matched)`}
+          {result.error ? `Error: ${result.error}` : result.hint ? result.hint : `Updated ${result.updated} / ${result.total} drivers`}
         </div>
       )}
     </div>
   )
 }
-
 function EntryListManager() {
   const [series, setSeries] = React.useState('cup')
   const [cfg, setCfg] = React.useState(null)
