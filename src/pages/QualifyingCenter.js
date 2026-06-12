@@ -210,7 +210,7 @@ let elQuery = supabase
         .select('driver_name')
         .eq('series', 'cup')
         .eq('race_year', cfg.year)
-        .ilike('track_name', `${cfg.track_name.split(' ')[0]}%`)
+        .eq('track_name', cfg.track_name)
       const { data: elRows } = await elQuery
       // Strip (i) suffix so names match qualifying_results
       setEntryList(elRows && elRows.length > 0 ? elRows.map(r => r.driver_name.replace(/\s*\(i\)\s*$/, '').trim()) : null)
