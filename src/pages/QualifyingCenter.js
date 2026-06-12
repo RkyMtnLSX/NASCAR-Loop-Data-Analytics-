@@ -160,6 +160,7 @@ const [config, setConfig] = useState(null)
 const [qualData, setQualData] = useState([])
 const [corrTracks, setCorrTracks] = useState([])
 const [entryList, setEntryList] = useState(null) // null = not loaded yet; string[] = active driver names
+  const [qualOrderData, setQualOrderData] = useState([])
 const [loading, setLoading] = useState(true)
 const [error, setError] = useState(null)
 const [showSim, setShowSim] = useState(false)
@@ -516,7 +517,7 @@ style={{ fontSize: '0.75rem', padding: '5px 14px', marginLeft: 'auto' }}>
 </div>
 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 16, lineHeight: 1.6 }}>
 Monte Carlo simulation (2,000 runs) using each driver's historical qualifying positions at this track type.
-<strong style={{ color: 'var(--text-secondary)' }}> Note: does not yet account for qualifying order advantage.</strong>
+{qualOrderData.length > 0 && <strong style={{ color: '#f59e0b' }}> Qualifying draw order (QO column) has been loaded for this race.</strong>}
 </p>
 {simResults && (
 <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid var(--border)' }}>
