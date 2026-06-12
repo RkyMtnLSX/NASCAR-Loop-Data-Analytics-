@@ -299,12 +299,14 @@ d.historicalPositions = histPositions
 // Merge qualifying draw order into driver rows
 const qualOrderMap = {}
 function normName(n) { return n.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim() }
+const NAME_ALIASES = { 'john hunter nemechek': 'john h nemechek' }
+function resolveNorm(n) { const k = normName(n); return NAME_ALIASES[k] || k }
 for (const qo of qualOrderData) {
-const name = normName(qo.driver_name.replace(/\s*\(i\)\s*$/, '').trim())
+const name = resolveNorm(qo.driver_name.replace(/\s*\(i\)\s*$/, '').trim())
 qualOrderMap[name] = { order: qo.qualifying_order, group: qo.qualifying_group }
 }
 for (const d of Object.values(driverMap)) {
-const qo = qualOrderMap[normName(d.driver)]
+const qo = qualOrderMap[resolveNorm(d.driver)]
 d.qualOrder = qo?.order ?? null
 d.qualGroup = qo?.group ?? null
 }
