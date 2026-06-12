@@ -56,55 +56,69 @@ module.exports = async function handler(req, res) {
 
     if (!entries.length) throw new Error('No entries parsed from PDF')
 
-    // Match to qualifying_results rows and update
     const supabase = getSupabase()
-    const firstWord = trackName.split(' ')[0]
 
+    // STEP 1: Always upsert into qualifying_order table (works pre- and post-qualifying)
+    const orderRows = entries.map(entry => ({
+      series,
+      year: parseInt(year),
+      race_number: raceNumber ? parseInt(raceNumber) : null,
+      track_name: trackName,
+      car_number: entry.carNumber,
+      driver_name: entry.driverName,
+      qualifying_order: entry.order,
+      qualifying_group: entry.group || null,
+      metric_score: entry.metricScore || null
+    }))
+
+    const { error: upsertErr } = await supabase
+      .from('qualifying_order')
+      .upsert(orderRows, { onConflict: 'series,year,track_name,car_number' })
+
+    if (upsertErr) throw upsertErr
+
+    // STEP 2: Also sync to qualifying_results if rows already exist (post-qualifying bonus)
+    const firstWord = trackName.split(' ')[0]
     let query = supabase
       .from('qualifying_results')
-      .select('id, car_number, qualifying_position')
+      .select('id, car_number')
       .eq('series', series)
       .eq('year', year)
       .ilike('track_name', `${firstWord}%`)
 
     if (raceNumber) query = query.eq('race_number', raceNumber)
 
-    const { data: rows, error: fetchErr } = await query
-    if (fetchErr) throw fetchErr
+    const { data: rows } = await query
 
-    if (!rows || rows.length === 0) {
-      return res.status(200).json({
-        ok: true,
-        updated: 0,
-        hint: 'No qualifying_results rows found for this race. Load qualifying results first, then re-run this.'
-      })
+    let updatedResults = 0
+    if (rows && rows.length > 0) {
+      const carMap = {}
+      for (const row of rows) {
+        carMap[String(row.car_number).padStart(2, '0')] = row.id
+        carMap[String(row.car_number)] = row.id
+      }
+      for (const entry of entries) {
+        const id = carMap[entry.carNumber] || carMap[String(parseInt(entry.carNumber, 10))]
+        if (!id) continue
+        const { error: upErr } = await supabase
+          .from('qualifying_results')
+          .update({
+            qualifying_order: entry.order,
+            qualifying_group: entry.group || null,
+            metric_score: entry.metricScore || null
+          })
+          .eq('id', id)
+        if (!upErr) updatedResults++
+      }
     }
 
-    // Build lookup map: carNumber -> row id
-    const carMap = {}
-    for (const row of rows) {
-      carMap[String(row.car_number).padStart(2, '0')] = row.id
-      carMap[String(row.car_number)] = row.id
-    }
-
-    let updated = 0
-    for (const entry of entries) {
-      const id = carMap[entry.carNumber] || carMap[String(parseInt(entry.carNumber, 10))]
-      if (!id) continue
-
-      const { error: upErr } = await supabase
-        .from('qualifying_results')
-        .update({
-          qualifying_order: entry.order,
-          qualifying_group: entry.group || null,
-          metric_score: entry.metricScore || null
-        })
-        .eq('id', id)
-
-      if (!upErr) updated++
-    }
-
-    return res.status(200).json({ ok: true, updated, total: entries.length, entries })
+    return res.status(200).json({
+      ok: true,
+      saved: entries.length,
+      updatedResults,
+      total: entries.length,
+      entries
+    })
   } catch (err) {
     console.error('[load-qualifying-order]', err)
     return res.status(500).json({ error: err.message || String(err) })
