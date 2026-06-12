@@ -203,13 +203,14 @@ setQualData(rows || [])
 
 // 4. Entry list for filtering inactive drivers
 // Show all before entry list is loaded; filter to active drivers once loaded
-const { data: elRows } = await supabase
-.from('entry_list')
-.select('driver_name')
-.eq('series', 'cup')
-.eq('year', cfg.year)
-.eq('race_number', cfg.race_number)
-setEntryList(elRows && elRows.length > 0 ? elRows.map(r => r.driver_name) : null)
+let elQuery = supabase
+        .from('entry_list')
+        .select('driver_name')
+        .eq('series', 'cup')
+        .eq('year', cfg.year)
+      if (cfg.race_number) elQuery = elQuery.eq('race_number', cfg.race_number)
+      const { data: elRows } = await elQuery
+      setEntryList(elRows && elRows.length > 0 ? elRows.map(r => r.driver_name) : null)
 
 } catch (err) {
 setError(err.message)
