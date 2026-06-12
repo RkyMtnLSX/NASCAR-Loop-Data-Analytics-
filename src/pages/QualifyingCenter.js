@@ -161,14 +161,14 @@ export default function QualifyingCenter({ isSubscriber }) {
 const [config, setConfig] = useState(null)
 const [qualData, setQualData] = useState([])
 const [corrTracks, setCorrTracks] = useState([])
-const [entryList, setEntryList] = useState(null) // null = not loaded yet; string[] = active driver names
-  const [qualOrderData, setQualOrderData] = useState([])
+const [entryList, setEntryList] = useState(null)
+const [qualOrderData, setQualOrderData] = useState([])
 const [loading, setLoading] = useState(true)
 const [error, setError] = useState(null)
-const [showSim, setShowSim] = useState(false)
 const [simResults, setSimResults] = useState(null)
 const [simRunning, setSimRunning] = useState(false)
 const [sortBy, setSortBy] = useState('avg')
+const [sortDir, setSortDir] = useState('asc')
 
 const loadData = useCallback(async () => {
 setLoading(true)
@@ -204,16 +204,22 @@ if (rowErr) throw rowErr
 setQualData(rows || [])
 
 // 4. Entry list for filtering inactive drivers
-// Show all before entry list is loaded; filter to active drivers once loaded
-let elQuery = supabase
-        .from('entry_list')
-        .select('driver_name')
-        .eq('series', 'cup')
-        .eq('race_year', new Date().getFullYear())
-        .eq('track_name', cfg.track_name)
-      const { data: elRows } = await elQuery
-      // Strip (i) suffix so names match qualifying_results
-      setEntryList(elRows && elRows.length > 0 ? elRows.map(r => r.driver_name.replace(/\s*\(i\)\s*$/, '').trim()) : null)
+const { data: elRows } = await supabase
+.from('entry_list')
+.select('driver_name')
+.eq('series', 'cup')
+.eq('race_year', new Date().getFullYear())
+.eq('track_name', cfg.track_name)
+setEntryList(elRows && elRows.length > 0 ? elRows.map(r => r.driver_name.replace(/\s*\(i\)\s*$/, '').trim()) : null)
+
+// 5. Qualifying draw order
+const { data: orderRows } = await supabase
+.from('qualifying_order')
+.select('car_number, driver_name, qualifying_order, qualifying_group')
+.eq('series', 'cup')
+.eq('year', new Date().getFullYear())
+.eq('track_name', cfg.track_name)
+setQualOrderData(orderRows || [])
 
 } catch (err) {
 setError(err.message)
@@ -270,7 +276,7 @@ isFeatured: true,
 
 const allCols = [...histCols, ...featuredCurrYear, ...corrCols]
 
-// Build driver rows
+// Build driver rows from qualifying results
 const driverMap = {}
 for (const row of qualData) {
 if (!driverMap[row.driver_name]) {
@@ -290,26 +296,73 @@ d.trackAvg = histPositions.length > 0
 d.historicalPositions = histPositions
 }
 
+// Merge qualifying draw order into driver rows
+const qualOrderMap = {}
+for (const qo of qualOrderData) {
+const name = qo.driver_name.replace(/\s*\(i\)\s*$/, '').trim()
+qualOrderMap[name] = { order: qo.qualifying_order, group: qo.qualifying_group }
+}
+for (const d of Object.values(driverMap)) {
+const qo = qualOrderMap[d.driver]
+d.qualOrder = qo?.order ?? null
+d.qualGroup = qo?.group ?? null
+}
+
 const allPositions = qualData.map(r => r.qualifying_position).filter(p => p != null)
 const totalDrivers = allPositions.length > 0 ? Math.max(...allPositions) : 40
 
-// Build and filter rows
-// Before entry list is available: show all drivers
-// After entry list is loaded: show only drivers on the entry list
+// Filter to entry list
 let rows = Object.values(driverMap)
 if (entryList && entryList.length > 0) {
 rows = rows.filter(r => entryList.includes(r.driver))
 }
 
+// Sort handler
+function handleSort(key) {
+if (sortBy === key) {
+setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+} else {
+setSortBy(key)
+setSortDir('asc')
+}
+}
+function sortIndicator(key) {
+if (sortBy !== key) return ' ↕'
+return sortDir === 'asc' ? ' ↑' : ' ↓'
+}
+
+// Sort rows
+const dir = sortDir === 'asc' ? 1 : -1
 if (sortBy === 'avg') {
 rows.sort((a, b) => {
 if (a.trackAvg == null && b.trackAvg == null) return a.driver.localeCompare(b.driver)
 if (a.trackAvg == null) return 1
 if (b.trackAvg == null) return -1
-return a.trackAvg - b.trackAvg
+return dir * (a.trackAvg - b.trackAvg)
+})
+} else if (sortBy === 'name') {
+rows.sort((a, b) => dir * a.driver.localeCompare(b.driver))
+} else if (sortBy === 'qo') {
+rows.sort((a, b) => {
+if (a.qualOrder == null && b.qualOrder == null) return a.driver.localeCompare(b.driver)
+if (a.qualOrder == null) return 1
+if (b.qualOrder == null) return -1
+return dir * (a.qualOrder - b.qualOrder)
+})
+} else {
+const col = allCols.find(c => c.key === sortBy)
+if (col) {
+rows.sort((a, b) => {
+const aPos = a.positions[`${col.trackName}_${col.year}`]
+const bPos = b.positions[`${col.trackName}_${col.year}`]
+if (aPos == null && bPos == null) return a.driver.localeCompare(b.driver)
+if (aPos == null) return 1
+if (bPos == null) return -1
+return dir * (aPos - bPos)
 })
 } else {
 rows.sort((a, b) => a.driver.localeCompare(b.driver))
+}
 }
 
 function handleRunSim() {
@@ -331,6 +384,9 @@ color: 'var(--text-secondary)', textAlign: 'center',
 whiteSpace: 'nowrap', background: 'var(--bg-elevated)',
 borderBottom: '2px solid var(--border)',
 }
+const thSortable = {
+...thStyle, cursor: 'pointer', userSelect: 'none',
+}
 const tdBase = {
 padding: '5px 6px', textAlign: 'center',
 fontSize: '0.8rem', fontFamily: 'var(--font-mono)',
@@ -338,6 +394,7 @@ borderBottom: '1px solid var(--border)',
 }
 
 const hasData = rows.length > 0 && allCols.length > 0
+const hasQualOrder = qualOrderData.length > 0
 
 return (
 <div className="page" style={{ maxWidth: 1400 }}>
@@ -388,17 +445,20 @@ style={{ fontSize: '0.75rem', padding: '5px 14px' }}>
 
 {hasData && (
 <>
-<div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-<div style={{ display: 'flex', gap: 6 }}>
-{[['avg', `Avg @ ${trackAbbr(config.track_name)}`], ['name', 'A–Z']].map(([val, lbl]) => (
-<button key={val} onClick={() => setSortBy(val)} style={{
+<div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+<span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Sort:</span>
+{[
+['avg', `Avg @ ${trackAbbr(config.track_name)}`],
+['qo', 'Draw Order'],
+['name', 'A–Z'],
+].map(([val, lbl]) => (
+<button key={val} onClick={() => handleSort(val)} style={{
 padding: '4px 12px', borderRadius: 20, fontSize: '0.75rem',
 border: '1px solid var(--border)',
 background: sortBy === val ? 'var(--accent)' : 'var(--bg-elevated)',
 color: sortBy === val ? '#fff' : 'var(--text-secondary)', cursor: 'pointer',
-}}>{lbl}</button>
+}}>{lbl}{sortBy === val ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''}</button>
 ))}
-</div>
 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
 <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>P1</span>
 {[0, 0.2, 0.4, 0.6, 0.8, 1].map(pct => {
@@ -414,9 +474,15 @@ return <div key={pct} style={{ width: 18, height: 12, borderRadius: 3, backgroun
 <thead>
 <tr>
 <th style={{ ...thStyle, textAlign: 'center', width: 36 }}>#</th>
-<th style={{ ...thStyle, textAlign: 'left', paddingLeft: 14, minWidth: 170, position: 'sticky', left: 0, zIndex: 2 }}>Driver</th>
-<th style={{ ...thStyle, minWidth: 72, color: 'var(--accent)' }}>
-Avg<br /><span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>{trackAbbr(config.track_name)}</span>
+<th style={{ ...thSortable, textAlign: 'left', paddingLeft: 14, minWidth: 170, position: 'sticky', left: 0, zIndex: 2 }}
+onClick={() => handleSort('name')}>Driver{sortIndicator('name')}</th>
+{hasQualOrder && (
+<th style={{ ...thSortable, minWidth: 52, color: '#f59e0b' }}
+onClick={() => handleSort('qo')}>QO{sortIndicator('qo')}</th>
+)}
+<th style={{ ...thSortable, minWidth: 72, color: 'var(--accent)' }}
+onClick={() => handleSort('avg')}>
+Avg{sortIndicator('avg')}<br /><span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>{trackAbbr(config.track_name)}</span>
 </th>
 {histCols.length > 0 && (
 <th colSpan={histCols.length} style={{ ...thStyle, borderLeft: '2px solid rgba(99,102,241,0.3)', color: 'var(--accent)', opacity: 0.7 }}>
@@ -435,21 +501,28 @@ Avg<br /><span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0
 <tr>
 <th style={thStyle} />
 <th style={{ ...thStyle, textAlign: 'left', paddingLeft: 14, position: 'sticky', left: 0, zIndex: 2 }} />
+{hasQualOrder && <th style={thStyle} />}
 <th style={thStyle} />
 {histCols.map(col => (
-<th key={col.key} style={{ ...thStyle, borderLeft: col === histCols[0] ? '2px solid rgba(99,102,241,0.3)' : undefined }}>{col.label}</th>
+<th key={col.key} style={{ ...thSortable, borderLeft: col === histCols[0] ? '2px solid rgba(99,102,241,0.3)' : undefined }}
+onClick={() => handleSort(col.key)}>{col.label}{sortIndicator(col.key)}</th>
 ))}
 {featuredCurrYear.map(col => (
-<th key={col.key} style={{ ...thStyle, borderLeft: '2px solid rgba(99,102,241,0.5)' }}>{col.label}</th>
+<th key={col.key} style={{ ...thSortable, borderLeft: '2px solid rgba(99,102,241,0.5)' }}
+onClick={() => handleSort(col.key)}>{col.label}{sortIndicator(col.key)}</th>
 ))}
 {corrCols.map((col, i) => (
-<th key={col.key} style={{ ...thStyle, borderLeft: i === 0 ? '2px solid var(--border)' : undefined }}>{col.label}</th>
+<th key={col.key} style={{ ...thSortable, borderLeft: i === 0 ? '2px solid var(--border)' : undefined }}
+onClick={() => handleSort(col.key)}>{col.label}{sortIndicator(col.key)}</th>
 ))}
 </tr>
 </thead>
 <tbody>
 {rows.map((row, ri) => {
 const avgColor = row.trackAvg ? heatColor(Math.round(row.trackAvg), totalDrivers) : null
+const qoLabel = row.qualOrder != null
+? (row.qualGroup ? `${row.qualOrder}${String.fromCharCode(64 + row.qualGroup)}` : String(row.qualOrder))
+: '—'
 return (
 <tr key={row.driver} style={{ background: ri % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-elevated)' }}>
 <td style={{ ...tdBase, color: 'var(--text-muted)', fontSize: '0.72rem' }}>{ri + 1}</td>
@@ -463,6 +536,11 @@ position: 'sticky', left: 0, background: ri % 2 === 0 ? 'var(--bg-card)' : 'var(
 )}
 {row.driver}
 </td>
+{hasQualOrder && (
+<td style={{ ...tdBase, color: '#f59e0b', fontWeight: 700, fontSize: '0.75rem' }}>
+{qoLabel}
+</td>
+)}
 <td style={{ ...tdBase, background: avgColor ? avgColor.bg : 'transparent', color: avgColor ? avgColor.text : 'var(--text-muted)', fontWeight: 700 }}>
 {row.trackAvg != null ? row.trackAvg.toFixed(1) : '—'}
 </td>
@@ -503,6 +581,7 @@ return (
 <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 28, lineHeight: 1.6 }}>
 Avg column = mean qualifying position at {config.track_name} across {trackYears.join(', ') || 'selected years'}.
 Lower number = better qualifier. Use this as your baseline for PrizePicks over/under picks.
+{hasQualOrder && ' · QO = qualifying draw order (click to sort).'}
 </p>
 
 {config.show_qual_sim && (
@@ -521,7 +600,7 @@ style={{ fontSize: '0.75rem', padding: '5px 14px', marginLeft: 'auto' }}>
 </div>
 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 16, lineHeight: 1.6 }}>
 Monte Carlo simulation (2,000 runs) using each driver's historical qualifying positions at this track type.
-{qualOrderData.length > 0 && <strong style={{ color: '#f59e0b' }}> Qualifying draw order (QO column) has been loaded for this race.</strong>}
+{hasQualOrder && <strong style={{ color: '#f59e0b' }}> Qualifying draw order loaded — QO column visible in heatmap.</strong>}
 </p>
 {simResults && (
 <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid var(--border)' }}>
