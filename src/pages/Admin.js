@@ -481,9 +481,10 @@ function LoadQualifyingOrder() {
           s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'
           s.onload = res; s.onerror = rej; document.head.appendChild(s)
         })
-        window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-          'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
       }
+      // Always set workerSrc — even if pdfjsLib was already cached by another component
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
       setPdfStatus('Parsing PDF...')
       const arrayBuffer = await file.arrayBuffer()
       const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise
@@ -491,7 +492,18 @@ function LoadQualifyingOrder() {
       for (let p = 1; p <= pdf.numPages; p++) {
         const page = await pdf.getPage(p)
         const content = await page.getTextContent()
-        fullText += content.items.map(it => it.str).join(' ') + '\n'
+        // Group items by y-position so regex sees proper lines, not one giant joined string
+        const lineMap = {}
+        for (const item of content.items) {
+          if (!item.str || !item.str.trim()) continue
+          const y = Math.round(item.transform[5])
+          if (!lineMap[y]) lineMap[y] = []
+          lineMap[y].push({ x: item.transform[4], str: item.str })
+        }
+        const lines = Object.keys(lineMap)
+          .sort((a, b) => b - a) // higher y = higher on page
+          .map(y => lineMap[y].sort((a, b) => a.x - b.x).map(i => i.str).join(' '))
+        fullText += lines.join('\n') + '\n'
       }
       const entries = parseQualOrderPdf(fullText)
       if (entries.length === 0) {
