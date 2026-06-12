@@ -298,14 +298,29 @@ d.historicalPositions = histPositions
 
 // Merge qualifying draw order into driver rows
 const qualOrderMap = {}
+function normName(n) { return n.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim() }
 for (const qo of qualOrderData) {
-const name = qo.driver_name.replace(/\s*\(i\)\s*$/, '').trim()
+const name = normName(qo.driver_name.replace(/\s*\(i\)\s*$/, '').trim())
 qualOrderMap[name] = { order: qo.qualifying_order, group: qo.qualifying_group }
 }
 for (const d of Object.values(driverMap)) {
-const qo = qualOrderMap[d.driver]
+const qo = qualOrderMap[normName(d.driver)]
 d.qualOrder = qo?.order ?? null
 d.qualGroup = qo?.group ?? null
+}
+
+// Add entry-list drivers who have no historical data so they still appear
+if (entryList) {
+for (const name of entryList) {
+if (!driverMap[name]) {
+const qo = qualOrderMap[normName(name)]
+driverMap[name] = {
+driver: name, carNumber: null, positions: {},
+trackAvg: null, historicalPositions: [],
+qualOrder: qo?.order ?? null, qualGroup: qo?.group ?? null,
+}
+}
+}
 }
 
 const allPositions = qualData.map(r => r.qualifying_position).filter(p => p != null)
