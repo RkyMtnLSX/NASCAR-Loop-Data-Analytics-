@@ -209,7 +209,7 @@ let elQuery = supabase
         .from('entry_list')
         .select('driver_name')
         .eq('series', 'cup')
-        .eq('race_year', cfg.year)
+        .eq('race_year', new Date().getFullYear())
         .eq('track_name', cfg.track_name)
       const { data: elRows } = await elQuery
       // Strip (i) suffix so names match qualifying_results
