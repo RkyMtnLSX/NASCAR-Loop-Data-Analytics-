@@ -627,7 +627,7 @@ function LoadQualifyingOrder() {
       )}
       {result && (
         <div style={{ fontSize: '0.8125rem', padding: '8px 12px', borderRadius: 6, background: result.error ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)', color: result.error ? '#ef4444' : '#22c55e', border: `1px solid ${result.error ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)'}` }}>
-          {result.error ? `Error: ${result.error}` : result.hint ? result.hint : `Updated ${result.updated} / ${result.total} drivers`}
+          {result.error ? `Error: ${result.error}` : result.hint ? result.hint : `Saved ${result.saved} / ${result.total} drivers`}
         </div>
       )}
     </div>
