@@ -303,12 +303,13 @@ const NAME_ALIASES = { 'john hunter nemechek': 'john h nemechek' }
 function resolveNorm(n) { const k = normName(n); return NAME_ALIASES[k] || k }
 for (const qo of qualOrderData) {
 const name = resolveNorm(qo.driver_name.replace(/\s*\(i\)\s*$/, '').trim())
-qualOrderMap[name] = { order: qo.qualifying_order, group: qo.qualifying_group }
+qualOrderMap[name] = { order: qo.qualifying_order, group: qo.qualifying_group, carNumber: qo.car_number }
 }
 for (const d of Object.values(driverMap)) {
 const qo = qualOrderMap[resolveNorm(d.driver)]
 d.qualOrder = qo?.order ?? null
 d.qualGroup = qo?.group ?? null
+if (qo?.carNumber) d.carNumber = qo.carNumber
 }
 
 // Add entry-list drivers who have no historical data so they still appear
@@ -323,7 +324,7 @@ const norm = resolveNorm(name)
 if (!driverMap[name] && !driverNormLookup[norm]) {
 const qo = qualOrderMap[norm]
 driverMap[name] = {
-driver: name, carNumber: null, positions: {},
+driver: name, carNumber: qo?.carNumber ?? null, positions: {},
 trackAvg: null, historicalPositions: [],
 qualOrder: qo?.order ?? null, qualGroup: qo?.group ?? null,
 }
