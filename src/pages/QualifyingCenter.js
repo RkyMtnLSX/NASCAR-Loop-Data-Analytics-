@@ -310,10 +310,16 @@ d.qualGroup = qo?.group ?? null
 }
 
 // Add entry-list drivers who have no historical data so they still appear
+// Use norm-name dedup so "AJ Allmendinger" doesn't duplicate "A.J. Allmendinger"
+const driverNormLookup = {}
+for (const key of Object.keys(driverMap)) {
+driverNormLookup[resolveNorm(key)] = key
+}
 if (entryList) {
 for (const name of entryList) {
-if (!driverMap[name]) {
-const qo = qualOrderMap[normName(name)]
+const norm = resolveNorm(name)
+if (!driverMap[name] && !driverNormLookup[norm]) {
+const qo = qualOrderMap[norm]
 driverMap[name] = {
 driver: name, carNumber: null, positions: {},
 trackAvg: null, historicalPositions: [],
