@@ -110,27 +110,41 @@ function heatColor(pos, totalDrivers = 40) {
 const DRAW_SCALE = 4          // full swing first→last in position units
 const DRAW_CONFIDENCE = 0.22  // sqrt(R²) from empirical correlation
 
+// Recency weight: more recent data reflects current equipment/team situation better
+// effectiveWeight = recencyWeight(year) × trackWeight (2 for same-track, 1 for correlated)
+function recencyWeight(year) {
+  const age = new Date().getFullYear() - year
+  if (age <= 0) return 3.0   // current year
+  if (age === 1) return 2.0  // last year
+  if (age === 2) return 1.0  // 2 years ago
+  return 0.5                  // 3+ years ago
+}
+
 function runSimulation(drivers, numSims = 2000) {
   // Compute per-group sizes for within-group draw-order fraction
   const grp1Size = drivers.filter(d => d.qualGroup === 1).length || 1
   const grp2Size = drivers.filter(d => d.qualGroup === 2).length || 1
 
   const results = drivers.map(driver => {
-    const positions = driver.historicalPositions.filter(p => p != null)
-    if (positions.length === 0) return { ...driver, simMean: null, simP10: null, simP90: null }
-    const mean = positions.reduce((a, b) => a + b, 0) / positions.length
-    const variance = positions.reduce((s, p) => s + (p - mean) ** 2, 0) / positions.length
-    const stdDev = Math.sqrt(variance) || 3
+    // historicalPositions entries: { pos, year, trackWeight }
+    const entries = driver.historicalPositions.filter(e => e != null && e.pos != null)
+    if (entries.length === 0) return { ...driver, simMean: null, simP10: null, simP90: null }
+
+    // Weighted mean + variance: recency × track-relevance combined weight
+    const totalWeight = entries.reduce((s, e) => s + recencyWeight(e.year) * e.trackWeight, 0)
+    const weightedMean = entries.reduce((s, e) => s + recencyWeight(e.year) * e.trackWeight * e.pos, 0) / totalWeight
+    const weightedVariance = entries.reduce((s, e) => s + recencyWeight(e.year) * e.trackWeight * (e.pos - weightedMean) ** 2, 0) / totalWeight
+    const stdDev = Math.sqrt(weightedVariance) || 3
 
     // Draw order nudge: running later in the group = slightly better qualifying position
-    let adjustedMean = mean
+    let adjustedMean = weightedMean
     if (driver.qualOrder != null && driver.qualGroup != null) {
       const groupSize = driver.qualGroup === 1 ? grp1Size : grp2Size
       const drawFraction = groupSize > 1 ? (driver.qualOrder - 1) / (groupSize - 1) : 0.5
       // drawFraction: 0=first to run, 1=last to run
       // Negative nudge = better (lower) position number for later runners
       const drawNudge = -(drawFraction - 0.5) * DRAW_SCALE * DRAW_CONFIDENCE
-      adjustedMean = mean + drawNudge
+      adjustedMean = weightedMean + drawNudge
     }
 
     const samples = []
@@ -143,11 +157,11 @@ function runSimulation(drivers, numSims = 2000) {
     samples.sort((a, b) => a - b)
     return {
       ...driver,
-      simMean: mean,
+      simMean: weightedMean,
       simExpected: Math.round(samples[Math.floor(numSims * 0.5)]),
       simP10: samples[Math.floor(numSims * 0.1)],
       simP90: samples[Math.floor(numSims * 0.9)],
-      sampleCount: positions.length,
+      sampleCount: entries.length,
     }
   })
   return results.sort((a, b) => {
@@ -309,25 +323,25 @@ export default function QualifyingCenter({ isSubscriber }) {
   }
 
   for (const d of Object.values(driverMap)) {
-    // Same-track history (used for trackAvg display and double-weighted in simulation)
-    const sameTrackPos = trackYears
-      .map(yr => d.positions[`${config.track_name}_${yr}`])
-      .filter(p => p != null)
-    d.trackAvg = sameTrackPos.length > 0
-      ? sameTrackPos.reduce((a, b) => a + b, 0) / sameTrackPos.length
+    // Same-track history — trackWeight:2 so same-track counts double vs correlated
+    const sameTrackEntries = trackYears
+      .map(yr => ({ pos: d.positions[`${config.track_name}_${yr}`], year: yr, trackWeight: 2 }))
+      .filter(e => e.pos != null)
+    d.trackAvg = sameTrackEntries.length > 0
+      ? sameTrackEntries.reduce((a, e) => a + e.pos, 0) / sameTrackEntries.length
       : null
 
-    // Correlated tracks (same correlation group, different venue) — single weight
-    const corrPos = corrTracks
+    // Correlated tracks (same correlation group, different venue) — trackWeight:1
+    const corrEntries = corrTracks
       .filter(t => t !== config.track_name)
-      .map(t => d.positions[`${t}_${corrYear}`])
-      .filter(p => p != null)
+      .map(t => ({ pos: d.positions[`${t}_${corrYear}`], year: corrYear, trackWeight: 1 }))
+      .filter(e => e.pos != null)
 
-    // Simulation pool: same-track appears 2x (double weight) + correlated tracks 1x
-    // If driver has no same-track data at all, fall back to correlated only
-    d.historicalPositions = sameTrackPos.length > 0
-      ? [...sameTrackPos, ...sameTrackPos, ...corrPos]
-      : corrPos
+    // Simulation pool: {pos, year, trackWeight} entries for weighted sampling
+    // effectiveWeight = recencyWeight(year) × trackWeight
+    d.historicalPositions = sameTrackEntries.length > 0
+      ? [...sameTrackEntries, ...corrEntries]
+      : corrEntries
   }
 
   // Merge qualifying draw order into driver rows
@@ -658,7 +672,7 @@ export default function QualifyingCenter({ isSubscriber }) {
               </div>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 16, lineHeight: 1.6 }}>
                 Monte Carlo simulation (2,000 runs) using each driver&apos;s historical qualifying positions at this track type.
-                Correlated-track results included at 1&times; weight; same-track history at 2&times;.
+                Correlated-track results included at 1&times; weight; same-track history at 2&times;. Recent seasons weighted higher.
                 {hasQualOrder && <strong style={{ color: '#f59e0b' }}> Draw order loaded &mdash; later draw position applies a ≈&plusmn;0.9 position nudge.</strong>}
               </p>
               {simResults && (
@@ -670,7 +684,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                         <th style={{ ...thStyle, textAlign: 'left', paddingLeft: 14, minWidth: 160 }}>Driver</th>
                         <th style={{ ...thStyle, color: '#22c55e' }}>Projected</th>
                         <th style={thStyle}>Range (P10&ndash;P90)</th>
-                        <th style={thStyle}>Historical Avg</th>
+                        <th style={thStyle}>Wtd Avg</th>
                         <th style={thStyle}>Data pts</th>
                       </tr>
                     </thead>
