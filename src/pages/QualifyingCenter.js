@@ -298,7 +298,7 @@ d.historicalPositions = histPositions
 
 // Merge qualifying draw order into driver rows
 const qualOrderMap = {}
-function normName(n) { return n.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim() }
+function normName(n) { return n.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim() }
 for (const qo of qualOrderData) {
 const name = normName(qo.driver_name.replace(/\s*\(i\)\s*$/, '').trim())
 qualOrderMap[name] = { order: qo.qualifying_order, group: qo.qualifying_group }
@@ -335,7 +335,8 @@ const totalDrivers = allPositions.length > 0 ? Math.max(...allPositions) : 40
 // Filter to entry list
 let rows = Object.values(driverMap)
 if (entryList && entryList.length > 0) {
-rows = rows.filter(r => entryList.includes(r.driver))
+const entryNorms = new Set(entryList.map(n => resolveNorm(n)))
+rows = rows.filter(r => entryNorms.has(resolveNorm(r.driver)))
 }
 
 // Sort handler
