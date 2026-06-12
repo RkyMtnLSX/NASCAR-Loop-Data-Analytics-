@@ -437,9 +437,78 @@ function LoadQualifyingOrder() {
   const [loading, setLoading] = React.useState(false)
   const [result, setResult] = React.useState(null)
   const [log, setLog] = React.useState([])
+  const [tracks, setTracks] = React.useState([])
+  const [parsedEntries, setParsedEntries] = React.useState(null)
+  const [pdfParsing, setPdfParsing] = React.useState(false)
+  const [pdfStatus, setPdfStatus] = React.useState('')
+
+  React.useEffect(() => {
+    supabase.from('qualifying_results').select('track_name').eq('series', 'cup')
+      .then(({ data }) => {
+        const unique = [...new Set((data || []).map(r => r.track_name).filter(Boolean))].sort()
+        setTracks(unique)
+      })
+  }, [])
+
+  function parseQualOrderPdf(text) {
+    const hasGroup = /Group/i.test(text.slice(0, 300))
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
+    const entries = []
+    const clean = n => n.replace(/^\*\s*/, '').replace(/\s*\(i\)\s*$/, '').replace(/\s+/g, ' ').trim()
+    if (hasGroup) {
+      const re = /^(\d+)\s+(\d+)\s+(.+?)\s+([\d.]+)\s+(A|B|1|2)$/i
+      for (const line of lines) {
+        const m = line.match(re); if (!m) continue
+        const g = m[5].toUpperCase()
+        entries.push({ order: parseInt(m[1],10), carNumber: m[2].padStart(2,'0'), driverName: clean(m[3]), metricScore: parseFloat(m[4]), group: g==='A'||g==='1' ? 1 : 2 })
+      }
+    } else {
+      const re = /^(\d+)\s+(\d+)\s+(.+?)\s+([\d.]+)$/
+      for (const line of lines) {
+        const m = line.match(re); if (!m) continue
+        entries.push({ order: parseInt(m[1],10), carNumber: m[2].padStart(2,'0'), driverName: clean(m[3]), metricScore: parseFloat(m[4]), group: null })
+      }
+    }
+    return entries.sort((a,b) => a.order - b.order)
+  }
+
+  async function handlePdfUpload(file) {
+    setPdfParsing(true); setPdfStatus('Loading pdf.js...'); setParsedEntries(null)
+    try {
+      if (!window.pdfjsLib) {
+        await new Promise((res, rej) => {
+          const s = document.createElement('script')
+          s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'
+          s.onload = res; s.onerror = rej; document.head.appendChild(s)
+        })
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+          'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+      }
+      setPdfStatus('Parsing PDF...')
+      const arrayBuffer = await file.arrayBuffer()
+      const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise
+      let fullText = ''
+      for (let p = 1; p <= pdf.numPages; p++) {
+        const page = await pdf.getPage(p)
+        const content = await page.getTextContent()
+        fullText += content.items.map(it => it.str).join(' ') + '\n'
+      }
+      const entries = parseQualOrderPdf(fullText)
+      if (entries.length === 0) {
+        setPdfStatus('No entries found — check PDF format')
+      } else {
+        setParsedEntries(entries)
+        setPdfStatus('Parsed ' + entries.length + ' drivers — select track and click Save to DB')
+      }
+    } catch (err) {
+      setPdfStatus('Error: ' + err.message)
+    }
+    setPdfParsing(false)
+  }
 
   async function handleLoad() {
-    if ((!jayskiUrl.trim() && !pdfUrl.trim()) || !trackName.trim()) return
+    if (!trackName.trim()) return
+    if (!parsedEntries && !jayskiUrl.trim() && !pdfUrl.trim()) return
     setLoading(true); setResult(null); setLog([])
     try {
       const res = await fetch('/api/load-qualifying-order', {
@@ -448,6 +517,7 @@ function LoadQualifyingOrder() {
         body: JSON.stringify({
           jayskiUrl: jayskiUrl.trim() || undefined,
           pdfUrl: pdfUrl.trim() || undefined,
+          parsedEntries: parsedEntries || undefined,
           year,
           trackName: trackName.trim(),
           series: 'cup',
@@ -457,6 +527,7 @@ function LoadQualifyingOrder() {
       const data = await res.json()
       setLog(data.log || [])
       setResult(data)
+      if (!data.error) { setParsedEntries(null); setPdfStatus('') }
     } catch (err) {
       setResult({ error: err.message })
     } finally {
@@ -470,13 +541,42 @@ function LoadQualifyingOrder() {
     <div className="card" style={{ marginBottom: 20 }}>
       <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 8 }}>Load Qualifying Order</h2>
       <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 16 }}>
-        Paste a Jayski page URL or a direct PDF URL. Stores qualifying order, group, and metric score.
+        Upload a Jayski qualifying order PDF, or paste a page/PDF URL. Stores order, group, and metric score.
       </p>
+
+      <div style={{ marginBottom: 16, padding: '12px 14px', background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 8 }}>
+        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--accent)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          Upload PDF
+        </div>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <label style={{ cursor: pdfParsing ? 'wait' : 'pointer', display: 'inline-block' }}>
+            <input type="file" accept=".pdf,application/pdf" style={{ display: 'none' }} disabled={pdfParsing}
+              onChange={e => { const f = e.target.files && e.target.files[0]; if (f) handlePdfUpload(f); e.target.value = '' }} />
+            <span style={{ padding: '6px 18px', borderRadius: 5, background: 'var(--accent)', color: '#fff', fontWeight: 600, fontSize: '0.82rem', opacity: pdfParsing ? 0.7 : 1 }}>
+              {pdfParsing ? 'Parsing...' : 'Choose Qualifying Order PDF'}
+            </span>
+          </label>
+          <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>Download from Jayski, upload here — parsed in browser</span>
+        </div>
+        {pdfStatus && (
+          <div style={{ marginTop: 7, fontSize: '0.78rem', color: pdfStatus.startsWith('Error') ? '#f87171' : pdfStatus.startsWith('Parsed') ? '#4ade80' : 'var(--text-muted)' }}>
+            {pdfStatus}
+          </div>
+        )}
+        {parsedEntries && parsedEntries.length > 0 && (
+          <div style={{ marginTop: 8, fontFamily: 'monospace', fontSize: '0.72rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+            {parsedEntries.slice(0, 5).map(e => (
+              <div key={e.order}>{e.order}. #{e.carNumber} {e.driverName}{e.group ? ' (Grp ' + e.group + ')' : ''} — {e.metricScore}</div>
+            ))}
+            {parsedEntries.length > 5 && <div style={{ color: 'var(--text-muted)' }}>…and {parsedEntries.length - 5} more</div>}
+          </div>
+        )}
+      </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: 10, marginBottom: 12, alignItems: 'end' }}>
         <div>
-          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Jayski Page URL</label>
-          <input value={jayskiUrl} onChange={e => setJayskiUrl(e.target.value)} placeholder="https://www.jayski.com/nascar-cup-series/...-qualifying-order/" style={inp} />
+          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Jayski Page URL <span style={{ textTransform: 'none', fontWeight: 400 }}>(or leave blank if uploading PDF)</span></label>
+          <input value={jayskiUrl} onChange={e => setJayskiUrl(e.target.value)} placeholder="https://www.jayski.com/..." style={inp} />
         </div>
         <div>
           <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Year</label>
@@ -488,19 +588,24 @@ function LoadQualifyingOrder() {
         </div>
         <div>
           <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Track Name</label>
-          <input value={trackName} onChange={e => setTrackName(e.target.value)} placeholder="Pocono Raceway" style={{ ...inp, width: 160 }} />
+          <select value={trackName} onChange={e => setTrackName(e.target.value)} style={{ ...inp, width: 200 }}>
+            <option value="">Select track...</option>
+            {tracks.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
         </div>
       </div>
 
       <div style={{ marginBottom: 14 }}>
         <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>
-          Direct PDF URL <span style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 400 }}>(optional — use if Jayski page gives 403)</span>
+          Direct PDF URL <span style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 400 }}>(optional)</span>
         </label>
         <input value={pdfUrl} onChange={e => setPdfUrl(e.target.value)} placeholder="https://www.jayski.com/.../qualifying-order.pdf" style={inp} />
       </div>
 
-      <button className="btn btn-primary" onClick={handleLoad} disabled={loading || (!jayskiUrl.trim() && !pdfUrl.trim()) || !trackName.trim()} style={{ minWidth: 140, marginBottom: 14 }}>
-        {loading ? 'Loading...' : 'Fetch Order PDF'}
+      <button className="btn btn-primary" onClick={handleLoad}
+        disabled={loading || !trackName.trim() || (!parsedEntries && !jayskiUrl.trim() && !pdfUrl.trim())}
+        style={{ minWidth: 140, marginBottom: 14 }}>
+        {loading ? 'Saving...' : parsedEntries ? 'Save to DB' : 'Fetch Order PDF'}
       </button>
 
       {log.length > 0 && (
