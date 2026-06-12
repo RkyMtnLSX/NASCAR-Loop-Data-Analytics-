@@ -478,7 +478,7 @@ return <div key={pct} style={{ width: 18, height: 12, borderRadius: 3, backgroun
 onClick={() => handleSort('name')}>Driver{sortIndicator('name')}</th>
 {hasQualOrder && (
 <th style={{ ...thSortable, minWidth: 52, color: '#f59e0b' }}
-onClick={() => handleSort('qo')}>QO{sortIndicator('qo')}</th>
+onClick={() => handleSort('qo')}>Qualifying Order{sortIndicator('qo')}</th>
 )}
 <th style={{ ...thSortable, minWidth: 72, color: 'var(--accent)' }}
 onClick={() => handleSort('avg')}>
@@ -521,7 +521,7 @@ onClick={() => handleSort(col.key)}>{col.label}{sortIndicator(col.key)}</th>
 {rows.map((row, ri) => {
 const avgColor = row.trackAvg ? heatColor(Math.round(row.trackAvg), totalDrivers) : null
 const qoLabel = row.qualOrder != null
-? (row.qualGroup ? `${row.qualOrder}${String.fromCharCode(64 + row.qualGroup)}` : String(row.qualOrder))
+? String(row.qualOrder)
 : '—'
 return (
 <tr key={row.driver} style={{ background: ri % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-elevated)' }}>
@@ -581,7 +581,7 @@ return (
 <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 28, lineHeight: 1.6 }}>
 Avg column = mean qualifying position at {config.track_name} across {trackYears.join(', ') || 'selected years'}.
 Lower number = better qualifier. Use this as your baseline for PrizePicks over/under picks.
-{hasQualOrder && ' · QO = qualifying draw order (click to sort).'}
+{hasQualOrder && ' · Qualifying Order column = draw order (click to sort).'}
 </p>
 
 {config.show_qual_sim && (
