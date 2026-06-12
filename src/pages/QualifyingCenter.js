@@ -12,6 +12,8 @@ const TRACK_ABBR = {
 'Watkins Glen International': 'WG',
 'Charlotte Motor Speedway Roval': 'Roval',
 'Indianapolis Motor Speedway Road Course': 'Indy RC',
+'Indianapolis Motor Speedway': 'Indy',
+'Indianapolis Grand Prix Circuit': 'Indy GP',
 'Road America': 'Road Am',
 'Mid-Ohio Sports Car Course': 'Mid-Ohio',
 'Portland International Raceway': 'Portland',
@@ -207,10 +209,11 @@ let elQuery = supabase
         .from('entry_list')
         .select('driver_name')
         .eq('series', 'cup')
-        .eq('year', cfg.year)
-      if (cfg.race_number) elQuery = elQuery.eq('race_number', cfg.race_number)
+        .eq('race_year', cfg.year)
+        .ilike('track_name', `${cfg.track_name.split(' ')[0]}%`)
       const { data: elRows } = await elQuery
-      setEntryList(elRows && elRows.length > 0 ? elRows.map(r => r.driver_name) : null)
+      // Strip (i) suffix so names match qualifying_results
+      setEntryList(elRows && elRows.length > 0 ? elRows.map(r => r.driver_name.replace(/\s*\(i\)\s*$/, '').trim()) : null)
 
 } catch (err) {
 setError(err.message)
