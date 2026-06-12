@@ -304,7 +304,8 @@ export default function QualifyingCenter({ isSubscriber }) {
       driverMap[row.driver_name] = { driver: row.driver_name, carNumber: row.car_number, positions: {} }
     }
     const key = `${row.track_name}_${row.year}`
-    driverMap[row.driver_name].positions[key] = row.qualifying_position
+    // Only record position if a lap time was posted — excludes mechanical DNS entries
+    driverMap[row.driver_name].positions[key] = row.qualifying_speed != null ? row.qualifying_position : null
   }
 
   for (const d of Object.values(driverMap)) {
