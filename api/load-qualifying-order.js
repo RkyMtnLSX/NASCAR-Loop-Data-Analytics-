@@ -17,45 +17,46 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  const { jayskiUrl, pdfUrl: directPdfUrl, year, trackName, series = 'cup', raceNumber } = req.body || {}
-  if ((!jayskiUrl && !directPdfUrl) || !year || !trackName) {
-    return res.status(400).json({ error: 'Either jayskiUrl or pdfUrl is required, plus year and trackName' })
+  const { jayskiUrl, pdfUrl: directPdfUrl, parsedEntries, year, trackName, series = 'cup', raceNumber } = req.body || {}
+  if ((!jayskiUrl && !directPdfUrl && !parsedEntries) || !year || !trackName) {
+    return res.status(400).json({ error: 'Provide parsedEntries, pdfUrl, or jayskiUrl — plus year and trackName' })
   }
 
   try {
-    let resolvedPdfUrl
+    let entries
 
-    if (directPdfUrl) {
-      // Use provided PDF URL directly — skip Jayski page scrape
-      resolvedPdfUrl = directPdfUrl.trim()
+    if (parsedEntries && Array.isArray(parsedEntries) && parsedEntries.length > 0) {
+      // Client already parsed the PDF — skip fetch/parse entirely
+      entries = parsedEntries
     } else {
-      // 1. Fetch Jayski page to find PDF link
-      const pageRes = await fetch(jayskiUrl)
-      if (!pageRes.ok) throw new Error(`Jayski fetch failed: ${pageRes.status}`)
-      const html = await pageRes.text()
+      let resolvedPdfUrl
 
-      // Find PDF link in page
-      const pdfMatch = html.match(/href="([^"]*qualifying[^"]*\.pdf[^"]*)"/i)
-      if (!pdfMatch) throw new Error('No qualifying PDF link found on Jayski page')
+      if (directPdfUrl) {
+        resolvedPdfUrl = directPdfUrl.trim()
+      } else {
+        // Fetch Jayski page to find PDF link
+        const pageRes = await fetch(jayskiUrl)
+        if (!pageRes.ok) throw new Error(`Jayski fetch failed: ${pageRes.status}`)
+        const html = await pageRes.text()
 
-      resolvedPdfUrl = pdfMatch[1]
-      if (resolvedPdfUrl.startsWith('/')) resolvedPdfUrl = 'https://www.jayski.com' + resolvedPdfUrl
+        const pdfMatch = html.match(/href="([^"]*qualifying[^"]*\.pdf[^"]*)"/i)
+        if (!pdfMatch) throw new Error('No qualifying PDF link found on Jayski page')
+
+        resolvedPdfUrl = pdfMatch[1]
+        if (resolvedPdfUrl.startsWith('/')) resolvedPdfUrl = 'https://www.jayski.com' + resolvedPdfUrl
+      }
+
+      // Download and parse PDF
+      const pdfRes = await fetch(resolvedPdfUrl)
+      if (!pdfRes.ok) throw new Error(`PDF download failed: ${pdfRes.status}`)
+      const buffer = await pdfRes.arrayBuffer()
+      const data = await pdfParse(Buffer.from(buffer))
+      entries = parseQualifyingOrderPdf(data.text)
     }
 
-    // 2. Download PDF
-    const pdfRes = await fetch(resolvedPdfUrl)
-    if (!pdfRes.ok) throw new Error(`PDF download failed: ${pdfRes.status}`)
-    const buffer = await pdfRes.arrayBuffer()
-
-    // 3. Parse PDF
-    const data = await pdfParse(Buffer.from(buffer))
-    const text = data.text
-
-    // 4. Extract qualifying order
-    const entries = parseQualifyingOrderPdf(text)
     if (!entries.length) throw new Error('No entries parsed from PDF')
 
-    // 5. Match to qualifying_results rows and update
+    // Match to qualifying_results rows and update
     const supabase = getSupabase()
     const firstWord = trackName.split(' ')[0]
 
@@ -86,7 +87,6 @@ module.exports = async function handler(req, res) {
       carMap[String(row.car_number)] = row.id
     }
 
-    // Update each parsed entry
     let updated = 0
     for (const entry of entries) {
       const id = carMap[entry.carNumber] || carMap[String(parseInt(entry.carNumber, 10))]
@@ -112,14 +112,11 @@ module.exports = async function handler(req, res) {
 }
 
 function parseQualifyingOrderPdf(text) {
-  // Detect group format (A/B groups vs superspeedway)
   const hasGroup = /Group/i.test(text.slice(0, 300))
-
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
   const entries = []
 
   if (hasGroup) {
-    // Format: Order  Car#  Driver  Speed/Time  Group (A/B or 1/2)
     const lineRe = /^(\d+)\s+(\d+)\s+(.+?)\s+([\d.]+)\s+(A|B|1|2)$/i
     for (const line of lines) {
       const m = line.match(lineRe)
@@ -134,7 +131,6 @@ function parseQualifyingOrderPdf(text) {
       })
     }
   } else {
-    // Superspeedway format: Order  Car#  Driver  Speed (no group)
     const lineRe = /^(\d+)\s+(\d+)\s+(.+?)\s+([\d.]+)$/
     for (const line of lines) {
       const m = line.match(lineRe)
