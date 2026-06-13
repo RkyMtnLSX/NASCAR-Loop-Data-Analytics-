@@ -277,7 +277,11 @@ export default function QualifyingCenter({ isSubscriber }) {
   }
 
   const trackYears = config.track_years || []
-  const corrYear = config.correlation_year || new Date().getFullYear()
+  const corrYears = (config.correlation_years?.length
+    ? config.correlation_years
+    : [config.correlation_year]
+  ).filter(Boolean).sort((a, b) => b - a)  // newest first — recencyWeight() handles heavier weighting
+  const currentYear = new Date().getFullYear()
 
   const histCols = trackYears.map(yr => ({
     key: `hist_${yr}`,
@@ -288,22 +292,22 @@ export default function QualifyingCenter({ isSubscriber }) {
   }))
 
   const corrCols = corrTracks
-    .filter(t => t !== config.track_name)
-    .map(t => ({
-      key: `corr_${t}_${corrYear}`,
-      label: eventLabel(t, corrYear),
-      trackName: t,
-      year: corrYear,
-      isFeatured: false,
-    }))
+  .filter(t => t !== config.track_name)
+  .flatMap(t => corrYears.map(yr => ({
+    key: `corr_${t}_${yr}`,
+    label: eventLabel(t, yr),
+    trackName: t,
+    year: yr,
+    isFeatured: false,
+  })))
 
-  const featuredCurrYear = !trackYears.includes(corrYear) ? [{
-    key: `feat_curr_${corrYear}`,
-    label: eventLabel(config.track_name, corrYear),
-    trackName: config.track_name,
-    year: corrYear,
-    isFeatured: true,
-  }] : []
+  const featuredCurrYear = !trackYears.includes(currentYear) ? [{
+  key: `feat_curr_${currentYear}`,
+  label: eventLabel(config.track_name, currentYear),
+  trackName: config.track_name,
+  year: currentYear,
+  isFeatured: true,
+}] : []
 
   const allCols = [...histCols, ...featuredCurrYear, ...corrCols]
 
@@ -330,7 +334,7 @@ export default function QualifyingCenter({ isSubscriber }) {
     // Correlated tracks (same correlation group, different venue) — trackWeight:1
     const corrEntries = corrTracks
       .filter(t => t !== config.track_name)
-      .map(t => ({ pos: d.positions[`${t}_${corrYear}`], year: corrYear, trackWeight: 1 }))
+      .flatMap(t => corrYears.map(yr => ({ pos: d.positions[`${t}_${yr}`], year: yr, trackWeight: 1 })))
       .filter(e => e.pos != null)
 
     // Simulation pool: {pos, year, trackWeight} entries for weighted sampling
@@ -564,7 +568,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                   ))}
                   {corrCols.length > 0 && (
                     <th colSpan={corrCols.length} style={{ ...thStyle, borderLeft: '2px solid var(--border)', color: 'var(--text-secondary)' }}>
-                      {config.correlation_label} &middot; {corrYear}
+                      {config.correlation_label} &middot; {corrYears.join(', ')}
                     </th>
                   )}
                 </tr>
