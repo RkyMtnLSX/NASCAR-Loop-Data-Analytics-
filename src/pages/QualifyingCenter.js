@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import { qualSimilarity } from '../lib/trackSimilarity'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -605,10 +606,21 @@ export default function QualifyingCenter({ isSubscriber }) {
                     <th key={col.key} style={{ ...thSortable, borderLeft: '2px solid rgba(99,102,241,0.5)' }}
                       onClick={() => handleSort(col.key)}>{col.label}{sortIndicator(col.key)}</th>
                   ))}
-                  {corrCols.map((col, i) => (
-                    <th key={col.key} style={{ ...thSortable, borderLeft: i === 0 ? '2px solid var(--border)' : undefined }}
-                      onClick={() => handleSort(col.key)}>{col.label}{sortIndicator(col.key)}</th>
-                  ))}
+                  {corrCols.map((col, i) => {
+                    const sim = qualSimilarity(config.track_name, col.trackName)
+                    return (
+                      <th key={col.key} style={{ ...thSortable, borderLeft: i === 0 ? '2px solid var(--border)' : undefined }}
+                        onClick={() => handleSort(col.key)}>
+                        {col.label}{sortIndicator(col.key)}
+                        {sim != null && (
+                          <span style={{ display: 'block', fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.02em', marginTop: 2,
+                            color: sim >= 90 ? '#22c55e' : sim >= 75 ? '#f59e0b' : 'var(--text-muted)' }}>
+                            sim {sim}
+                          </span>
+                        )}
+                      </th>
+                    )
+                  })}
                 </tr>
               </thead>
               <tbody>
