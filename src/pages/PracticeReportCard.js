@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { gradeColor, trendLabel } from '../lib/practiceGrader'
+import { gradeColor, falloffLabel } from '../lib/practiceGrader'
 
 const SERIES_TABS = [
   { value: 'cup',      label: 'Cup Series' },
-  { value: 'oreilly',  label: "O'Reilly Series" },
+  { value: 'xfinity',  label: "O'Reilly Series" },
   { value: 'trucks',   label: 'Truck Series' },
 ]
 
@@ -89,7 +89,7 @@ export default function PracticeReportCard({ isSubscriber }) {
     <div className="page">
       <div className="page-header">
         <h1 className="page-title">Practice Report Cards</h1>
-        <p className="page-subtitle">Stint-aware practice grades — long run pace, late run average, trend &amp; consistency</p>
+        <p className="page-subtitle">Stint-aware practice grades — long run pace, short run pace, tire falloff &amp; consistency</p>
       </div>
 
       {/* Series tabs */}
@@ -162,18 +162,18 @@ export default function PracticeReportCard({ isSubscriber }) {
                   <th>Grade</th>
                   <th>Score</th>
                   <th>Laps</th>
-                  <th>Avg Lap</th>
-                  <th>Late Run</th>
+                  <th>Long Run</th>
+                  <th>Short Run</th>
                   <th>Best Lap</th>
                   <th>Stints</th>
-                  <th>Longest Stint</th>
-                  <th>Trend</th>
+                  <th>Longest</th>
+                  <th>Tire Falloff</th>
                 </tr>
               </thead>
               <tbody>
                 {visibleRows.map((d, i) => {
-                  const gc    = d.practice_grade ? gradeColor(d.practice_grade) : { bg: '#333', text: '#fff' }
-                  const trend = d.trend_slope !== null ? trendLabel(d.trend_slope) : null
+                  const gc      = d.practice_grade ? gradeColor(d.practice_grade) : { bg: '#333', text: '#fff' }
+                  const falloff = d.trend_slope !== null ? falloffLabel(d.trend_slope) : null
                   const grpColors = d.practice_group ? (GROUP_COLORS[d.practice_group] || { bg: '#555', text: '#fff' }) : null
                   return (
                     <tr key={d.id}>
@@ -210,14 +210,14 @@ export default function PracticeReportCard({ isSubscriber }) {
                       </td>
                       <td style={{ fontFamily: 'var(--font-mono)' }}>{d.total_laps ?? '—'}</td>
                       <td style={{ fontFamily: 'var(--font-mono)' }}>{d.overall_avg?.toFixed(3) || '—'}</td>
-                      <td style={{ fontFamily: 'var(--font-mono)' }}>{d.late_run_avg?.toFixed(3) || '—'}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>{d.late_run_avg?.toFixed(3) || '—'}</td>
                       <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent)' }}>
                         {d.best_lap?.toFixed(3) || '—'}
                       </td>
                       <td style={{ fontFamily: 'var(--font-mono)' }}>{d.num_stints ?? '—'}</td>
                       <td style={{ fontFamily: 'var(--font-mono)' }}>{d.longest_stint ?? '—'}</td>
-                      <td style={{ fontSize: '0.75rem', color: trend?.color }}>
-                        {trend?.label || '—'}
+                      <td style={{ fontSize: '0.75rem', color: falloff?.color }}>
+                        {falloff?.label || '—'}
                       </td>
                     </tr>
                   )
