@@ -114,6 +114,109 @@ function LoadNewRace() {
   )
 }
 
+// ── Load Qualifying ──────────────────────────────────────────────────────────
+function LoadQualifying() {
+  const [series, setSeries] = useState('cup')
+  const [year, setYear] = useState(new Date().getFullYear())
+  const [raceNumber, setRaceNumber] = useState('')
+  const [trackNameOverride, setTrackNameOverride] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [log, setLog] = useState([])
+  const [result, setResult] = useState(null)
+
+  const raceNumPadded = String(raceNumber || '').padStart(2, '0')
+  const seriesCodeMap = { cup: 'W', oreilly: 'B', trucks: 'C' }
+  const previewUrl = raceNumber
+    ? `https://www.racing-reference.info/qualresults/${year}-${raceNumPadded}/${seriesCodeMap[series]}/`
+    : ''
+
+  function addLog(msg) { setLog(prev => [...prev, msg]) }
+
+  async function handleLoad() {
+    if (!raceNumber) return
+    setLoading(true)
+    setLog([])
+    setResult(null)
+    addLog(`Loading qualifying ${year}-${raceNumPadded} (${series})...`)
+    try {
+      const body = { series, year: parseInt(year), raceNumber: parseInt(raceNumber) }
+      if (trackNameOverride.trim()) body.trackName = trackNameOverride.trim()
+      const res = await fetch('/api/load-qualifying', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Load failed')
+      setResult(data)
+      addLog(`✓ ${data.driversLoaded} drivers loaded for ${data.trackName} ${data.year}`)
+      if (data.pole) addLog(`  Pole: ${data.pole}`)
+    } catch (err) {
+      addLog(`✗ Error: ${err.message}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const inp = {
+    padding: '7px 10px', borderRadius: 6, border: '1px solid var(--border)',
+    background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontSize: '0.825rem',
+    fontFamily: 'var(--font-sans)',
+  }
+
+  return (
+    <div className="card" style={{ marginBottom: 20 }}>
+      <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 8 }}>Load Qualifying Results</h2>
+      <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 16 }}>
+        Pull qualifying results from Racing Reference into Supabase.
+      </p>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12, alignItems: 'flex-end' }}>
+        <div>
+          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Series</label>
+          <select value={series} onChange={e => setSeries(e.target.value)} style={inp}>
+            {SERIES_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Year</label>
+          <input type="number" value={year} onChange={e => setYear(e.target.value)} style={{ ...inp, width: 80 }} />
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Race #</label>
+          <input type="number" value={raceNumber} onChange={e => setRaceNumber(e.target.value)}
+            placeholder="e.g. 12" style={{ ...inp, width: 80 }}
+            onKeyDown={e => e.key === 'Enter' && handleLoad()} />
+        </div>
+        <div style={{ flex: 1, minWidth: 160 }}>
+          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Track Name Override (optional)</label>
+          <input type="text" value={trackNameOverride} onChange={e => setTrackNameOverride(e.target.value)}
+            placeholder="Auto-detected if blank" style={{ ...inp, width: '100%' }} />
+        </div>
+        <button className="btn btn-primary" onClick={handleLoad} disabled={loading || !raceNumber}
+          style={{ minWidth: 120, fontSize: '0.8125rem' }}>
+          {loading ? 'Loading...' : 'Load Qualifying'}
+        </button>
+      </div>
+      {previewUrl && (
+        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 10 }}>
+          Source: <a href={previewUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>{previewUrl}</a>
+        </div>
+      )}
+      {log.length > 0 && (
+        <div style={{ fontFamily: 'monospace', fontSize: '0.75rem', background: 'var(--bg-elevated)',
+          border: '1px solid var(--border)', borderRadius: 6, padding: '10px 12px', maxHeight: 160, overflowY: 'auto' }}>
+          {log.map((l, i) => <div key={i} style={{ color: l.startsWith('✗') ? '#ef4444' : l.startsWith('✓') ? '#22c55e' : 'var(--text-secondary)' }}>{l}</div>)}
+        </div>
+      )}
+      {result && (
+        <div style={{ marginTop: 10, fontSize: '0.8125rem', color: '#22c55e' }}>
+          ✓ {result.trackName} {result.year} — {result.driversLoaded} drivers loaded
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Correlation Group Presets ─────────────────────────────────────────────────
 const CORRELATION_GROUPS = {
   '670hp Package': [
@@ -861,6 +964,7 @@ export default function Admin() {
 
       <WeekendConfig />
       <LoadNewRace />
+      <LoadQualifying />
       <EntryListManager />
 
       <div className="card" style={{ marginBottom: 20 }}>
