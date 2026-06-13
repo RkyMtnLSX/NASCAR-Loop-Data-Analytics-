@@ -2,7 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { qualSimilarity } from '../lib/trackSimilarity'
 
+
 // ── Helpers ────────────────────────────────────────────────────────────────────
+
 
 const TRACK_ABBR = {
   'Circuit of the Americas': 'COTA',
@@ -106,28 +108,42 @@ function heatColor(pos, totalDrivers = 40) {
   return { bg: `rgba(${r},${g},${b},${alpha})`, text: textColor }
 }
 
-// Draw order slope: Pocono Next Gen era (2022–2025, n=146 driver-sessions)
-// Raw r = −0.321; quality-controlled r = −0.101 (removes metric-score/team-quality confounding)
-// Applied: nudge = slope × (median_drawPos − driver.drawPos), capped ±3 positions
-const DRAW_ORDER_SLOPE = 0.101
+// Draw order nudge — oval track calibration (Pocono 2022-2026 data)
+// Group 1 (draws 1-19): qualifies first, track has less rubber -> flat penalty
+// Group 2 (draws 20-38): later slots get progressively more rubber -> graduated bonus
+// Positive nudge = worsens projected position; negative = improves it
+// Calibrated from Pocono 2026: last qualifier (Hamlin) went P1; Group 1 avg finish ~P22
+function ovalDrawNudge(qualOrder, nDrivers) {
+  if (qualOrder == null || nDrivers < 2) return 0
+  const groupSize = Math.ceil(nDrivers / 2)
+  if (qualOrder <= groupSize) {
+    return 4  // Group 1 penalty: roughly +4 positions worse on average
+  }
+  const spotsFromLast = nDrivers - qualOrder  // 0 = last qualifier, 1 = 2nd-to-last
+  if (spotsFromLast === 0) return -6    // last slot: ~6-position improvement (Hamlin-type)
+  if (spotsFromLast === 1) return -5    // 2nd-to-last
+  if (spotsFromLast === 2) return -4    // 3rd-to-last
+  if (spotsFromLast <= 4) return -2.5   // 4th-5th from last
+  return -1                              // rest of Group 2: modest benefit
+}
 
 // Correlated track similarity weights — based on wintherace.info Track Comparison Tool data
-// Indianapolis: 2.5mi, 670hp, Medium-High speed, Minimal wear, 9.2° banking — near-identical to Pocono (9.3°)
+// Indianapolis: 2.5mi, 670hp, Medium-High speed, Minimal wear, 9.2deg banking — near-identical to Pocono (9.3deg)
 // Charlotte, Kansas: 670hp, Medium-High speed tier, Low-Medium wear — same package + speed tier, different size
 // Texas, Homestead, Las Vegas: 670hp but Fast speed tier or High tire wear — baseline
-// Correlated track weights derived from wintherace.info similarity scores vs Pocono (score/99 × 2)
-// Pocono baseline: 2.5mi, 670hp, Medium-High, Minimal wear, 9.3° avg banking
+// Correlated track weights derived from wintherace.info similarity scores vs Pocono (score/99 x 2)
+// Pocono baseline: 2.5mi, 670hp, Medium-High, Minimal wear, 9.3deg avg banking
 const CORR_TRACK_WEIGHTS = {
-  'Indianapolis': 2.00,  // score 99 — 2.5mi, 670hp, Medium-High, Minimal, 9.2° — near-identical
+  'Indianapolis': 2.00,  // score 99 — 2.5mi, 670hp, Medium-High, Minimal, 9.2deg — near-identical
   'Kansas': 1.65,        // score 82 — 670hp, Medium-High, Low-Medium wear
   'Michigan': 1.60,      // score 80 — 670hp, 2.0mi, Fast tier, Medium wear
   'Charlotte': 1.55,     // score 78 — 670hp, Medium-High, Low-Medium wear
   'Texas': 1.50,         // score 76 — 670hp, Fast tier, Low-Medium wear
-  // Homestead & Las Vegas not in wintherace top-6 comps for Pocono (score <73) → weight 1.0 (default)
+  // Homestead & Las Vegas not in wintherace top-6 comps for Pocono (score <73) -> weight 1.0 (default)
 }
 
 // Recency weight: more recent data reflects current equipment/team situation better
-// effectiveWeight = recencyWeight(year) × trackWeight (2 for same-track, 1 for correlated)
+// effectiveWeight = recencyWeight(year) x trackWeight (2 for same-track, 1 for correlated)
 function recencyWeight(year) {
   const age = new Date().getFullYear() - year
   if (age <= 0) return 3.0   // current year
@@ -137,27 +153,19 @@ function recencyWeight(year) {
 }
 
 function runSimulation(drivers, numSims = 2000) {
-  const median = (drivers.length + 1) / 2
-
   const results = drivers.map(driver => {
     // historicalPositions entries: { pos, year, trackWeight }
     const entries = driver.historicalPositions.filter(e => e != null && e.pos != null)
     if (entries.length === 0) return { ...driver, simMean: null, simP10: null, simP90: null }
 
-    // Weighted mean + variance: recency × track-relevance combined weight
+    // Weighted mean + variance: recency x track-relevance combined weight
     const totalWeight = entries.reduce((s, e) => s + recencyWeight(e.year) * e.trackWeight, 0)
     const weightedMean = entries.reduce((s, e) => s + recencyWeight(e.year) * e.trackWeight * e.pos, 0) / totalWeight
     const weightedVariance = entries.reduce((s, e) => s + recencyWeight(e.year) * e.trackWeight * (e.pos - weightedMean) ** 2, 0) / totalWeight
     const stdDev = Math.sqrt(weightedVariance) || 3
 
-    // Draw order nudge: quality-controlled Pocono slope (2022–2025)
-    // Earlier than field median = penalty (worse projected pos); later = benefit
-    let adjustedMean = weightedMean
-    if (driver.qualOrder != null) {
-      const rawNudge = DRAW_ORDER_SLOPE * (median - driver.qualOrder)
-      const drawNudge = Math.max(-3, Math.min(3, rawNudge))
-      adjustedMean = weightedMean + drawNudge
-    }
+    // Draw order nudge: graduated oval calibration (Pocono 2022-2026)
+    const adjustedMean = weightedMean + ovalDrawNudge(driver.qualOrder, drivers.length)
 
     const samples = []
     for (let i = 0; i < numSims; i++) {
@@ -245,18 +253,18 @@ export default function QualifyingCenter({ isSubscriber }) {
       }
       setCorrTracks(corrTrackNames)
 
-    // 2b. Qualifying order — all tracks/years for DNQ detection
-    const allHeatmapTracks = [cfg.track_name, ...corrTrackNames]
-    const { data: enteredRows } = await supabase
-      .from('qualifying_order')
-      .select('driver_name, track_name, year')
-      .eq('series', 'cup')
-      .in('track_name', allHeatmapTracks)
-    setQualEnteredSet(new Set((enteredRows || []).map(r => r.driver_name + '_' + r.track_name + '_' + r.year)))
+      // 2b. Qualifying order — all tracks/years for DNQ detection
+      const allHeatmapTracks = [cfg.track_name, ...corrTrackNames]
+      const { data: enteredRows } = await supabase
+        .from('qualifying_order')
+        .select('driver_name, track_name, year')
+        .eq('series', 'cup')
+        .in('track_name', allHeatmapTracks)
+      setQualEnteredSet(new Set((enteredRows || []).map(r => r.driver_name + '_' + r.track_name + '_' + r.year)))
 
       // 3. Qualifying results — two targeted queries to stay under Supabase's 1000-row server cap
-      //    Query A: featured track only, all historical years (~200 rows max)
-      //    Query B: correlated tracks only, correlation years only (~280 rows max)
+      // Query A: featured track only, all historical years (~200 rows max)
+      // Query B: correlated tracks only, correlation years only (~280 rows max)
       const cfgCorrYears = (cfg.correlation_years?.length ? cfg.correlation_years : [cfg.correlation_year]).filter(Boolean)
       const corrOnlyTrackNames = corrTrackNames.filter(t => t !== cfg.track_name)
 
@@ -273,15 +281,15 @@ export default function QualifyingCenter({ isSubscriber }) {
           .order('qualifying_position'),
         corrOnlyTrackNames.length > 0
           ? supabase
-              .from('qualifying_results')
-              .select('driver_name, car_number, track_name, year, qualifying_position, qualifying_speed')
-              .eq('series', 'cup')
-              .in('track_name', corrOnlyTrackNames)
-              .in('year', cfgCorrYears)
-              .not('qualifying_position', 'is', null)
-              .gt('qualifying_position', 0)
-              .not('qualifying_speed', 'is', null)
-              .order('qualifying_position')
+            .from('qualifying_results')
+            .select('driver_name, car_number, track_name, year, qualifying_position, qualifying_speed')
+            .eq('series', 'cup')
+            .in('track_name', corrOnlyTrackNames)
+            .in('year', cfgCorrYears)
+            .not('qualifying_position', 'is', null)
+            .gt('qualifying_position', 0)
+            .not('qualifying_speed', 'is', null)
+            .order('qualifying_position')
           : { data: [], error: null },
       ])
       if (featErr) throw featErr
@@ -334,7 +342,7 @@ export default function QualifyingCenter({ isSubscriber }) {
   const corrYears = (config.correlation_years?.length
     ? config.correlation_years
     : [config.correlation_year]
-  ).filter(Boolean).sort((a, b) => b - a)  // newest first — recencyWeight() handles heavier weighting
+  ).filter(Boolean).sort((a, b) => b - a)
   const currentYear = new Date().getFullYear()
 
   const histCols = trackYears.map(yr => ({
@@ -346,23 +354,23 @@ export default function QualifyingCenter({ isSubscriber }) {
   }))
 
   const corrCols = corrTracks
-  .filter(t => t !== config.track_name)
-  .flatMap(t => corrYears.map(yr => ({
-    key: `corr_${t}_${yr}`,
-    label: eventLabel(t, yr),
-    trackName: t,
-    year: yr,
-    isFeatured: false,
-  })))
-  .filter(col => qualData.some(r => r.track_name === col.trackName && r.year === col.year))
+    .filter(t => t !== config.track_name)
+    .flatMap(t => corrYears.map(yr => ({
+      key: `corr_${t}_${yr}`,
+      label: eventLabel(t, yr),
+      trackName: t,
+      year: yr,
+      isFeatured: false,
+    })))
+    .filter(col => qualData.some(r => r.track_name === col.trackName && r.year === col.year))
 
   const featuredCurrYear = !trackYears.includes(currentYear) ? [{
-  key: `feat_curr_${currentYear}`,
-  label: eventLabel(config.track_name, currentYear),
-  trackName: config.track_name,
-  year: currentYear,
-  isFeatured: true,
-}] : []
+    key: `feat_curr_${currentYear}`,
+    label: eventLabel(config.track_name, currentYear),
+    trackName: config.track_name,
+    year: currentYear,
+    isFeatured: true,
+  }] : []
 
   const allCols = [...histCols, ...featuredCurrYear, ...corrCols]
 
@@ -373,27 +381,22 @@ export default function QualifyingCenter({ isSubscriber }) {
       driverMap[row.driver_name] = { driver: row.driver_name, carNumber: row.car_number, positions: {} }
     }
     const key = `${row.track_name}_${row.year}`
-    // Only record position if a lap time was posted — excludes mechanical DNS entries
     driverMap[row.driver_name].positions[key] = row.qualifying_position
   }
 
   for (const d of Object.values(driverMap)) {
-    // Same-track history — trackWeight:2 so same-track counts double vs correlated
     const sameTrackEntries = trackYears
       .map(yr => ({ pos: d.positions[`${config.track_name}_${yr}`], year: yr, trackWeight: 2 }))
-      .filter(e => e.pos != null)
+      .filter(e => e.pos != null)      .filter(e => e.pos != null)
     d.trackAvg = sameTrackEntries.length > 0
       ? sameTrackEntries.reduce((a, e) => a + e.pos, 0) / sameTrackEntries.length
       : null
 
-    // Correlated tracks (same correlation group, different venue) — trackWeight:1
     const corrEntries = corrTracks
       .filter(t => t !== config.track_name)
       .flatMap(t => corrYears.map(yr => ({ pos: d.positions[`${t}_${yr}`], year: yr, trackWeight: CORR_TRACK_WEIGHTS[t] ?? 1 })))
       .filter(e => e.pos != null)
 
-    // Simulation pool: {pos, year, trackWeight} entries for weighted sampling
-    // effectiveWeight = recencyWeight(year) × trackWeight
     d.historicalPositions = sameTrackEntries.length > 0
       ? [...sameTrackEntries, ...corrEntries]
       : corrEntries
@@ -415,8 +418,6 @@ export default function QualifyingCenter({ isSubscriber }) {
     if (qo?.carNumber) d.carNumber = qo.carNumber
   }
 
-  // Add entry-list drivers who have no historical data so they still appear
-  // Use norm-name dedup so "AJ Allmendinger" doesn't duplicate "A.J. Allmendinger"
   const driverNormLookup = {}
   for (const key of Object.keys(driverMap)) {
     driverNormLookup[resolveNorm(key)] = key
@@ -438,14 +439,12 @@ export default function QualifyingCenter({ isSubscriber }) {
   const allPositions = qualData.map(r => r.qualifying_position).filter(p => p != null)
   const totalDrivers = allPositions.length > 0 ? Math.max(...allPositions) : 40
 
-  // Filter to entry list
   let rows = Object.values(driverMap)
   if (entryList && entryList.length > 0) {
     const entryNorms = new Set(entryList.map(n => resolveNorm(n)))
     rows = rows.filter(r => entryNorms.has(resolveNorm(r.driver)))
   }
 
-  // Sort handler
   function handleSort(key) {
     if (sortBy === key) {
       setSortDir(d => d === 'asc' ? 'desc' : 'asc')
@@ -459,7 +458,6 @@ export default function QualifyingCenter({ isSubscriber }) {
     return sortDir === 'asc' ? ' ↑' : ' ↓'
   }
 
-  // Sort rows
   const dir = sortDir === 'asc' ? 1 : -1
   if (sortBy === 'avg') {
     rows.sort((a, b) => {
@@ -740,7 +738,7 @@ export default function QualifyingCenter({ isSubscriber }) {
               <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 16, lineHeight: 1.6 }}>
                 Monte Carlo simulation (2,000 runs) using each driver&apos;s historical qualifying positions at this track type.
                 Correlated-track results included at 1&times; weight; same-track history at 2&times;. Recent seasons weighted higher.
-                {hasQualOrder && <strong style={{ color: '#f59e0b' }}> Draw order loaded — draw position nudge applied (max ±3 positions, Pocono-calibrated).</strong>}
+                {hasQualOrder && <strong style={{ color: '#f59e0b' }}> Draw order loaded — graduated oval draw nudge applied (Group 1: +4 positions, last Group 2 slot: −6 positions).</strong>}
               </p>
               {simResults && (
                 <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid var(--border)' }}>
