@@ -253,6 +253,7 @@ export default function QualifyingCenter({ isSubscriber }) {
         .in('track_name', allTrackNames)        .not('qualifying_position', 'is', null).gt('qualifying_position', 0)
         .order('qualifying_position')
       .limit(10000)
+      .not('qualifying_speed', 'is', null)
       if (rowErr) throw rowErr
       setQualData(rows || [])
 
