@@ -668,7 +668,7 @@ function LoadQualifyingPdf() {
         }
 
         // Strip make AND everything after it (sponsor names follow make in some PDFs)
-        let rawName = driverPart
+        let rawName = driverPart.replace(/^\*\s*/, '').trim()  // strip FTQ asterisk marker
         for (const make of MAKES) {
           rawName = rawName.replace(new RegExp(`\\b${make}\\b.*$`, 'i'), '').trim()
         }
