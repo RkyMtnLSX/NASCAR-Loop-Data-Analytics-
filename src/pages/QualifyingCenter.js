@@ -115,9 +115,10 @@ const DRAW_ORDER_SLOPE = 0.101
 // Charlotte, Kansas: 670hp, Medium-High speed tier, Low-Medium wear — same package + speed tier, different size
 // Texas, Homestead, Las Vegas: 670hp but Fast speed tier or High tire wear — baseline
 const CORR_TRACK_WEIGHTS = {
-  'Indianapolis': 2,    // virtual clone of Pocono in package/speed/banking/wear
-  'Charlotte': 1.2,     // same HP + speed tier
-  'Kansas': 1.2,        // same HP + speed tier
+  'Indianapolis': 2,    // virtual clone of Pocono — 2.5mi, 670hp, Medium-High, Minimal wear, 9.2° banking
+  'Michigan': 1.5,      // 2.0mi, 670hp — larger than 1.5-milers, closer in size to Pocono
+  'Charlotte': 1.2,     // 670hp, Medium-High speed tier
+  'Kansas': 1.2,        // 670hp, Medium-High speed tier
 }
 
 // Recency weight: more recent data reflects current equipment/team situation better
