@@ -126,7 +126,7 @@ const CORRELATION_GROUPS = {
     'Texas Motor Speedway',
     'Homestead-Miami Speedway',
   ],
-  '750hp Short Track': [
+  'Short Tracks': [
     'Bristol Motor Speedway',
     'Martinsville Speedway',
     'Richmond Raceway',
@@ -140,7 +140,7 @@ const CORRELATION_GROUPS = {
     'Phoenix Raceway',
     'New Hampshire Motor Speedway',
   ],
-  '750hp Road Course': [
+  'Road Courses': [
     'Sonoma Raceway',
     'Watkins Glen International',
     'Circuit of the Americas',
