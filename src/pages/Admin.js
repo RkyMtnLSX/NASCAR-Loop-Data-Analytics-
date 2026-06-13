@@ -147,6 +147,20 @@ const CORRELATION_GROUPS = {
     'Chicago Street Course',
     'Indianapolis Motor Speedway Road Course',
   ],
+  '750hp Short Track': [
+    'Bristol Motor Speedway',
+    'Martinsville Speedway',
+    'Richmond Raceway',
+    'North Wilkesboro Speedway',
+    'Iowa Speedway',
+  ],
+  '750hp Road Course': [
+    'Sonoma Raceway',
+    'Watkins Glen International',
+    'Circuit of the Americas',
+    'Chicago Street Course',
+    'Indianapolis Motor Speedway Road Course',
+  ],
   'Superspeedway': [
     'Daytona International Speedway',
     'Talladega Superspeedway',
