@@ -225,13 +225,18 @@ export default function QualifyingCenter({ isSubscriber }) {
       if (cfgErr || !cfg) throw new Error('No Cup Series weekend configured yet.')
       setConfig(cfg)
 
-      // 2. Tracks in same correlation group
-      const { data: trackRows } = await supabase
-        .from('tracks')
-        .select('name')
-        .eq('correlation_group_label', cfg.correlation_label)
-        .order('name')
-      const corrTrackNames = (trackRows || []).map(t => t.name)
+      // 2. Correlated tracks — prefer explicit list from config, fall back to tracks table by label
+      let corrTrackNames = []
+      if (cfg.correlation_tracks?.length > 0) {
+        corrTrackNames = cfg.correlation_tracks
+      } else {
+        const { data: trackRows } = await supabase
+          .from('tracks')
+          .select('name')
+          .eq('correlation_group_label', cfg.correlation_label)
+          .order('name')
+        corrTrackNames = (trackRows || []).map(t => t.name)
+      }
       setCorrTracks(corrTrackNames)
 
       // 3. Qualifying results — fetch all years for all correlated tracks
