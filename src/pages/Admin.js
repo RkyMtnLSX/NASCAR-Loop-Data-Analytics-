@@ -519,6 +519,9 @@ function LoadQualifyingPdf() {
     'Rj Segals': 'R.J. Segals',
     'Rickey Stenhouse Jr': 'Ricky Stenhouse Jr',
     'John Hunter': 'John Hunter Nemechek',
+    'John H. Nemechek': 'John Hunter Nemechek',
+    'Ricky Stenhouse Jr.': 'Ricky Stenhouse Jr',
+    'Ricky Stenhouse': 'Ricky Stenhouse Jr',
   }
 
   function toTitleCase(str) {
@@ -608,8 +611,8 @@ function LoadQualifyingPdf() {
         if (!posMatch) {
           // No leading position number — try to parse as a pure-name FTQ entry.
           // Triggered when original line had * prefix OR has (i)/(x) status suffix.
-          if (line.trim().startsWith('*') || /\([a-zA-Z]\)/.test(line)) {
-            const cleanN = normLine.replace(/\s*\([a-zA-Z]\)\s*$/, '').trim()
+          if (line.trim().startsWith('*') || /\([^)]{1,5}\)/.test(line)) {
+            const cleanN = normLine.replace(/\s*\([^)]{1,5}\)\s*$/, '').trim()
             if (/^[A-Za-z]/.test(cleanN) && cleanN.length >= 3) {
               // car number may still lead the name
               const carF = cleanN.match(/^(\d{1,3}[A-Za-z]?)\s+(.+)$/)
@@ -634,7 +637,7 @@ function LoadQualifyingPdf() {
         }
 
         const pos = parseInt(posMatch[1])
-        if (pos < 1 || pos > 60) continue
+        if (pos < 1 || pos > 99) continue
 
         // Strip asterisk from rest if present (e.g. line was "15 * Casey Mears")
         const rest = posMatch[2].trim().replace(/^\*\s*/, '')
@@ -674,7 +677,7 @@ function LoadQualifyingPdf() {
           rawName = rawName.replace(new RegExp(`\\b${make}\\b.*$`, 'i'), '').trim()
         }
         // Strip trailing status indicators like "(i)"
-        rawName = rawName.replace(/\s*\([a-zA-Z]\)\s*$/, '').trim()
+        rawName = rawName.replace(/\s*\([^)]{1,5}\)\s*$/, '').trim()  // strip (i), (*), (x) etc.
         // Smart name extraction: allow First Last plus optional Jr/Sr/II/III suffix.
         // A middle initial (e.g. "H.") allows the word after it as well.
         // Handles "John H. Nemechek", "Ricky Stenhouse Jr", "A.J. Allmendinger"
