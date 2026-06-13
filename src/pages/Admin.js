@@ -13,612 +13,24 @@ const SERIES_OPTIONS = [
 
 const ALL_YEARS = [2022, 2023, 2024, 2025, 2026]
 
-// ── Client-side HTML parse helpers (mirrors api/load-race.js + api/load-qualifying.js) ──
-function htmlTextOf(html) {
-  return html
-    .replace(/<[^>]+>/g, '')
-    .replace(/&amp;/g, '&')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n, 10)))
-    .trim()
-}
-function parseHtmlCells(rowHtml) {
-  const cells = []
-  const re = /<td[^>]*>([\s\S]*?)<\/td>/gi
-  let m
-  while ((m = re.exec(rowHtml)) !== null) cells.push(htmlTextOf(m[1]))
-  return cells
-}
-function parseHtmlDataRows(html, minCols = 17) {
-  const rows = []
-  const re = /<tr[^>]*>([\s\S]*?)<\/tr>/gi
-  let m
-  while ((m = re.exec(html)) !== null) {
-    const cells = parseHtmlCells(m[1])
-    if (cells.length >= minCols) rows.push(cells)
-  }
-  return rows
-}
-function toIntSafe(s) {
-  if (!s || s === '--' || s === '-' || String(s).trim() === '') return null
-  const n = parseInt(String(s).replace(/[^0-9-]/g, ''), 10)
-  return isNaN(n) ? null : n
-}
-function toFloatSafe(s) {
-  if (!s || s === '--' || s === '-' || String(s).trim() === '') return null
-  const n = parseFloat(String(s).replace(/[^0-9.-]/g, ''))
-  return isNaN(n) ? null : n
-}
-function parseLoopDataTrackName(html) {
-  const titleM = html.match(/<title[^>]*>([^<]+)<\/title>/i)
-  if (titleM) {
-    let t = titleM[1]
-      .replace(/\s*[|–-].*Racing Reference.*/i, '')
-      .replace(/^\d{4}\s+/, '')
-      .replace(/\s*Loop\s*Data\s*$/i, '')
-      .trim()
-    if (t.length > 2) return t
-  }
-  const h1M = html.match(/<h1[^>]*>([^<]+)<\/h1>/i)
-  if (h1M) {
-    const t = htmlTextOf(h1M[1]).replace(/\d{4}/, '').replace(/Loop\s*Data/i, '').trim()
-    if (t.length > 2) return t
-  }
-  return null
-}
-function parseQualifyingHtml(html) {
-  const drivers = []
-  const trMatches = html.match(/<tr[^>]*>[\s\S]*?<\/tr>/gi) || []
-  for (const tr of trMatches) {
-    const cells = (tr.match(/<td[^>]*>([\s\S]*?)<\/td>/gi) || []).map(td => htmlTextOf(td))
-    if (cells.length < 3) continue
-    const pos = parseInt(cells[0])
-    if (isNaN(pos) || pos < 1 || pos > 100) continue
-    let carNumber = null, driverName = null, speed = null, time = null
-    const carCandidate = cells[1].replace('#', '').trim()
-    const driverCandidate = cells[2].trim()
-    if (/^\d/.test(carCandidate)) carNumber = carCandidate
-    if (driverCandidate && /[A-Za-z]/.test(driverCandidate) && driverCandidate.length > 2) driverName = driverCandidate
-    for (let i = 3; i < Math.min(cells.length, 6); i++) {
-      const spd = parseFloat(cells[i])
-      if (!isNaN(spd) && spd > 50 && spd < 300) { speed = spd; break }
-    }
-    for (let i = 3; i < Math.min(cells.length, 8); i++) {
-      const cell = cells[i].trim()
-      const val = parseFloat(cell)
-      if (!isNaN(val) && val !== speed && /^\d{1,3}\.\d{3,}$/.test(cell)) { time = val; break }
-    }
-    if (driverName && pos) drivers.push({ position: pos, carNumber, driverName, speed, time })
-  }
-  return drivers
-}
-function parseQualifyingTrackName(html) {
-  const titleMatch = html.match(/<title>(.*?)<\/title>/i)
-  if (titleMatch) {
-    const title = htmlTextOf(titleMatch[1])
-    const m = title.match(/^\d{4}\s+(.+?)\s+(Qualifying|qual)/i)
-    if (m) return m[1].trim()
-  }
-  const h1 = html.match(/<h[12][^>]*>(.*?)<\/h[12]>/i)
-  if (h1) {
-    const text = htmlTextOf(h1[1])
-    const m = text.match(/^\d{4}\s+(.+?)\s+(Qualifying|qual)/i)
-    if (m) return m[1].trim()
-  }
-  return null
-}
-
-// ── Load New Race ─────────────────────────────────────────────────────────────
-const SERIES_RR_CODES = { cup: 'W', oreilly: 'B', trucks: 'C' }
-
-function LoadNewRace() {
-  const [series, setSeries] = useState('cup')
-  const [year, setYear] = useState(new Date().getFullYear())
-  const [raceNumber, setRaceNumber] = useState('')
-  const [mode, setMode] = useState('url') // 'url' | 'paste'
-  const [pastedHtml, setPastedHtml] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [log, setLog] = useState([])
-  const [result, setResult] = useState(null)
-
-  const raceNumPadded = String(raceNumber || '').padStart(2, '0')
-  const previewUrl = raceNumber
-    ? `https://www.racing-reference.info/loopdata/${year}-${raceNumPadded}/${SERIES_RR_CODES[series]}`
-    : ''
-
-  function addLog(msg) { setLog(prev => [...prev, msg]) }
-
-  async function handleLoad() {
-    if (!raceNumber) return
-    setLoading(true); setLog([]); setResult(null)
-    addLog(`Loading race ${year}-${raceNumPadded} (${series})...`)
-    try {
-      const res = await fetch('/api/load-race', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ series, year: parseInt(year), raceNumber: parseInt(raceNumber) }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Load failed')
-      setResult(data)
-      addLog(`✓ Loaded ${data.driversLoaded} drivers for ${data.trackName} ${data.year}`)
-    } catch (err) {
-      addLog(`✗ Error: ${err.message}`)
-    } finally { setLoading(false) }
-  }
-
-  async function handlePasteLoad() {
-    if (!pastedHtml.trim() || !raceNumber) return
-    setLoading(true); setLog([]); setResult(null)
-    addLog(`Parsing pasted HTML for ${year}-${raceNumPadded} (${series})...`)
-    try {
-      const html = pastedHtml
-      const racingRefId = `${year}-${raceNumPadded}-${SERIES_RR_CODES[series]}`
-
-      const { data: existingRace } = await supabase
-        .from('races').select('id, track_name')
-        .eq('racing_reference_id', racingRefId).maybeSingle()
-      if (existingRace) throw new Error(`Already loaded: ${existingRace.track_name} ${year} (${racingRefId})`)
-
-      const trackName = parseLoopDataTrackName(html) || `Race ${raceNumber} ${year}`
-      addLog(`Track: ${trackName}`)
-
-      const allRows = parseHtmlDataRows(html, 17)
-      const driverRows = allRows.filter(cells => {
-        const first = (cells[0] || '').trim()
-        return first.length > 0 && first.toLowerCase() !== 'driver' &&
-          /[A-Za-z]/.test(first) && !/^(pos|place|rank)/i.test(first)
-      })
-      if (driverRows.length === 0) throw new Error('No driver data found — paste the full page source (Ctrl+U → Ctrl+A → Ctrl+C)')
-      addLog(`Found ${driverRows.length} drivers`)
-
-      let winningDriver = null, totalLaps = 0
-      for (const row of driverRows) {
-        const finish = toIntSafe(row[3])
-        const laps = toIntSafe(row[17])
-        if (finish === 1 && !winningDriver) winningDriver = row[0]
-        if (laps && laps > totalLaps) totalLaps = laps
-      }
-
-      const url = `https://www.racing-reference.info/loopdata/${year}-${raceNumPadded}/${SERIES_RR_CODES[series]}`
-      const { data: raceRecord, error: raceErr } = await supabase.from('races').insert({
-        racing_reference_id: racingRefId,
-        race_name: `${trackName} ${year}`,
-        track_name: trackName,
-        year: parseInt(year),
-        race_number: parseInt(raceNumber),
-        series,
-        winning_driver: winningDriver,
-        total_laps: totalLaps || null,
-        racing_reference_url: url,
-      }).select('id').single()
-      if (raceErr) throw new Error(`Failed to insert race: ${raceErr.message}`)
-
-      const raceId = raceRecord.id
-      let inserted = 0
-      const errorLog = []
-
-      for (const row of driverRows) {
-        const driverName = (row[0] || '').trim()
-        if (!driverName) continue
-        await supabase.from('drivers').upsert(
-          { name: driverName, series },
-          { onConflict: 'name,series', ignoreDuplicates: true }
-        )
-        const lapsComp = toIntSafe(row[17])
-        const finishPos = toIntSafe(row[3])
-        const finishStatus = (lapsComp != null && totalLaps > 0 && lapsComp < totalLaps * 0.9) ? 'dnf' : 'running'
-        const { error } = await supabase.from('loop_data').insert({
-          race_id: raceId, driver_name: driverName, series,
-          year: parseInt(year), track_name: trackName,
-          start_position: toIntSafe(row[1]),
-          mid_race_position: toIntSafe(row[2]),
-          finish_position: finishPos,
-          high_position: toIntSafe(row[4]),
-          low_position: toIntSafe(row[5]),
-          avg_position: toFloatSafe(row[6]),
-          pass_diff: toIntSafe(row[7]),
-          green_flag_passes: toIntSafe(row[8]),
-          green_flag_times_passed: toIntSafe(row[9]),
-          quality_passes: toIntSafe(row[10]),
-          pct_quality_passes: toFloatSafe(row[11]),
-          fastest_laps: toIntSafe(row[12]),
-          top15_laps: toIntSafe(row[13]),
-          pct_top15_laps: toFloatSafe(row[14]),
-          laps_led: toIntSafe(row[15]),
-          pct_laps_led: toFloatSafe(row[16]),
-          laps_completed: lapsComp,
-          driver_rating: toFloatSafe(row[18]),
-          finish_status: finishStatus,
-        })
-        if (error) errorLog.push(`${driverName}: ${error.message}`)
-        else inserted++
-      }
-
-      setResult({ trackName, year, driversLoaded: inserted })
-      addLog(`✓ Loaded ${inserted} drivers for ${trackName} ${year}`)
-      if (winningDriver) addLog(`  Winner: ${winningDriver}`)
-    } catch (err) {
-      addLog(`✗ Error: ${err.message}`)
-    } finally { setLoading(false) }
-  }
-
-  const inp = {
-    padding: '7px 10px', borderRadius: 6, border: '1px solid var(--border)',
-    background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontSize: '0.825rem',
-    fontFamily: 'var(--font-sans)',
-  }
-
-  return (
-    <div className="card" style={{ marginBottom: 20 }}>
-      <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 8 }}>Load New Race</h2>
-      <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 12 }}>
-        Pull loop data directly from Racing Reference into Supabase.
-      </p>
-
-      {/* Mode toggle */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
-        {[['url', 'Load from URL'], ['paste', 'Paste HTML']].map(([m, label]) => (
-          <button key={m} onClick={() => { setMode(m); setLog([]); setResult(null) }}
-            style={{ padding: '4px 12px', borderRadius: 5, fontSize: '0.775rem', fontWeight: 500, cursor: 'pointer',
-              border: '1px solid var(--border)',
-              background: mode === m ? 'var(--accent)' : 'transparent',
-              color: mode === m ? '#fff' : 'var(--text-secondary)',
-            }}>{label}</button>
-        ))}
-      </div>
-
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12, alignItems: 'flex-end' }}>
-        <div>
-          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Series</label>
-          <select value={series} onChange={e => setSeries(e.target.value)} style={inp}>
-            {SERIES_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
-        </div>
-        <div>
-          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Year</label>
-          <input type="number" value={year} onChange={e => setYear(e.target.value)} style={{ ...inp, width: 80 }} />
-        </div>
-        <div>
-          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Race #</label>
-          <input type="number" value={raceNumber} onChange={e => setRaceNumber(e.target.value)}
-            placeholder="e.g. 12" style={{ ...inp, width: 80 }}
-            onKeyDown={e => e.key === 'Enter' && (mode === 'url' ? handleLoad() : handlePasteLoad())} />
-        </div>
-        {mode === 'url' && (
-          <button className="btn btn-primary" onClick={handleLoad} disabled={loading || !raceNumber}
-            style={{ minWidth: 100, fontSize: '0.8125rem' }}>
-            {loading ? 'Loading...' : 'Load Race'}
-          </button>
-        )}
-      </div>
-
-      {previewUrl && (
-        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 10 }}>
-          Source: <a href={previewUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>{previewUrl}</a>
-        </div>
-      )}
-
-      {mode === 'paste' && (
-        <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: '0.775rem', color: 'var(--text-muted)', marginBottom: 8, padding: '8px 12px',
-            background: 'rgba(99,102,241,0.06)', borderRadius: 6, border: '1px solid rgba(99,102,241,0.2)' }}>
-            <strong style={{ color: 'var(--accent)' }}>How to paste:</strong> Open the URL above in your browser →
-            right-click → <strong>View Page Source</strong> (or press <kbd style={{ background: 'var(--bg-elevated)', padding: '1px 5px', borderRadius: 3, fontSize: '0.7rem' }}>Ctrl+U</kbd>) →
-            Select All → Copy → paste below
-          </div>
-          <textarea
-            value={pastedHtml}
-            onChange={e => setPastedHtml(e.target.value)}
-            placeholder="Paste full page source HTML here..."
-            rows={6}
-            style={{ width: '100%', fontFamily: 'monospace', fontSize: '0.75rem',
-              padding: '8px 10px', borderRadius: 6, border: '1px solid var(--border)',
-              background: 'var(--bg-elevated)', color: 'var(--text-primary)',
-              resize: 'vertical', boxSizing: 'border-box' }}
-          />
-          <button className="btn btn-primary" onClick={handlePasteLoad}
-            disabled={loading || !raceNumber || !pastedHtml.trim()}
-            style={{ marginTop: 8, minWidth: 120, fontSize: '0.8125rem' }}>
-            {loading ? 'Parsing...' : 'Parse & Load'}
-          </button>
-        </div>
-      )}
-
-      {log.length > 0 && (
-        <div style={{ fontFamily: 'monospace', fontSize: '0.75rem', background: 'var(--bg-elevated)',
-          border: '1px solid var(--border)', borderRadius: 6, padding: '10px 12px', maxHeight: 160, overflowY: 'auto' }}>
-          {log.map((l, i) => <div key={i} style={{ color: l.startsWith('✗') ? '#ef4444' : l.startsWith('✓') ? '#22c55e' : 'var(--text-secondary)' }}>{l}</div>)}
-        </div>
-      )}
-
-      {result && (
-        <div style={{ marginTop: 10, fontSize: '0.8125rem', color: '#22c55e' }}>
-          ✓ {result.trackName} {result.year} — {result.driversLoaded} drivers loaded
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ── Load Qualifying ──────────────────────────────────────────────────────────
-function LoadQualifying() {
-  const [series, setSeries] = useState('cup')
-  const [year, setYear] = useState(new Date().getFullYear())
-  const [raceNumber, setRaceNumber] = useState('')
-  const [trackNameOverride, setTrackNameOverride] = useState('')
-  const [mode, setMode] = useState('url') // 'url' | 'paste'
-  const [pastedHtml, setPastedHtml] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [log, setLog] = useState([])
-  const [result, setResult] = useState(null)
-
-  const raceNumPadded = String(raceNumber || '').padStart(2, '0')
-  const seriesCodeMap = { cup: 'W', oreilly: 'B', trucks: 'C' }
-  const previewUrl = raceNumber
-    ? `https://www.racing-reference.info/qualresults/${year}-${raceNumPadded}/${seriesCodeMap[series]}/`
-    : ''
-
-  function addLog(msg) { setLog(prev => [...prev, msg]) }
-
-  async function handleLoad() {
-    if (!raceNumber) return
-    setLoading(true); setLog([]); setResult(null)
-    addLog(`Loading qualifying ${year}-${raceNumPadded} (${series})...`)
-    try {
-      const body = { series, year: parseInt(year), raceNumber: parseInt(raceNumber) }
-      if (trackNameOverride.trim()) body.trackName = trackNameOverride.trim()
-      const res = await fetch('/api/load-qualifying', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Load failed')
-      setResult(data)
-      addLog(`✓ ${data.driversLoaded} drivers loaded for ${data.trackName} ${data.year}`)
-      if (data.pole) addLog(`  Pole: ${data.pole}`)
-    } catch (err) {
-      addLog(`✗ Error: ${err.message}`)
-    } finally { setLoading(false) }
-  }
-
-  async function handlePasteLoad() {
-    if (!pastedHtml.trim() || !raceNumber) return
-    setLoading(true); setLog([]); setResult(null)
-    addLog(`Parsing pasted HTML for qualifying ${year}-${raceNumPadded} (${series})...`)
-    try {
-      const html = pastedHtml
-      const racingRefId = `${year}-${raceNumPadded}-qual-${series}`
-
-      const resolvedTrackName = trackNameOverride.trim() || parseQualifyingTrackName(html)
-      if (!resolvedTrackName) throw new Error('Could not detect track name — fill in Track Name Override above')
-      addLog(`Track: ${resolvedTrackName}`)
-
-      // Metric qualifying check
-      const htmlLower = html.toLowerCase()
-      const METRIC_SIGNALS = ['set by metric','metric qualifying','owner points','qualifying cancelled','qualifying rained out','no qualifying','starting lineup set','lineup set by']
-      for (const signal of METRIC_SIGNALS) {
-        if (htmlLower.includes(signal)) throw new Error(`Qualifying was cancelled or set by metric — not loaded (detected: "${signal}")`)
-      }
-
-      // Delete existing and re-insert
-      await supabase.from('qualifying_results').delete().eq('racing_reference_id', racingRefId)
-
-      const drivers = parseQualifyingHtml(html)
-      if (drivers.length === 0) throw new Error('No drivers parsed — paste the full page source (Ctrl+U → Ctrl+A → Ctrl+C)')
-      addLog(`Found ${drivers.length} drivers`)
-
-      const driversWithSpeed = drivers.filter(d => d.speed != null)
-      if (driversWithSpeed.length < drivers.length * 0.4 && drivers.length > 5) {
-        throw new Error(`Only ${driversWithSpeed.length}/${drivers.length} drivers have speed — appears to be metric/cancelled qualifying`)
-      }
-
-      const rows = drivers.map(d => ({
-        series,
-        year: parseInt(year),
-        race_number: parseInt(raceNumber),
-        track_name: resolvedTrackName,
-        racing_reference_id: racingRefId,
-        driver_name: d.driverName,
-        car_number: d.carNumber || null,
-        qualifying_position: d.position,
-        qualifying_speed: d.speed || null,
-        qualifying_time: d.time || null,
-      }))
-
-      const errors = []
-      for (let i = 0; i < rows.length; i += 100) {
-        const { error } = await supabase.from('qualifying_results').insert(rows.slice(i, i + 100))
-        if (error) errors.push(error.message)
-      }
-      if (errors.length > 0) throw new Error(`Insert errors: ${errors.join('; ')}`)
-
-      const pole = drivers[0]
-      setResult({ trackName: resolvedTrackName, year, driversLoaded: rows.length })
-      addLog(`✓ ${rows.length} drivers loaded for ${resolvedTrackName} ${year}`)
-      if (pole) addLog(`  Pole: ${pole.driverName}${pole.speed ? ` (${pole.speed} mph)` : ''}`)
-    } catch (err) {
-      addLog(`✗ Error: ${err.message}`)
-    } finally { setLoading(false) }
-  }
-
-  const inp = {
-    padding: '7px 10px', borderRadius: 6, border: '1px solid var(--border)',
-    background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontSize: '0.825rem',
-    fontFamily: 'var(--font-sans)',
-  }
-
-  return (
-    <div className="card" style={{ marginBottom: 20 }}>
-      <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 8 }}>Load Qualifying Results</h2>
-      <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 12 }}>
-        Pull qualifying results from Racing Reference into Supabase.
-      </p>
-
-      {/* Mode toggle */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
-        {[['url', 'Load from URL'], ['paste', 'Paste HTML']].map(([m, label]) => (
-          <button key={m} onClick={() => { setMode(m); setLog([]); setResult(null) }}
-            style={{ padding: '4px 12px', borderRadius: 5, fontSize: '0.775rem', fontWeight: 500, cursor: 'pointer',
-              border: '1px solid var(--border)',
-              background: mode === m ? 'var(--accent)' : 'transparent',
-              color: mode === m ? '#fff' : 'var(--text-secondary)',
-            }}>{label}</button>
-        ))}
-      </div>
-
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12, alignItems: 'flex-end' }}>
-        <div>
-          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Series</label>
-          <select value={series} onChange={e => setSeries(e.target.value)} style={inp}>
-            {SERIES_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
-        </div>
-        <div>
-          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Year</label>
-          <input type="number" value={year} onChange={e => setYear(e.target.value)} style={{ ...inp, width: 80 }} />
-        </div>
-        <div>
-          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Race #</label>
-          <input type="number" value={raceNumber} onChange={e => setRaceNumber(e.target.value)}
-            placeholder="e.g. 12" style={{ ...inp, width: 80 }}
-            onKeyDown={e => e.key === 'Enter' && (mode === 'url' ? handleLoad() : handlePasteLoad())} />
-        </div>
-        <div style={{ flex: 1, minWidth: 160 }}>
-          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Track Name Override (optional)</label>
-          <input type="text" value={trackNameOverride} onChange={e => setTrackNameOverride(e.target.value)}
-            placeholder="Auto-detected if blank" style={{ ...inp, width: '100%' }} />
-        </div>
-        {mode === 'url' && (
-          <button className="btn btn-primary" onClick={handleLoad} disabled={loading || !raceNumber}
-            style={{ minWidth: 120, fontSize: '0.8125rem' }}>
-            {loading ? 'Loading...' : 'Load Qualifying'}
-          </button>
-        )}
-      </div>
-
-      {previewUrl && (
-        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 10 }}>
-          Source: <a href={previewUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>{previewUrl}</a>
-        </div>
-      )}
-
-      {mode === 'paste' && (
-        <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: '0.775rem', color: 'var(--text-muted)', marginBottom: 8, padding: '8px 12px',
-            background: 'rgba(99,102,241,0.06)', borderRadius: 6, border: '1px solid rgba(99,102,241,0.2)' }}>
-            <strong style={{ color: 'var(--accent)' }}>How to paste:</strong> Open the URL above in your browser →
-            right-click → <strong>View Page Source</strong> (or press <kbd style={{ background: 'var(--bg-elevated)', padding: '1px 5px', borderRadius: 3, fontSize: '0.7rem' }}>Ctrl+U</kbd>) →
-            Select All → Copy → paste below
-          </div>
-          <textarea
-            value={pastedHtml}
-            onChange={e => setPastedHtml(e.target.value)}
-            placeholder="Paste full page source HTML here..."
-            rows={6}
-            style={{ width: '100%', fontFamily: 'monospace', fontSize: '0.75rem',
-              padding: '8px 10px', borderRadius: 6, border: '1px solid var(--border)',
-              background: 'var(--bg-elevated)', color: 'var(--text-primary)',
-              resize: 'vertical', boxSizing: 'border-box' }}
-          />
-          <button className="btn btn-primary" onClick={handlePasteLoad}
-            disabled={loading || !raceNumber || !pastedHtml.trim()}
-            style={{ marginTop: 8, minWidth: 140, fontSize: '0.8125rem' }}>
-            {loading ? 'Parsing...' : 'Parse & Load'}
-          </button>
-        </div>
-      )}
-
-      {log.length > 0 && (
-        <div style={{ fontFamily: 'monospace', fontSize: '0.75rem', background: 'var(--bg-elevated)',
-          border: '1px solid var(--border)', borderRadius: 6, padding: '10px 12px', maxHeight: 160, overflowY: 'auto' }}>
-          {log.map((l, i) => <div key={i} style={{ color: l.startsWith('✗') ? '#ef4444' : l.startsWith('✓') ? '#22c55e' : 'var(--text-secondary)' }}>{l}</div>)}
-        </div>
-      )}
-      {result && (
-        <div style={{ marginTop: 10, fontSize: '0.8125rem', color: '#22c55e' }}>
-          ✓ {result.trackName} {result.year} — {result.driversLoaded} drivers loaded
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ── Correlation Group Presets ─────────────────────────────────────────────────
-const CORRELATION_GROUPS = {
-  '670hp Package': [
-    'Pocono Raceway',
-    'Indianapolis Motor Speedway',
-    'Michigan International Speedway',
-    'Charlotte Motor Speedway',
-    'Kansas Speedway',
-    'Las Vegas Motor Speedway',
-    'Texas Motor Speedway',
-    'Homestead-Miami Speedway',
-  ],
-  'Short Tracks': [
-    'Bristol Motor Speedway',
-    'Martinsville Speedway',
-    'Richmond Raceway',
-    'North Wilkesboro Speedway',
-    'Iowa Speedway',
-  ],
-  '750hp Oval': [
-    'Dover Motor Speedway',
-    'Nashville Superspeedway',
-    'Darlington Raceway',
-    'Phoenix Raceway',
-    'New Hampshire Motor Speedway',
-  ],
-  'Road Courses': [
-    'Sonoma Raceway',
-    'Watkins Glen International',
-    'Circuit of the Americas',
-    'Chicago Street Course',
-    'Indianapolis Motor Speedway Road Course',
-    'Naval Base Coronado',
-    'St. Petersburg',
-    'Lime Rock Park',
-    'Charlotte Motor Speedway Roval',
-  ],
-  '750hp Short Track': [
-    'Bristol Motor Speedway',
-    'Martinsville Speedway',
-    'Richmond Raceway',
-    'North Wilkesboro Speedway',
-    'Iowa Speedway',
-  ],
-  '750hp Road Course': [
-    'Sonoma Raceway',
-    'Watkins Glen International',
-    'Circuit of the Americas',
-    'Chicago Street Course',
-    'Indianapolis Motor Speedway Road Course',
-    'Naval Base Coronado',
-  ],
-  'Superspeedway': [
-    'Daytona International Speedway',
-    'Talladega Superspeedway',
-    'Atlanta Motor Speedway',
-  ],
-}
-
-const ALL_TRACKS = [...new Set(Object.values(CORRELATION_GROUPS).flat())].sort()
-
 // Weekend Config Section
 function WeekendConfig() {
   const [configs, setConfigs] = useState({})
+  const [tracks, setTracks] = useState([])
   const [saving, setSaving] = useState({})
   const [saveStatus, setSaveStatus] = useState({})
 
   useEffect(() => {
-    supabase.from('featured_weekend').select('*').then(({ data: cfgRows }) => {
+    Promise.all([
+      supabase.from('featured_weekend').select('*'),
+      supabase.from('tracks').select('name, correlation_group_label')
+        .not('correlation_group_label', 'is', null)
+        .order('correlation_group_label').order('name'),
+    ]).then(([{ data: cfgRows }, { data: trackRows }]) => {
       const map = {}
       ;(cfgRows || []).forEach(r => { map[r.series] = { ...r } })
       setConfigs(map)
+      setTracks(trackRows || [])
     })
   }, [])
 
@@ -643,26 +55,14 @@ function WeekendConfig() {
     setSaving(p => ({ ...p, [series]: true }))
     setSaveStatus(p => ({ ...p, [series]: null }))
     try {
-      const corrYrs = (cfg._corrYearsText !== undefined
-        ? cfg._corrYearsText
-        : (cfg.correlation_years?.length ? cfg.correlation_years : [cfg.correlation_year]).filter(Boolean).join(', ')
-      ).split(/[\s,]+/).map(y => parseInt(y)).filter(y => !isNaN(y) && y > 2000)
-
-      const corrTrks = (cfg._corrTracksText !== undefined
-        ? cfg._corrTracksText
-        : (cfg.correlation_tracks || []).join('\n')
-      ).split('\n').map(t => t.trim()).filter(Boolean)
-
+      const track = tracks.find(t => t.name === cfg.track_name)
       const payload = {
         series,
         track_name: cfg.track_name,
         track_label: cfg.track_label || cfg.track_name.replace(/ Raceway| Motor Speedway| Superspeedway| International Speedway| Speedway/g, '').trim(),
         track_years: cfg.track_years || [],
-        correlation_label: cfg.correlation_label || '',
-        correlation_year: corrYrs[0] || new Date().getFullYear(),
-        correlation_years: corrYrs,
-        correlation_tracks: corrTrks,
-        show_qual_sim: cfg.show_qual_sim || false,
+        correlation_label: cfg.correlation_label || (track ? track.correlation_group_label : ''),
+        correlation_year: parseInt(cfg.correlation_year) || new Date().getFullYear(),
         updated_at: new Date().toISOString(),
       }
       const { error } = await supabase
@@ -694,21 +94,12 @@ function WeekendConfig() {
     <div className="card" style={{ marginBottom: 20 }}>
       <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 8 }}>Weekend Config</h2>
       <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 20 }}>
-        Set the featured track each week. Correlation group auto-fills tracks; edit to customize.
+        Set the featured track each week. The Loop Data page shows averages for the selected track and its correlation group.
       </p>
 
       {SERIES_OPTIONS.map(({ value: s, label }) => {
         const cfg = configs[s] || {}
         const status = saveStatus[s]
-
-        const corrYearsText = cfg._corrYearsText !== undefined
-          ? cfg._corrYearsText
-          : (cfg.correlation_years?.length ? cfg.correlation_years : [cfg.correlation_year]).filter(Boolean).join(', ')
-
-        const corrTracksText = cfg._corrTracksText !== undefined
-          ? cfg._corrTracksText
-          : (cfg.correlation_tracks || []).join('\n')
-
         return (
           <div key={s} style={{ borderTop: '1px solid var(--border)', paddingTop: 18, marginBottom: 18 }}>
             <div style={{ fontWeight: 600, fontSize: '0.875rem', marginBottom: 14 }}>{label}</div>
@@ -720,73 +111,40 @@ function WeekendConfig() {
                   value={cfg.track_name || ''}
                   onChange={e => {
                     const name = e.target.value
+                    const track = tracks.find(t => t.name === name)
                     updateField(s, 'track_name', name)
+                    if (track) updateField(s, 'correlation_label', track.correlation_group_label)
                     updateField(s, 'track_label', name.replace(/ Raceway| Motor Speedway| Superspeedway| International Speedway| Speedway/g, '').trim())
                   }}
                   style={inputStyle}
                 >
                   <option value="">Select track...</option>
-                  {ALL_TRACKS.map(t => (
-                    <option key={t} value={t}>{t}</option>
+                  {tracks.map(t => (
+                    <option key={t.name} value={t.name}>{t.name}</option>
                   ))}
                 </select>
               </div>
 
               <div>
                 <label style={labelStyle}>Correlation Group</label>
-                <select
+                <input
+                  type="text"
                   value={cfg.correlation_label || ''}
-                  onChange={e => {
-                    const grp = e.target.value
-                    updateField(s, 'correlation_label', grp)
-                    if (CORRELATION_GROUPS[grp]) {
-                      const trks = CORRELATION_GROUPS[grp].filter(t => t !== cfg.track_name)
-                      updateField(s, '_corrTracksText', trks.join('\n'))
-                    }
-                  }}
+                  onChange={e => updateField(s, 'correlation_label', e.target.value)}
+                  placeholder="e.g. High Speed Intermediates"
                   style={inputStyle}
-                >
-                  <option value="">Select group...</option>
-                  {Object.keys(CORRELATION_GROUPS).map(g => (
-                    <option key={g} value={g}>{g}</option>
-                  ))}
-                </select>
+                />
               </div>
 
               <div>
-                <label style={labelStyle}>Corr. Years (e.g. 2025, 2026)</label>
+                <label style={labelStyle}>Correlation Year</label>
                 <input
-                  type="text"
-                  value={corrYearsText}
-                  onChange={e => updateField(s, '_corrYearsText', e.target.value)}
-                  placeholder="e.g. 2025"
+                  type="number"
+                  value={cfg.correlation_year || new Date().getFullYear()}
+                  onChange={e => updateField(s, 'correlation_year', parseInt(e.target.value))}
                   style={inputStyle}
                 />
               </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 22 }}>
-                <input
-                  type="checkbox"
-                  id={`show_qual_sim_${s}`}
-                  checked={!!cfg.show_qual_sim}
-                  onChange={e => updateField(s, 'show_qual_sim', e.target.checked)}
-                  style={{ accentColor: 'var(--accent)', width: 15, height: 15, cursor: 'pointer' }}
-                />
-                <label htmlFor={`show_qual_sim_${s}`} style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>
-                  Show Qualifying Sim
-                </label>
-              </div>
-            </div>
-
-            <div style={{ marginBottom: 14 }}>
-              <label style={labelStyle}>Correlation Tracks (one per line — auto-filled from group)</label>
-              <textarea
-                value={corrTracksText}
-                onChange={e => updateField(s, '_corrTracksText', e.target.value)}
-                placeholder={'Las Vegas Motor Speedway\nHomestead-Miami Speedway\n...'}
-                rows={6}
-                style={{ ...inputStyle, fontFamily: 'monospace', fontSize: '0.75rem', resize: 'vertical' }}
-              />
             </div>
 
             <div style={{ marginBottom: 14 }}>
@@ -1133,6 +491,338 @@ function EntryListManager() {
   )
 }
 
+// ── Load Qualifying Results from PDF ─────────────────────────────────────────
+// Parses official NASCAR.com qualifying result PDFs (pos / car # / driver / speed)
+// and inserts directly into the qualifying_results Supabase table.
+function LoadQualifyingPdf() {
+  const [qSeries, setQSeries] = React.useState('cup')
+  const [qTrack, setQTrack] = React.useState('')
+  const [qYear, setQYear] = React.useState(new Date().getFullYear())
+  const [qRaceNum, setQRaceNum] = React.useState('')
+
+  const [parsing, setParsing] = React.useState(false)
+  const [parseStatus, setParseStatus] = React.useState(null)
+  const [drivers, setDrivers] = React.useState([])
+
+  const [uploading, setUploading] = React.useState(false)
+  const [uploadStatus, setUploadStatus] = React.useState(null)
+
+  const MAKES = ['toyota', 'chevrolet', 'chevy', 'ford']
+
+  function toTitleCase(str) {
+    return str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
+  }
+
+  function normalizeDriverName(raw) {
+    const trimmed = raw.trim()
+    // Handle "LAST, FIRST" timing-sheet format
+    const commaIdx = trimmed.indexOf(',')
+    if (commaIdx > 0) {
+      const last = trimmed.substring(0, commaIdx).trim()
+      const first = trimmed.substring(commaIdx + 1).trim()
+      return toTitleCase(first + ' ' + last)
+    }
+    return toTitleCase(trimmed)
+  }
+
+  async function loadPdfJs() {
+    if (window.pdfjsLib) return window.pdfjsLib
+    await new Promise((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'
+      script.onload = resolve
+      script.onerror = reject
+      document.head.appendChild(script)
+    })
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+    return window.pdfjsLib
+  }
+
+  async function handlePdfSelect(e) {
+    const file = e.target.files[0]
+    if (!file) return
+    e.target.value = ''
+
+    setParsing(true)
+    setParseStatus('Parsing PDF...')
+    setDrivers([])
+    setUploadStatus(null)
+
+    try {
+      const pdfjsLib = await loadPdfJs()
+      const arrayBuffer = await file.arrayBuffer()
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+
+      // Reconstruct text lines using y-coordinate grouping.
+      // PDF.js gives individual text items with transform[4]=x, transform[5]=y.
+      // Items with the same y (within 2px tolerance) are on the same visual line.
+      const allLines = []
+      for (let p = 1; p <= pdf.numPages; p++) {
+        const page = await pdf.getPage(p)
+        const content = await page.getTextContent()
+
+        const lineMap = {}
+        for (const item of content.items) {
+          const y = Math.round(item.transform[5] / 2) * 2  // 2px bucket
+          if (!lineMap[y]) lineMap[y] = []
+          lineMap[y].push({ x: item.transform[4], str: item.str.trim() })
+        }
+
+        const pageLines = Object.entries(lineMap)
+          .sort((a, b) => parseFloat(b[0]) - parseFloat(a[0]))  // top of page first
+          .map(([, items]) =>
+            items.sort((a, b) => a.x - b.x)
+              .map(i => i.str).filter(s => s).join(' ').trim()
+          )
+          .filter(l => l)
+
+        allLines.push(...pageLines)
+      }
+
+      const parsed = []
+
+      for (const line of allLines) {
+        // Line must start with a 1-2 digit position number (1-45)
+        const posMatch = line.match(/^(\d{1,2})\s+(.+)$/)
+        if (!posMatch) continue
+
+        const pos = parseInt(posMatch[1])
+        if (pos < 1 || pos > 45) continue
+
+        const rest = posMatch[2].trim()
+
+        // Car number: 1-3 chars, starts with a digit (e.g. "11", "48", "23XI")
+        const carMatch = rest.match(/^(\d{1,3}[A-Za-z]?)\s+(.+)$/)
+        if (!carMatch) continue
+
+        const carNumber = carMatch[1]
+        const afterCar = carMatch[2].trim()
+
+        // Speed: first float in mph range 50-300
+        let speed = null
+        let driverPart = afterCar
+        const speedMatch = afterCar.match(/([\d]+\.[\d]+)/)
+        if (speedMatch) {
+          const spd = parseFloat(speedMatch[1])
+          if (spd >= 50 && spd <= 300) {
+            speed = spd
+            driverPart = afterCar.substring(0, afterCar.indexOf(speedMatch[0])).trim()
+          }
+        }
+
+        // Strip trailing make name (Toyota / Chevrolet / Ford / Chevy)
+        let rawName = driverPart
+        for (const make of MAKES) {
+          rawName = rawName.replace(new RegExp(`\\s+${make}\\s*$`, 'i'), '').trim()
+        }
+        // Strip trailing status indicators like "(i)"
+        rawName = rawName.replace(/\s*\([a-zA-Z]\)\s*$/, '').trim()
+
+        const driverName = normalizeDriverName(rawName)
+
+        if (driverName.length < 3 || !/[A-Za-z]{2}/.test(driverName)) continue
+        // Skip header rows
+        if (/^(driver|car|pos|position|make|speed|time|sponsor|team)\b/i.test(driverName)) continue
+
+        parsed.push({ position: pos, carNumber, driverName, speed })
+      }
+
+      // Deduplicate by position (keep first match), sort ascending
+      const seen = new Set()
+      const deduped = parsed.filter(d => {
+        if (seen.has(d.position)) return false
+        seen.add(d.position)
+        return true
+      }).sort((a, b) => a.position - b.position)
+
+      if (deduped.length === 0) {
+        setParseStatus(`No drivers found. First 8 lines: ${allLines.slice(0, 8).join(' | ')}`)
+      } else {
+        setDrivers(deduped)
+        setParseStatus(`Parsed ${deduped.length} drivers — review below, then upload`)
+      }
+    } catch (err) {
+      setParseStatus(`Error: ${err.message}`)
+    } finally {
+      setParsing(false)
+    }
+  }
+
+  async function handleUpload() {
+    if (!drivers.length || !qTrack.trim()) return
+    setUploading(true)
+    setUploadStatus(null)
+
+    try {
+      const raceNum = qRaceNum ? parseInt(qRaceNum) : null
+      // Use same racing_reference_id format as api/load-qualifying.js so that
+      // loading from Racing Reference later overwrites the PDF data cleanly.
+      const slug = qTrack.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '')
+      const refId = raceNum
+        ? `${qYear}-${String(raceNum).padStart(2, '0')}-qual-${qSeries}`
+        : `${qYear}-pdf-${slug}-${qSeries}`
+
+      await supabase.from('qualifying_results').delete()
+        .eq('racing_reference_id', refId)
+
+      const rows = drivers.map(d => ({
+        series: qSeries,
+        year: parseInt(qYear),
+        race_number: raceNum,
+        track_name: qTrack.trim(),
+        racing_reference_id: refId,
+        driver_name: d.driverName,
+        car_number: d.carNumber || null,
+        qualifying_position: d.position,
+        qualifying_speed: d.speed || null,
+      }))
+
+      const { error } = await supabase.from('qualifying_results').insert(rows)
+      if (error) throw error
+
+      setUploadStatus({
+        type: 'success',
+        message: `Loaded ${rows.length} qualifying results for ${qTrack.trim()} ${qYear} (ref: ${refId})`,
+      })
+      setDrivers([])
+    } catch (err) {
+      setUploadStatus({ type: 'error', message: err.message })
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const inputStyle = {
+    width: '100%', padding: '7px 10px',
+    background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+    borderRadius: 'var(--radius-md)', color: 'var(--text-primary)',
+    fontFamily: 'var(--font-sans)', fontSize: '0.8125rem', outline: 'none',
+  }
+  const labelStyle = {
+    display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)',
+    marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.04em',
+  }
+
+  return (
+    <div className="card" style={{ marginBottom: 20 }}>
+      <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 8 }}>
+        Load Qualifying Results from PDF
+      </h2>
+      <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 20 }}>
+        Upload the official NASCAR.com qualifying results PDF. Extracts position, car #, driver, and speed — uploads to Supabase.
+        If Race # matches an already-loaded Racing Reference session, it will be replaced.
+      </p>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 16 }}>
+        <div>
+          <label style={labelStyle}>Series</label>
+          <select value={qSeries} onChange={e => setQSeries(e.target.value)} style={inputStyle}>
+            {SERIES_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </div>
+        <div>
+          <label style={labelStyle}>Track Name</label>
+          <input type="text" placeholder="e.g. Pocono Raceway" value={qTrack}
+            onChange={e => setQTrack(e.target.value)} style={inputStyle} />
+        </div>
+        <div>
+          <label style={labelStyle}>Year</label>
+          <input type="number" value={qYear}
+            onChange={e => setQYear(parseInt(e.target.value))} style={inputStyle} />
+        </div>
+        <div>
+          <label style={labelStyle}>Race # (optional)</label>
+          <input type="number" placeholder="e.g. 18" value={qRaceNum}
+            onChange={e => setQRaceNum(e.target.value)} style={inputStyle} />
+        </div>
+      </div>
+
+      <div style={{ marginBottom: 16 }}>
+        <label style={{ cursor: parsing ? 'wait' : 'pointer', display: 'inline-block' }}>
+          <input type="file" accept=".pdf,application/pdf" style={{ display: 'none' }}
+            disabled={parsing} onChange={handlePdfSelect} />
+          <span style={{
+            display: 'inline-block', padding: '7px 20px', borderRadius: 6,
+            background: 'var(--accent)', color: '#fff',
+            fontWeight: 600, fontSize: '0.8125rem',
+            opacity: parsing ? 0.7 : 1, cursor: parsing ? 'wait' : 'pointer',
+          }}>
+            {parsing ? 'Parsing...' : 'Choose Qualifying PDF'}
+          </span>
+        </label>
+        {parseStatus && (
+          <span style={{
+            marginLeft: 12, fontSize: '0.78rem',
+            color: parseStatus.startsWith('Error') ? '#f87171'
+              : parseStatus.startsWith('Parsed') ? '#4ade80'
+              : 'var(--text-muted)',
+          }}>
+            {parseStatus}
+          </span>
+        )}
+      </div>
+
+      {uploadStatus && (
+        <div style={{
+          padding: '10px 14px', borderRadius: 6, marginBottom: 16, fontSize: '0.8125rem',
+          background: uploadStatus.type === 'success' ? '#145A3220' : '#922B2120',
+          border: `1px solid ${uploadStatus.type === 'success' ? '#145A3240' : '#922B2140'}`,
+          color: uploadStatus.type === 'success' ? '#27AE60' : '#E74C3C',
+        }}>
+          {uploadStatus.message}
+        </div>
+      )}
+
+      {drivers.length > 0 && (
+        <div>
+          <div style={{ overflowX: 'auto', borderRadius: 8, border: '1px solid var(--border)', marginBottom: 14 }}>
+            <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: '0.8125rem' }}>
+              <thead>
+                <tr style={{ background: 'var(--bg-elevated)', borderBottom: '2px solid var(--border)' }}>
+                  {['Pos', 'Car', 'Driver', 'Speed'].map(h => (
+                    <th key={h} style={{
+                      padding: '8px 10px', textAlign: 'left',
+                      color: 'var(--text-secondary)', fontWeight: 600,
+                      fontSize: '0.7rem', textTransform: 'uppercase',
+                      letterSpacing: '0.04em', whiteSpace: 'nowrap',
+                    }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {drivers.map((d, i) => (
+                  <tr key={d.position} style={{ background: i % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-elevated)' }}>
+                    <td style={{ padding: '5px 10px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', fontSize: '0.75rem' }}>{d.position}</td>
+                    <td style={{ padding: '5px 10px', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>#{d.carNumber}</td>
+                    <td style={{ padding: '5px 10px', fontWeight: i < 3 ? 600 : 400 }}>{d.driverName}</td>
+                    <td style={{ padding: '5px 10px', fontFamily: 'var(--font-mono)', color: 'var(--accent)' }}>
+                      {d.speed ? `${d.speed} mph` : <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button
+              className="btn btn-primary"
+              onClick={handleUpload}
+              disabled={uploading || !qTrack.trim()}
+              style={{ minWidth: 200, fontSize: '0.8125rem' }}
+            >
+              {uploading ? 'Uploading...' : `Upload ${drivers.length} results to Supabase`}
+            </button>
+            {!qTrack.trim() && (
+              <span style={{ fontSize: '0.78rem', color: '#f87171' }}>Track name required</span>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function Admin() {
   const [authed, setAuthed] = useState(false)
   const [password, setPassword] = useState('')
@@ -1289,13 +979,12 @@ export default function Admin() {
     <div className="page" style={{ maxWidth: 960 }}>
       <div className="page-header">
         <h1 className="page-title">Admin</h1>
-        <p className="page-subtitle">Upload practice data &amp; configure featured weekends</p>
+        <p className="page-subtitle">Upload practice data & configure featured weekends</p>
       </div>
 
       <WeekendConfig />
-      <LoadNewRace />
-      <LoadQualifying />
       <EntryListManager />
+      <LoadQualifyingPdf />
 
       <div className="card" style={{ marginBottom: 20 }}>
         <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 20 }}>Upload Practice Session</h2>
