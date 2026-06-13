@@ -187,7 +187,7 @@ function WeekendConfig() {
         track_years: cfg.track_years || [],
         correlation_label: cfg.correlation_label || (track ? track.correlation_group_label : ''),
         correlation_year: corrYrs.length ? Math.max(...corrYrs) : new Date().getFullYear(),
-        correlation_years: corrYrs,
+        ...(Object.prototype.hasOwnProperty.call(cfg, 'correlation_years') ? { correlation_years: corrYrs } : {}),
         show_qual_sim: series === 'cup' ? (cfg.show_qual_sim || false) : undefined,
         updated_at: new Date().toISOString(),
       }
