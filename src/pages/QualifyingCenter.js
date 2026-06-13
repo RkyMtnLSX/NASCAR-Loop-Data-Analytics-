@@ -250,7 +250,7 @@ export default function QualifyingCenter({ isSubscriber }) {
         .from('qualifying_results')
         .select('driver_name, car_number, track_name, year, qualifying_position, qualifying_speed')
         .eq('series', 'cup')
-        .in('track_name', allTrackNames)
+        .in('track_name', allTrackNames)        .not('qualifying_position', 'is', null).gt('qualifying_position', 0)
         .order('qualifying_position')
       if (rowErr) throw rowErr
       setQualData(rows || [])
@@ -321,6 +321,7 @@ export default function QualifyingCenter({ isSubscriber }) {
     year: yr,
     isFeatured: false,
   })))
+  .filter(col => qualData.some(r => r.track_name === col.trackName && r.year === col.year))
 
   const featuredCurrYear = !trackYears.includes(currentYear) ? [{
   key: `feat_curr_${currentYear}`,
