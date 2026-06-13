@@ -114,11 +114,15 @@ const DRAW_ORDER_SLOPE = 0.101
 // Indianapolis: 2.5mi, 670hp, Medium-High speed, Minimal wear, 9.2° banking — near-identical to Pocono (9.3°)
 // Charlotte, Kansas: 670hp, Medium-High speed tier, Low-Medium wear — same package + speed tier, different size
 // Texas, Homestead, Las Vegas: 670hp but Fast speed tier or High tire wear — baseline
+// Correlated track weights derived from wintherace.info similarity scores vs Pocono (score/99 × 2)
+// Pocono baseline: 2.5mi, 670hp, Medium-High, Minimal wear, 9.3° avg banking
 const CORR_TRACK_WEIGHTS = {
-  'Indianapolis': 2,    // virtual clone of Pocono — 2.5mi, 670hp, Medium-High, Minimal wear, 9.2° banking
-  'Michigan': 1.5,      // 2.0mi, 670hp — larger than 1.5-milers, closer in size to Pocono
-  'Charlotte': 1.2,     // 670hp, Medium-High speed tier
-  'Kansas': 1.2,        // 670hp, Medium-High speed tier
+  'Indianapolis': 2.00,  // score 99 — 2.5mi, 670hp, Medium-High, Minimal, 9.2° — near-identical
+  'Kansas': 1.65,        // score 82 — 670hp, Medium-High, Low-Medium wear
+  'Michigan': 1.60,      // score 80 — 670hp, 2.0mi, Fast tier, Medium wear
+  'Charlotte': 1.55,     // score 78 — 670hp, Medium-High, Low-Medium wear
+  'Texas': 1.50,         // score 76 — 670hp, Fast tier, Low-Medium wear
+  // Homestead & Las Vegas not in wintherace top-6 comps for Pocono (score <73) → weight 1.0 (default)
 }
 
 // Recency weight: more recent data reflects current equipment/team situation better
