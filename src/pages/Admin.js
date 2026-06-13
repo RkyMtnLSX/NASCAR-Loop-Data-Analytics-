@@ -176,13 +176,18 @@ function WeekendConfig() {
     setSaveStatus(p => ({ ...p, [series]: null }))
     try {
       const track = tracks.find(t => t.name === cfg.track_name)
+      const corrYrs = (cfg._corrYearsText !== undefined
+        ? cfg._corrYearsText
+        : (cfg.correlation_years?.length ? cfg.correlation_years : [cfg.correlation_year]).filter(Boolean).join(', ')
+      ).split(',').map(y => parseInt(y.trim())).filter(Boolean).sort((a, b) => a - b)
       const payload = {
         series,
         track_name: cfg.track_name,
         track_label: cfg.track_label || cfg.track_name.replace(/ Raceway| Motor Speedway| Superspeedway| International Speedway| Speedway/g, '').trim(),
         track_years: cfg.track_years || [],
         correlation_label: cfg.correlation_label || (track ? track.correlation_group_label : ''),
-        correlation_year: parseInt(cfg.correlation_year) || new Date().getFullYear(),
+        correlation_year: corrYrs.length ? Math.max(...corrYrs) : new Date().getFullYear(),
+        correlation_years: corrYrs,
         show_qual_sim: series === 'cup' ? (cfg.show_qual_sim || false) : undefined,
         updated_at: new Date().toISOString(),
       }
