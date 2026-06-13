@@ -658,9 +658,8 @@ export default function QualifyingCenter({ isSubscriber }) {
                 </tr>
               </thead>
               <tbody>
-                {
-                const completedSessions = new Set(qualData.map(r => r.track_name + '_' + r.year))
-                rows.map((row, ri) => {
+                {rows.map((row, ri) => {
+                  const completedSessions = new Set(qualData.map(r => r.track_name + '_' + r.year))
                   const avgColor = row.trackAvg ? heatColor(Math.round(row.trackAvg), totalDrivers) : null
                   const qoLabel = row.qualOrder != null ? String(row.qualOrder) : '—'
                   return (
