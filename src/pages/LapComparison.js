@@ -6,7 +6,7 @@ import {
 
 const SERIES_TABS = [
   { value: 'cup',    label: 'Cup Series' },
-  { value: 'xfinity', label: "O'Reilly Series" },
+  { value: 'oreilly', label: "O'Reilly Series" },
   { value: 'trucks', label: 'Truck Series' },
 ]
 
