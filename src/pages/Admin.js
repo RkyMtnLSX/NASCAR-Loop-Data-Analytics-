@@ -612,7 +612,8 @@ function LoadQualifyingPdf() {
           // No leading position number — try to parse as a pure-name FTQ entry.
           // Triggered when original line had * prefix OR has (i)/(x) status suffix.
           if (line.trim().startsWith('*') || /\([^)]{1,5}\)/.test(line)) {
-            const cleanN = normLine.replace(/\s*\([^)]{1,5}\)\s*$/, '').trim()
+            let cleanN = normLine.replace(/\([^)]{1,5}\)/g, ' ').trim()
+            cleanN = cleanN.replace(/\s+[\d]+\.[\d]+.*$/, '').trim()
             if (/^[A-Za-z]/.test(cleanN) && cleanN.length >= 3) {
               // car number may still lead the name
               const carF = cleanN.match(/^(\d{1,3}[A-Za-z]?)\s+(.+)$/)
