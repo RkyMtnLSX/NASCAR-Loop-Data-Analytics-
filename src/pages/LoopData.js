@@ -56,7 +56,7 @@ const ENTRY_COLS = []
 // lowerIsBetter: true  => rank 1 = lowest value (finish pos) => green
 // (no flag)            => rank 1 = highest value (rating, passes, pcts) => green
 const STAT_COLS = [
-  { key: 'races',            label: 'Races',     decimals: 0 },
+  { key: 'races',            label: 'Races',     decimals: 0, noHeat: true },
   { key: 'avg_start',        label: 'Avg St',    decimals: 1, lowerIsBetter: true },
   { key: 'avg_finish',       label: 'Avg Fin',   decimals: 1, lowerIsBetter: true },
   { key: 'avg_mid',          label: 'Avg Mid',   decimals: 1, lowerIsBetter: true },
@@ -234,7 +234,7 @@ function DataTable({ rows, title, subtitle, loading, yearCols = [], raceCols = [
 
   const colRanks = {}
   allCols.forEach(col => {
-    if (col.isText) return
+    if (col.isText || col.noHeat) return
     const pairs = sortedRows
       .map((r, i) => ({ i, v: parseFloat(r[col.key]) }))
       .filter(p => !isNaN(p.v))
@@ -499,8 +499,3 @@ export default function LoopData({ isSubscriber }) {
 
       {!loading && !error && (
         <DataTable rows={corrRows} title={corrTitle} subtitle={corrSubtitle} loading={false} raceCols={corrRaceCols} />
-      )}
-
-    </div>
-  )
-}
