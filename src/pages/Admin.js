@@ -509,6 +509,16 @@ function LoadQualifyingPdf() {
 
   const MAKES = ['toyota', 'chevrolet', 'chevy', 'ford']
 
+  // PDF name corrections: handles truncations (Shane Van → full name) and
+  // normalization mismatches (AJ without dots → A.J.)
+  const NAME_CORRECTIONS = {
+    'Shane Van': 'Shane Van Gisbergen',
+    'Aj Allmendinger': 'A.J. Allmendinger',
+    'Tj Bell': 'T.J. Bell',
+    'Bj McLeod': 'B.J. McLeod',
+    'Rj Segals': 'R.J. Segals',
+  }
+
   function toTitleCase(str) {
     return str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
   }
@@ -588,7 +598,7 @@ function LoadQualifyingPdf() {
         if (!posMatch) continue
 
         const pos = parseInt(posMatch[1])
-        if (pos < 1 || pos > 45) continue
+        if (pos < 1 || pos > 60) continue
 
         const rest = posMatch[2].trim()
 
@@ -618,11 +628,24 @@ function LoadQualifyingPdf() {
         }
         // Strip trailing status indicators like "(i)"
         rawName = rawName.replace(/\s*\([a-zA-Z]\)\s*$/, '').trim()
-        // Hard limit: NASCAR qualifying PDFs often show sponsor names on the same
-        // visual line as the driver. First 2 words = driver name (First Last).
-        rawName = rawName.split(/\s+/).filter(w => w).slice(0, 2).join(' ')
+        // Smart name extraction: allow First Last plus optional Jr/Sr/II/III suffix.
+        // A middle initial (e.g. "H.") allows the word after it as well.
+        // Handles "John H. Nemechek", "Ricky Stenhouse Jr", "A.J. Allmendinger"
+        // while still blocking sponsor overflow on lines without a make name.
+        {
+          const ws = rawName.split(/\s+/).filter(w => w)
+          let take = Math.min(2, ws.length)
+          if (ws.length >= 3) {
+            const isSuffix = /^(Jr\.?|Sr\.?|II|III|IV)$/i.test(ws[2])
+            const isMiddleInitial = /^[A-Z]\.$/.test(ws[1])
+            if (isSuffix) take = 3
+            else if (isMiddleInitial) take = Math.min(4, ws.length)
+          }
+          rawName = ws.slice(0, take).join(' ')
+        }
 
-        const driverName = normalizeDriverName(rawName)
+        const rawDriverName = normalizeDriverName(rawName)
+        const driverName = NAME_CORRECTIONS[rawDriverName] || rawDriverName
 
         if (driverName.length < 3 || !/[A-Za-z]{2}/.test(driverName)) continue
         // Skip header rows
@@ -631,11 +654,14 @@ function LoadQualifyingPdf() {
         parsed.push({ position: pos, carNumber, driverName, speed })
       }
 
-      // Deduplicate by position (keep first match), sort ascending
-      const seen = new Set()
+      // Deduplicate by position AND driver name (keep lowest-position entry per driver)
+      const seenPos = new Set()
+      const seenName = new Set()
       const deduped = parsed.filter(d => {
-        if (seen.has(d.position)) return false
-        seen.add(d.position)
+        if (seenPos.has(d.position)) return false
+        if (seenName.has(d.driverName)) return false
+        seenPos.add(d.position)
+        seenName.add(d.driverName)
         return true
       }).sort((a, b) => a.position - b.position)
 
