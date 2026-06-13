@@ -146,6 +146,7 @@ const CORRELATION_GROUPS = {
     'Circuit of the Americas',
     'Chicago Street Course',
     'Indianapolis Motor Speedway Road Course',
+    'Naval Base Coronado',
   ],
   '750hp Short Track': [
     'Bristol Motor Speedway',
@@ -160,6 +161,7 @@ const CORRELATION_GROUPS = {
     'Circuit of the Americas',
     'Chicago Street Course',
     'Indianapolis Motor Speedway Road Course',
+    'Naval Base Coronado',
   ],
   'Superspeedway': [
     'Daytona International Speedway',
