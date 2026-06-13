@@ -664,13 +664,12 @@ function LoadQualifyingPdf() {
         // Speed: first float in mph range 50-300
         let speed = null
         let driverPart = afterCar
-        const speedMatch = afterCar.match(/([\d]+\.[\d]+)/)
-        if (speedMatch) {
-          const spd = parseFloat(speedMatch[1])
-          if (spd >= 50 && spd <= 300) {
-            speed = spd
-            driverPart = afterCar.substring(0, afterCar.indexOf(speedMatch[0])).trim()
-          }
+        const allSpeedMatches = [...afterCar.matchAll(/(\d+\.\d+)/g)]
+        if (allSpeedMatches.length > 0) {
+          // Cut driver name at first number (lap time); find mph value (>=100) for speed
+          driverPart = afterCar.substring(0, allSpeedMatches[0].index).trim()
+          const mphMatch = allSpeedMatches.find(m => { const v = parseFloat(m[1]); return v >= 100 && v <= 300 })
+          if (mphMatch) speed = parseFloat(mphMatch[1])
         }
 
         // Strip make AND everything after it (sponsor names follow make in some PDFs)
