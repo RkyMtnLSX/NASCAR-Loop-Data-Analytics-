@@ -7,6 +7,50 @@ const SERIES_OPTIONS = [
   { value: 'trucks',  label: 'Truck Series' },
 ]
 
+// Track abbreviations for finish columns
+const TRACK_ABBR = {
+  'Las Vegas Motor Speedway':        'LV',
+  'Homestead-Miami Speedway':        'HOM',
+  'Texas Motor Speedway':            'TEX',
+  'Charlotte Motor Speedway':        'CLT',
+  'Pocono Raceway':                  'POC',
+  'Indianapolis Motor Speedway':     'IND',
+  'Kansas Speedway':                 'KAN',
+  'Nashville Superspeedway':         'NSS',
+  'New Hampshire Motor Speedway':    'NH',
+  'Bristol Motor Speedway':          'BRI',
+  'Talladega Superspeedway':         'TAL',
+  'Daytona International Speedway':  'DAY',
+  'Phoenix Raceway':                 'PHX',
+  'Martinsville Speedway':           'MAR',
+  'Atlanta Motor Speedway':          'ATL',
+  'Dover Motor Speedway':            'DOV',
+  'Richmond Raceway':                'RIC',
+  'Watkins Glen International':      'WGI',
+  'Circuit of the Americas':         'COTA',
+  'Chicago Street Course':           'CHI',
+  'Sonoma Raceway':                  'SON',
+  'Michigan International Speedway': 'MIS',
+  'Darlington Raceway':              'DAR',
+  'Auto Club Speedway':              'FON',
+  'World Wide Technology Raceway':   'WWT',
+  'Iowa Speedway':                   'IOWA',
+  'Lime Rock Park':                  'LRP',
+  'Mid-Ohio Sports Car Course':      'MID',
+  'St. Petersburg':                  'STP',
+  'Portland International Raceway':  'POR',
+  'Road America':                    'RA',
+}
+
+function trackLabel(name, year) {
+  const abbr = TRACK_ABBR[name] || name.replace(/[aeiou\s\-]/gi, '').substring(0, 3).toUpperCase()
+  return abbr + " '" + String(year).slice(2)
+}
+
+function sanitizeKey(name) {
+  return name.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()
+}
+
 // Identity columns from entry list (text, left-aligned)
 const ENTRY_COLS = []
 
@@ -24,10 +68,20 @@ const STAT_COLS = [
   { key: 'avg_fastest',      label: 'Fast Laps', decimals: 1 },
 ]
 
+// Count columns — wins and top-N finish counts
+const COUNT_COLS = [
+  { key: 'wins',  label: 'W',   decimals: 0, isCount: true, isWin: true },
+  { key: 'top3',  label: 'T3',  decimals: 0, isCount: true },
+  { key: 'top5',  label: 'T5',  decimals: 0, isCount: true },
+  { key: 'top10', label: 'T10', decimals: 0, isCount: true },
+  { key: 'top15', label: 'T15', decimals: 0, isCount: true },
+]
+
 function computeDriverAvg(rows) {
   const n = rows.length
   if (!n) return null
   const sum = (key) => rows.reduce((s, r) => s + (parseFloat(r[key]) || 0), 0)
+  const cnt = (thresh) => rows.filter(r => { const f = parseInt(r.finish_position); return f > 0 && f <= thresh }).length
   return {
     races:            n,
     avg_start:        sum('start_position') / n,
@@ -39,12 +93,18 @@ function computeDriverAvg(rows) {
     avg_laps_led_pct: sum('pct_laps_led') / n,
     avg_top15_pct:    sum('pct_top15_laps') / n,
     avg_fastest:      sum('fastest_laps') / n,
+    wins:  cnt(1),
+    top3:  cnt(3),
+    top5:  cnt(5),
+    top10: cnt(10),
+    top15: cnt(15),
   }
 }
 
 // entryMap: Map<driver_name, {car_number, organization}> | null
-// trackYears: int[] for per-year finish columns, null = skip
-function groupByDriver(rows, entryMap, trackYears) {
+// trackYears: int[] for per-year finish columns at main track, null = skip
+// raceTracks: string[] of track names for per-track finish columns, null = skip
+function groupByDriver(rows, entryMap, trackYears, raceTracks) {
   const map = {}
   rows.forEach(row => {
     const name = row.driver_name
@@ -61,7 +121,7 @@ function groupByDriver(rows, entryMap, trackYears) {
       const entry = entryMap ? (entryMap.get(driver) || {}) : {}
       const stats = computeDriverAvg(dRows)
 
-      // Per-year finish at this track
+      // Per-year finish at main track (e.g. y_2022, y_2023)
       const yearFinishes = {}
       if (trackYears) {
         dRows.forEach(r => {
@@ -74,19 +134,34 @@ function groupByDriver(rows, entryMap, trackYears) {
         })
       }
 
+      // Per-track finish for correlated data (e.g. rt_las_vegas_motor_speedway)
+      const trackFinishes = {}
+      if (raceTracks) {
+        dRows.forEach(r => {
+          const key = 'rt_' + sanitizeKey(r.track_name)
+          const fin = parseInt(r.finish_position)
+          if (fin && !trackFinishes[key]) trackFinishes[key] = fin
+        })
+      }
+
       return {
         driver,
         car_number:   entry.car_number   || null,
         organization: entry.organization || null,
         ...stats,
         ...yearFinishes,
+        ...trackFinishes,
       }
     })
     .sort((a, b) => (b.avg_rating || 0) - (a.avg_rating || 0))
 }
 
 function fmtVal(val, col) {
-  if (val == null || (typeof val === 'number' && isNaN(val))) return '—'
+  if (val == null) return '—'
+  if (col.isCount) {
+    const v = parseInt(val)
+    return isNaN(v) ? '—' : String(v)
+  }
   if (col.isText || col.isYear) return val != null ? String(val) : '—'
   const v = parseFloat(val)
   if (isNaN(v)) return '—'
@@ -96,7 +171,7 @@ function fmtVal(val, col) {
   return fixed
 }
 
-// Styles
+// ─── Styles ────────────────────────────────────
 const sectionHead = {
   fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)',
   margin: '0 0 4px 0', textTransform: 'uppercase', letterSpacing: '0.06em',
@@ -105,14 +180,15 @@ const trackSubtitle = {
   fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 10, fontStyle: 'italic',
 }
 const stickyHead = {
-  position: 'sticky', top: 0, left: 0, zIndex: 3, background: 'var(--bg-elevated)',
+  position: 'sticky', top: 0, left: 0, zIndex: 3,
   textAlign: 'left', padding: '10px 16px', fontSize: '0.75rem', fontWeight: 600,
   color: 'var(--text-secondary)', whiteSpace: 'nowrap',
-  borderBottom: '1px solid var(--border)', borderRight: '1px solid var(--border)', minWidth: 200,
+  borderBottom: '1px solid var(--border)', borderRight: '1px solid var(--border)', minWidth: 170, maxWidth: 180,
+  overflow: 'hidden', textOverflow: 'ellipsis',
   background: 'var(--bg-base)',
 }
 const baseHead = {
-  position: 'sticky', top: 0, zIndex: 2, background: 'var(--bg-elevated)',
+  position: 'sticky', top: 0, zIndex: 2,
   padding: '10px 12px', fontSize: '0.75rem', fontWeight: 600,
   color: 'var(--text-secondary)', whiteSpace: 'nowrap',
   borderBottom: '1px solid var(--border)', background: 'var(--bg-elevated)',
@@ -121,7 +197,8 @@ const baseHead = {
 const stickyCell = {
   position: 'sticky', left: 0, zIndex: 1, padding: '8px 16px',
   fontSize: '0.8125rem', whiteSpace: 'nowrap',
-  borderRight: '1px solid var(--border)', minWidth: 200,
+  borderRight: '1px solid var(--border)', minWidth: 170, maxWidth: 180,
+  overflow: 'hidden', textOverflow: 'ellipsis',
   background: 'var(--bg-base)',
 }
 const numCell = {
@@ -129,12 +206,13 @@ const numCell = {
   fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap',
 }
 
-// DataTable
-function DataTable({ rows, title, subtitle, loading, yearCols = [] }) {
+// ─── DataTable ──────────────────────────────────
+function DataTable({ rows, title, subtitle, loading, yearCols = [], raceCols = [] }) {
   const [sortKey, setSortKey] = useState('avg_rating')
   const [sortDir, setSortDir] = useState('desc')
 
-  const allCols = [...ENTRY_COLS, ...yearCols, ...STAT_COLS]
+  // Column order: identity → stats → counts → year finishes → race finishes
+  const allCols = [...ENTRY_COLS, ...STAT_COLS, ...COUNT_COLS, ...yearCols, ...raceCols]
 
   const handleSort = (key) => {
     if (sortKey === key) setSortDir(d => d === 'desc' ? 'asc' : 'desc')
@@ -175,24 +253,33 @@ function DataTable({ rows, title, subtitle, loading, yearCols = [] }) {
           <thead>
             <tr>
               <th style={stickyHead}>Driver</th>
-              {allCols.map(col => {
+              {allCols.map((col, ci) => {
                 const isActive = sortKey === col.key
                 const isYear   = !!col.isYear
+                const isCount  = !!col.isCount
+                const isWin    = !!col.isWin
+                const isFirst  = isCount && col.key === 'wins'
                 return (
                   <th key={col.key}
                     style={{
                       ...baseHead,
                       textAlign: col.isText ? 'left' : 'right',
-                      minWidth: col.minWidth,
-                      color: isActive ? 'var(--accent)' : isYear ? 'var(--text-primary)' : 'var(--text-secondary)',
+                      minWidth: isCount ? 36 : col.minWidth,
+                      padding: isCount ? '10px 8px' : undefined,
+                      color: isActive ? 'var(--accent)'
+                           : isWin    ? '#f59e0b'
+                           : isYear   ? 'var(--text-primary)'
+                           : 'var(--text-secondary)',
                       background: isActive ? 'var(--bg-surface)' : 'var(--bg-elevated)',
-                      borderLeft: isYear ? '1px solid var(--border)' : undefined,
+                      borderLeft: (isFirst || isYear) ? '1px solid var(--border)' : undefined,
                     }}
                     onClick={() => handleSort(col.key)}
                     title={'Sort by ' + col.label}
                   >
-                    {isYear ? <><div style={{fontSize:'0.6rem',opacity:0.6,letterSpacing:'0.06em',marginBottom:1}}>FIN</div>{col.label}</> : col.label}
-                    {isActive && <span style={{ marginLeft: 4, fontSize: '0.65rem' }}>{sortDir === 'desc' ? '▼' : '�V�'}</span>}
+                    {isYear
+                      ? <><div style={{ fontSize: '0.6rem', opacity: 0.6, letterSpacing: '0.06em', marginBottom: 1 }}>FIN</div>{col.label}</>
+                      : col.label}
+                    {isActive && <span style={{ marginLeft: 4, fontSize: '0.65rem' }}>{sortDir === 'desc' ? '▼' : '▲'}</span>}
                   </th>
                 )
               })}
@@ -204,37 +291,39 @@ function DataTable({ rows, title, subtitle, loading, yearCols = [] }) {
               return (
                 <tr key={row.driver} style={{ background: bg }}>
                   <td style={{ ...stickyCell, background: bg, fontWeight: i < 3 ? 600 : 400 }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
-                      <span style={{
-                        color: 'var(--text-muted)', fontSize: '0.7rem',
-                        fontFamily: 'var(--font-mono)', minWidth: 18, flexShrink: 0, marginTop: 2,
-                      }}>{i + 1}</span>
-                      <div>
-                        <div>
-                          {row.car_number && <span style={{ marginRight: 6, color: 'var(--text-muted)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>{row.car_number}</span>}
-                          {row.driver}
-                        </div>
-                        {row.organization && <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: 1, fontWeight: 400 }}>{row.organization}</div>}
-                      </div>
-                    </div>
+                    <span style={{
+                      marginRight: 8, color: 'var(--text-muted)', fontSize: '0.7rem',
+                      fontFamily: 'var(--font-mono)', minWidth: 18, display: 'inline-block',
+                    }}>{i + 1}</span>
+                    {row.car_number && <span style={{ marginRight: 6, color: 'var(--text-muted)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>{row.car_number}</span>}
+                    {row.driver}
                   </td>
                   {allCols.map(col => {
                     const isYear   = !!col.isYear
+                    const isCount  = !!col.isCount
+                    const isWin    = !!col.isWin
+                    const isFirst  = isCount && col.key === 'wins'
                     const isActive = sortKey === col.key
+                    const rawVal   = row[col.key]
+                    const hasWin   = isWin && parseInt(rawVal) > 0
                     return (
                       <td key={col.key} style={{
                         ...numCell,
                         textAlign: col.isText ? 'left' : 'right',
-                        color: col.highlight ? 'var(--accent)' : isYear ? 'var(--text-primary)' : undefined,
-                        fontWeight: col.highlight ? 600 : isYear ? 500 : undefined,
-                        borderLeft: isYear ? '1px solid var(--border)' : undefined,
+                        padding: isCount ? '8px 8px' : undefined,
+                        color: col.highlight ? 'var(--accent)'
+                             : hasWin        ? '#f59e0b'
+                             : isYear        ? 'var(--text-primary)'
+                             : undefined,
+                        fontWeight: col.highlight ? 600 : (isYear || hasWin) ? 500 : undefined,
+                        borderLeft: (isFirst || isYear) ? '1px solid var(--border)' : undefined,
                         background: isActive
                           ? (i % 2 === 0 ? 'rgba(99,102,241,0.06)' : 'rgba(99,102,241,0.04)')
                           : isYear
                           ? (i % 2 === 0 ? 'rgba(99,102,241,0.04)' : 'rgba(99,102,241,0.02)')
                           : undefined,
                       }}>
-                        {fmtVal(row[col.key], col)}
+                        {fmtVal(rawVal, col)}
                       </td>
                     )
                   })}
@@ -248,13 +337,14 @@ function DataTable({ rows, title, subtitle, loading, yearCols = [] }) {
   )
 }
 
-// Main page
+// ─── Main page ──────────────────────────────────
 export default function LoopData({ isSubscriber }) {
   const [series, setSeries]             = useState('cup')
   const [config, setConfig]             = useState(null)
   const [mainRows, setMainRows]         = useState([])
   const [corrRows, setCorrRows]         = useState([])
   const [corrNames, setCorrNames]       = useState([])
+  const [corrRaceCols, setCorrRaceCols] = useState([])
   const [hasEntryList, setHasEntryList] = useState(false)
   const [loading, setLoading]           = useState(true)
   const [error, setError]               = useState(null)
@@ -262,7 +352,7 @@ export default function LoopData({ isSubscriber }) {
   useEffect(() => {
     let cancelled = false
     setLoading(true); setError(null); setConfig(null)
-    setMainRows([]); setCorrRows([]); setCorrNames([])
+    setMainRows([]); setCorrRows([]); setCorrNames([]); setCorrRaceCols([])
     setHasEntryList(false)
 
     async function load() {
@@ -283,7 +373,7 @@ export default function LoopData({ isSubscriber }) {
           .eq('series', s)
           .eq('race_year', cfg.correlation_year)
           .eq('track_name', cfg.track_name)
-            // 2b. Name aliases
+        // 2b. Name aliases
         const { data: aliasData } = await supabase.from('driver_aliases').select('alias, canonical_name')
         const aliasLookup = new Map((aliasData || []).map(a => [a.alias, a.canonical_name]))
         const normalize = n => { const clean = n.trim().replace(/\s*\([a-zA-Z]\)\s*$/, ''); return aliasLookup.get(clean) || aliasLookup.get(n) || clean; }
@@ -300,7 +390,7 @@ export default function LoopData({ isSubscriber }) {
           .eq('track_name', cfg.track_name).eq('series', s).in('year', cfg.track_years)
         if (trackErr) throw trackErr
         if (cancelled) return
-        setMainRows(groupByDriver(trackData || [], entryMap, cfg.track_years))
+        setMainRows(groupByDriver(trackData || [], entryMap, cfg.track_years, null))
 
         // 4. Correlated track names
         const { data: correlated, error: corrTrackErr } = await supabase
@@ -310,14 +400,32 @@ export default function LoopData({ isSubscriber }) {
         if (cancelled) return
         setCorrNames(corrNameList)
 
-        // 5. Correlated loop data
+        // 5. Correlated loop data (include track_name for per-race finish columns)
         if (corrNameList.length) {
           const { data: cd, error: corrErr } = await supabase
             .from('loop_data')
-            .select('driver_name, year, finish_position, start_position, avg_position, driver_rating, quality_passes, pass_diff, pct_laps_led, pct_top15_laps, fastest_laps, stage1_finish, stage2_finish')
+            .select('driver_name, year, track_name, finish_position, start_position, avg_position, driver_rating, quality_passes, pass_diff, pct_laps_led, pct_top15_laps, fastest_laps, stage1_finish, stage2_finish')
             .in('track_name', corrNameList).eq('series', s).eq('year', cfg.correlation_year)
           if (corrErr) throw corrErr
-          if (!cancelled) setCorrRows(groupByDriver(cd || [], entryMap, null))
+          if (cancelled) return
+
+          // Build ordered race columns from distinct tracks seen in data
+          const seenTracks = []
+          ;(cd || []).forEach(r => { if (!seenTracks.includes(r.track_name)) seenTracks.push(r.track_name) })
+          seenTracks.sort((a, b) => {
+            const ai = corrNameList.indexOf(a), bi = corrNameList.indexOf(b)
+            if (ai !== -1 && bi !== -1) return ai - bi
+            return a.localeCompare(b)
+          })
+
+          const raceCols = seenTracks.map(name => ({
+            key: 'rt_' + sanitizeKey(name),
+            label: trackLabel(name, cfg.correlation_year),
+            decimals: 0, isYear: true, minWidth: 52,
+          }))
+
+          setCorrRaceCols(raceCols)
+          setCorrRows(groupByDriver(cd || [], entryMap, null, seenTracks))
         }
       } catch (e) {
         if (!cancelled) setError(e.message)
@@ -380,7 +488,7 @@ export default function LoopData({ isSubscriber }) {
       <DataTable rows={mainRows} title={mainTitle} loading={loading} yearCols={yearCols} />
 
       {!loading && !error && (
-        <DataTable rows={corrRows} title={corrTitle} subtitle={corrSubtitle} loading={false} yearCols={[]} />
+        <DataTable rows={corrRows} title={corrTitle} subtitle={corrSubtitle} loading={false} raceCols={corrRaceCols} />
       )}
 
     </div>
