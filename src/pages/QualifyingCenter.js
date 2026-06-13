@@ -244,18 +244,39 @@ export default function QualifyingCenter({ isSubscriber }) {
       }
       setCorrTracks(corrTrackNames)
 
-      // 3. Qualifying results — fetch all years for all correlated tracks
-      const allTrackNames = [...new Set([cfg.track_name, ...corrTrackNames])]
-      const { data: rows, error: rowErr } = await supabase
-        .from('qualifying_results')
-        .select('driver_name, car_number, track_name, year, qualifying_position, qualifying_speed')
-        .eq('series', 'cup')
-        .in('track_name', allTrackNames)        .not('qualifying_position', 'is', null).gt('qualifying_position', 0)
-        .order('qualifying_position')
-      .limit(10000)
-      .not('qualifying_speed', 'is', null)
-      if (rowErr) throw rowErr
-      setQualData(rows || [])
+      // 3. Qualifying results — two targeted queries to stay under Supabase's 1000-row server cap
+      //    Query A: featured track only, all historical years (~200 rows max)
+      //    Query B: correlated tracks only, correlation years only (~280 rows max)
+      const cfgCorrYears = (cfg.correlation_years?.length ? cfg.correlation_years : [cfg.correlation_year]).filter(Boolean)
+      const corrOnlyTrackNames = corrTrackNames.filter(t => t !== cfg.track_name)
+
+      const [{ data: featRows, error: featErr }, { data: corrRows, error: corrErr }] = await Promise.all([
+        supabase
+          .from('qualifying_results')
+          .select('driver_name, car_number, track_name, year, qualifying_position, qualifying_speed')
+          .eq('series', 'cup')
+          .eq('track_name', cfg.track_name)
+          .in('year', cfg.track_years || [])
+          .not('qualifying_position', 'is', null)
+          .gt('qualifying_position', 0)
+          .not('qualifying_speed', 'is', null)
+          .order('qualifying_position'),
+        corrOnlyTrackNames.length > 0
+          ? supabase
+              .from('qualifying_results')
+              .select('driver_name, car_number, track_name, year, qualifying_position, qualifying_speed')
+              .eq('series', 'cup')
+              .in('track_name', corrOnlyTrackNames)
+              .in('year', cfgCorrYears)
+              .not('qualifying_position', 'is', null)
+              .gt('qualifying_position', 0)
+              .not('qualifying_speed', 'is', null)
+              .order('qualifying_position')
+          : { data: [], error: null },
+      ])
+      if (featErr) throw featErr
+      if (corrErr) throw corrErr
+      setQualData([...(featRows || []), ...(corrRows || [])])
 
       // 4. Entry list for filtering inactive drivers
       const { data: elRows } = await supabase
