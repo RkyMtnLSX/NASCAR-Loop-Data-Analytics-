@@ -860,6 +860,7 @@ export default function Admin() {
       </div>
 
       <WeekendConfig />
+      <LoadNewRace />
       <EntryListManager />
 
       <div className="card" style={{ marginBottom: 20 }}>
