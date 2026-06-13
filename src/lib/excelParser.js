@@ -16,7 +16,7 @@ export function parsePracticeExcel(file, series = 'cup') {
 
         const seriesSheetMap = {
           cup:      ['CUP', 'Cup', 'cup'],
-          xfinity:  ['XFINITY', 'Xfinity', 'xfinity', 'NXS', 'NOAPS', 'Noaps', 'noaps'],
+          oreilly:  ['XFINITY', 'Xfinity', 'xfinity', 'NXS', 'NOAPS', 'Noaps', 'noaps'],
           trucks:   ['TRUCKS', 'Trucks', 'trucks', 'NCWTS'],
         }
 
