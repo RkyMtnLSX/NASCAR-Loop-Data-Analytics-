@@ -210,6 +210,7 @@ export default function QualifyingCenter({ isSubscriber }) {
   const [corrTracks, setCorrTracks] = useState([])
   const [entryList, setEntryList] = useState(null)
   const [qualOrderData, setQualOrderData] = useState([])
+  const [qualEnteredSet, setQualEnteredSet] = useState(new Set())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [simResults, setSimResults] = useState(null)
@@ -243,6 +244,15 @@ export default function QualifyingCenter({ isSubscriber }) {
         corrTrackNames = (trackRows || []).map(t => t.name)
       }
       setCorrTracks(corrTrackNames)
+
+    // 2b. Qualifying order — all tracks/years for DNQ detection
+    const allHeatmapTracks = [cfg.track_name, ...corrTrackNames]
+    const { data: enteredRows } = await supabase
+      .from('qualifying_order')
+      .select('driver_name, track_name, year')
+      .eq('series', 'cup')
+      .in('track_name', allHeatmapTracks)
+    setQualEnteredSet(new Set((enteredRows || []).map(r => r.driver_name + '_' + r.track_name + '_' + r.year)))
 
       // 3. Qualifying results — two targeted queries to stay under Supabase's 1000-row server cap
       //    Query A: featured track only, all historical years (~200 rows max)
@@ -677,7 +687,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                         const { bg, text } = heatColor(pos, totalDrivers)
                         return (
                           <td key={col.key} style={{ ...tdBase, borderLeft: i === 0 ? '2px solid rgba(99,102,241,0.3)' : undefined, background: bg, color: text }}>
-                            {pos != null ? pos : 'DNQ'}
+                            {pos != null ? pos : (qualEnteredSet.has(row.driver + '_' + col.trackName + '_' + col.year) ? 'DNQ' : '—')}
                           </td>
                         )
                       })}
@@ -686,7 +696,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                         const { bg, text } = heatColor(pos, totalDrivers)
                         return (
                           <td key={col.key} style={{ ...tdBase, borderLeft: '2px solid rgba(99,102,241,0.5)', background: bg, color: text }}>
-                            {pos != null ? pos : 'DNQ'}
+                            {pos != null ? pos : (qualEnteredSet.has(row.driver + '_' + col.trackName + '_' + col.year) ? 'DNQ' : '—')}
                           </td>
                         )
                       })}
@@ -695,7 +705,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                         const { bg, text } = heatColor(pos, totalDrivers)
                         return (
                           <td key={col.key} style={{ ...tdBase, borderLeft: i === 0 ? '2px solid var(--border)' : undefined, background: bg, color: text }}>
-                            {pos != null ? pos : 'DNQ'}
+                            {pos != null ? pos : (qualEnteredSet.has(row.driver + '_' + col.trackName + '_' + col.year) ? 'DNQ' : '—')}
                           </td>
                         )
                       })}
