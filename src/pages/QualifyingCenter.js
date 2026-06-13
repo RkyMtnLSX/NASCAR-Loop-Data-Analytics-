@@ -105,10 +105,10 @@ function heatColor(pos, totalDrivers = 40) {
   return { bg: `rgba(${r},${g},${b},${alpha})`, text: textColor }
 }
 
-// Draw order effect constants derived from 4-race Bristol concrete analysis (n=150)
-// Combined r = +0.24 → explains ~6% of variance; Q1→Q4 delta ≈ +1.26 mph ≈ ±0.9 position
-const DRAW_SCALE = 4          // full swing first→last in position units
-const DRAW_CONFIDENCE = 0.22  // sqrt(R²) from empirical correlation
+// Draw order slope: Pocono Next Gen era (2022–2025, n=146 driver-sessions)
+// Raw r = −0.321; quality-controlled r = −0.101 (removes metric-score/team-quality confounding)
+// Applied: nudge = slope × (median_drawPos − driver.drawPos), capped ±3 positions
+const DRAW_ORDER_SLOPE = 0.101
 
 // Recency weight: more recent data reflects current equipment/team situation better
 // effectiveWeight = recencyWeight(year) × trackWeight (2 for same-track, 1 for correlated)
@@ -121,9 +121,7 @@ function recencyWeight(year) {
 }
 
 function runSimulation(drivers, numSims = 2000) {
-  // Compute per-group sizes for within-group draw-order fraction
-  const grp1Size = drivers.filter(d => d.qualGroup === 1).length || 1
-  const grp2Size = drivers.filter(d => d.qualGroup === 2).length || 1
+  const median = (drivers.length + 1) / 2
 
   const results = drivers.map(driver => {
     // historicalPositions entries: { pos, year, trackWeight }
@@ -136,14 +134,12 @@ function runSimulation(drivers, numSims = 2000) {
     const weightedVariance = entries.reduce((s, e) => s + recencyWeight(e.year) * e.trackWeight * (e.pos - weightedMean) ** 2, 0) / totalWeight
     const stdDev = Math.sqrt(weightedVariance) || 3
 
-    // Draw order nudge: running later in the group = slightly better qualifying position
+    // Draw order nudge: quality-controlled Pocono slope (2022–2025)
+    // Earlier than field median = penalty (worse projected pos); later = benefit
     let adjustedMean = weightedMean
-    if (driver.qualOrder != null && driver.qualGroup != null) {
-      const groupSize = driver.qualGroup === 1 ? grp1Size : grp2Size
-      const drawFraction = groupSize > 1 ? (driver.qualOrder - 1) / (groupSize - 1) : 0.5
-      // drawFraction: 0=first to run, 1=last to run
-      // Negative nudge = better (lower) position number for later runners
-      const drawNudge = -(drawFraction - 0.5) * DRAW_SCALE * DRAW_CONFIDENCE
+    if (driver.qualOrder != null) {
+      const rawNudge = DRAW_ORDER_SLOPE * (median - driver.qualOrder)
+      const drawNudge = Math.max(-3, Math.min(3, rawNudge))
       adjustedMean = weightedMean + drawNudge
     }
 
@@ -673,7 +669,7 @@ export default function QualifyingCenter({ isSubscriber }) {
               <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 16, lineHeight: 1.6 }}>
                 Monte Carlo simulation (2,000 runs) using each driver&apos;s historical qualifying positions at this track type.
                 Correlated-track results included at 1&times; weight; same-track history at 2&times;. Recent seasons weighted higher.
-                {hasQualOrder && <strong style={{ color: '#f59e0b' }}> Draw order loaded &mdash; later draw position applies a ≈&plusmn;0.9 position nudge.</strong>}
+                {hasQualOrder && <strong style={{ color: '#f59e0b' }}> Draw order loaded — draw position nudge applied (max ±3 positions, Pocono-calibrated).</strong>}
               </p>
               {simResults && (
                 <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid var(--border)' }}>
