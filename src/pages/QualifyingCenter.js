@@ -110,6 +110,16 @@ function heatColor(pos, totalDrivers = 40) {
 // Applied: nudge = slope × (median_drawPos − driver.drawPos), capped ±3 positions
 const DRAW_ORDER_SLOPE = 0.101
 
+// Correlated track similarity weights — based on wintherace.info Track Comparison Tool data
+// Indianapolis: 2.5mi, 670hp, Medium-High speed, Minimal wear, 9.2° banking — near-identical to Pocono (9.3°)
+// Charlotte, Kansas: 670hp, Medium-High speed tier, Low-Medium wear — same package + speed tier, different size
+// Texas, Homestead, Las Vegas: 670hp but Fast speed tier or High tire wear — baseline
+const CORR_TRACK_WEIGHTS = {
+  'Indianapolis': 2,    // virtual clone of Pocono in package/speed/banking/wear
+  'Charlotte': 1.2,     // same HP + speed tier
+  'Kansas': 1.2,        // same HP + speed tier
+}
+
 // Recency weight: more recent data reflects current equipment/team situation better
 // effectiveWeight = recencyWeight(year) × trackWeight (2 for same-track, 1 for correlated)
 function recencyWeight(year) {
@@ -334,7 +344,7 @@ export default function QualifyingCenter({ isSubscriber }) {
     // Correlated tracks (same correlation group, different venue) — trackWeight:1
     const corrEntries = corrTracks
       .filter(t => t !== config.track_name)
-      .flatMap(t => corrYears.map(yr => ({ pos: d.positions[`${t}_${yr}`], year: yr, trackWeight: 1 })))
+      .flatMap(t => corrYears.map(yr => ({ pos: d.positions[`${t}_${yr}`], year: yr, trackWeight: CORR_TRACK_WEIGHTS[t] ?? 1 })))
       .filter(e => e.pos != null)
 
     // Simulation pool: {pos, year, trackWeight} entries for weighted sampling
