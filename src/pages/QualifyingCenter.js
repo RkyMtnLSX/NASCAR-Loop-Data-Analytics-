@@ -658,7 +658,9 @@ export default function QualifyingCenter({ isSubscriber }) {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row, ri) => {
+                {
+                const completedSessions = new Set(qualData.map(r => r.track_name + '_' + r.year))
+                rows.map((row, ri) => {
                   const avgColor = row.trackAvg ? heatColor(Math.round(row.trackAvg), totalDrivers) : null
                   const qoLabel = row.qualOrder != null ? String(row.qualOrder) : '—'
                   return (
@@ -687,7 +689,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                         const { bg, text } = heatColor(pos, totalDrivers)
                         return (
                           <td key={col.key} style={{ ...tdBase, borderLeft: i === 0 ? '2px solid rgba(99,102,241,0.3)' : undefined, background: bg, color: text }}>
-                            {pos != null ? pos : (qualEnteredSet.has(row.driver + '_' + col.trackName + '_' + col.year) ? 'DNQ' : '—')}
+                            {pos != null ? pos : (completedSessions.has(col.trackName + '_' + col.year) && qualEnteredSet.has(row.driver + '_' + col.trackName + '_' + col.year) ? 'DNQ' : '—')}
                           </td>
                         )
                       })}
@@ -696,7 +698,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                         const { bg, text } = heatColor(pos, totalDrivers)
                         return (
                           <td key={col.key} style={{ ...tdBase, borderLeft: '2px solid rgba(99,102,241,0.5)', background: bg, color: text }}>
-                            {pos != null ? pos : (qualEnteredSet.has(row.driver + '_' + col.trackName + '_' + col.year) ? 'DNQ' : '—')}
+                            {pos != null ? pos : (completedSessions.has(col.trackName + '_' + col.year) && qualEnteredSet.has(row.driver + '_' + col.trackName + '_' + col.year) ? 'DNQ' : '—')}
                           </td>
                         )
                       })}
@@ -705,7 +707,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                         const { bg, text } = heatColor(pos, totalDrivers)
                         return (
                           <td key={col.key} style={{ ...tdBase, borderLeft: i === 0 ? '2px solid var(--border)' : undefined, background: bg, color: text }}>
-                            {pos != null ? pos : (qualEnteredSet.has(row.driver + '_' + col.trackName + '_' + col.year) ? 'DNQ' : '—')}
+                            {pos != null ? pos : (completedSessions.has(col.trackName + '_' + col.year) && qualEnteredSet.has(row.driver + '_' + col.trackName + '_' + col.year) ? 'DNQ' : '—')}
                           </td>
                         )
                       })}
