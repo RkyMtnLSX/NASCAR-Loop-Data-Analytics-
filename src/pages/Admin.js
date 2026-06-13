@@ -600,14 +600,43 @@ function LoadQualifyingPdf() {
       let ftqIdx = 0
 
       for (const line of allLines) {
-        // Line must start with a 1-2 digit position number (1-45)
-        const posMatch = line.match(/^(\d{1,2})\s+(.+)$/)
-        if (!posMatch) continue
+        // Strip leading asterisk — some PDFs mark FTQ entries with * before name/number
+        const normLine = line.trimStart().replace(/^\*\s*/, '')
+        const posMatch = normLine.match(/^(\d{1,2})\s+(.+)$/)
+
+        if (!posMatch) {
+          // No leading position number — try to parse as a pure-name FTQ entry.
+          // Triggered when original line had * prefix OR has (i)/(x) status suffix.
+          if (line.trim().startsWith('*') || /\([a-zA-Z]\)/.test(line)) {
+            const cleanN = normLine.replace(/\s*\([a-zA-Z]\)\s*$/, '').trim()
+            if (/^[A-Za-z]/.test(cleanN) && cleanN.length >= 3) {
+              // car number may still lead the name
+              const carF = cleanN.match(/^(\d{1,3}[A-Za-z]?)\s+(.+)$/)
+              let carN = '', nameR = cleanN
+              if (carF) { carN = carF[1]; nameR = carF[2] }
+              // name extraction (mirrors main path)
+              const wsFtq = nameR.split(/\s+/).filter(w => w)
+              let tkFtq = Math.min(2, wsFtq.length)
+              if (wsFtq.length >= 3) {
+                if (/^(Jr\.?|Sr\.?|II|III|IV)$/i.test(wsFtq[2])) tkFtq = 3
+                else if (/^[A-Z]\.$/.test(wsFtq[1])) tkFtq = Math.min(4, wsFtq.length)
+              }
+              const rnFtq = fixSpecialCaps(toTitleCase(wsFtq.slice(0, tkFtq).join(' ')))
+              const dnFtq = NAME_CORRECTIONS[rnFtq] || rnFtq
+              if (dnFtq.length >= 3 && /[A-Za-z]{2}/.test(dnFtq) &&
+                  !/^(driver|car|pos|position|make|speed|time|sponsor|team)\b/i.test(dnFtq)) {
+                parsed.push({ position: 900 + ftqIdx++, carNumber: carN, driverName: dnFtq, speed: null })
+              }
+            }
+          }
+          continue
+        }
 
         const pos = parseInt(posMatch[1])
         if (pos < 1 || pos > 60) continue
 
-        const rest = posMatch[2].trim()
+        // Strip asterisk from rest if present (e.g. line was "15 * Casey Mears")
+        const rest = posMatch[2].trim().replace(/^\*\s*/, '')
 
         // Car number: 1-3 chars, starts with a digit (e.g. "11", "48", "23XI")
         const carMatch = rest.match(/^(\d{1,3}[A-Za-z]?)\s+(.+)$/)
