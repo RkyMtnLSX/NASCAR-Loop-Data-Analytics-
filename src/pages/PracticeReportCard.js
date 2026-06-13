@@ -29,10 +29,12 @@ export default function PracticeReportCard({ isSubscriber }) {
       setRows([])
       setSelected(null)
 
+      // O'Reilly Series includes both 'xfinity' and 'oreilly' series codes
+      const seriesValues = series === 'xfinity' ? ['xfinity', 'oreilly'] : [series]
       const { data, error } = await supabase
         .from('practice_sessions')
         .select('track_name, year, session_number, series')
-        .eq('series', series)
+        .in('series', seriesValues)
         .order('year', { ascending: false })
         .order('track_name')
 
