@@ -522,6 +522,7 @@ function LoadQualifyingPdf() {
     'John H. Nemechek': 'John Hunter Nemechek',
     'Ricky Stenhouse Jr.': 'Ricky Stenhouse Jr',
     'Ricky Stenhouse': 'Ricky Stenhouse Jr',
+    'Austin Hill(*)': 'Austin Hill',
   }
 
   function toTitleCase(str) {
@@ -693,6 +694,7 @@ function LoadQualifyingPdf() {
             else if (isMiddleInitial) take = Math.min(4, ws.length)
           }
           rawName = ws.slice(0, take).join(' ')
+    rawName = rawName.replace(/\([^)]*\)/g, '').replace(/\s+/g, ' ').trim()  // strip embedded markers
         }
 
         const rawDriverName = normalizeDriverName(rawName)
