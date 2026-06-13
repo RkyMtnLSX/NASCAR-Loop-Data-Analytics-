@@ -677,7 +677,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                         const { bg, text } = heatColor(pos, totalDrivers)
                         return (
                           <td key={col.key} style={{ ...tdBase, borderLeft: i === 0 ? '2px solid rgba(99,102,241,0.3)' : undefined, background: bg, color: text }}>
-                            {pos != null ? pos : '—'}
+                            {pos != null ? pos : 'DNQ'}
                           </td>
                         )
                       })}
@@ -686,7 +686,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                         const { bg, text } = heatColor(pos, totalDrivers)
                         return (
                           <td key={col.key} style={{ ...tdBase, borderLeft: '2px solid rgba(99,102,241,0.5)', background: bg, color: text }}>
-                            {pos != null ? pos : '—'}
+                            {pos != null ? pos : 'DNQ'}
                           </td>
                         )
                       })}
@@ -695,7 +695,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                         const { bg, text } = heatColor(pos, totalDrivers)
                         return (
                           <td key={col.key} style={{ ...tdBase, borderLeft: i === 0 ? '2px solid var(--border)' : undefined, background: bg, color: text }}>
-                            {pos != null ? pos : '—'}
+                            {pos != null ? pos : 'DNQ'}
                           </td>
                         )
                       })}
