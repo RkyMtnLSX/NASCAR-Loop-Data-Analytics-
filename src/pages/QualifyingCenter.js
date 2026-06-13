@@ -319,7 +319,7 @@ export default function QualifyingCenter({ isSubscriber }) {
     }
     const key = `${row.track_name}_${row.year}`
     // Only record position if a lap time was posted — excludes mechanical DNS entries
-    driverMap[row.driver_name].positions[key] = row.qualifying_speed != null ? row.qualifying_position : null
+    driverMap[row.driver_name].positions[key] = row.qualifying_position
   }
 
   for (const d of Object.values(driverMap)) {
