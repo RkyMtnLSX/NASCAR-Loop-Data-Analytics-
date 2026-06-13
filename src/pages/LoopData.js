@@ -499,3 +499,9 @@ export default function LoopData({ isSubscriber }) {
 
       {!loading && !error && (
         <DataTable rows={corrRows} title={corrTitle} subtitle={corrSubtitle} loading={false} raceCols={corrRaceCols} />
+
+      )}
+
+    </div>
+  )
+}
