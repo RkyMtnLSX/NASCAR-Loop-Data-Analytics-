@@ -611,13 +611,16 @@ function LoadQualifyingPdf() {
           }
         }
 
-        // Strip trailing make name (Toyota / Chevrolet / Ford / Chevy)
+        // Strip make AND everything after it (sponsor names follow make in some PDFs)
         let rawName = driverPart
         for (const make of MAKES) {
-          rawName = rawName.replace(new RegExp(`\\s+${make}\\s*$`, 'i'), '').trim()
+          rawName = rawName.replace(new RegExp(`\\b${make}\\b.*$`, 'i'), '').trim()
         }
         // Strip trailing status indicators like "(i)"
         rawName = rawName.replace(/\s*\([a-zA-Z]\)\s*$/, '').trim()
+        // Hard limit: NASCAR qualifying PDFs often show sponsor names on the same
+        // visual line as the driver. First 2 words = driver name (First Last).
+        rawName = rawName.split(/\s+/).filter(w => w).slice(0, 2).join(' ')
 
         const driverName = normalizeDriverName(rawName)
 
