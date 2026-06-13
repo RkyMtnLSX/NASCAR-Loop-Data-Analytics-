@@ -518,6 +518,7 @@ function LoadQualifyingPdf() {
     'Bj McLeod': 'B.J. McLeod',
     'Rj Segals': 'R.J. Segals',
     'Rickey Stenhouse Jr': 'Ricky Stenhouse Jr',
+    'John Hunter': 'John Hunter Nemechek',
   }
 
   function toTitleCase(str) {
@@ -580,7 +581,7 @@ function LoadQualifyingPdf() {
 
         const lineMap = {}
         for (const item of content.items) {
-          const y = Math.round(item.transform[5] / 2) * 2  // 2px bucket
+          const y = Math.round(item.transform[5] / 5) * 5  // 5px bucket — groups mixed-font-size items on same visual row
           if (!lineMap[y]) lineMap[y] = []
           lineMap[y].push({ x: item.transform[4], str: item.str.trim() })
         }
