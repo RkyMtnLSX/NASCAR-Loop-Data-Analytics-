@@ -180,6 +180,10 @@ function WeekendConfig() {
         ? cfg._corrYearsText
         : (cfg.correlation_years?.length ? cfg.correlation_years : [cfg.correlation_year]).filter(Boolean).join(', ')
       ).split(',').map(y => parseInt(y.trim())).filter(Boolean).sort((a, b) => a - b)
+      const corrTrks = (cfg._corrTracksText !== undefined
+        ? cfg._corrTracksText
+        : (cfg.correlation_tracks || []).join('\n')
+      ).split('\n').map(t => t.trim()).filter(Boolean)
       const payload = {
         series,
         track_name: cfg.track_name,
@@ -188,6 +192,7 @@ function WeekendConfig() {
         correlation_label: cfg.correlation_label || (track ? track.correlation_group_label : ''),
         correlation_year: corrYrs.length ? Math.max(...corrYrs) : new Date().getFullYear(),
         ...(Object.prototype.hasOwnProperty.call(cfg, 'correlation_years') ? { correlation_years: corrYrs } : {}),
+        ...(Object.prototype.hasOwnProperty.call(cfg, 'correlation_tracks') ? { correlation_tracks: corrTrks } : {}),
         show_qual_sim: series === 'cup' ? (cfg.show_qual_sim || false) : undefined,
         updated_at: new Date().toISOString(),
       }
@@ -266,14 +271,30 @@ function WeekendConfig() {
               </div>
 
               <div>
-                <label style={labelStyle}>Correlation Year</label>
+                <label style={labelStyle}>Corr. Years (e.g. 2025, 2026)</label>
                 <input
-                  type="number"
-                  value={cfg.correlation_year || new Date().getFullYear()}
-                  onChange={e => updateField(s, 'correlation_year', parseInt(e.target.value))}
+                  type="text"
+                  value={cfg._corrYearsText !== undefined
+                    ? cfg._corrYearsText
+                    : (cfg.correlation_years?.length ? cfg.correlation_years : [cfg.correlation_year]).filter(Boolean).join(', ')}
+                  onChange={e => updateField(s, '_corrYearsText', e.target.value)}
+                  placeholder="e.g. 2025, 2026"
                   style={inputStyle}
                 />
               </div>
+            </div>
+
+            <div style={{ marginBottom: 14 }}>
+              <label style={labelStyle}>Correlation Tracks (one per line, exact DB name)</label>
+              <textarea
+                value={cfg._corrTracksText !== undefined
+                  ? cfg._corrTracksText
+                  : (cfg.correlation_tracks || []).join('\n')}
+                onChange={e => updateField(s, '_corrTracksText', e.target.value)}
+                placeholder={"Las Vegas Motor Speedway\nHomestead-Miami Speedway\nTexas Motor Speedway\nCharlotte Motor Speedway\nIndianapolis Motor Speedway\nKansas Speedway\nMichigan International Speedway"}
+                rows={6}
+                style={{ ...inputStyle, fontFamily: 'monospace', fontSize: '0.75rem', resize: 'vertical', lineHeight: 1.5 }}
+              />
             </div>
 
             <div style={{ marginBottom: 14 }}>
