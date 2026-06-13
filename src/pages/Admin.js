@@ -517,10 +517,16 @@ function LoadQualifyingPdf() {
     'Tj Bell': 'T.J. Bell',
     'Bj McLeod': 'B.J. McLeod',
     'Rj Segals': 'R.J. Segals',
+    'Rickey Stenhouse Jr': 'Ricky Stenhouse Jr',
   }
 
   function toTitleCase(str) {
     return str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
+  }
+
+  // Fix compound prefixes that toTitleCase gets wrong: "Mcdowell"→"McDowell"
+  function fixSpecialCaps(name) {
+    return name.replace(/\b(Mc|Mac)([a-z])/g, (_, p, c) => p + c.toUpperCase())
   }
 
   function normalizeDriverName(raw) {
@@ -530,9 +536,9 @@ function LoadQualifyingPdf() {
     if (commaIdx > 0) {
       const last = trimmed.substring(0, commaIdx).trim()
       const first = trimmed.substring(commaIdx + 1).trim()
-      return toTitleCase(first + ' ' + last)
+      return fixSpecialCaps(toTitleCase(first + ' ' + last))
     }
-    return toTitleCase(trimmed)
+    return fixSpecialCaps(toTitleCase(trimmed))
   }
 
   async function loadPdfJs() {
@@ -591,6 +597,7 @@ function LoadQualifyingPdf() {
       }
 
       const parsed = []
+      let ftqIdx = 0
 
       for (const line of allLines) {
         // Line must start with a 1-2 digit position number (1-45)
@@ -604,10 +611,20 @@ function LoadQualifyingPdf() {
 
         // Car number: 1-3 chars, starts with a digit (e.g. "11", "48", "23XI")
         const carMatch = rest.match(/^(\d{1,3}[A-Za-z]?)\s+(.+)$/)
-        if (!carMatch) continue
 
-        const carNumber = carMatch[1]
-        const afterCar = carMatch[2].trim()
+        // FTQ fallback: if rest doesn't start with a car number, the leading
+        // number (pos) IS the car number — FTQ sections often omit a position prefix
+        let carNumber, afterCar, ftqFallback = false
+        if (carMatch) {
+          carNumber = carMatch[1]
+          afterCar = carMatch[2].trim()
+        } else if (/^[A-Za-z]/.test(rest)) {
+          carNumber = String(pos)
+          afterCar = rest
+          ftqFallback = true
+        } else {
+          continue
+        }
 
         // Speed: first float in mph range 50-300
         let speed = null
@@ -651,19 +668,31 @@ function LoadQualifyingPdf() {
         // Skip header rows
         if (/^(driver|car|pos|position|make|speed|time|sponsor|team)\b/i.test(driverName)) continue
 
-        parsed.push({ position: pos, carNumber, driverName, speed })
+        parsed.push({ position: ftqFallback ? (900 + ftqIdx++) : pos, carNumber, driverName, speed })
       }
 
-      // Deduplicate by position AND driver name (keep lowest-position entry per driver)
+      // Dedup: separate genuine qualifiers (pos<900) from FTQ fallback entries (pos≥900).
+      // FTQ entries get positions immediately after the last genuine qualifier.
       const seenPos = new Set()
       const seenName = new Set()
-      const deduped = parsed.filter(d => {
-        if (seenPos.has(d.position)) return false
-        if (seenName.has(d.driverName)) return false
-        seenPos.add(d.position)
+      const qualEntries = []
+      const ftqEntries = []
+
+      for (const d of parsed.sort((a, b) => a.position - b.position)) {
+        if (seenName.has(d.driverName)) continue
         seenName.add(d.driverName)
-        return true
-      }).sort((a, b) => a.position - b.position)
+        if (d.position >= 900) {
+          ftqEntries.push(d)
+        } else if (!seenPos.has(d.position)) {
+          seenPos.add(d.position)
+          qualEntries.push(d)
+        }
+      }
+
+      const maxQualPos = qualEntries.length > 0
+        ? Math.max(...qualEntries.map(d => d.position)) : 40
+      const ftqFixed = ftqEntries.map((d, i) => ({ ...d, position: maxQualPos + 1 + i }))
+      const deduped = [...qualEntries, ...ftqFixed].sort((a, b) => a.position - b.position)
 
       if (deduped.length === 0) {
         setParseStatus(`No drivers found. First 8 lines: ${allLines.slice(0, 8).join(' | ')}`)
