@@ -11,13 +11,14 @@ import LoopData from './pages/LoopData'
 import OddsPage from './pages/OddsPage'
 import Admin from './pages/Admin'
 import QualifyingCenter from './pages/QualifyingCenter'
+import FastestLap from './pages/FastestLap'
 
 function Correlations({ isSubscriber }) {
   return (
     <div className="page">
       <div className="page-header">
         <h1 className="page-title">Track Correlations</h1>
-        <p className="page-subtitle">Current year loop data across correlated tracks — coming soon</p>
+        <p className="page-subtitle">Current year loop data across correlated tracks â coming soon</p>
       </div>
       <div className="empty-state">
         <h3>Coming soon</h3>
@@ -44,8 +45,8 @@ function Subscribe() {
 }
 
 export default function App() {
-  // Temporary subscriber state — will be replaced with real auth
-  const [isSubscriber] = useState(true) // TEMP: paywall disabled
+  // Temporary subscriber state â will be replaced with real auth
+  const [isSubscriber] = useState(true)
 
   return (
     <BrowserRouter>
@@ -58,6 +59,7 @@ export default function App() {
         <Route path="/loop-data" element={<LoopData isSubscriber={isSubscriber} />} />
         <Route path="/correlations" element={<Correlations isSubscriber={isSubscriber} />} />
         <Route path="/qualifying"   element={<QualifyingCenter isSubscriber={isSubscriber} />} />
+        <Route path="/fastest-laps" element={<FastestLap isSubscriber={isSubscriber} />} />
         <Route path="/odds" element={<OddsPage />} />
         <Route path="/subscribe" element={<Subscribe />} />
         <Route path="/admin" element={<Admin />} />
