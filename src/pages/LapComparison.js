@@ -87,7 +87,7 @@ export default function LapComparison({ isSubscriber }) {
         return
       }
 
-      const unique = (data || []).map(row => ({ ...row, key: `${row.year}|${row.track_name}|${row.session_number}` }))
+      const unique = (data || []).slice(0, 1).map(row => ({ ...row, key: `${row.year}|${row.track_name}|${row.session_number}` }))
       setSessions(unique)
       if (unique.length > 0) setSelectedSession(unique[0])
     }
