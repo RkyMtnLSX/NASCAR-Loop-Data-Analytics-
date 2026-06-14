@@ -74,12 +74,7 @@ export default function LapComparison({ isSubscriber }) {
 
     async function load() {
       const { data, error: err } = await supabase
-        .from('practice_laps')
-        .select('track_name, year, session_number, series')
-        .eq('series', series)
-        .order('year', { ascending: false })
-        .order('track_name')
-      .limit(50000)
+        .rpc('get_practice_sessions', { p_series: series })
 
       if (cancelled) return
 
@@ -92,15 +87,7 @@ export default function LapComparison({ isSubscriber }) {
         return
       }
 
-      const seen = new Set()
-      const unique = []
-      for (const row of (data || [])) {
-        const key = `${row.year}|${row.track_name}|${row.session_number}`
-        if (!seen.has(key)) {
-          seen.add(key)
-          unique.push({ ...row, key })
-        }
-      }
+      const unique = (data || []).map(row => ({ ...row, key: `${row.year}|${row.track_name}|${row.session_number}` }))
       setSessions(unique)
       if (unique.length > 0) setSelectedSession(unique[0])
     }
