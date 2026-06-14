@@ -491,7 +491,7 @@ function EntryListManager() {
   )
 }
 
-// ââ Load Qualifying Results from PDF âââââââââââââââââââââââââââââââââââââââââ
+// Ã¢ÂÂÃ¢ÂÂ Load Qualifying Results from PDF Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
 // Parses official NASCAR.com qualifying result PDFs (pos / car # / driver / speed)
 // and inserts directly into the qualifying_results Supabase table.
 function LoadQualifyingPdf() {
@@ -509,8 +509,8 @@ function LoadQualifyingPdf() {
 
   const MAKES = ['toyota', 'chevrolet', 'chevy', 'ford']
 
-  // PDF name corrections: handles truncations (Shane Van â full name) and
-  // normalization mismatches (AJ without dots â A.J.)
+  // PDF name corrections: handles truncations (Shane Van Ã¢ÂÂ full name) and
+  // normalization mismatches (AJ without dots Ã¢ÂÂ A.J.)
   const NAME_CORRECTIONS = {
     'Shane Van': 'Shane Van Gisbergen',
     'Aj Allmendinger': 'A.J. Allmendinger',
@@ -529,7 +529,7 @@ function LoadQualifyingPdf() {
     return str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
   }
 
-  // Fix compound prefixes that toTitleCase gets wrong: "Mcdowell"â"McDowell"
+  // Fix compound prefixes that toTitleCase gets wrong: "Mcdowell"Ã¢ÂÂ"McDowell"
   function fixSpecialCaps(name) {
     return name.replace(/\b(Mc|Mac)([a-z])/g, (_, p, c) => p + c.toUpperCase())
   }
@@ -585,7 +585,7 @@ function LoadQualifyingPdf() {
 
         const lineMap = {}
         for (const item of content.items) {
-          const y = Math.round(item.transform[5] / 5) * 5  // 5px bucket â groups mixed-font-size items on same visual row
+          const y = Math.round(item.transform[5] / 5) * 5  // 5px bucket Ã¢ÂÂ groups mixed-font-size items on same visual row
           if (!lineMap[y]) lineMap[y] = []
           lineMap[y].push({ x: item.transform[4], str: item.str.trim() })
         }
@@ -605,12 +605,12 @@ function LoadQualifyingPdf() {
       let ftqIdx = 0
 
       for (const line of allLines) {
-        // Strip leading asterisk â some PDFs mark FTQ entries with * before name/number
+        // Strip leading asterisk Ã¢ÂÂ some PDFs mark FTQ entries with * before name/number
         const normLine = line.trimStart().replace(/^\*\s*/, '')
         const posMatch = normLine.match(/^(\d{1,2})\s+(.+)$/)
 
         if (!posMatch) {
-          // No leading position number â try to parse as a pure-name FTQ entry.
+          // No leading position number Ã¢ÂÂ try to parse as a pure-name FTQ entry.
           // Triggered when original line had * prefix OR has (i)/(x) status suffix.
           if (line.trim().startsWith('*') || /\([^)]{1,5}\)/.test(line)) {
             let cleanN = normLine.replace(/\([^)]{1,5}\)/g, ' ').trim()
@@ -648,7 +648,7 @@ function LoadQualifyingPdf() {
         const carMatch = rest.match(/^(\d{1,3}[A-Za-z]?)\s+(.+)$/)
 
         // FTQ fallback: if rest doesn't start with a car number, the leading
-        // number (pos) IS the car number â FTQ sections often omit a position prefix
+        // number (pos) IS the car number Ã¢ÂÂ FTQ sections often omit a position prefix
         let carNumber, afterCar, ftqFallback = false
         if (carMatch) {
           carNumber = carMatch[1]
@@ -706,7 +706,7 @@ function LoadQualifyingPdf() {
         parsed.push({ position: ftqFallback ? (900 + ftqIdx++) : pos, carNumber, driverName, speed })
       }
 
-      // Dedup: separate genuine qualifiers (pos<900) from FTQ fallback entries (posâ¥900).
+      // Dedup: separate genuine qualifiers (pos<900) from FTQ fallback entries (posÃ¢ÂÂ¥900).
       // FTQ entries get positions immediately after the last genuine qualifier.
       const seenPos = new Set()
       const seenName = new Set()
@@ -733,7 +733,7 @@ function LoadQualifyingPdf() {
         setParseStatus(`No drivers found. First 8 lines: ${allLines.slice(0, 8).join(' | ')}`)
       } else {
         setDrivers(deduped)
-        setParseStatus(`Parsed ${deduped.length} drivers â review below, then upload`)
+        setParseStatus(`Parsed ${deduped.length} drivers Ã¢ÂÂ review below, then upload`)
       }
     } catch (err) {
       setParseStatus(`Error: ${err.message}`)
@@ -803,7 +803,7 @@ function LoadQualifyingPdf() {
         Load Qualifying Results from PDF
       </h2>
       <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 20 }}>
-        Upload the official NASCAR.com qualifying results PDF. Extracts position, car #, driver, and speed â uploads to Supabase.
+        Upload the official NASCAR.com qualifying results PDF. Extracts position, car #, driver, and speed Ã¢ÂÂ uploads to Supabase.
         If Race # matches an already-loaded Racing Reference session, it will be replaced.
       </p>
 
@@ -890,7 +890,7 @@ function LoadQualifyingPdf() {
                     <td style={{ padding: '5px 10px', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>#{d.carNumber}</td>
                     <td style={{ padding: '5px 10px', fontWeight: i < 3 ? 600 : 400 }}>{d.driverName}</td>
                     <td style={{ padding: '5px 10px', fontFamily: 'var(--font-mono)', color: 'var(--accent)' }}>
-                      {d.speed ? `${d.speed} mph` : <span style={{ color: 'var(--text-muted)' }}>â</span>}
+                      {d.speed ? `${d.speed} mph` : <span style={{ color: 'var(--text-muted)' }}>Ã¢ÂÂ</span>}
                     </td>
                   </tr>
                 ))}
@@ -916,7 +916,7 @@ function LoadQualifyingPdf() {
   )
 }
 
-// Load New Race (Loop Data) Section — parses pasted Racing Reference HTML client-side
+// Load New Race (Loop Data) Section â parses pasted Racing Reference HTML client-side
 function LoadNewRace() {
   const [lrSeries, setLrSeries] = useState('oreilly')
   const [lrYear, setLrYear] = useState('2026')
@@ -976,7 +976,7 @@ function LoadNewRace() {
         return first.length>0 && first.toLowerCase()!=='driver' && /[A-Za-z]/.test(first) && !/^(pos|place|rank)/i.test(first)
       })
       if (driverRows.length === 0) {
-        setLrStatus({ ok: false, message: 'No driver data found. Make sure you pasted the full Racing Reference page source (Ctrl+U → Ctrl+A → Ctrl+C).' })
+        setLrStatus({ ok: false, message: 'No driver data found. Make sure you pasted the full Racing Reference page source (Ctrl+U â Ctrl+A â Ctrl+C).' })
         setLrLoading(false); return
       }
 
@@ -1025,7 +1025,7 @@ function LoadNewRace() {
     <div className="card" style={{ marginBottom: 24 }}>
       <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 4 }}>Load Loop Data</h3>
       <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 16 }}>
-        Racing Reference blocks server requests. Instead: fill in Series/Year/Race#, click the link, then on that page press <strong>Ctrl+U</strong> (view source) → <strong>Ctrl+A</strong> → <strong>Ctrl+C</strong>, and paste below.
+        Racing Reference blocks server requests. Instead: fill in Series/Year/Race#, click the link, then on that page press <strong>Ctrl+U</strong> (view source) â <strong>Ctrl+A</strong> â <strong>Ctrl+C</strong>, and paste below.
       </p>
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
         <div>
@@ -1049,11 +1049,11 @@ function LoadNewRace() {
       </div>
       {rrUrl && (
         <p style={{ fontSize: '0.8rem', marginBottom: 10 }}>
-          Step 1 — open this URL: <a href={rrUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', wordBreak: 'break-all' }}>{rrUrl}</a>
+          Step 1 â open this URL: <a href={rrUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', wordBreak: 'break-all' }}>{rrUrl}</a>
         </p>
       )}
       <label style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
-        Step 2 — Paste Page Source Here (Ctrl+U → Ctrl+A → Ctrl+C)
+        Step 2 â Paste Page Source Here (Ctrl+U â Ctrl+A â Ctrl+C)
       </label>
       <textarea
         value={lrHtml}
@@ -1158,7 +1158,7 @@ export default function Admin() {
         late_run_avg: d.lateRunAvg,
         trend_slope: d.trendSlope,
         num_stints: d.stints,
-        longest_stint: d.longestStintLen,
+        longest_stint: d.longestStint ?? d.longestStintLen ?? null,
         practice_score: d.composite,
         practice_grade: d.grade,
         notes: d.notes || null,
@@ -1273,7 +1273,7 @@ export default function Admin() {
 
         <div style={{ marginBottom: 16 }}>
           <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: 6 }}>
-            Practice Excel File â optional columns: Car # and Group (A/B)
+            Practice Excel File Ã¢ÂÂ optional columns: Car # and Group (A/B)
           </label>
           <input type="file" accept=".xlsx,.xls" onChange={handleFileSelect}
             style={{ width: '100%', padding: '8px 10px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', color: 'var(--text-secondary)', fontFamily: 'var(--font-sans)', fontSize: '0.8125rem', cursor: 'pointer' }} />
@@ -1288,7 +1288,7 @@ export default function Admin() {
         {preview && (
           <div>
             <div style={{ padding: '10px 14px', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)', marginBottom: 16, fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
-              Parsed {preview.parsed.totalDrivers} drivers from sheet "{preview.parsed.sheetName}" â ready to grade and upload
+              Parsed {preview.parsed.totalDrivers} drivers from sheet "{preview.parsed.sheetName}" Ã¢ÂÂ ready to grade and upload
             </div>
             <div className="table-wrap" style={{ marginBottom: 16 }}>
               <table>
