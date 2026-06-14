@@ -916,6 +916,75 @@ function LoadQualifyingPdf() {
   )
 }
 
+// Load New Race (Loop Data) Section
+function LoadNewRace() {
+  const [lrSeries, setLrSeries] = useState('cup')
+  const [lrYear, setLrYear] = useState('2026')
+  const [lrRaceNum, setLrRaceNum] = useState('')
+  const [lrStatus, setLrStatus] = useState(null) // null | {ok, message}
+  const [lrLoading, setLrLoading] = useState(false)
+
+  async function handleLoad() {
+    if (!lrRaceNum) return
+    setLrLoading(true)
+    setLrStatus(null)
+    try {
+      const res = await fetch('/api/load-race', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ year: parseInt(lrYear), raceNumber: parseInt(lrRaceNum), series: lrSeries }),
+      })
+      const json = await res.json()
+      if (res.ok && json.success) {
+        setLrStatus({ ok: true, message: json.message })
+      } else {
+        setLrStatus({ ok: false, message: json.error || json.message || 'Unknown error' })
+      }
+    } catch (e) {
+      setLrStatus({ ok: false, message: e.message })
+    }
+    setLrLoading(false)
+  }
+
+  return (
+    <div className="card" style={{ marginBottom: 24 }}>
+      <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 4 }}>Load Loop Data</h3>
+      <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 16 }}>
+        Pulls race loop data from Racing Reference and stores in Supabase. Use the race number from racing-reference.info/loopdata/.
+      </p>
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <div>
+          <label style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Series</label>
+          <select value={lrSeries} onChange={e => setLrSeries(e.target.value)} className="input" style={{ width: 160 }}>
+            {SERIES_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+          </select>
+        </div>
+        <div>
+          <label style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Year</label>
+          <input className="input" style={{ width: 80 }} type="number" value={lrYear} onChange={e => setLrYear(e.target.value)} />
+        </div>
+        <div>
+          <label style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Race #</label>
+          <input className="input" style={{ width: 80 }} type="number" placeholder="e.g. 17" value={lrRaceNum} onChange={e => setLrRaceNum(e.target.value)} />
+        </div>
+        <button className="btn btn-primary" onClick={handleLoad} disabled={lrLoading || !lrRaceNum} style={{ minWidth: 140 }}>
+          {lrLoading ? 'Loading...' : 'Load Loop Data'}
+        </button>
+      </div>
+      {lrStatus && (
+        <div style={{
+          marginTop: 12, padding: '10px 14px', borderRadius: 6, fontSize: '0.8rem',
+          background: lrStatus.ok ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
+          border: `1px solid ${lrStatus.ok ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`,
+          color: lrStatus.ok ? '#10b981' : '#ef4444',
+        }}>
+          {lrStatus.message}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function Admin() {
   const [authed, setAuthed] = useState(false)
   const [password, setPassword] = useState('')
@@ -1159,6 +1228,8 @@ export default function Admin() {
             </button>
           </div>
         )}
+
+      <LoadNewRace />
       </div>
     </div>
   )
