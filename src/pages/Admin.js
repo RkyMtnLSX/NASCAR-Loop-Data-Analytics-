@@ -921,6 +921,7 @@ function LoadNewRace() {
   const [lrSeries, setLrSeries] = useState('oreilly')
   const [lrYear, setLrYear] = useState('2026')
   const [lrRaceNum, setLrRaceNum] = useState('')
+  const [lrTrackName, setLrTrackName] = useState('')
   const [lrHtml, setLrHtml] = useState('')
   const [lrStatus, setLrStatus] = useState(null)
   const [lrLoading, setLrLoading] = useState(false)
@@ -966,6 +967,7 @@ function LoadNewRace() {
       }
       if (!trackName) { const h1M=html.match(/<h1[^>]*>([^<]+)<\/h1>/i); if(h1M){const t=textOf(h1M[1]).replace(/\d{4}/,'').replace(/Loop\s*Data/i,'').trim();if(t.length>2)trackName=t} }
       if (!trackName) trackName = 'Race ' + raceNumber + ' ' + year
+      if (lrTrackName.trim()) trackName = lrTrackName.trim()
 
       // Parse driver rows
       const allRows = parseDataRows(html, 17)
@@ -1039,6 +1041,10 @@ function LoadNewRace() {
         <div>
           <label style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Race #</label>
           <input className="input" style={{ width: 80 }} type="number" placeholder="e.g. 17" value={lrRaceNum} onChange={e => setLrRaceNum(e.target.value)} />
+        </div>
+        <div style={{ flex: 1, minWidth: 160 }}>
+          <label style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Track Name (override)</label>
+          <input className="input" style={{ width: '100%' }} type="text" placeholder="e.g. Pocono Raceway" value={lrTrackName} onChange={e => setLrTrackName(e.target.value)} />
         </div>
       </div>
       {rrUrl && (
