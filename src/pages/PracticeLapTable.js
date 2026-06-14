@@ -52,6 +52,7 @@ export default function PracticeLapTable({ isSubscriber }) {
       .eq('series', series)
       .order('year', { ascending: false })
       .order('track_name')
+      .limit(50000)
       .then(({ data, error: err }) => {
         if (cancelled) return
         if (err) { setError(err.message); return }
@@ -82,6 +83,7 @@ export default function PracticeLapTable({ isSubscriber }) {
       .eq('track_name', selectedSession.track_name)
       .eq('session_number', selectedSession.session_number)
       .order('lap_number', { ascending: true })
+      .limit(50000)
       .then(({ data, error: err }) => {
         if (cancelled) return
         setLoading(false)
