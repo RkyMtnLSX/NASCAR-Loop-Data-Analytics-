@@ -148,9 +148,8 @@ export default function LapComparison({ isSubscriber }) {
   const chartData = (() => {
     const active = allDrivers.filter(d => selectedDrivers.includes(d.driver_name))
     if (!active.length) return []
-    const lapSet = new Set()
-    active.forEach(d => d.laps.forEach(l => lapSet.add(l.lap)))
-    const laps = [...lapSet].sort((a, b) => a - b)
+    const maxLap = Math.max(...active.flatMap(d => d.laps.map(l => l.lap)))
+    const laps = Array.from({ length: maxLap }, (_, i) => i + 1)
     return laps.map(lap => {
       const point = { lap }
       active.forEach(d => {
@@ -371,7 +370,7 @@ CREATE INDEX ON practice_laps (series, year, track_name, session_number);`}</pre
                         {selectedDrivers.map((name, idx) => (
                           <Line
                             key={name}
-                            type="monotone"
+                            type="linear"
                             dataKey={name}
                             name={name}
                             stroke={DRIVER_COLORS[idx % DRIVER_COLORS.length]}
