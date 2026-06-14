@@ -33,8 +33,9 @@ export default function PracticeReportCard({ isSubscriber }) {
       const seriesValues = series === 'xfinity' ? ['xfinity', 'oreilly'] : [series]
       const { data, error } = await supabase
         .from('practice_sessions')
-        .select('track_name, year, session_number, series')
+        .select('track_name, year, session_number, series, created_at')
         .in('series', seriesValues)
+        .order('created_at', { ascending: false })
         .order('year', { ascending: false })
         .order('track_name')
 
@@ -49,7 +50,7 @@ export default function PracticeReportCard({ isSubscriber }) {
           unique.push({ ...row, key })
         }
       }
-      setSessions(unique)
+      setSessions(unique.slice(0, 1))
       if (unique.length > 0) setSelected(unique[0].key)
       setLoading(false)
     }
