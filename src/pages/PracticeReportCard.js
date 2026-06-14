@@ -31,26 +31,24 @@ export default function PracticeReportCard({ isSubscriber }) {
 
       // O'Reilly Series includes both 'xfinity' and 'oreilly' series codes
       const seriesValues = series === 'xfinity' ? ['xfinity', 'oreilly'] : [series]
-      const { data, error } = await supabase
-        .from('practice_sessions')
-        .select('track_name, year, session_number, series, created_at')
-        .in('series', seriesValues)
-        .order('created_at', { ascending: false })
-        .order('year', { ascending: false })
-        .order('track_name')
+            // Use get_practice_sessions RPC (queries practice_laps) to get most recently uploaded session
+      const rpcResults = await Promise.all(
+        seriesValues.map(sv => supabase.rpc('get_practice_sessions', { p_series: sv }))
+      )
 
-      if (error) { setError(error.message); setLoading(false); return }
-
-      const seen = new Set()
-      const unique = []
-      for (const row of (data || [])) {
-        const key = `${row.year}|${row.track_name}|${row.session_number}`
-        if (!seen.has(key)) {
-          seen.add(key)
-          unique.push({ ...row, key })
+      const allSessions = []
+      for (const { data: rData, error: rErr } of rpcResults) {
+        if (rErr) { setError(rErr.message); setLoading(false); return }
+        for (const row of (rData || [])) {
+          const key = `${row.year}|${row.track_name}|${row.session_number}`
+          if (!allSessions.find(s => s.key === key)) {
+            allSessions.push({ ...row, key })
+          }
         }
       }
-      setSessions(unique.slice(0, 1))
+
+      const unique = allSessions.slice(0, 1)
+      setSessions(unique)
       if (unique.length > 0) setSelected(unique[0].key)
       setLoading(false)
     }
