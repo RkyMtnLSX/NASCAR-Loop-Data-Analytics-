@@ -90,7 +90,7 @@ export default function PracticeReportCard({ isSubscriber }) {
     <div className="page">
       <div className="page-header">
         <h1 className="page-title">Practice Report Cards</h1>
-        <p className="page-subtitle">Stint-aware practice grades â long run pace, short run pace, tire falloff &amp; consistency</p>
+        <p className="page-subtitle">Stint-aware practice grades — long run pace, short run pace, tire falloff &amp; consistency</p>
       </div>
 
       {/* Series tabs */}
@@ -122,7 +122,7 @@ export default function PracticeReportCard({ isSubscriber }) {
                 borderColor:  selected === s.key ? 'var(--accent)60'     : 'var(--border)',
               }}
             >
-              {s.track_name} {s.year} â S{s.session_number}
+              {s.track_name} {s.year} — S{s.session_number}
             </button>
           ))}
         </div>
@@ -183,7 +183,7 @@ export default function PracticeReportCard({ isSubscriber }) {
                       </td>
                       {hasCarNumber && (
                         <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', fontSize: '0.8125rem' }}>
-                          {d.car_number ? `#${d.car_number}` : 'â'}
+                          {d.car_number ? `#${d.car_number}` : '—'}
                         </td>
                       )}
                       <td className="left" style={{ fontWeight: i < 3 ? 600 : 400 }}>
@@ -195,30 +195,30 @@ export default function PracticeReportCard({ isSubscriber }) {
                             <span className="grade-pill" style={{ background: grpColors.bg, color: grpColors.text, fontSize: '0.7rem', padding: '2px 8px' }}>
                               {d.practice_group}
                             </span>
-                          ) : 'â'}
+                          ) : '—'}
                         </td>
                       )}
                       <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
-                        {d.qualifying_position ?? 'â'}
+                        {d.qualifying_position ?? '—'}
                       </td>
                       <td>
                         <span className="grade-pill" style={{ background: gc.bg, color: gc.text }}>
-                          {d.practice_grade || 'â'}
+                          {d.practice_grade || '—'}
                         </span>
                       </td>
                       <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
-                        {d.practice_score?.toFixed(1) || 'â'}
+                        {d.practice_score?.toFixed(1) || '—'}
                       </td>
-                      <td style={{ fontFamily: 'var(--font-mono)' }}>{d.total_laps ?? 'â'}</td>
-                      <td style={{ fontFamily: 'var(--font-mono)' }}>{d.overall_avg?.toFixed(3) || 'â'}</td>
-                      <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>{d.late_run_avg?.toFixed(3) || 'â'}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)' }}>{d.total_laps ?? '—'}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)' }}>{d.overall_avg?.toFixed(3) || '—'}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>{d.late_run_avg?.toFixed(3) || '—'}</td>
                       <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent)' }}>
-                        {d.best_lap?.toFixed(3) || 'â'}
+                        {d.best_lap?.toFixed(3) || '—'}
                       </td>
-                      <td style={{ fontFamily: 'var(--font-mono)' }}>{d.num_stints ?? 'â'}</td>
-                      <td style={{ fontFamily: 'var(--font-mono)' }}>{d.longest_stint ?? 'â'}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)' }}>{d.num_stints ?? '—'}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)' }}>{d.longest_stint ?? '—'}</td>
                       <td style={{ fontSize: '0.75rem', color: falloff?.color }}>
-                        {falloff?.label || 'â'}
+                        {falloff?.label || '—'}
                       </td>
                     </tr>
                   )
