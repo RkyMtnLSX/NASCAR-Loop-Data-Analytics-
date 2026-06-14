@@ -1,5 +1,5 @@
 // ============================================================
-// NASCAR Practice Session Grader — V4
+// NASCAR Practice Session Grader â V4
 // New methodology: Long Run Pace + Short Run Pace + Tire Falloff
 //   (falloff measured per-stint across all long runs)
 // Weights are fixed and not exposed to users
@@ -17,7 +17,7 @@ const WEIGHTS = {
 // Minimum meaningful laps (after mock qual exclusion) to receive a grade
 const MIN_MEANINGFUL_LAPS = 5
 
-// ── Helpers ──────────────────────────────────────────────────
+// ââ Helpers ââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 function _avg(arr) {
   return arr.reduce((a, b) => a + b, 0) / arr.length
@@ -41,7 +41,7 @@ function _linSlope(stint) {
   return (n * sxy - sx * sy) / (n * sxx - sx * sx)
 }
 
-// Middle 50% of a stint — skips warmup laps at front and anomalous laps at back
+// Middle 50% of a stint â skips warmup laps at front and anomalous laps at back
 function _mid50(stint) {
   const n     = stint.length
   const start = Math.floor(n * 0.25)
@@ -49,7 +49,7 @@ function _mid50(stint) {
   return stint.slice(start, end).map(([, t]) => t)
 }
 
-// ── Parse lap data into stint arrays ────────────────────────
+// ââ Parse lap data into stint arrays ââââââââââââââââââââââââ
 
 export function parseStints(lapData) {
   const laps = []
@@ -77,7 +77,7 @@ export function parseStints(lapData) {
   return stints
 }
 
-// ── Scaling ──────────────────────────────────────────────────
+// ââ Scaling ââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 function scaleValues(values, higherIsBetter = true) {
   const valid = values.filter(v => v !== null && !isNaN(v))
@@ -99,7 +99,7 @@ function _medianFill(arr) {
   return arr.map(v => v === null ? med : v)
 }
 
-// ── Grade / color helpers ────────────────────────────────────
+// ââ Grade / color helpers ââââââââââââââââââââââââââââââââââââ
 
 function percentileGrade(rank, total) {
   const pct = rank / total
@@ -134,14 +134,14 @@ export function gradeColor(grade) {
   return colors[grade] || { bg: '#333333', text: '#ffffff' }
 }
 
-// Tire falloff label — slope in seconds/lap (positive = degrading)
+// Tire falloff label â slope in seconds/lap (positive = degrading)
 export function falloffLabel(slope) {
   if (slope === null || slope === undefined) return null
-  if (slope < 0.03)  return { label: '↔ Minimal',    color: '#27AE60' }
-  if (slope < 0.10)  return { label: '↓ Moderate',   color: '#2471A3' }
-  if (slope < 0.18)  return { label: '↓↓ Fading',    color: '#B7950B' }
-  if (slope < 0.25)  return { label: '↓↓ High',      color: '#E67E22' }
-  return                    { label: '↓↓↓ Severe',   color: '#922B21' }
+  if (slope < 0.03)  return { label: 'â Minimal',    color: '#27AE60' }
+  if (slope < 0.10)  return { label: 'â Moderate',   color: '#2471A3' }
+  if (slope < 0.18)  return { label: 'ââ Fading',    color: '#B7950B' }
+  if (slope < 0.25)  return { label: 'ââ High',      color: '#E67E22' }
+  return                    { label: 'âââ Severe',   color: '#922B21' }
 }
 
 // Backward-compat alias used by PracticeReportCard
@@ -149,18 +149,18 @@ export function trendLabel(slope) {
   return falloffLabel(slope)
 }
 
-// ── Main grading function ────────────────────────────────────
+// ââ Main grading function ââââââââââââââââââââââââââââââââââââ
 // Input:  array of { driver, start, lapData: { '1': 55.1, '2': 55.3, ... } }
 // Output: array of graded driver objects sorted by composite score, INC at bottom
 //
-// Column mapping (stored field name → new meaning):
-//   overallAvg  → long run pace  (mid-50% of each ≥5-lap stint, averaged)
-//   lateRunAvg  → short run pace (avg of ≤4-lap stints not flagged as mock qual)
-//   trendSlope  → tire falloff   (length-weighted avg linear slope across all ≥5-lap stints)
-//   consistency → std dev within mid-50% of longest long stint
+// Column mapping (stored field name â new meaning):
+//   overallAvg  â long run pace  (mid-50% of each â¥5-lap stint, averaged)
+//   lateRunAvg  â short run pace (avg of â¤4-lap stints not flagged as mock qual)
+//   trendSlope  â tire falloff   (length-weighted avg linear slope across all â¥5-lap stints)
+//   consistency â std dev within mid-50% of longest long stint
 export function gradePracticeSession(drivers) {
 
-  // ── Step 1: compute raw metrics per driver ──
+  // ââ Step 1: compute raw metrics per driver ââ
   const parsed = drivers.map(d => {
     const stints    = parseStints(d.lapData || {})
     const allTimes  = stints.flat().map(([, t]) => t)
@@ -168,7 +168,7 @@ export function gradePracticeSession(drivers) {
 
     if (totalLaps === 0) {
       return {
-        ...d, stints: 0, stintAvgPace: null, totalLaps: 0,
+        ...d, stints: 0, longestStintLen: 0, stintAvgPace: null, totalLaps: 0,
         overallAvg: null, lateRunAvg: null, bestLap: null,
         trendSlope: null, consistency: null,
         inc: true, meaningfulLaps: 0, mqCount: 0,
@@ -184,8 +184,8 @@ export function gradePracticeSession(drivers) {
       avg:   _avg(s.map(([, t]) => t)),
     }))
 
-    // Mock qual: late in session (pos ≥ 0.50) + ≤2 laps + >0.5s faster than naive short avg
-    // Early short stints are legitimate new-tire pace — NOT flagged as mock qual
+    // Mock qual: late in session (pos â¥ 0.50) + â¤2 laps + >0.5s faster than naive short avg
+    // Early short stints are legitimate new-tire pace â NOT flagged as mock qual
     const shortCands = tagged.filter(c => c.len <= 4)
     const naiveSA    = shortCands.length
       ? _avg(shortCands.flatMap(c => c.stint.map(([, t]) => t)))
@@ -202,6 +202,7 @@ export function gradePracticeSession(drivers) {
       return {
         ...d,
         stints:        stints.length,
+        longestStintLen: stints.length ? Math.max(...stints.map(s => s.len)) : 0,
         stintAvgPace:  null,
         totalLaps,
         overallAvg:    null,
@@ -215,12 +216,12 @@ export function gradePracticeSession(drivers) {
       }
     }
 
-    // Short run pace: all ≤4-lap stints NOT mock qual (early fast stints count)
+    // Short run pace: all â¤4-lap stints NOT mock qual (early fast stints count)
     const realShort    = shortCands.filter(c => !mqSet.has(c.stint))
     const shortTimes   = realShort.flatMap(c => c.stint.map(([, t]) => t))
     const shortRunPace = shortTimes.length ? _avg(shortTimes) : null
 
-    // Long run stints: ≥5 laps
+    // Long run stints: â¥5 laps
     const longStints  = tagged.filter(c => c.len >= 5)
     const longest     = longStints.length
       ? longStints.reduce((a, b) => a.len >= b.len ? a : b)
@@ -228,7 +229,7 @@ export function gradePracticeSession(drivers) {
     const longRunLaps  = longStints.flatMap(c => _mid50(c.stint))
     const longRunPace  = longRunLaps.length ? _avg(longRunLaps) : null
 
-    // Tire falloff: length-weighted avg slope across ALL ≥5-lap stints
+    // Tire falloff: length-weighted avg slope across ALL â¥5-lap stints
     let tireFalloff = null
     if (longStints.length) {
       const totalLen = longStints.reduce((a, c) => a + c.len, 0)
@@ -250,6 +251,7 @@ export function gradePracticeSession(drivers) {
     return {
       ...d,
       stints:        stints.length,
+      longestStintLen: longest ? longest.len : 0,
       stintAvgPace,
       totalLaps,
       meaningfulLaps: meaningfulTimes.length,
@@ -264,7 +266,7 @@ export function gradePracticeSession(drivers) {
     }
   })
 
-  // ── Step 2: scale metrics across gradable field only ──
+  // ââ Step 2: scale metrics across gradable field only ââ
   const gradable   = parsed.filter(d => !d.inc)
   const incDrivers = parsed.filter(d => d.inc)
 
@@ -282,7 +284,7 @@ export function gradePracticeSession(drivers) {
   const lsScaled  = scaleValues(_medianFill(lsRaw), false)       // lower avg pace = better
   const blScaled  = scaleValues(blRaw, false)
 
-  // ── Step 3: composite score ──
+  // ââ Step 3: composite score ââ
   const scored = gradable.map((d, i) => {
     const lrp = lrpRaw[i] !== null ? lrpScaled[i] : null
     const srp = srpRaw[i] !== null ? srpScaled[i] : null
@@ -322,7 +324,7 @@ export function gradePracticeSession(drivers) {
     }
   })
 
-  // ── Step 4: sort + assign grades ──
+  // ââ Step 4: sort + assign grades ââ
   scored.sort((a, b) => b.composite - a.composite)
 
   const total  = scored.length
