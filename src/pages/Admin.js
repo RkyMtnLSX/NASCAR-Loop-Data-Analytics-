@@ -916,33 +916,106 @@ function LoadQualifyingPdf() {
   )
 }
 
-// Load New Race (Loop Data) Section
+// Load New Race (Loop Data) Section — parses pasted Racing Reference HTML client-side
 function LoadNewRace() {
-  const [lrSeries, setLrSeries] = useState('cup')
+  const [lrSeries, setLrSeries] = useState('oreilly')
   const [lrYear, setLrYear] = useState('2026')
   const [lrRaceNum, setLrRaceNum] = useState('')
-  const [lrStatus, setLrStatus] = useState(null) // null | {ok, message}
+  const [lrHtml, setLrHtml] = useState('')
+  const [lrStatus, setLrStatus] = useState(null)
   const [lrLoading, setLrLoading] = useState(false)
 
+  const seriesCodeMap = { cup: 'W', xfinity: 'B', oreilly: 'B', trucks: 'C' }
+  const rrCode = seriesCodeMap[lrSeries] || 'B'
+  const rrUrl = lrYear && lrRaceNum
+    ? 'https://www.racing-reference.info/loopdata/' + lrYear + '-' + String(lrRaceNum).padStart(2,'0') + '/' + rrCode
+    : null
+
+  function textOf(html) {
+    return html.replace(/<[^>]+>/g,'').replace(/&amp;/g,'&').replace(/&nbsp;/g,' ').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#(\d+);/g,(_,n)=>String.fromCharCode(parseInt(n,10))).trim()
+  }
+  function parseCells(rowHtml) {
+    const cells=[]; const re=/<td[^>]*>([\s\S]*?)<\/td>/gi; let m
+    while((m=re.exec(rowHtml))!==null) cells.push(textOf(m[1]))
+    return cells
+  }
+  function parseDataRows(html,minCols=17) {
+    const rows=[]; const re=/<tr[^>]*>([\s\S]*?)<\/tr>/gi; let m
+    while((m=re.exec(html))!==null){const cells=parseCells(m[1]);if(cells.length>=minCols)rows.push(cells)}
+    return rows
+  }
+  function toInt(s){if(!s||s==='--'||s==='-'||s.trim()==='')return null;const n=parseInt(s.replace(/[^0-9-]/g,''),10);return isNaN(n)?null:n}
+  function toFloat(s){if(!s||s==='--'||s==='-'||s.trim()==='')return null;const n=parseFloat(s.replace(/[^0-9.-]/g,''));return isNaN(n)?null:n}
+
   async function handleLoad() {
-    if (!lrRaceNum) return
-    setLrLoading(true)
-    setLrStatus(null)
+    if (!lrHtml.trim() || !lrRaceNum) return
+    setLrLoading(true); setLrStatus(null)
     try {
-      const res = await fetch('/api/load-race', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ year: parseInt(lrYear), raceNumber: parseInt(lrRaceNum), series: lrSeries }),
-      })
-      const json = await res.json()
-      if (res.ok && json.success) {
-        setLrStatus({ ok: true, message: json.message })
-      } else {
-        setLrStatus({ ok: false, message: json.error || json.message || 'Unknown error' })
+      const html = lrHtml
+      const year = parseInt(lrYear)
+      const raceNumber = parseInt(lrRaceNum)
+      const series = lrSeries
+      const racingRefId = year + '-' + String(raceNumber).padStart(2,'0') + '-' + rrCode
+
+      // Parse track name
+      let trackName = null
+      const titleM = html.match(/<title[^>]*>([^<]+)<\/title>/i)
+      if (titleM) {
+        let t = titleM[1].replace(/\s*[|\u2013-].*Racing Reference.*/i,'').replace(/^\d{4}\s+/,'').replace(/\s*Loop\s*Data\s*$/i,'').trim()
+        if (t.length > 2) trackName = t
       }
-    } catch (e) {
-      setLrStatus({ ok: false, message: e.message })
-    }
+      if (!trackName) { const h1M=html.match(/<h1[^>]*>([^<]+)<\/h1>/i); if(h1M){const t=textOf(h1M[1]).replace(/\d{4}/,'').replace(/Loop\s*Data/i,'').trim();if(t.length>2)trackName=t} }
+      if (!trackName) trackName = 'Race ' + raceNumber + ' ' + year
+
+      // Parse driver rows
+      const allRows = parseDataRows(html, 17)
+      const driverRows = allRows.filter(cells => {
+        const first = (cells[0]||'').trim()
+        return first.length>0 && first.toLowerCase()!=='driver' && /[A-Za-z]/.test(first) && !/^(pos|place|rank)/i.test(first)
+      })
+      if (driverRows.length === 0) {
+        setLrStatus({ ok: false, message: 'No driver data found. Make sure you pasted the full Racing Reference page source (Ctrl+U → Ctrl+A → Ctrl+C).' })
+        setLrLoading(false); return
+      }
+
+      // Check for existing race
+      const { data: existing } = await supabase.from('races').select('id,track_name').eq('racing_reference_id', racingRefId).maybeSingle()
+      if (existing) { setLrStatus({ ok: false, message: 'Already loaded: ' + existing.track_name + ' ' + year + ' (' + racingRefId + ')' }); setLrLoading(false); return }
+
+      // Find winner + total laps
+      let winningDriver=null, totalLaps=0
+      for(const row of driverRows){ const f=toInt(row[3]),l=toInt(row[17]); if(f===1&&!winningDriver)winningDriver=row[0]; if(l&&l>totalLaps)totalLaps=l }
+
+      // Insert race record
+      const { data: raceRec, error: raceErr } = await supabase.from('races').insert({
+        racing_reference_id: racingRefId, race_name: trackName+' '+year,
+        track_name: trackName, year, race_number: raceNumber,
+        series, winning_driver: winningDriver, total_laps: totalLaps||null,
+        racing_reference_url: rrUrl||''
+      }).select('id').single()
+      if (raceErr) { setLrStatus({ ok: false, message: 'Race insert failed: '+raceErr.message }); setLrLoading(false); return }
+
+      // Insert loop_data rows
+      let inserted=0; const errorLog=[]
+      for(const row of driverRows){
+        const driverName=(row[0]||'').trim(); if(!driverName)continue
+        const lapsComp=toInt(row[17]), finishPos=toInt(row[3])
+        const finishStatus=(lapsComp!=null&&totalLaps>0&&lapsComp<totalLaps*0.9)?'dnf':'running'
+        const { error } = await supabase.from('loop_data').insert({
+          race_id: raceRec.id, driver_name: driverName, series, year, track_name: trackName,
+          start_position: toInt(row[1]), mid_race_position: toInt(row[2]), finish_position: finishPos,
+          high_position: toInt(row[4]), low_position: toInt(row[5]), avg_position: toFloat(row[6]),
+          pass_diff: toInt(row[7]), green_flag_passes: toInt(row[8]), green_flag_times_passed: toInt(row[9]),
+          quality_passes: toInt(row[10]), pct_quality_passes: toFloat(row[11]), fastest_laps: toInt(row[12]),
+          top15_laps: toInt(row[13]), pct_top15_laps: toFloat(row[14]), laps_led: toInt(row[15]),
+          pct_laps_led: toFloat(row[16]), laps_completed: lapsComp, driver_rating: toFloat(row[18]),
+          finish_status: finishStatus,
+        })
+        if(error) errorLog.push(driverName+': '+error.message); else inserted++
+      }
+      setLrStatus({ ok: true, message: 'Loaded '+inserted+' drivers for '+trackName+' '+year+(errorLog.length?' ('+errorLog.length+' errors: '+errorLog.slice(0,3).join(', ')+')':'') })
+      if (inserted > 0) setLrHtml('')
+    } catch(e) { setLrStatus({ ok: false, message: e.message }) }
     setLrLoading(false)
   }
 
@@ -950,9 +1023,9 @@ function LoadNewRace() {
     <div className="card" style={{ marginBottom: 24 }}>
       <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 4 }}>Load Loop Data</h3>
       <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 16 }}>
-        Pulls race loop data from Racing Reference and stores in Supabase. Use the race number from racing-reference.info/loopdata/.
+        Racing Reference blocks server requests. Instead: fill in Series/Year/Race#, click the link, then on that page press <strong>Ctrl+U</strong> (view source) → <strong>Ctrl+A</strong> → <strong>Ctrl+C</strong>, and paste below.
       </p>
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
         <div>
           <label style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Series</label>
           <select value={lrSeries} onChange={e => setLrSeries(e.target.value)} className="input" style={{ width: 160 }}>
@@ -967,10 +1040,25 @@ function LoadNewRace() {
           <label style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Race #</label>
           <input className="input" style={{ width: 80 }} type="number" placeholder="e.g. 17" value={lrRaceNum} onChange={e => setLrRaceNum(e.target.value)} />
         </div>
-        <button className="btn btn-primary" onClick={handleLoad} disabled={lrLoading || !lrRaceNum} style={{ minWidth: 140 }}>
-          {lrLoading ? 'Loading...' : 'Load Loop Data'}
-        </button>
       </div>
+      {rrUrl && (
+        <p style={{ fontSize: '0.8rem', marginBottom: 10 }}>
+          Step 1 — open this URL: <a href={rrUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', wordBreak: 'break-all' }}>{rrUrl}</a>
+        </p>
+      )}
+      <label style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
+        Step 2 — Paste Page Source Here (Ctrl+U → Ctrl+A → Ctrl+C)
+      </label>
+      <textarea
+        value={lrHtml}
+        onChange={e => setLrHtml(e.target.value)}
+        placeholder="Paste the full Racing Reference page source here..."
+        rows={5}
+        style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 6, padding: '8px 12px', color: 'var(--text-primary)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)', resize: 'vertical' }}
+      />
+      <button className="btn btn-primary" onClick={handleLoad} disabled={lrLoading || !lrHtml.trim() || !lrRaceNum} style={{ marginTop: 10, minWidth: 140 }}>
+        {lrLoading ? 'Loading...' : 'Load Loop Data'}
+      </button>
       {lrStatus && (
         <div style={{
           marginTop: 12, padding: '10px 14px', borderRadius: 6, fontSize: '0.8rem',
