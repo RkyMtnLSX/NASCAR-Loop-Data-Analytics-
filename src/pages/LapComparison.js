@@ -79,6 +79,7 @@ export default function LapComparison({ isSubscriber }) {
         .eq('series', series)
         .order('year', { ascending: false })
         .order('track_name')
+      .limit(50000)
 
       if (cancelled) return
 
@@ -125,6 +126,7 @@ export default function LapComparison({ isSubscriber }) {
         .eq('track_name', selectedSession.track_name)
         .eq('session_number', selectedSession.session_number)
         .order('lap_number', { ascending: true })
+      .limit(50000)
 
       if (cancelled) return
       setLoading(false)
