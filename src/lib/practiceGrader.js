@@ -1,5 +1,6 @@
+/* eslint-disable */
 // ============================================================
-// NASCAR Practice Session Grader — V5
+// NASCAR Practice Session Grader â V5
 // Stint-aware methodology
 // V5 changes:
 //   - longRunPace weight raised to 0.50 (speed is king)
@@ -49,7 +50,7 @@ export function parseStints(lapData) {
   return stints
 }
 
-// ── Internal helpers ──────────────────────────────────────────
+// ââ Internal helpers ââââââââââââââââââââââââââââââââââââââââââ
 
 function _avg(arr) {
   return arr.reduce((a, b) => a + b, 0) / arr.length
@@ -103,7 +104,7 @@ function _medianFill(scaledArr) {
   return scaledArr.map(v => (v === null ? median : v))
 }
 
-// ── Grade/color helpers ───────────────────────────────────────
+// ââ Grade/color helpers âââââââââââââââââââââââââââââââââââââââ
 
 export function percentileGrade(rank, total) {
   const pct = rank / total
@@ -138,14 +139,14 @@ export function gradeColor(grade) {
 }
 
 export function trendLabel(slope) {
-  if (slope < -0.010) return { label: '↑↑ Strong Gain', color: '#1E8449' }
-  if (slope < -0.004) return { label: '↑ Gaining',      color: '#27AE60' }
-  if (slope <  0.004) return { label: '→ Stable',        color: '#2471A3' }
-  if (slope <  0.010) return { label: '↓ Fading',        color: '#B7950B' }
-  return                     { label: '↓↓ Falling Off',  color: '#922B21' }
+  if (slope < -0.010) return { label: 'ââ Strong Gain', color: '#1E8449' }
+  if (slope < -0.004) return { label: 'â Gaining',      color: '#27AE60' }
+  if (slope <  0.004) return { label: 'â Stable',        color: '#2471A3' }
+  if (slope <  0.010) return { label: 'â Fading',        color: '#B7950B' }
+  return                     { label: 'ââ Falling Off',  color: '#922B21' }
 }
 
-// ── Main grading function ─────────────────────────────────────
+// ââ Main grading function âââââââââââââââââââââââââââââââââââââ
 // Input:  array of { driver, start, lapData: { '1': 53.4, '2': 53.6, ... } }
 // Output: array sorted by composite score, each driver has rank + grade
 export function gradePracticeSession(drivers) {
