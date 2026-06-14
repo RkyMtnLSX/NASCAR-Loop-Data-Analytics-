@@ -10,7 +10,7 @@ const WEIGHTS = {
   shortRunPace: 0.25,
   tireFalloff:  0.15,
   consistency:  0.15,
-  longestStint: 0.10,
+  stintAvgPace: 0.10,   // avg pace in longest stint (lower = better)
   bestLap:      0.05,
 }
 
@@ -168,7 +168,7 @@ export function gradePracticeSession(drivers) {
 
     if (totalLaps === 0) {
       return {
-        ...d, stints: 0, longestStint: 0, totalLaps: 0,
+        ...d, stints: 0, stintAvgPace: null, totalLaps: 0,
         overallAvg: null, lateRunAvg: null, bestLap: null,
         trendSlope: null, consistency: null,
         inc: true, meaningfulLaps: 0, mqCount: 0,
@@ -202,7 +202,7 @@ export function gradePracticeSession(drivers) {
       return {
         ...d,
         stints:        stints.length,
-        longestStint:  Math.max(...stints.map(s => s.length)),
+        stintAvgPace:  null,
         totalLaps,
         overallAvg:    null,
         lateRunAvg:    null,
@@ -244,13 +244,13 @@ export function gradePracticeSession(drivers) {
       consistency = _stddev(shortTimes)
     }
 
-    const longestStint = Math.max(...stints.map(s => s.length))
+    const stintAvgPace = longest ? _avg(longest.stint) : null
     const bestLap      = Math.min(...allTimes)
 
     return {
       ...d,
       stints:        stints.length,
-      longestStint,
+      stintAvgPace,
       totalLaps,
       meaningfulLaps: meaningfulTimes.length,
       mqCount:        mqStints.length,
@@ -272,14 +272,14 @@ export function gradePracticeSession(drivers) {
   const srpRaw = gradable.map(d => d.lateRunAvg)
   const tfRaw  = gradable.map(d => d.trendSlope)
   const conRaw = gradable.map(d => d.consistency)
-  const lsRaw  = gradable.map(d => d.longestStint)
+  const lsRaw  = gradable.map(d => d.stintAvgPace)
   const blRaw  = gradable.map(d => d.bestLap)
 
   const lrpScaled = scaleValues(_medianFill(lrpRaw), false)      // lower pace = better
   const srpScaled = scaleValues(_medianFill(srpRaw), false)
   const tfScaled  = scaleValues(tfRaw.map(v => v ?? 0), false)   // lower slope = better
   const conScaled = scaleValues(conRaw.map(v => v ?? 0), false)  // lower stddev = better
-  const lsScaled  = scaleValues(lsRaw, true)                     // more laps = better
+  const lsScaled  = scaleValues(_medianFill(lsRaw), false)       // lower avg pace = better
   const blScaled  = scaleValues(blRaw, false)
 
   // ── Step 3: composite score ──
@@ -304,7 +304,7 @@ export function gradePracticeSession(drivers) {
         srp * WEIGHTS.shortRunPace +
         tf  * WEIGHTS.tireFalloff  +
         con * WEIGHTS.consistency  +
-        ls  * WEIGHTS.longestStint +
+        ls  * WEIGHTS.stintAvgPace +
         bl  * WEIGHTS.bestLap
     }
 
@@ -316,7 +316,7 @@ export function gradePracticeSession(drivers) {
         shortRunPace: srp !== null ? Math.round(srp * 10) / 10 : null,
         tireFalloff:  Math.round(tf  * 10) / 10,
         consistency:  Math.round(con * 10) / 10,
-        longestStint: Math.round(ls  * 10) / 10,
+        stintAvgPace: Math.round(ls  * 10) / 10,
         bestLap:      Math.round(bl  * 10) / 10,
       },
     }
