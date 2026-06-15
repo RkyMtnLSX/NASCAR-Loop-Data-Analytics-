@@ -105,16 +105,6 @@ function WeekendConfig() {
             <div style={{ fontWeight: 600, fontSize: '0.875rem', marginBottom: 14 }}>{label}</div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 14 }}>
-        <div>
-          <label style={lbl}>Lap Raptor Race ID</label>
-          <input type="text" value={lapRaptorId} onChange={e => setLapRaptorId(e.target.value)} placeholder="e.g. 5614" style={inp} />
-          {lapRaptorId && (
-            <a href={'https://www.lapraptor.com/races/' + lapRaptorId + '/fastest-lap-table/'} target="_blank" rel="noreferrer"
-              style={{ display: 'block', marginTop: 5, fontSize: '0.75rem', color: 'var(--accent)' }}>
-              Open fastest-lap-table →
-            </a>
-          )}
-        </div>
               <div>
                 <label style={labelStyle}>Featured Track</label>
                 <select
@@ -501,7 +491,7 @@ function EntryListManager() {
   )
 }
 
-// Ã¢ÂÂÃ¢ÂÂ Load Qualifying Results from PDF Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Load Qualifying Results from PDF ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 // Parses official NASCAR.com qualifying result PDFs (pos / car # / driver / speed)
 // and inserts directly into the qualifying_results Supabase table.
 function LoadQualifyingPdf() {
@@ -519,8 +509,8 @@ function LoadQualifyingPdf() {
 
   const MAKES = ['toyota', 'chevrolet', 'chevy', 'ford']
 
-  // PDF name corrections: handles truncations (Shane Van Ã¢ÂÂ full name) and
-  // normalization mismatches (AJ without dots Ã¢ÂÂ A.J.)
+  // PDF name corrections: handles truncations (Shane Van ÃÂ¢ÃÂÃÂ full name) and
+  // normalization mismatches (AJ without dots ÃÂ¢ÃÂÃÂ A.J.)
   const NAME_CORRECTIONS = {
     'Shane Van': 'Shane Van Gisbergen',
     'Aj Allmendinger': 'A.J. Allmendinger',
@@ -539,7 +529,7 @@ function LoadQualifyingPdf() {
     return str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
   }
 
-  // Fix compound prefixes that toTitleCase gets wrong: "Mcdowell"Ã¢ÂÂ"McDowell"
+  // Fix compound prefixes that toTitleCase gets wrong: "Mcdowell"ÃÂ¢ÃÂÃÂ"McDowell"
   function fixSpecialCaps(name) {
     return name.replace(/\b(Mc|Mac)([a-z])/g, (_, p, c) => p + c.toUpperCase())
   }
@@ -595,7 +585,7 @@ function LoadQualifyingPdf() {
 
         const lineMap = {}
         for (const item of content.items) {
-          const y = Math.round(item.transform[5] / 5) * 5  // 5px bucket Ã¢ÂÂ groups mixed-font-size items on same visual row
+          const y = Math.round(item.transform[5] / 5) * 5  // 5px bucket ÃÂ¢ÃÂÃÂ groups mixed-font-size items on same visual row
           if (!lineMap[y]) lineMap[y] = []
           lineMap[y].push({ x: item.transform[4], str: item.str.trim() })
         }
@@ -615,12 +605,12 @@ function LoadQualifyingPdf() {
       let ftqIdx = 0
 
       for (const line of allLines) {
-        // Strip leading asterisk Ã¢ÂÂ some PDFs mark FTQ entries with * before name/number
+        // Strip leading asterisk ÃÂ¢ÃÂÃÂ some PDFs mark FTQ entries with * before name/number
         const normLine = line.trimStart().replace(/^\*\s*/, '')
         const posMatch = normLine.match(/^(\d{1,2})\s+(.+)$/)
 
         if (!posMatch) {
-          // No leading position number Ã¢ÂÂ try to parse as a pure-name FTQ entry.
+          // No leading position number ÃÂ¢ÃÂÃÂ try to parse as a pure-name FTQ entry.
           // Triggered when original line had * prefix OR has (i)/(x) status suffix.
           if (line.trim().startsWith('*') || /\([^)]{1,5}\)/.test(line)) {
             let cleanN = normLine.replace(/\([^)]{1,5}\)/g, ' ').trim()
@@ -658,7 +648,7 @@ function LoadQualifyingPdf() {
         const carMatch = rest.match(/^(\d{1,3}[A-Za-z]?)\s+(.+)$/)
 
         // FTQ fallback: if rest doesn't start with a car number, the leading
-        // number (pos) IS the car number Ã¢ÂÂ FTQ sections often omit a position prefix
+        // number (pos) IS the car number ÃÂ¢ÃÂÃÂ FTQ sections often omit a position prefix
         let carNumber, afterCar, ftqFallback = false
         if (carMatch) {
           carNumber = carMatch[1]
@@ -716,7 +706,7 @@ function LoadQualifyingPdf() {
         parsed.push({ position: ftqFallback ? (900 + ftqIdx++) : pos, carNumber, driverName, speed })
       }
 
-      // Dedup: separate genuine qualifiers (pos<900) from FTQ fallback entries (posÃ¢ÂÂ¥900).
+      // Dedup: separate genuine qualifiers (pos<900) from FTQ fallback entries (posÃÂ¢ÃÂÃÂ¥900).
       // FTQ entries get positions immediately after the last genuine qualifier.
       const seenPos = new Set()
       const seenName = new Set()
@@ -743,7 +733,7 @@ function LoadQualifyingPdf() {
         setParseStatus(`No drivers found. First 8 lines: ${allLines.slice(0, 8).join(' | ')}`)
       } else {
         setDrivers(deduped)
-        setParseStatus(`Parsed ${deduped.length} drivers Ã¢ÂÂ review below, then upload`)
+        setParseStatus(`Parsed ${deduped.length} drivers ÃÂ¢ÃÂÃÂ review below, then upload`)
       }
     } catch (err) {
       setParseStatus(`Error: ${err.message}`)
@@ -813,7 +803,7 @@ function LoadQualifyingPdf() {
         Load Qualifying Results from PDF
       </h2>
       <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 20 }}>
-        Upload the official NASCAR.com qualifying results PDF. Extracts position, car #, driver, and speed Ã¢ÂÂ uploads to Supabase.
+        Upload the official NASCAR.com qualifying results PDF. Extracts position, car #, driver, and speed ÃÂ¢ÃÂÃÂ uploads to Supabase.
         If Race # matches an already-loaded Racing Reference session, it will be replaced.
       </p>
 
@@ -900,7 +890,7 @@ function LoadQualifyingPdf() {
                     <td style={{ padding: '5px 10px', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>#{d.carNumber}</td>
                     <td style={{ padding: '5px 10px', fontWeight: i < 3 ? 600 : 400 }}>{d.driverName}</td>
                     <td style={{ padding: '5px 10px', fontFamily: 'var(--font-mono)', color: 'var(--accent)' }}>
-                      {d.speed ? `${d.speed} mph` : <span style={{ color: 'var(--text-muted)' }}>Ã¢ÂÂ</span>}
+                      {d.speed ? `${d.speed} mph` : <span style={{ color: 'var(--text-muted)' }}>ÃÂ¢ÃÂÃÂ</span>}
                     </td>
                   </tr>
                 ))}
@@ -926,7 +916,7 @@ function LoadQualifyingPdf() {
   )
 }
 
-// Load New Race (Loop Data) Section â parses pasted Racing Reference HTML client-side
+// Load New Race (Loop Data) Section Ã¢ÂÂ parses pasted Racing Reference HTML client-side
 function LoadNewRace() {
   const [lrSeries, setLrSeries] = useState('oreilly')
   const [lrYear, setLrYear] = useState('2026')
@@ -986,7 +976,7 @@ function LoadNewRace() {
         return first.length>0 && first.toLowerCase()!=='driver' && /[A-Za-z]/.test(first) && !/^(pos|place|rank)/i.test(first)
       })
       if (driverRows.length === 0) {
-        setLrStatus({ ok: false, message: 'No driver data found. Make sure you pasted the full Racing Reference page source (Ctrl+U â Ctrl+A â Ctrl+C).' })
+        setLrStatus({ ok: false, message: 'No driver data found. Make sure you pasted the full Racing Reference page source (Ctrl+U Ã¢ÂÂ Ctrl+A Ã¢ÂÂ Ctrl+C).' })
         setLrLoading(false); return
       }
 
@@ -1035,7 +1025,7 @@ function LoadNewRace() {
     <div className="card" style={{ marginBottom: 24 }}>
       <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 4 }}>Load Loop Data</h3>
       <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 16 }}>
-        Racing Reference blocks server requests. Instead: fill in Series/Year/Race#, click the link, then on that page press <strong>Ctrl+U</strong> (view source) â <strong>Ctrl+A</strong> â <strong>Ctrl+C</strong>, and paste below.
+        Racing Reference blocks server requests. Instead: fill in Series/Year/Race#, click the link, then on that page press <strong>Ctrl+U</strong> (view source) Ã¢ÂÂ <strong>Ctrl+A</strong> Ã¢ÂÂ <strong>Ctrl+C</strong>, and paste below.
       </p>
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
         <div>
@@ -1059,11 +1049,11 @@ function LoadNewRace() {
       </div>
       {rrUrl && (
         <p style={{ fontSize: '0.8rem', marginBottom: 10 }}>
-          Step 1 â open this URL: <a href={rrUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', wordBreak: 'break-all' }}>{rrUrl}</a>
+          Step 1 Ã¢ÂÂ open this URL: <a href={rrUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', wordBreak: 'break-all' }}>{rrUrl}</a>
         </p>
       )}
       <label style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
-        Step 2 â Paste Page Source Here (Ctrl+U â Ctrl+A â Ctrl+C)
+        Step 2 Ã¢ÂÂ Paste Page Source Here (Ctrl+U Ã¢ÂÂ Ctrl+A Ã¢ÂÂ Ctrl+C)
       </label>
       <textarea
         value={lrHtml}
@@ -1096,28 +1086,52 @@ function LoadFastestLaps() {
   const [raceName, setRaceName] = useState('')
   const [raceDate, setRaceDate] = useState('')
   const [track, setTrack] = useState('')
-  const [lapRaptorId, setLapRaptorId] = useState('')
   const [source, setSource] = useState('')
   const [status, setStatus] = useState(null)
   const [loading, setLoading] = useState(false)
 
   function parseSource(raw) {
+    // 1. Try HTML table (Ctrl+U page source)
     try {
       const doc = new DOMParser().parseFromString(raw, 'text/html')
       const tbl = doc.querySelector('table')
       if (tbl) {
         const rows = [...tbl.querySelectorAll('tbody tr')].map(function(tr) {
           const c = [...tr.querySelectorAll('td')].map(function(td) { return td.textContent.trim() })
+          if (c.length >= 12) {
+            return { fastest_lap_num: c[7], driver: c[0], fastest_speed: c[11], fastest_time: c[8] }
+          }
           return { fastest_lap_num: c[0], driver: c[1], fastest_speed: c[2], fastest_time: c[3] }
-        }).filter(function(r) { return r.driver })
+        }).filter(function(r) { return r.driver && r.driver !== 'Driver' })
         if (rows.length) return rows
       }
     } catch(e) {}
-    const lines = raw.split('\n').map(function(l) { return l.trim() }).filter(Boolean)
-    const rows = []
-    const re = /^(\d+)\s+(.+?)\s+([\d.]+)\s+([\d.]+)$/
+
+    var lines = raw.split('\n').map(function(l) { return l.trim() }).filter(Boolean)
+
+    // 2. Tab-separated Lap Performance (Ctrl+A on rendered page)
+    var tabRows = []
     lines.forEach(function(line) {
-      const m = line.match(re)
+      var parts = line.split('\t').map(function(p) { return p.trim() })
+      if (parts.length >= 12 && isNaN(parseFloat(parts[0])) && parts[0].length > 2 && parts[0] !== 'Driver') {
+        var fastestLap, fastestTime, fastestSpeed
+        if (parts.length >= 14) {
+          fastestLap = parts[7]; fastestTime = parts[8]; fastestSpeed = parts[11]
+        } else {
+          fastestLap = parts[6]; fastestTime = parts[7]; fastestSpeed = parts[10]
+        }
+        if (fastestLap && !isNaN(parseFloat(fastestLap)) && !isNaN(parseFloat(fastestSpeed)) && parseFloat(fastestSpeed) > 50) {
+          tabRows.push({ fastest_lap_num: fastestLap, driver: parts[0], fastest_speed: fastestSpeed, fastest_time: fastestTime })
+        }
+      }
+    })
+    if (tabRows.length) return tabRows
+
+    // 3. Fallback: "1 Kyle Larson 168.080 53.546"
+    var rows = []
+    var re = /^(\d+)\s+(.+?)\s+([\d.]+)\s+([\d.]+)$/
+    lines.forEach(function(line) {
+      var m = line.match(re)
       if (m) rows.push({ fastest_lap_num: m[1], driver: m[2].trim(), fastest_speed: m[3], fastest_time: m[4] })
     })
     return rows
@@ -1168,7 +1182,7 @@ function LoadFastestLaps() {
     <div className="card" style={{ marginBottom: 20 }}>
       <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 8 }}>Load Fastest Laps</h2>
       <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 18 }}>
-        Enter the Lap Raptor race ID below to get a direct link to the correct page. Then Ctrl+A → Ctrl+C on that page and paste below.
+        On the Lap Raptor race page, select the Lap Performance report. Press Ctrl+A then Ctrl+C to copy the table. Fill in race info and paste below.
       </p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 14 }}>
         <div>
@@ -1214,7 +1228,7 @@ function LoadFastestLaps() {
           fontWeight: 600, fontSize: '0.82rem',
         }}
       >
-        {loading ? 'Loading…' : 'Load Fastest Laps'}
+        {loading ? 'Loadingâ¦' : 'Load Fastest Laps'}
       </button>
       {status && (
         <div style={{
@@ -1225,8 +1239,8 @@ function LoadFastestLaps() {
           color: status.success ? 'var(--text-primary)' : '#f87171',
         }}>
           {status.success
-            ? '✓ ' + status.message + (status.topDriver ? ' — Fastest: ' + status.topDriver + ' (' + status.topSpeed + ' mph)' : '')
-            : '✗ ' + (status.error || 'Unknown error')}
+            ? 'â ' + status.message + (status.topDriver ? ' â Fastest: ' + status.topDriver + ' (' + status.topSpeed + ' mph)' : '')
+            : 'â ' + (status.error || 'Unknown error')}
         </div>
       )}
     </div>
@@ -1428,7 +1442,7 @@ export default function Admin() {
 
         <div style={{ marginBottom: 16 }}>
           <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: 6 }}>
-            Practice Excel File Ã¢ÂÂ optional columns: Car # and Group (A/B)
+            Practice Excel File ÃÂ¢ÃÂÃÂ optional columns: Car # and Group (A/B)
           </label>
           <input type="file" accept=".xlsx,.xls" onChange={handleFileSelect}
             style={{ width: '100%', padding: '8px 10px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', color: 'var(--text-secondary)', fontFamily: 'var(--font-sans)', fontSize: '0.8125rem', cursor: 'pointer' }} />
@@ -1443,7 +1457,7 @@ export default function Admin() {
         {preview && (
           <div>
             <div style={{ padding: '10px 14px', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)', marginBottom: 16, fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
-              Parsed {preview.parsed.totalDrivers} drivers from sheet "{preview.parsed.sheetName}" Ã¢ÂÂ ready to grade and upload
+              Parsed {preview.parsed.totalDrivers} drivers from sheet "{preview.parsed.sheetName}" ÃÂ¢ÃÂÃÂ ready to grade and upload
             </div>
             <div className="table-wrap" style={{ marginBottom: 16 }}>
               <table>
