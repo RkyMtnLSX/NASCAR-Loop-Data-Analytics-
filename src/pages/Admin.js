@@ -1079,6 +1079,144 @@ function LoadNewRace() {
   )
 }
 
+function LoadFastestLaps() {
+  const TRACK_TYPES_FL = ['Short Track', 'Superspeedway', 'Intermediate', 'Road Course', 'Other']
+  const [year, setYear] = useState(new Date().getFullYear())
+  const [trackType, setTrackType] = useState('Road Course')
+  const [raceName, setRaceName] = useState('')
+  const [raceDate, setRaceDate] = useState('')
+  const [track, setTrack] = useState('')
+  const [lapRaptorId, setLapRaptorId] = useState('')
+  const [bookmarklet, setBookmarklet] = useState('')
+
+  function generateBookmarklet() {
+    if (!raceName || !raceDate || !track) return
+    const apiUrl = window.location.origin + '/api/load-fastest-laps'
+    const rn = JSON.stringify(raceName)
+    const tr = JSON.stringify(track)
+    const bParts = [
+      '(function(){',
+      'var tbl=document.querySelector("table");',
+      'if(!tbl){alert("No table found. Navigate to the fastest-lap-table/ page.");return;}',
+      'var rows=[...tbl.querySelectorAll("tbody tr")].map(function(tr){',
+      'var c=[...tr.querySelectorAll("td")].map(function(td){return td.textContent.trim();});',
+      'return{fastest_lap_num:c[0],driver:c[1],fastest_speed:c[2],fastest_time:c[3]};',
+      '}).filter(function(r){return r.driver;});',
+      'var best={};',
+      'rows.forEach(function(r){var p=best[r.driver];if(!p||parseFloat(r.fastest_speed)>parseFloat(p.fastest_speed))best[r.driver]=r;});',
+      'var drivers=Object.values(best);',
+      'if(!drivers.length){alert("No driver data found.");return;}',
+      'if(!confirm("Found "+drivers.length+" drivers. Import to Supabase?"))return;',
+      'fetch(' + JSON.stringify(apiUrl) + ',{method:"POST",headers:{"Content-Type":"application/json"},',
+      'body:JSON.stringify({year:' + year + ',track_type:' + JSON.stringify(trackType) + ',race_name:' + rn + ',race_date:' + JSON.stringify(raceDate) + ',track:' + tr + ',rows:drivers})',
+      '}).then(function(r){return r.json();}).then(function(d){',
+      'if(d.success)alert("Imported "+d.inserted+" drivers. Fastest: "+d.topDriver+" ("+d.topSpeed+" mph)");',
+      'else alert("Error: "+(d.error||"unknown"));',
+      '}).catch(function(e){alert("Request failed: "+e.message);});',
+      '})();'
+    ]
+    setBookmarklet('javascript:' + encodeURIComponent(bParts.join('')))
+  }
+
+  const inp = {
+    padding: '7px 10px', borderRadius: 6, border: '1px solid var(--border)',
+    background: 'var(--bg-elevated)', color: 'var(--text-primary)',
+    fontSize: '0.825rem', width: '100%', boxSizing: 'border-box', outline: 'none',
+  }
+  const lbl = {
+    display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)',
+    marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.04em',
+  }
+  const ready = !!(raceName && raceDate && track)
+
+  return (
+    <div className="card" style={{ marginBottom: 20 }}>
+      <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 8 }}>Load Fastest Laps</h2>
+      <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 18 }}>
+        Fill in race metadata, generate a bookmarklet, then use it on the Lap Raptor fastest-lap-table page to import into Supabase.
+      </p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 14 }}>
+        <div>
+          <label style={lbl}>Year</label>
+          <input type="number" value={year} onChange={e => setYear(parseInt(e.target.value))} style={inp} />
+        </div>
+        <div>
+          <label style={lbl}>Track Type</label>
+          <select value={trackType} onChange={e => setTrackType(e.target.value)} style={inp}>
+            {TRACK_TYPES_FL.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </div>
+        <div>
+          <label style={lbl}>Race Name</label>
+          <input type="text" value={raceName} onChange={e => setRaceName(e.target.value)} placeholder="e.g. DuraMAX Texas Grand Prix" style={inp} />
+        </div>
+        <div>
+          <label style={lbl}>Race Date</label>
+          <input type="date" value={raceDate} onChange={e => setRaceDate(e.target.value)} style={inp} />
+        </div>
+        <div>
+          <label style={lbl}>Track (full name)</label>
+          <input type="text" value={track} onChange={e => setTrack(e.target.value)} placeholder="e.g. Circuit of The Americas" style={inp} />
+        </div>
+        <div>
+          <label style={lbl}>Lap Raptor Race ID</label>
+          <input type="text" value={lapRaptorId} onChange={e => setLapRaptorId(e.target.value)} placeholder="e.g. 5598" style={inp} />
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
+        <button
+          onClick={generateBookmarklet}
+          disabled={!ready}
+          style={{
+            padding: '7px 18px', borderRadius: 6, border: 'none', cursor: ready ? 'pointer' : 'default',
+            background: ready ? 'var(--accent)' : 'var(--border)',
+            color: ready ? '#000' : 'var(--text-muted)', fontWeight: 600, fontSize: '0.82rem',
+          }}
+        >
+          Generate Bookmarklet
+        </button>
+        {lapRaptorId && (
+          <a href={'https://www.lapraptor.com/races/' + lapRaptorId + '/fastest-lap-table/'} target="_blank" rel="noreferrer"
+            style={{ fontSize: '0.8rem', color: 'var(--accent)', textDecoration: 'none' }}>
+            Open Lap Raptor \u2192
+          </a>
+        )}
+      </div>
+      {bookmarklet && (
+        <div style={{ padding: '14px 16px', background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 8 }}>
+          <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--accent)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Bookmarklet Ready
+          </div>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 12 }}>
+            Drag the button below to your bookmarks bar. Then navigate to{' '}
+            {lapRaptorId
+              ? <a href={'https://www.lapraptor.com/races/' + lapRaptorId + '/fastest-lap-table/'} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>lapraptor.com/races/{lapRaptorId}/fastest-lap-table/</a>
+              : 'lapraptor.com/races/ID/fastest-lap-table/'
+            }
+            {' '}and click it.
+          </p>
+          <a
+            href={bookmarklet}
+            onClick={e => e.preventDefault()}
+            draggable={true}
+            style={{
+              display: 'inline-block', padding: '7px 18px', borderRadius: 6,
+              background: 'var(--accent)', color: '#000', fontWeight: 700,
+              fontSize: '0.82rem', textDecoration: 'none', cursor: 'grab',
+            }}
+          >
+            Import Fastest Laps \u2014 {raceName}
+          </a>
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 10, marginBottom: 0 }}>
+            \u2191 Drag this to your bookmarks bar
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+
 export default function Admin() {
   const [authed, setAuthed] = useState(false)
   const [password, setPassword] = useState('')
@@ -1241,6 +1379,7 @@ export default function Admin() {
       <WeekendConfig />
       <EntryListManager />
       <LoadQualifyingPdf />
+      <LoadFastestLaps />
 
       <div className="card" style={{ marginBottom: 20 }}>
         <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 20 }}>Upload Practice Session</h2>
