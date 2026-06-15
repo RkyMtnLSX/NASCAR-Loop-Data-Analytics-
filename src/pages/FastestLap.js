@@ -149,9 +149,9 @@ function HeatMapView({ rows, year, trackType }) {
           <thead>
             <tr>
               <th style={{...stickyHead,minWidth:180,zIndex:4}}>Driver</th>
-              {hasMulti&&<th style={{...numHead,minWidth:52,fontWeight:700,color:'var(--accent)'}}>Avg</th>}
+              {hasMulti&&<th style={{...numHead,minWidth:52,fontWeight:700,color:'var(--accent)',textAlign:'center'}}>Avg</th>}
               {finalLabels.map(r=>(
-                <th key={r.key} style={{...numHead,minWidth:80,fontSize:'0.65rem',fontWeight:600,padding:'8px 6px',whiteSpace:'nowrap',cursor:'default'}} title={r.name+' \u00B7 '+r.date}>{r.label}</th>
+                <th key={r.key} style={{...numHead,minWidth:80,fontSize:'0.65rem',fontWeight:600,padding:'8px 6px',whiteSpace:'nowrap',cursor:'default',textAlign:'center'}} title={r.name+' \u00B7 '+r.date}>{r.label}</th>
               ))}
             </tr>
           </thead>
