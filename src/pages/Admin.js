@@ -1119,7 +1119,7 @@ function LoadFastestLaps() {
     try {
       const rows = parseSource(source)
       if (!rows.length) {
-        setStatus({ error: 'No lap data found. Paste the full page source (Ctrl+U → Ctrl+A → Ctrl+C on the Lap Raptor page).' })
+        setStatus({ error: 'No lap data found. Make sure you pressed Ctrl+A then Ctrl+C on the Lap Raptor page (not Ctrl+U).' })
         setLoading(false)
         return
       }
@@ -1157,7 +1157,7 @@ function LoadFastestLaps() {
     <div className="card" style={{ marginBottom: 20 }}>
       <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 8 }}>Load Fastest Laps</h2>
       <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 18 }}>
-        On the Lap Raptor fastest-lap-table page: press Ctrl+U to view source, then Ctrl+A → Ctrl+C. Fill in race info and paste below.
+        On the Lap Raptor fastest-lap-table page: press Ctrl+A then Ctrl+C to copy all page text. Fill in race info and paste below.
       </p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 14 }}>
         <div>
@@ -1188,7 +1188,7 @@ function LoadFastestLaps() {
         <textarea
           value={source}
           onChange={e => setSource(e.target.value)}
-          placeholder="Ctrl+U on the Lap Raptor page, then Ctrl+A, Ctrl+C, paste here"
+          placeholder="Ctrl+A then Ctrl+C on the Lap Raptor page, paste here"
           style={{ ...inp, height: 120, resize: 'vertical', fontFamily: 'monospace', fontSize: '0.75rem' }}
         />
       </div>
