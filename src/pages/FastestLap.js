@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 
 const YEARS = ['2022', '2023', '2024', '2025', '2026']
 const TRACK_TYPES = ['All', 'Short Track', 'Superspeedway', 'Intermediate', 'Road Course', 'Other']
-const MEDAL = { 1: 'ð¥', 2: 'ð¥', 3: 'ð¥' }
+const MEDAL = { 1: '\uD83E\uDD47', 2: '\uD83E\uDD48', 3: '\uD83E\uDD49' }
 const MEDAL_BG = { 1: 'rgba(255,215,0,0.15)', 2: 'rgba(192,192,192,0.15)', 3: 'rgba(205,127,50,0.15)' }
 const TRACK_TYPE_COLORS = { 'Short Track': '#2D6A4F', 'Superspeedway': '#6A0572', 'Intermediate': '#1B4F72', 'Road Course': '#7B3F00', 'Other': '#555' }
 const sectionHead = { fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }
@@ -62,7 +62,7 @@ function RaceTable({ rows, raceName, track }) {
                   </td>
                   <td style={numCell}>{r.car}</td>
                   <td style={{...numCell,color:'var(--accent)',fontWeight:rank===1?700:400}}>{r.fastest_time}</td>
-                  <td style={numCell}>{r.fastest_speed?parseFloat(r.fastest_speed).toFixed(2):'â'}</td>
+                  <td style={numCell}>{r.fastest_speed?parseFloat(r.fastest_speed).toFixed(2):'\u2014'}</td>
                   <td style={numCell}>{r.fastest_lap_num}</td>
                   <td style={numCell}>{r.start_pos}</td>
                   <td style={numCell}>{r.finish_pos}</td>
@@ -107,7 +107,7 @@ function SeasonSummaryTable({ rows }) {
                 <td style={{...numCell,textAlign:'left',fontWeight:600}}>{r.driver}</td>
                 <td style={numCell}>{r.car}</td>
                 <td style={{...numCell,color:'var(--accent)',fontWeight:600}}>{r.fastest_time}</td>
-                <td style={numCell}>{r.fastest_speed?parseFloat(r.fastest_speed).toFixed(2):'â'}</td>
+                <td style={numCell}>{r.fastest_speed?parseFloat(r.fastest_speed).toFixed(2):'\u2014'}</td>
               </tr>
             )
           })}
@@ -131,7 +131,7 @@ function HeatMapView({ rows, year, trackType }) {
   rows.forEach(r=>{const key=r.race_name+'|'+r.race_date;if(!driverMap.has(r.driver))driverMap.set(r.driver,{});const existing=driverMap.get(r.driver)[key];const rank=parseInt(r.rank);if(!existing||rank<existing)driverMap.get(r.driver)[key]=rank})
   const drivers=[...driverMap.entries()].map(([driver,rankMap])=>{const ranks=Object.values(rankMap).filter(v=>!isNaN(v)&&v>0);const avg=ranks.length?ranks.reduce((a,b)=>a+b,0)/ranks.length:Infinity;return{driver,rankMap,avg,count:ranks.length}}).sort((a,b)=>{if(a.avg===Infinity&&b.avg===Infinity)return a.driver.localeCompare(b.driver);return a.avg-b.avg})
   const hasMulti=finalLabels.length>1
-  const LEGEND=[{label:'1st',color:'rgba(255,215,0,0.55)'},{label:'2nd',color:'rgba(192,192,192,0.5)'},{label:'3rd',color:'rgba(205,127,50,0.5)'},{label:'4â12',color:'rgba(46,204,113,0.4)'},{label:'13â20',color:'rgba(241,196,15,0.4)'},{label:'21â28',color:'rgba(230,126,34,0.4)'},{label:'29+',color:'rgba(231,76,60,0.42)'}]
+  const LEGEND=[{label:'1st',color:'rgba(255,215,0,0.55)'},{label:'2nd',color:'rgba(192,192,192,0.5)'},{label:'3rd',color:'rgba(205,127,50,0.5)'},{label:'4\u201312',color:'rgba(46,204,113,0.4)'},{label:'13\u201320',color:'rgba(241,196,15,0.4)'},{label:'21\u201328',color:'rgba(230,126,34,0.4)'},{label:'29+',color:'rgba(231,76,60,0.42)'}]
   return (
     <div>
       <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:16,flexWrap:'wrap'}}>
@@ -142,7 +142,7 @@ function HeatMapView({ rows, year, trackType }) {
             <span style={{fontSize:'0.7rem',color:'var(--text-secondary)'}}>{label}</span>
           </span>
         ))}
-        <span style={{fontSize:'0.7rem',color:'var(--text-muted)',marginLeft:8}}>â = did not participate</span>
+        <span style={{fontSize:'0.7rem',color:'var(--text-muted)',marginLeft:8}}>{'\u2014'} = did not participate</span>
       </div>
       <div style={{overflowX:'auto',borderRadius:'var(--radius-md)',border:'1px solid var(--border)'}}>
         <table style={{borderCollapse:'collapse',width:'100%'}}>
@@ -151,7 +151,7 @@ function HeatMapView({ rows, year, trackType }) {
               <th style={{...stickyHead,minWidth:180,zIndex:4}}>Driver</th>
               {hasMulti&&<th style={{...numHead,minWidth:52,fontWeight:700,color:'var(--accent)'}}>Avg</th>}
               {finalLabels.map(r=>(
-                <th key={r.key} style={{...numHead,minWidth:44,fontSize:'0.65rem',fontWeight:600,padding:'8px 6px',whiteSpace:'nowrap',cursor:'default'}} title={r.name+' Â· '+r.date}>{r.label}</th>
+                <th key={r.key} style={{...numHead,minWidth:80,fontSize:'0.65rem',fontWeight:600,padding:'8px 6px',whiteSpace:'nowrap',cursor:'default'}} title={r.name+' \u00B7 '+r.date}>{r.label}</th>
               ))}
             </tr>
           </thead>
@@ -162,14 +162,14 @@ function HeatMapView({ rows, year, trackType }) {
               return (
                 <tr key={d.driver}>
                   <td style={{...stickyCell(rowBg),fontWeight:isTop?700:400}}>
-                    {isTop&&<span style={{marginRight:6,fontSize:'0.7rem'}}>â¡</span>}
+                    {isTop&&<span style={{marginRight:6,fontSize:'0.7rem'}}>{'\u26A1'}</span>}
                     {d.driver}
                   </td>
-                  {hasMulti&&<td style={{...numCell,fontWeight:700,background:rowBg,color:isTop?'var(--accent)':d.avg<=15?'var(--text-primary)':'var(--text-muted)'}}>{isFinite(d.avg)?d.avg.toFixed(1):'â'}</td>}
+                  {hasMulti&&<td style={{...numCell,fontWeight:700,background:rowBg,color:isTop?'var(--accent)':d.avg<=15?'var(--text-primary)':'var(--text-muted)'}}>{isFinite(d.avg)?d.avg.toFixed(1):'\u2014'}</td>}
                   {finalLabels.map(r=>{
                     const rank=d.rankMap[r.key]
                     const bg=rank?rankColor(rank):null
-                    return <td key={r.key} style={{padding:'7px 8px',fontSize:'0.78rem',fontFamily:'var(--font-mono)',textAlign:'center',background:bg||rowBg,color:rank<=3?'#000':'var(--text-primary)',fontWeight:rank<=3?700:400,minWidth:44,borderLeft:'1px solid var(--border)'}}>{rank||<span style={{color:'var(--text-muted)',fontSize:'0.7rem'}}>â</span>}</td>
+                    return <td key={r.key} style={{padding:'7px 8px',fontSize:'0.78rem',fontFamily:'var(--font-mono)',textAlign:'center',background:bg||rowBg,color:rank<=3?'#000':'var(--text-primary)',fontWeight:rank<=3?700:400,minWidth:44,borderLeft:'1px solid var(--border)'}}>{rank||<span style={{color:'var(--text-muted)',fontSize:'0.7rem'}}>{'\u2014'}</span>}</td>
                   })}
                 </tr>
               )
@@ -177,7 +177,7 @@ function HeatMapView({ rows, year, trackType }) {
           </tbody>
         </table>
       </div>
-      <div style={{marginTop:10,fontSize:'0.7rem',color:'var(--text-muted)'}}>{drivers.length} drivers Â· {finalLabels.length} {finalLabels.length===1?'race':'races'}{trackType!=='All'&&` Â· ${trackType} only`}</div>
+      <div style={{marginTop:10,fontSize:'0.7rem',color:'var(--text-muted)'}}>{drivers.length} drivers \u00B7 {finalLabels.length} {finalLabels.length===1?'race':'races'}{trackType!=='All'&&` \u00B7 ${trackType} only`}</div>
     </div>
   )
 }
@@ -221,7 +221,7 @@ export default function FastestLap({ isSubscriber }) {
     <div className="page">
       <div className="page-header">
         <h1 className="page-title">Fastest Laps</h1>
-        <p className="page-subtitle">Lap Raptor fastest lap data â NextGen era (2022â2026)</p>
+        <p className="page-subtitle">Lap Raptor fastest lap data \u2014 NextGen era (2022\u20132026)</p>
       </div>
       <div style={{display:'flex',gap:6,marginBottom:16,flexWrap:'wrap'}}>
         {YEARS.map(y=><button key={y} onClick={()=>setYear(y)} style={pillStyle(year===y)}>{y}</button>)}
@@ -230,19 +230,19 @@ export default function FastestLap({ isSubscriber }) {
         {TRACK_TYPES.map(tt=><button key={tt} onClick={()=>setTrackType(tt)} style={pillStyle(trackType===tt)}>{tt}</button>)}
       </div>
       <div style={{display:'flex',gap:6,marginBottom:24}}>
-        {[['heat','ð¥ Heat Map'],['race','Race View'],['season','Season Summary']].map(([v,label])=>(
+        {[['heat','\uD83D\uDD25 Heat Map'],['race','Race View'],['season','Season Summary']].map(([v,label])=>(
           <button key={v} onClick={()=>setView(v)} style={{...pillStyle(view===v),padding:'6px 16px'}}>{label}</button>
         ))}
       </div>
       {error&&<div style={{padding:'12px 16px',background:'#922B2120',border:'1px solid #922B2140',borderRadius:'var(--radius-md)',color:'#E74C3C',fontSize:'0.8125rem',marginBottom:24}}>{error}</div>}
-      {loading&&<div style={{color:'var(--text-muted)',fontSize:'0.875rem',padding:'32px 0'}}>Loadingâ¦</div>}
+      {loading&&<div style={{color:'var(--text-muted)',fontSize:'0.875rem',padding:'32px 0'}}>Loading...</div>}
       {!loading&&!error&&view==='heat'&&<HeatMapView rows={allRows} year={year} trackType={trackType}/>}
       {!loading&&!error&&view==='race'&&(
         <>
           <div style={{marginBottom:24}}>
             <label style={{...sectionHead,display:'block',marginBottom:8}}>Select Race</label>
             <select value={selectedRace} onChange={e=>setSelectedRace(e.target.value)} style={{padding:'8px 12px',borderRadius:'var(--radius-md)',border:'1px solid var(--border)',background:'var(--bg-elevated)',color:'var(--text-primary)',fontSize:'0.8125rem',fontFamily:'var(--font-sans)',minWidth:360,cursor:'pointer'}}>
-              {races.map(r=><option key={r.name+r.date} value={r.name}>{r.date} â {r.name}</option>)}
+              {races.map(r=><option key={r.name+r.date} value={r.name}>{r.date} \u2014 {r.name}</option>)}
             </select>
             <span style={{marginLeft:12,fontSize:'0.75rem',color:'var(--text-muted)'}}>{raceRows.length} drivers</span>
           </div>
@@ -251,7 +251,7 @@ export default function FastestLap({ isSubscriber }) {
       )}
       {!loading&&!error&&view==='season'&&(
         <>
-          <h3 style={{...sectionHead,marginBottom:16}}>Fastest Lap per Race â {year}</h3>
+          <h3 style={{...sectionHead,marginBottom:16}}>Fastest Lap per Race \u2014 {year}</h3>
           <SeasonSummaryTable rows={allRows}/>
         </>
       )}
