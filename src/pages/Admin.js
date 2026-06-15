@@ -105,6 +105,16 @@ function WeekendConfig() {
             <div style={{ fontWeight: 600, fontSize: '0.875rem', marginBottom: 14 }}>{label}</div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 14 }}>
+        <div>
+          <label style={lbl}>Lap Raptor Race ID</label>
+          <input type="text" value={lapRaptorId} onChange={e => setLapRaptorId(e.target.value)} placeholder="e.g. 5614" style={inp} />
+          {lapRaptorId && (
+            <a href={'https://www.lapraptor.com/races/' + lapRaptorId + '/fastest-lap-table/'} target="_blank" rel="noreferrer"
+              style={{ display: 'block', marginTop: 5, fontSize: '0.75rem', color: 'var(--accent)' }}>
+              Open fastest-lap-table →
+            </a>
+          )}
+        </div>
               <div>
                 <label style={labelStyle}>Featured Track</label>
                 <select
@@ -1086,6 +1096,7 @@ function LoadFastestLaps() {
   const [raceName, setRaceName] = useState('')
   const [raceDate, setRaceDate] = useState('')
   const [track, setTrack] = useState('')
+  const [lapRaptorId, setLapRaptorId] = useState('')
   const [source, setSource] = useState('')
   const [status, setStatus] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -1157,7 +1168,7 @@ function LoadFastestLaps() {
     <div className="card" style={{ marginBottom: 20 }}>
       <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 8 }}>Load Fastest Laps</h2>
       <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 18 }}>
-        On the Lap Raptor fastest-lap-table page: press Ctrl+A then Ctrl+C to copy all page text. Fill in race info and paste below.
+        Enter the Lap Raptor race ID below to get a direct link to the correct page. Then Ctrl+A → Ctrl+C on that page and paste below.
       </p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 14 }}>
         <div>
