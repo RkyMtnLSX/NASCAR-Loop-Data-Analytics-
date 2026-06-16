@@ -463,7 +463,7 @@ export default function LoopData({ isSubscriber }) {
     : []
 
   return (
-    <div style={{ padding: '24px 20px', maxWidth: 1300, margin: '0 auto' }}>
+    <div style={{ padding: '24px 32px', maxWidth: 1600, margin: '0 auto' }}>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 28 }}>
         {SERIES_OPTIONS.map(opt => (
