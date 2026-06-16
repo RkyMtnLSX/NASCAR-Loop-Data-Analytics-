@@ -150,7 +150,7 @@ function WeekendConfig() {
             <div style={{ marginBottom: 14 }}>
               <label style={labelStyle}>Track Years (for averages)</label>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                {AALL_YEARS.map(yr => {
+                {ALL_YEARS.map(yr => {
                   const checked = (cfg.track_years || []).includes(yr)
                   return (
                     <label key={yr} style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', fontSize: '0.8125rem', color: checked ? 'var(--text-primary)' : 'var(--text-muted)' }}>
@@ -564,7 +564,7 @@ function QualSimConfig() {
           When no same-track history exists, these correlated track years feed into each driver's projected positions.
         </p>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {AALL_YEARS.map(yr => {
+          {ALL_YEARS.map(yr => {
             const checked = (cfg.sim_corr_years || []).includes(yr)
             return (
               <button key={yr} onClick={() => toggleYear(yr)} style={{
@@ -609,6 +609,255 @@ function QualSimConfig() {
           <span style={{ fontSize: '0.8rem', color: status.type === 'success' ? '#22c55e' : '#ef4444' }}>{status.msg}</span>
         )}
       </div>
+    </div>
+  )
+}
+
+
+// Load New Race
+function LoadNewRace() {
+  const [series, setSeries] = React.useState('cup')
+  const [year, setYear] = React.useState(new Date().getFullYear())
+  const [raceNumber, setRaceNumber] = React.useState('')
+  const [loading, setLoading] = React.useState(false)
+  const [status, setStatus] = React.useState(null)
+
+  async function handleLoad() {
+    if (!raceNumber) return
+    setLoading(true)
+    setStatus(null)
+    try {
+      const resp = await fetch('/api/load-race', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ series, year: parseInt(year), raceNumber: parseInt(raceNumber) }),
+      })
+      const data = await resp.json()
+      if (!resp.ok) throw new Error(data.error || 'Failed')
+      setStatus({ type: 'success', msg: data.message })
+    } catch (err) {
+      setStatus({ type: 'error', msg: err.message })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const inp = {
+    padding: '7px 10px', borderRadius: 6, border: '1px solid var(--border)',
+    background: 'var(--bg-elevated)', color: 'var(--text-primary)',
+    fontSize: '0.825rem', fontFamily: 'var(--font-sans)',
+  }
+
+  return (
+    <div className="card" style={{ marginBottom: 20 }}>
+      <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 8 }}>Load New Race</h2>
+      <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 16 }}>
+        Fetch loop data from Racing Reference and store in Supabase.
+      </p>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+        <div>
+          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Series</label>
+          <select value={series} onChange={e => setSeries(e.target.value)} style={inp}>
+            {SERIES_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Year</label>
+          <input type="number" value={year} onChange={e => setYear(e.target.value)} style={{ ...inp, width: 80 }} />
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Race #</label>
+          <input type="number" placeholder="e.g. 14" value={raceNumber} onChange={e => setRaceNumber(e.target.value)} style={{ ...inp, width: 80 }} />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+          <button className="btn btn-primary" onClick={handleLoad} disabled={loading || !raceNumber} style={{ fontSize: '0.8125rem' }}>
+            {loading ? 'Loading...' : 'Load Race'}
+          </button>
+        </div>
+      </div>
+      {status && (
+        <div style={{ fontSize: '0.8125rem', color: status.type === 'success' ? '#22c55e' : '#ef4444', padding: '8px 12px', borderRadius: 6, background: status.type === 'success' ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)', border: '1px solid ' + (status.type === 'success' ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)') }}>
+          {status.msg}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Load Qualifying Results
+function LoadQualifying() {
+  const [series, setSeries] = React.useState('cup')
+  const [year, setYear] = React.useState(new Date().getFullYear())
+  const [raceNumber, setRaceNumber] = React.useState('')
+  const [trackName, setTrackName] = React.useState('')
+  const [loading, setLoading] = React.useState(false)
+  const [status, setStatus] = React.useState(null)
+
+  async function handleLoad() {
+    if (!raceNumber || !trackName) return
+    setLoading(true)
+    setStatus(null)
+    try {
+      const resp = await fetch('/api/load-qualifying', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ series, year: parseInt(year), raceNumber: parseInt(raceNumber), trackName }),
+      })
+      const data = await resp.json()
+      if (!resp.ok) throw new Error(data.error || 'Failed')
+      setStatus({ type: 'success', msg: data.message + (data.pole ? ' -- Pole: ' + data.pole : '') })
+    } catch (err) {
+      setStatus({ type: 'error', msg: err.message })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const inp = {
+    padding: '7px 10px', borderRadius: 6, border: '1px solid var(--border)',
+    background: 'var(--bg-elevated)', color: 'var(--text-primary)',
+    fontSize: '0.825rem', fontFamily: 'var(--font-sans)',
+  }
+
+  return (
+    <div className="card" style={{ marginBottom: 20 }}>
+      <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 8 }}>Load Qualifying Results</h2>
+      <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 16 }}>
+        Fetch qualifying results from Racing Reference and store in Supabase.
+      </p>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+        <div>
+          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Series</label>
+          <select value={series} onChange={e => setSeries(e.target.value)} style={inp}>
+            {SERIES_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Year</label>
+          <input type="number" value={year} onChange={e => setYear(e.target.value)} style={{ ...inp, width: 80 }} />
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Race #</label>
+          <input type="number" placeholder="e.g. 14" value={raceNumber} onChange={e => setRaceNumber(e.target.value)} style={{ ...inp, width: 80 }} />
+        </div>
+        <div style={{ flex: 1, minWidth: 180 }}>
+          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Track Name</label>
+          <input type="text" placeholder="e.g. Pocono Raceway" value={trackName} onChange={e => setTrackName(e.target.value)} style={{ ...inp, width: '100%' }} />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+          <button className="btn btn-primary" onClick={handleLoad} disabled={loading || !raceNumber || !trackName} style={{ fontSize: '0.8125rem' }}>
+            {loading ? 'Loading...' : 'Load Qualifying'}
+          </button>
+        </div>
+      </div>
+      {status && (
+        <div style={{ fontSize: '0.8125rem', color: status.type === 'success' ? '#22c55e' : '#ef4444', padding: '8px 12px', borderRadius: 6, background: status.type === 'success' ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)', border: '1px solid ' + (status.type === 'success' ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)') }}>
+          {status.msg}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Load Fastest Laps
+function LoadFastestLaps() {
+  const [year, setYear] = React.useState(new Date().getFullYear())
+  const [trackType, setTrackType] = React.useState('')
+  const [raceName, setRaceName] = React.useState('')
+  const [raceDate, setRaceDate] = React.useState('')
+  const [track, setTrack] = React.useState('')
+  const [csvText, setCsvText] = React.useState('')
+  const [loading, setLoading] = React.useState(false)
+  const [status, setStatus] = React.useState(null)
+
+  function parseRows(text) {
+    return text.trim().split('\n').filter(l => l.trim()).map(function(line) {
+      const parts = line.split(',').map(function(p) { return p.trim() })
+      return {
+        driver: parts[0] || '',
+        car: parts[1] || null,
+        fastest_lap_num: parts[2] || null,
+        fastest_time: parts[3] || null,
+        fastest_speed: parts[4] || null,
+        start_pos: parts[5] || null,
+        finish_pos: parts[6] || null,
+        status: parts[7] || null,
+      }
+    })
+  }
+
+  async function handleLoad() {
+    if (!raceName || !raceDate || !track || !csvText.trim()) return
+    setLoading(true)
+    setStatus(null)
+    try {
+      const rows = parseRows(csvText)
+      const resp = await fetch('/api/load-fastest-laps', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ year: parseInt(year), track_type: trackType || null, race_name: raceName, race_date: raceDate, track, rows }),
+      })
+      const data = await resp.json()
+      if (!resp.ok) throw new Error(data.error || 'Failed')
+      setStatus({ type: 'success', msg: data.message })
+    } catch (err) {
+      setStatus({ type: 'error', msg: err.message })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const inp = {
+    padding: '7px 10px', borderRadius: 6, border: '1px solid var(--border)',
+    background: 'var(--bg-elevated)', color: 'var(--text-primary)',
+    fontSize: '0.825rem', fontFamily: 'var(--font-sans)',
+  }
+
+  return (
+    <div className="card" style={{ marginBottom: 20 }}>
+      <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 8 }}>Load Fastest Laps</h2>
+      <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 16 }}>
+        Paste fastest lap data from Lap Raptor (CSV: driver, car, lap#, time, speed, start, finish, status).
+      </p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10, marginBottom: 12 }}>
+        <div>
+          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Year</label>
+          <input type="number" value={year} onChange={e => setYear(e.target.value)} style={inp} />
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Track Type</label>
+          <input type="text" placeholder="e.g. oval" value={trackType} onChange={e => setTrackType(e.target.value)} style={inp} />
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Race Name</label>
+          <input type="text" placeholder="e.g. Pocono 400" value={raceName} onChange={e => setRaceName(e.target.value)} style={inp} />
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Race Date</label>
+          <input type="date" value={raceDate} onChange={e => setRaceDate(e.target.value)} style={inp} />
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Track</label>
+          <input type="text" placeholder="e.g. Pocono Raceway" value={track} onChange={e => setTrack(e.target.value)} style={inp} />
+        </div>
+      </div>
+      <div style={{ marginBottom: 12 }}>
+        <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>
+          CSV Data (driver, car#, lap#, time, speed, start, finish, status)
+        </label>
+        <textarea value={csvText} onChange={e => setCsvText(e.target.value)} rows={8}
+          placeholder="Kyle Larson,5,312,28.456,189.2,1,1,Running"
+          style={{ width: '100%', fontFamily: 'monospace', fontSize: '0.8rem', padding: '8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', resize: 'vertical', boxSizing: 'border-box' }}
+        />
+      </div>
+      <button className="btn btn-primary" onClick={handleLoad} disabled={loading || !raceName || !raceDate || !track || !csvText.trim()} style={{ fontSize: '0.8125rem' }}>
+        {loading ? 'Loading...' : 'Load Fastest Laps'}
+      </button>
+      {status && (
+        <div style={{ marginTop: 10, fontSize: '0.8125rem', color: status.type === 'success' ? '#22c55e' : '#ef4444', padding: '8px 12px', borderRadius: 6, background: status.type === 'success' ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)', border: '1px solid ' + (status.type === 'success' ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)') }}>
+          {status.msg}
+        </div>
+      )}
     </div>
   )
 }
@@ -779,6 +1028,9 @@ export default function Admin() {
       <WeekendConfig />
       <QualSimConfig />
       <EntryListManager />
+      <LoadNewRace />
+      <LoadQualifying />
+      <LoadFastestLaps />
 
       <div className="card" style={{ marginBottom: 20 }}>
         <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 20 }}>Upload Practice Session</h2>
