@@ -237,15 +237,12 @@ if (rowErr) throw rowErr
 setQualData(rows || [])
 
 // 5. Entry list for filtering inactive drivers
-let elQuery = supabase
-.from('entry_list')
-.select('driver_name')
-.eq('series', 'cup')
-.eq('race_year', cfg.year)
-.eq('track_name', cfg.track_name)
-const { data: elRows } = await elQuery
-// Strip (i) suffix so names match qualifying_results
-setEntryList(elRows && elRows.length > 0 ? elRows.map(r => r.driver_name.replace(/\s*\(i\)\s*$/, '').trim()) : null)
+const { data: elRows } = await supabase
+        .from('entry_list')
+        .select('driver')
+        .eq('series', 'cup')
+      // Strip (i) suffix so names match qualifying_results
+      setEntryList(elRows && elRows.length > 0 ? elRows.map(r => r.driver.replace(/\s*\(i\)\s*$/, '').trim()) : null)
 
 } catch (err) {
 setError(err.message)
