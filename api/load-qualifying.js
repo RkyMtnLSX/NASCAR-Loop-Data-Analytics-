@@ -120,7 +120,7 @@ module.exports = async function handler(req, res) {
   const raceNumPadded = String(raceNumber).padStart(2, '0')
   const seriesCode = SERIES_CODES[series] || 'W'
   const racingRefId = `${year}-${raceNumPadded}-qual-${series}`
-  const url = `https://www.racing-reference.info/qualresults/${year}-${raceNumPadded}/${seriesCode}/`
+  const url = `https://www.racing-reference.info/qual-results/${year}-${raceNumPadded}/${seriesCode}/`
 
   // Fetch the page
   let html
