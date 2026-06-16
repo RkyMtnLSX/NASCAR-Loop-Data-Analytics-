@@ -249,17 +249,23 @@ export default function QualifyingCenter({ isSubscriber }) {
   const simCorrYears = (simConfig && simConfig.sim_corr_years) ? simConfig.sim_corr_years : []
   const fmt = qualFormat(config.track_name)
 
-  const histCols = trackYears.map(function(yr) {
-    return { key: 'hist_' + yr, label: eventLabel(config.track_name, yr), trackName: config.track_name, year: yr }
-  })
+  // Only show columns where qualifying data actually exists
+  const trackYearCombosWithData = new Set(qualData.map(function(r) { return r.track_name + '_' + r.year }))
+
+  const histCols = trackYears
+    .filter(function(yr) { return trackYearCombosWithData.has(config.track_name + '_' + yr) })
+    .map(function(yr) {
+      return { key: 'hist_' + yr, label: eventLabel(config.track_name, yr), trackName: config.track_name, year: yr }
+    })
 
   const corrCols = corrTracks
     .filter(function(t) { return t !== config.track_name })
     .map(function(t) {
       return { key: 'corr_' + t + '_' + corrYear, label: eventLabel(t, corrYear), trackName: t, year: corrYear }
     })
+    .filter(function(col) { return trackYearCombosWithData.has(col.trackName + '_' + col.year) })
 
-  const featuredCurrYear = !trackYears.includes(corrYear) ? [{
+  const featuredCurrYear = (!trackYears.includes(corrYear) && trackYearCombosWithData.has(config.track_name + '_' + corrYear)) ? [{
     key: 'feat_curr_' + corrYear,
     label: eventLabel(config.track_name, corrYear),
     trackName: config.track_name,
