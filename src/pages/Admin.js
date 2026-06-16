@@ -64,6 +64,7 @@ function WeekendConfig() {
         track_years: cfg.track_years || [],
         correlation_label: cfg.correlation_label || (track ? track.correlation_group_label : ''),
         correlation_year: parseInt(cfg.correlation_year) || new Date().getFullYear(),
+        show_qual_sim: cfg.show_qual_sim || false,
         updated_at: new Date().toISOString(),
       }
       const { error } = await supabase
@@ -145,6 +146,22 @@ function WeekendConfig() {
                   onChange={e => updateField(s, 'correlation_year', parseInt(e.target.value))}
                   style={inputStyle}
                 />
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 14 }}>
+              <label style={labelStyle}>Show Qualifying Simulation</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+                <input
+                  type="checkbox"
+                  checked={!!cfg.show_qual_sim}
+                  onChange={e => updateField(s, 'show_qual_sim', e.target.checked)}
+                  id={'sim-toggle-'+s}
+                  style={{ width: 16, height: 16, cursor: 'pointer' }}
+                />
+                <label htmlFor={'sim-toggle-'+s} style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                  Show simulation on Qualifying Center
+                </label>
               </div>
             </div>
 
