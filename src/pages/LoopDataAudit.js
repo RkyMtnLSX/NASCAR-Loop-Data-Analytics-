@@ -15,6 +15,7 @@ export default function LoopDataAudit() {
       .from('loop_data')
       .select('track_name, year')
       .eq('series', s)
+          .limit(50000)
     if (error) { setAuditErr(error.message); setLoading(false); return }
     const counts = {}
     ;(data || []).forEach(r => {
