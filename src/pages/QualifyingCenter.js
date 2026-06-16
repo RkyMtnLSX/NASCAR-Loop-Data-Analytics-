@@ -598,8 +598,8 @@ export default function QualifyingCenter({ isSubscriber }) {
                             <td style={Object.assign({}, tdBase, { textAlign: 'left', paddingLeft: 14, fontFamily: 'var(--font-sans)', fontWeight: ri < 5 ? 600 : 400 })}>{r.driver}</td>
                             <td style={Object.assign({}, tdBase, { background: hc.bg, color: hc.text, fontWeight: 700 })}>P{r.simExpected}</td>
                             <td style={Object.assign({}, tdBase, { color: 'var(--text-secondary)', fontSize: '0.75rem' })}>P{r.simP10} - P{r.simP90}</td>
-                            <td style={Object.assign({}, tdBase, { color: 'var(--text-muted)' })}>{rsimMean != null ? r.simMean.toFixed(1) : ''}</td>
-                            <td style={Object.assign({}, tdBase, { color: 'var(--text-muted)', fontSize: '0.72rem' })}>{rsampleCount}</td>
+                            <td style={Object.assign({}, tdBase, { color: 'var(--text-muted)' })}>{r.simMean != null ? r.simMean.toFixed(1) : ''}</td>
+                            <td style={Object.assign({}, tdBase, { color: 'var(--text-muted)', fontSize: '0.72rem' })}>{r.sampleCount}</td>
                           </tr>
                         )
                       })}
