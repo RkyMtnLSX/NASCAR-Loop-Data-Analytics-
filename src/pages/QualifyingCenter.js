@@ -387,6 +387,23 @@ export default function QualifyingCenter({ isSubscriber }) {
       if (b.trackAvg == null) return -1
       return a.trackAvg - b.trackAvg
     })
+  } else if (sortBy === 'corrAvg') {
+    rows.sort(function(a, b) {
+      if (a.corrYearAvg == null && b.corrYearAvg == null) return a.driver.localeCompare(b.driver)
+      if (a.corrYearAvg == null) return 1
+      if (b.corrYearAvg == null) return -1
+      return a.corrYearAvg - b.corrYearAvg
+    })
+  } else if (sortBy === 'race' && featuredCurrYear.length > 0) {
+    const raceKey = featuredCurrYear[0].trackName + '_' + featuredCurrYear[0].year
+    rows.sort(function(a, b) {
+      const pa = a.positions[raceKey]
+      const pb = b.positions[raceKey]
+      if (pa == null && pb == null) return a.driver.localeCompare(b.driver)
+      if (pa == null) return 1
+      if (pb == null) return -1
+      return pa - pb
+    })
   } else {
     rows.sort(function(a, b) { return a.driver.localeCompare(b.driver) })
   }
@@ -477,7 +494,13 @@ export default function QualifyingCenter({ isSubscriber }) {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', gap: 6 }}>
-              {[['avg', 'Avg @ ' + trackAbbr(config.track_name)], ['name', 'A-Z']].map(function(item) {
+              {(function() {
+                const opts = [['avg', 'Avg @ ' + trackAbbr(config.track_name)]]
+                if (corrCols.length > 1) opts.push(['corrAvg', '2026 Avg'])
+                if (featuredCurrYear.length > 0) opts.push(['race', corrYear + ' Race'])
+                opts.push(['name', 'A-Z'])
+                return opts
+              })().map(function(item) {
                 const val = item[0], lbl = item[1]
                 return (
                   <button key={val} onClick={function() { setSortBy(val) }} style={{
@@ -521,7 +544,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                   )}
                   {showCorrAvgCol && (
                     <th style={Object.assign({}, thStyle, { borderLeft: '2px solid rgba(99,102,241,0.5)', color: '#a78bfa' })}>
-                      2026<br />Avg
+                      {show2025 ? '2026/2025' : '2026'}<br />Avg
                     </th>
                   )}
                   {featuredCurrYear.map(function(col) {
