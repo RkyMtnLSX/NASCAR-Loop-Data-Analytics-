@@ -239,10 +239,11 @@ setQualData(rows || [])
 // 5. Entry list for filtering inactive drivers
 const { data: elRows } = await supabase
         .from('entry_list')
-        .select('driver')
+        .select('driver_name')
         .eq('series', 'cup')
+        .eq('track_name', cfg.track_name)
       // Strip (i) suffix so names match qualifying_results
-      setEntryList(elRows && elRows.length > 0 ? elRows.map(r => r.driver.replace(/\s*\(i\)\s*$/, '').trim()) : null)
+      setEntryList(elRows && elRows.length > 0 ? elRows.map(r => r.driver_name.replace(/\s*\(i\)\s*$/, '').trim()) : null)
 
 } catch (err) {
 setError(err.message)
@@ -327,7 +328,8 @@ const totalDrivers = allPositions.length > 0 ? Math.max(...allPositions) : 40
 // After entry list is loaded: show only drivers on the entry list
 let rows = Object.values(driverMap)
 if (entryList && entryList.length > 0) {
-rows = rows.filter(r => entryList.includes(r.driver))
+const norm = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
+rows = rows.filter(r => entryList.some(e => norm(e) === norm(r.driver)))
 }
 
 if (sortBy === 'avg') {
