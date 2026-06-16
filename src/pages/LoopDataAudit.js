@@ -11,14 +11,15 @@ export default function LoopDataAudit() {
 
   async function fetchAudit(s) {
     setLoading(true); setAuditErr(null)
-    const { data, error } = await supabase.rpc('get_loop_data_counts', { p_series: s })
+    const { data, error } = await supabase.rpc('get_audit_data', { p_series: s })
     if (error) { setAuditErr(error.message); setLoading(false); return }
-    const grouped = (data || []).map(r => ({
+    const mapped = (data || []).map(r => ({
       year: r.year,
+      race_number: r.race_number,
       track_name: r.track_name,
       count: Number(r.cnt)
-    })).sort((a, b) => b.year - a.year || a.track_name.localeCompare(b.track_name))
-    setRows(grouped)
+    }))
+    setRows(mapped)
     setLoading(false)
   }
 
@@ -39,7 +40,6 @@ export default function LoopDataAudit() {
         <h1 className="page-title">Loop Data Audit</h1>
         <p className="page-subtitle">Verify race coverage and spot data gaps across all series</p>
       </div>
-
       <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
         {[{ value: 'cup', label: 'Cup Series' }, { value: 'oreilly', label: "O'Reilly Series" }, { value: 'trucks', label: 'Truck Series' }].map(t => (
           <button key={t.value} onClick={() => setActiveSeries(t.value)}
@@ -49,7 +49,6 @@ export default function LoopDataAudit() {
           </button>
         ))}
       </div>
-
       {loading && <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Loading...</p>}
       {auditErr && <p style={{ color: '#E74C3C', fontSize: '0.875rem' }}>{auditErr}</p>}
       {!loading && !auditErr && years.length === 0 && (
@@ -74,15 +73,19 @@ export default function LoopDataAudit() {
             <table>
               <thead>
                 <tr>
+                  <th style={{ width: 44, textAlign: 'center' }}>#</th>
                   <th className="left">Track</th>
-                  <th>Drivers</th>
+                  <th style={{ width: 90 }}>Drivers</th>
                 </tr>
               </thead>
               <tbody>
-                {byYear[yr].map(r => (
-                  <tr key={r.track_name}>
+                {byYear[yr].sort((a, b) => a.race_number - b.race_number).map(r => (
+                  <tr key={`${yr}-${r.race_number}`}>
+                    <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8125rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+                      {r.race_number}
+                    </td>
                     <td className="left" style={{ fontSize: '0.875rem' }}>{r.track_name}</td>
-                    <td>
+                    <td style={{ textAlign: 'center' }}>
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.875rem', fontWeight: 600, color: countColor(r.count) }}>
                         {r.count}
                       </span>
