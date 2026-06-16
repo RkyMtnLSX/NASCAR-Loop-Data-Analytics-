@@ -12,6 +12,7 @@ import OddsPage from './pages/OddsPage'
 import Admin from './pages/Admin'
 import QualifyingCenter from './pages/QualifyingCenter'
 import FastestLap from './pages/FastestLap'
+import LoopDataAudit from './pages/LoopDataAudit'
 
 function Correlations({ isSubscriber }) {
   return (
@@ -60,6 +61,7 @@ export default function App() {
         <Route path="/correlations" element={<Correlations isSubscriber={isSubscriber} />} />
         <Route path="/qualifying"   element={<QualifyingCenter isSubscriber={isSubscriber} />} />
         <Route path="/fastest-laps" element={<FastestLap isSubscriber={isSubscriber} />} />
+        <Route path="/loop-audit" element={<LoopDataAudit />} />
         <Route path="/odds" element={<OddsPage />} />
         <Route path="/subscribe" element={<Subscribe />} />
         <Route path="/admin" element={<Admin />} />
