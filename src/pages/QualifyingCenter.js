@@ -277,7 +277,7 @@ export default function QualifyingCenter({ isSubscriber }) {
   const trackYears = config.track_years || []
   const corrYear = config.correlation_year || new Date().getFullYear()
   const simCorrYears = (simConfig && simConfig.sim_corr_years) ? simConfig.sim_corr_years : []
-  const fmt = qualFormat(config.track_name, config.correlation_group)
+  const fmt = qualFormat(config.track_name, config.correlation_label)
 
   // Only show columns where qualifying data actually exists
   const trackYearCombosWithData = new Set(qualData.map(function(r) { return r.track_name + '_' + r.year }))
