@@ -242,14 +242,22 @@ function EntryListManager() {
          for (let i = 0; i < ne.length - 2; i++) {
         const s = ne[i].trim()
         if (/^\d{1,3}$/.test(s) && +s < 200) {
-          const drv = ne[i+1] ? cleanName(ne[i+1]) : ''
+          let drv = ne[i+1] ? cleanName(ne[i+1]) : ''
           const isMfrOrInd = n => /^\([a-zA-Z]\)$/.test(n) || /^(chevrolet|chevy|ford|toyota|tundra|silverado|f-?150|ram|dodge)/i.test(n)
+          const isTeamName = t => /racing|motorsports|motor|penske|hendrick|gibbs|23xi|rfk|kaulig|haas|wood|trackhouse|spire|hyak|club|legacy|front row|ware/i.test(t)
           let org
           if (series === 'trucks') {
             org = ne[i+4] ? ne[i+4].trim() : ''
           } else {
             const rawOrg = ne[i+2] ? ne[i+2].trim() : ''
-            org = isMfrOrInd(rawOrg) ? (ne[i+3] ? ne[i+3].trim() : '') : rawOrg
+            // Detect surname continuation: PDF wraps "John Hunter" / "Nemechek" across lines
+            const isSurnameSuffix = !isMfrOrInd(rawOrg) && /^[A-Z][a-z]/.test(rawOrg) && !rawOrg.includes(' ') && ne[i+3] && isTeamName(ne[i+3])
+            if (isSurnameSuffix) {
+              drv = drv + ' ' + rawOrg
+              org = ne[i+3] ? ne[i+3].trim() : ''
+            } else {
+              org = isMfrOrInd(rawOrg) ? (ne[i+3] ? ne[i+3].trim() : '') : rawOrg
+            }
           }
           if (drv && /[A-Z]/.test(drv) && drv.length > 3 && !/^\d/.test(drv)) {
             rows.push(s + ',' + drv + ',' + org)
