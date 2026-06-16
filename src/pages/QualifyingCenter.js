@@ -140,7 +140,7 @@ function runSimulation(drivers, numSims, nudge) {
     if (positions.length === 0) return Object.assign({}, driver, { simMean: null, simP10: null, simP90: null })
     const mean = positions.reduce(function(a, b) { return a + b }, 0) / positions.length
     const variance = positions.reduce(function(s, p) { return s + (p - mean) * (p - mean) }, 0) / positions.length
-    const stdDev = Math.max(Math.sqrt(variance), nudge) || 3
+    const stdDev = Math.max(Math.sqrt(variance), nudge) || nudge || 1
     const samples = []
     for (let i = 0; i < numSims; i++) {
       const u1 = Math.random(), u2 = Math.random()
