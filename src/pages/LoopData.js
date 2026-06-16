@@ -37,7 +37,7 @@ const TRACK_ABBR = {
   'Iowa Speedway':                   'IOWA',
   'Lime Rock Park':                  'LRP',
   'Mid-Ohio Sports Car Course':      'MID',
-  'St. Petersburg':                  'STP',
+  'Streets of St. Petersburg':       'St.Pt',
   'Portland International Raceway':  'POR',
   'Road America':                    'RA',
 }
