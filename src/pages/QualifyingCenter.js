@@ -105,11 +105,38 @@ function heatColor(pos, totalDrivers) {
   return { bg: 'rgba(' + r + ',' + g + ',' + b + ',0.75)', text: textColor }
 }
 
+function formatQualSpeed(speed, trackName) {
+  if (speed == null) return null
+  var isRoad = ROAD_COURSES.some(function(t) { return trackName && trackName.toLowerCase().indexOf(t.toLowerCase().split(' ')[0]) >= 0 })
+  if (isRoad) {
+    var secs = parseFloat(speed)
+    if (isNaN(secs)) return String(speed)
+    var m = Math.floor(secs / 60)
+    var s = (secs % 60).toFixed(3)
+    if (s.length < 6) s = '0' + s
+    return m > 0 ? m + ':' + s : secs.toFixed(3) + 's'
+  }
+  return parseFloat(speed).toFixed(1) + ' mph'
+}
+
+function filterOutliers(positions) {
+  if (positions.length < 3) return positions
+  var sorted = positions.slice().sort(function(a, b) { return a - b })
+  var mid = Math.floor(sorted.length / 2)
+  var median = sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid]
+  var devs = positions.map(function(p) { return Math.abs(p - median) }).sort(function(a, b) { return a - b })
+  var dMid = Math.floor(devs.length / 2)
+  var mad = devs.length % 2 === 0 ? (devs[dMid - 1] + devs[dMid]) / 2 : devs[dMid]
+  if (mad === 0) return positions
+  return positions.filter(function(p) { return Math.abs(p - median) / (mad * 0.6745) <= 3.5 })
+}
+
 function runSimulation(drivers, numSims, nudge) {
   if (numSims === undefined) numSims = 2000
   if (nudge === undefined) nudge = 0
   const results = drivers.map(function(driver) {
-    const positions = driver.historicalPositions.filter(function(p) { return p != null })
+    const rawPos = driver.historicalPositions.filter(function(p) { return p != null })
+    const positions = filterOutliers(rawPos)
     if (positions.length === 0) return Object.assign({}, driver, { simMean: null, simP10: null, simP90: null })
     const mean = positions.reduce(function(a, b) { return a + b }, 0) / positions.length
     const variance = positions.reduce(function(s, p) { return s + (p - mean) * (p - mean) }, 0) / positions.length
@@ -277,9 +304,10 @@ export default function QualifyingCenter({ isSubscriber }) {
   const driverMap = {}
   for (const row of qualData) {
     if (!driverMap[row.driver_name]) {
-      driverMap[row.driver_name] = { driver: row.driver_name, carNumber: row.car_number, positions: {} }
+      driverMap[row.driver_name] = { driver: row.driver_name, carNumber: row.car_number, positions: {}, speeds: {} }
     }
     driverMap[row.driver_name].positions[row.track_name + '_' + row.year] = row.qualifying_position
+    if (row.qualifying_speed != null) driverMap[row.driver_name].speeds[row.track_name + '_' + row.year] = row.qualifying_speed
   }
 
   for (const d of Object.values(driverMap)) {
@@ -530,27 +558,33 @@ export default function QualifyingCenter({ isSubscriber }) {
                       </td>
                       {histCols.map(function(col, i) {
                         const pos = row.positions[col.trackName + '_' + col.year]
+                        const spd = row.speeds ? row.speeds[col.trackName + '_' + col.year] : null
                         const hc = heatColor(pos, totalDrivers)
+                        const tip = pos != null ? ('P' + pos + (spd != null ? ' · ' + formatQualSpeed(spd, col.trackName) : '')) : undefined
                         return (
-                          <td key={col.key} style={Object.assign({}, tdBase, i === 0 ? { borderLeft: '2px solid rgba(99,102,241,0.3)' } : {}, { background: hc.bg, color: hc.text })}>
+                          <td key={col.key} title={tip} style={Object.assign({}, tdBase, i === 0 ? { borderLeft: '2px solid rgba(99,102,241,0.3)' } : {}, { background: hc.bg, color: hc.text })}>
                             {pos != null ? pos : '-'}
                           </td>
                         )
                       })}
                       {featuredCurrYear.map(function(col) {
                         const pos = row.positions[col.trackName + '_' + col.year]
+                        const spd = row.speeds ? row.speeds[col.trackName + '_' + col.year] : null
                         const hc = heatColor(pos, totalDrivers)
+                        const tip = pos != null ? ('P' + pos + (spd != null ? ' · ' + formatQualSpeed(spd, col.trackName) : '')) : undefined
                         return (
-                          <td key={col.key} style={Object.assign({}, tdBase, { borderLeft: '2px solid rgba(99,102,241,0.5)', background: hc.bg, color: hc.text })}>
+                          <td key={col.key} title={tip} style={Object.assign({}, tdBase, { borderLeft: '2px solid rgba(99,102,241,0.5)', background: hc.bg, color: hc.text })}>
                             {pos != null ? pos : '-'}
                           </td>
                         )
                       })}
                       {corrCols.map(function(col, i) {
                         const pos = row.positions[col.trackName + '_' + col.year]
+                        const spd = row.speeds ? row.speeds[col.trackName + '_' + col.year] : null
                         const hc = heatColor(pos, totalDrivers)
+                        const tip = pos != null ? ('P' + pos + (spd != null ? ' · ' + formatQualSpeed(spd, col.trackName) : '')) : undefined
                         return (
-                          <td key={col.key} style={Object.assign({}, tdBase, i === 0 ? { borderLeft: '2px solid var(--border)' } : {}, { background: hc.bg, color: hc.text })}>
+                          <td key={col.key} title={tip} style={Object.assign({}, tdBase, i === 0 ? { borderLeft: '2px solid var(--border)' } : {}, { background: hc.bg, color: hc.text })}>
                             {pos != null ? pos : '-'}
                           </td>
                         )
