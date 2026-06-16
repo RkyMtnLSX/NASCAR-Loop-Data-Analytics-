@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { parsePracticeExcel } from '../lib/excelParser'
 import { gradePracticeSession } from '../lib/practiceGrader'
@@ -1405,6 +1406,7 @@ export default function Admin() {
       <div className="page-header">
         <h1 className="page-title">Admin</h1>
         <p className="page-subtitle">Upload practice data & configure featured weekends</p>
+        <Link to="/loop-audit" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none', marginTop: 4, display: 'inline-block' }}>Data Audit →</Link>
       </div>
 
       <WeekendConfig />
