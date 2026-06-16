@@ -315,9 +315,20 @@ export default function QualifyingCenter({ isSubscriber }) {
   const allPositions = qualData.map(function(r) { return r.qualifying_position }).filter(function(p) { return p != null })
   const totalDrivers = allPositions.length > 0 ? Math.max.apply(null, allPositions) : 40
 
+  // Normalize driver names: lowercase, strip accents (Suárez→suarez), strip periods (A.J.→AJ)
+  function normalizeName(name) {
+    return name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\./g, '').replace(/\s+/g, ' ').trim()
+  }
+
   let rows = Object.values(driverMap)
   if (entryList && entryList.length > 0) {
-    rows = rows.filter(function(r) { return entryList.includes(r.driver) })
+    rows = rows.filter(function(r) { return entryList.some(function(el) { return normalizeName(el) === normalizeName(r.driver) }) })
+    // Add entry-list drivers with no qualifying history (e.g. first-time Cup starts)
+    const inTableNorm = new Set(rows.map(function(r) { return normalizeName(r.driver) }))
+    const missingDrivers = entryList
+      .filter(function(el) { return !inTableNorm.has(normalizeName(el)) })
+      .map(function(el) { return { driver: el, carNumber: null, positions: {}, trackAvg: null, historicalPositions: [] } })
+    rows = rows.concat(missingDrivers)
   }
 
   if (sortBy === 'avg') {
