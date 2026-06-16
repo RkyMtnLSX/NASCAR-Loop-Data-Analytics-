@@ -10,6 +10,7 @@ const PRACTICE_LINKS = [
 const LOOP_LINKS = [
   { path: '/loop-data',     label: 'Loop Data' },
   { path: '/fastest-laps',  label: 'Fastest Laps' },
+  { path: '/loop-audit',    label: 'Data Audit' },
 ]
 
 export default function Nav({ isAdmin, onAdminClick }) {
