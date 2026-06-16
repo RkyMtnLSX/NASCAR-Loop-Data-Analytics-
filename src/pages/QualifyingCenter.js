@@ -208,12 +208,12 @@ export default function QualifyingCenter({ isSubscriber }) {
 
       const { data: elRows } = await supabase
         .from('entry_list')
-        .select('driver_name')
+        .select('driver_name, car_number')
         .eq('series', 'cup')
         .eq('race_year', cfg.correlation_year)
         .eq('track_name', cfg.track_name)
       setEntryList(elRows && elRows.length > 0
-        ? elRows.map(function(r) { return r.driver_name.replace(/\s*\(i\)\s*$/, '').trim() })
+        ? elRows.map(function(r) { return ({ name: r.driver_name.replace(/\s*\(i\)\s*$/, '').trim(), carNumber: r.car_number || null }) })
         : null)
 
     } catch (err) {
@@ -320,14 +320,23 @@ export default function QualifyingCenter({ isSubscriber }) {
     return name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\./g, '').replace(/\s+/g, ' ').trim()
   }
 
-  let rows = Object.values(driverMap)
+  // Build car-number map from entry list (current car numbers override historical)
+  const elCarMap = {}
   if (entryList && entryList.length > 0) {
-    rows = rows.filter(function(r) { return entryList.some(function(el) { return normalizeName(el) === normalizeName(r.driver) }) })
-    // Add entry-list drivers with no qualifying history (e.g. first-time Cup starts)
+    entryList.forEach(function(el) { elCarMap[normalizeName(el.name)] = el.carNumber })
+  }
+
+  let rows = Object.values(driverMap)
+  // Override historical car numbers with entry list (fixes e.g. Suárez #99→#7)
+  rows.forEach(function(r) { const cn = elCarMap[normalizeName(r.driver)]; if (cn != null) r.carNumber = cn })
+
+  if (entryList && entryList.length > 0) {
+    rows = rows.filter(function(r) { return entryList.some(function(el) { return normalizeName(el.name) === normalizeName(r.driver) }) })
+    // Add entry-list drivers with no qualifying history (e.g. Magnussen - first Cup start)
     const inTableNorm = new Set(rows.map(function(r) { return normalizeName(r.driver) }))
     const missingDrivers = entryList
-      .filter(function(el) { return !inTableNorm.has(normalizeName(el)) })
-      .map(function(el) { return { driver: el, carNumber: null, positions: {}, trackAvg: null, historicalPositions: [] } })
+      .filter(function(el) { return !inTableNorm.has(normalizeName(el.name)) })
+      .map(function(el) { return { driver: el.name, carNumber: el.carNumber, positions: {}, trackAvg: null, historicalPositions: [] } })
     rows = rows.concat(missingDrivers)
   }
 
