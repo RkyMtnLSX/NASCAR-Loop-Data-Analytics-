@@ -195,7 +195,8 @@ export default function QualifyingCenter({ isSubscriber }) {
   const [simResults, setSimResults] = useState(null)
   const [simRunning, setSimRunning] = useState(false)
   const [show2025, setShow2025] = useState(false)
-  const [sortBy, setSortBy] = useState('avg')
+  const [sortBy, setSortBy] = useState('trackAvg')
+  const [sortDir, setSortDir] = useState('asc')
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -380,33 +381,23 @@ export default function QualifyingCenter({ isSubscriber }) {
     rows = rows.concat(missingDrivers)
   }
 
-  if (sortBy === 'avg') {
-    rows.sort(function(a, b) {
-      if (a.trackAvg == null && b.trackAvg == null) return a.driver.localeCompare(b.driver)
-      if (a.trackAvg == null) return 1
-      if (b.trackAvg == null) return -1
-      return a.trackAvg - b.trackAvg
-    })
-  } else if (sortBy === 'corrAvg') {
-    rows.sort(function(a, b) {
-      if (a.corrYearAvg == null && b.corrYearAvg == null) return a.driver.localeCompare(b.driver)
-      if (a.corrYearAvg == null) return 1
-      if (b.corrYearAvg == null) return -1
-      return a.corrYearAvg - b.corrYearAvg
-    })
-  } else if (sortBy === 'race' && featuredCurrYear.length > 0) {
-    const raceKey = featuredCurrYear[0].trackName + '_' + featuredCurrYear[0].year
-    rows.sort(function(a, b) {
-      const pa = a.positions[raceKey]
-      const pb = b.positions[raceKey]
-      if (pa == null && pb == null) return a.driver.localeCompare(b.driver)
-      if (pa == null) return 1
-      if (pb == null) return -1
-      return pa - pb
-    })
-  } else {
-    rows.sort(function(a, b) { return a.driver.localeCompare(b.driver) })
+  function handleSort(key) {
+    if (sortBy === key) { setSortDir(sortDir === 'asc' ? 'desc' : 'asc') }
+    else { setSortBy(key); setSortDir('asc') }
   }
+  function sortArrow(key) { return sortBy === key ? (sortDir === 'asc' ? ' ▲' : ' ▼') : '' }
+
+  rows.sort(function(a, b) {
+    var va, vb, mul = sortDir === 'asc' ? 1 : -1
+    if (sortBy === 'name') return mul * a.driver.localeCompare(b.driver)
+    if (sortBy === 'trackAvg') { va = a.trackAvg; vb = b.trackAvg }
+    else if (sortBy === 'corrYearAvg') { va = a.corrYearAvg; vb = b.corrYearAvg }
+    else { va = a.positions[sortBy]; vb = b.positions[sortBy] }
+    if (va == null && vb == null) return a.driver.localeCompare(b.driver)
+    if (va == null) return 1
+    if (vb == null) return -1
+    return mul * (va - vb)
+  })
 
   const nudgeVal = simConfig
     ? (fmt === 'oval' ? (simConfig.nudge_oval || 0)
@@ -493,25 +484,6 @@ export default function QualifyingCenter({ isSubscriber }) {
       {hasData && (
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', gap: 6 }}>
-              {(function() {
-                const opts = [['avg', 'Avg @ ' + trackAbbr(config.track_name)]]
-                if (corrCols.length > 1) opts.push(['corrAvg', '2026 Avg'])
-                if (featuredCurrYear.length > 0) opts.push(['race', corrYear + ' Race'])
-                opts.push(['name', 'A-Z'])
-                return opts
-              })().map(function(item) {
-                const val = item[0], lbl = item[1]
-                return (
-                  <button key={val} onClick={function() { setSortBy(val) }} style={{
-                    padding: '4px 12px', borderRadius: 20, fontSize: '0.75rem',
-                    border: '1px solid var(--border)',
-                    background: sortBy === val ? 'var(--accent)' : 'var(--bg-elevated)',
-                    color: sortBy === val ? '#fff' : 'var(--text-secondary)', cursor: 'pointer',
-                  }}>{lbl}</button>
-                )
-              })}
-            </div>
             <button onClick={function() { setShow2025(!show2025) }} style={{
               padding: '4px 12px', borderRadius: 20, fontSize: '0.75rem',
               border: '1px solid var(--border)',
@@ -533,9 +505,9 @@ export default function QualifyingCenter({ isSubscriber }) {
               <thead>
                 <tr>
                   <th style={Object.assign({}, thStyle, { textAlign: 'center', width: 36 })}>#</th>
-                  <th style={Object.assign({}, thStyle, { textAlign: 'left', paddingLeft: 14, minWidth: 170, position: 'sticky', left: 0, zIndex: 2 })}>Driver</th>
-                  <th style={Object.assign({}, thStyle, { minWidth: 72, color: 'var(--accent)' })}>
-                    Avg<br /><span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>{trackAbbr(config.track_name)}</span>
+                  <th onClick={function() { handleSort('name') }} style={Object.assign({}, thStyle, { textAlign: 'left', paddingLeft: 14, minWidth: 170, position: 'sticky', left: 0, zIndex: 2, cursor: 'pointer' })}>Driver{sortArrow('name')}</th>
+                  <th onClick={function() { handleSort('trackAvg') }} style={Object.assign({}, thStyle, { minWidth: 72, color: 'var(--accent)', cursor: 'pointer' })}>
+                    Avg{sortArrow('trackAvg')}<br /><span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>{trackAbbr(config.track_name)}</span>
                   </th>
                   {histCols.length > 0 && (
                     <th colSpan={histCols.length} style={Object.assign({}, thStyle, { borderLeft: '2px solid rgba(99,102,241,0.3)', color: 'var(--accent)', opacity: 0.7 })}>
@@ -543,12 +515,13 @@ export default function QualifyingCenter({ isSubscriber }) {
                     </th>
                   )}
                   {showCorrAvgCol && (
-                    <th style={Object.assign({}, thStyle, { borderLeft: '2px solid rgba(99,102,241,0.5)', color: '#a78bfa' })}>
-                      {show2025 ? '2026/2025' : '2026'}<br />Avg
+                    <th onClick={function() { handleSort('corrYearAvg') }} style={Object.assign({}, thStyle, { borderLeft: '2px solid rgba(99,102,241,0.5)', color: '#a78bfa', cursor: 'pointer' })}>
+                      {show2025 ? '2026/2025' : '2026'}<br />Avg{sortArrow('corrYearAvg')}
                     </th>
                   )}
                   {featuredCurrYear.map(function(col) {
-                    return <th key={col.key} style={Object.assign({}, thStyle, { borderLeft: '2px solid rgba(99,102,241,0.5)', color: 'var(--accent)' })}>{col.label}</th>
+                    var pk = col.trackName + '_' + col.year
+                    return <th key={col.key} onClick={function() { handleSort(pk) }} style={Object.assign({}, thStyle, { borderLeft: '2px solid rgba(99,102,241,0.5)', color: 'var(--accent)', cursor: 'pointer' })}>{col.label}{sortArrow(pk)}</th>
                   })}
                   {corrCols.length > 0 && (
                     <th colSpan={corrCols.length} style={Object.assign({}, thStyle, { borderLeft: '2px solid var(--border)', color: 'var(--text-secondary)' })}>
@@ -561,14 +534,16 @@ export default function QualifyingCenter({ isSubscriber }) {
                   <th style={Object.assign({}, thStyle, { textAlign: 'left', paddingLeft: 14, position: 'sticky', left: 0, zIndex: 2 })} />
                   <th style={thStyle} />
                   {histCols.map(function(col, i) {
-                    return <th key={col.key} style={Object.assign({}, thStyle, i === 0 ? { borderLeft: '2px solid rgba(99,102,241,0.3)' } : {})}>{col.label}</th>
+                    var pk = col.trackName + '_' + col.year
+                    return <th key={col.key} onClick={function() { handleSort(pk) }} style={Object.assign({}, thStyle, i === 0 ? { borderLeft: '2px solid rgba(99,102,241,0.3)' } : {}, { cursor: 'pointer' })}>{col.label}{sortArrow(pk)}</th>
                   })}
                   {showCorrAvgCol && <th style={Object.assign({}, thStyle, { borderLeft: '2px solid rgba(99,102,241,0.5)' })} />}
                   {featuredCurrYear.map(function(col) {
                     return <th key={col.key} style={Object.assign({}, thStyle, { borderLeft: '2px solid rgba(99,102,241,0.5)' })}>{col.label}</th>
                   })}
                   {corrCols.map(function(col, i) {
-                    return <th key={col.key} style={Object.assign({}, thStyle, i === 0 ? { borderLeft: '2px solid var(--border)' } : {})}>{col.label}</th>
+                    var pk = col.trackName + '_' + col.year
+                    return <th key={col.key} onClick={function() { handleSort(pk) }} style={Object.assign({}, thStyle, i === 0 ? { borderLeft: '2px solid var(--border)' } : {}, { cursor: 'pointer' })}>{col.label}{sortArrow(pk)}</th>
                   })}
                 </tr>
               </thead>
