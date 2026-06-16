@@ -11,21 +11,13 @@ export default function LoopDataAudit() {
 
   async function fetchAudit(s) {
     setLoading(true); setAuditErr(null)
-    const { data, error } = await supabase
-      .from('loop_data')
-      .select('track_name, year')
-      .eq('series', s)
-          .limit(50000)
+    const { data, error } = await supabase.rpc('get_loop_data_counts', { p_series: s })
     if (error) { setAuditErr(error.message); setLoading(false); return }
-    const counts = {}
-    ;(data || []).forEach(r => {
-      const key = r.year + '|||' + r.track_name
-      counts[key] = (counts[key] || 0) + 1
-    })
-    const grouped = Object.entries(counts).map(([key, count]) => {
-      const sep = key.indexOf('|||')
-      return { year: parseInt(key.slice(0, sep)), track_name: key.slice(sep + 3), count }
-    }).sort((a, b) => b.year - a.year || a.track_name.localeCompare(b.track_name))
+    const grouped = (data || []).map(r => ({
+      year: r.year,
+      track_name: r.track_name,
+      count: Number(r.cnt)
+    })).sort((a, b) => b.year - a.year || a.track_name.localeCompare(b.track_name))
     setRows(grouped)
     setLoading(false)
   }
