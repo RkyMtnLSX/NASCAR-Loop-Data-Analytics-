@@ -647,9 +647,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                 {simCorrYears.length > 0 && (
                   <span style={{ color: '#f59e0b' }}> Using {simCorrYears.join(', ')} data.</span>
                 )}
-                {nudgeVal > 0 && (
-                  <span style={{ color: '#94a3b8' }}> StdDev floor: {nudgeVal}.</span>
-                )}
+                <span style={{ color: '#94a3b8', marginLeft: 4 }}>{QUAL_FORMAT_LABELS[fmt].label} · floor: {nudgeVal}</span>
               </p>
               {simResults && (
                 <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid var(--border)' }}>
