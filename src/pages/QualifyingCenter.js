@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
+// -- Helpers -------------------------------------------------------------------
 
 const TRACK_ABBR = {
 'Circuit of the Americas': 'COTA',
@@ -35,7 +35,6 @@ const TRACK_ABBR = {
 'Richmond Raceway': 'Richmond',
 'Martinsville Speedway': 'Martinsville',
 'North Wilkesboro Speedway': 'NWB',
-'Naval Base Coronado': 'Coronado',
 }
 
 const ROAD_COURSES = [
@@ -53,17 +52,6 @@ const SHORT_TRACKS_2LAP = [
 'North Wilkesboro Speedway', 'Richmond Raceway',
 ]
 
-// Derive qualifying format from tracks.track_type value (preferred over name-based lookup)
-function qualFormatFromTrackType(trackType) {
-if (!trackType) return null
-const t = trackType.toLowerCase()
-if (t.includes('road')) return 'road'
-if (t.includes('super')) return 'superspeedway'
-if (t.includes('short')) return 'short-track'
-return 'oval'
-}
-
-// Fallback: derive format from track name using hardcoded lists
 function qualFormat(trackName) {
 if (!trackName) return 'oval'
 if (ROAD_COURSES.some(t => trackName.includes(t.split(' ')[0]))) return 'road'
@@ -117,13 +105,13 @@ const textColor = pct < 0.55 ? '#0a0a0a' : '#fff'
 return { bg: `rgba(${r},${g},${b},${alpha})`, text: textColor }
 }
 
-function runSimulation(drivers, numSims = 2000) {
+function runSimulation(drivers, numSims = 2000, nudge = 0) {
 const results = drivers.map(driver => {
 const positions = driver.historicalPositions.filter(p => p != null)
 if (positions.length === 0) return { ...driver, simMean: null, simP10: null, simP90: null }
 const mean = positions.reduce((a, b) => a + b, 0) / positions.length
 const variance = positions.reduce((s, p) => s + (p - mean) ** 2, 0) / positions.length
-const stdDev = Math.sqrt(variance) || 3
+const stdDev = Math.max(Math.sqrt(variance) || 1, nudge)
 const samples = []
 for (let i = 0; i < numSims; i++) {
 const u1 = Math.random(), u2 = Math.random()
@@ -148,7 +136,7 @@ return a.simMean - b.simMean
 })
 }
 
-// ── Paywall stub ───────────────────────────────────────────────────────────────
+// -- Paywall stub --------------------------------------------------------------
 function SubscribePrompt() {
 return (
 <div className="page" style={{ maxWidth: 560 }}>
@@ -168,16 +156,17 @@ Qualifying heatmaps, historical averages, and simulations are available to subsc
 )
 }
 
-// ── Main Page ──────────────────────────────────────────────────────────────────
+// -- Main Page ----------------------------------------------------------------
 export default function QualifyingCenter({ isSubscriber }) {
 const [config, setConfig] = useState(null)
 const [qualData, setQualData] = useState([])
 const [corrTracks, setCorrTracks] = useState([])
 const [entryList, setEntryList] = useState(null) // null = not loaded yet; string[] = active driver names
-const [qualOrderData, setQualOrderData] = useState([])
+  const [qualOrderData, setQualOrderData] = useState([])
 const [loading, setLoading] = useState(true)
 const [error, setError] = useState(null)
 const [showSim, setShowSim] = useState(false)
+const [simConfig, setSimConfig] = useState(null)
 const [simResults, setSimResults] = useState(null)
 const [simRunning, setSimRunning] = useState(false)
 const [sortBy, setSortBy] = useState('avg')
@@ -193,39 +182,27 @@ const { data: cfg, error: cfgErr } = await supabase
 .eq('series', 'cup')
 .single()
 if (cfgErr || !cfg) throw new Error('No Cup Series weekend configured yet.')
-
-// 2. Look up featured track's correlation_group and track_type from tracks table
+// Fetch track metadata for _corrGroup, _corrGroupLabel, _trackType
 const { data: featTrack } = await supabase
-.from('tracks')
-.select('correlation_group, correlation_group_label, track_type')
-.eq('name', cfg.track_name)
-.maybeSingle()
-
+  .from('tracks')
+  .select('correlation_group, correlation_group_label, track_type')
+  .eq('name', cfg.track_name)
+  .maybeSingle()
 const corrGroup = featTrack?.correlation_group ?? null
 const corrGroupLabel = featTrack?.correlation_group_label || cfg.correlation_label || ''
 const trackTypeFromDb = featTrack?.track_type || null
 setConfig({ ...cfg, _corrGroup: corrGroup, _corrGroupLabel: corrGroupLabel, _trackType: trackTypeFromDb })
 
-// 3. Tracks in same correlation group (use integer group for precision; fallback to label)
-let corrTrackNames = []
-if (corrGroup != null) {
-const { data: trackRows } = await supabase
-.from('tracks')
-.select('name')
-.eq('correlation_group', corrGroup)
-.order('name')
-corrTrackNames = (trackRows || []).map(t => t.name)
-} else if (cfg.correlation_label) {
+// 2. Tracks in same correlation group
 const { data: trackRows } = await supabase
 .from('tracks')
 .select('name')
 .eq('correlation_group_label', cfg.correlation_label)
 .order('name')
-corrTrackNames = (trackRows || []).map(t => t.name)
-}
+const corrTrackNames = (trackRows || []).map(t => t.name)
 setCorrTracks(corrTrackNames)
 
-// 4. Qualifying results
+// 3. Qualifying results
 const allTrackNames = [...new Set([cfg.track_name, ...corrTrackNames])]
 const { data: rows, error: rowErr } = await supabase
 .from('qualifying_results')
@@ -236,16 +213,25 @@ const { data: rows, error: rowErr } = await supabase
 if (rowErr) throw rowErr
 setQualData(rows || [])
 
-// 5. Entry list for filtering inactive drivers
+// 4. Entry list for filtering inactive drivers
+// Show all before entry list is loaded; filter to active drivers once loaded
 const { data: elRows } = await supabase
-        .from('entry_list')
-        .select('driver_name, car_number')
+  .from('entry_list')
+  .select('driver_name, car_number')
+  .eq('series', 'cup')
+  .eq('track_name', cfg.track_name)
+// Strip (i) suffix and store as {name, car} objects
+setEntryList(elRows && elRows.length > 0
+  ? elRows.map(r => ({ name: r.driver_name.replace(/\s*\(i\)\s*$/, '').trim(), car: r.car_number }))
+  : null)
+
+      // 6. Sim config
+      const { data: simCfgData } = await supabase
+        .from('qual_sim_config')
+        .select('*')
         .eq('series', 'cup')
-        .eq('track_name', cfg.track_name)
-      // Store as objects {name, car} so we can add no-history drivers later
-      setEntryList(elRows && elRows.length > 0
-        ? elRows.map(r => ({ name: r.driver_name.replace(/\s*\(i\)\s*$/, '').trim(), car: r.car_number }))
-        : null)
+        .single()
+      setSimConfig(simCfgData || null)
 
 } catch (err) {
 setError(err.message)
@@ -258,14 +244,14 @@ useEffect(() => { loadData() }, [loadData])
 
 if (!isSubscriber) return <SubscribePrompt />
 
-// ── Build pivot table ────────────────────────────────────────────────────────
+// -- Build pivot table -------------------------------------------------------
 if (!config) {
 return (
 <div className="page">
 <div className="page-header">
 <h1 className="page-title">Qualifying Center</h1>
 </div>
-{loading && <div className="empty-state"><div className="spinner" style={{ margin: '0 auto 12px' }} /><p>Loading…</p></div>}
+{loading && <div className="empty-state"><div className="spinner" style={{ margin: '0 auto 12px' }} /><p>Loading...</p></div>}
 {error && <div style={{ color: '#ef4444', padding: 16 }}>{error}</div>}
 </div>
 )
@@ -312,6 +298,8 @@ const key = `${row.track_name}_${row.year}`
 driverMap[row.driver_name].positions[key] = row.qualifying_position
 }
 
+const simCorrYears = simConfig?.sim_corr_years || []
+
 for (const d of Object.values(driverMap)) {
 const histPositions = trackYears
 .map(yr => d.positions[`${config.track_name}_${yr}`])
@@ -319,7 +307,27 @@ const histPositions = trackYears
 d.trackAvg = histPositions.length > 0
 ? histPositions.reduce((a, b) => a + b, 0) / histPositions.length
 : null
-d.historicalPositions = histPositions
+
+const corrPositions = simCorrYears.length > 0
+  ? corrTracks
+      .filter(t => t !== config.track_name)
+      .flatMap(t => simCorrYears.map(yr => d.positions[`${t}_${yr}`]))
+      .filter(p => p != null)
+  : []
+
+d.historicalPositions = [...histPositions, ...corrPositions]
+}
+
+// Corr year avg column
+const corrYearVal = config.correlation_year || new Date().getFullYear()
+for (const d of Object.values(driverMap)) {
+const corrYearPositions = corrTracks
+  .filter(t => t !== config.track_name)
+  .map(t => d.positions[`${t}_${corrYearVal}`])
+  .filter(p => p != null)
+d.corrYearAvg = corrYearPositions.length > 0
+  ? corrYearPositions.reduce((a, b) => a + b, 0) / corrYearPositions.length
+  : null
 }
 
 const allPositions = qualData.map(r => r.qualifying_position).filter(p => p != null)
@@ -330,16 +338,13 @@ const totalDrivers = allPositions.length > 0 ? Math.max(...allPositions) : 40
 // After entry list is loaded: show only drivers on the entry list
 let rows = Object.values(driverMap)
 if (entryList && entryList.length > 0) {
-// Normalize: strip accents, periods (A.J.→AJ), lowercase
-const norm = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\./g, '').toLowerCase().trim()
-const nameMatch = (a, b) => { const na = norm(a), nb = norm(b); return na === nb || nb.startsWith(na + ' ') || na.startsWith(nb + ' ') }
-// Filter qualifying rows to entry list drivers
-rows = rows.filter(r => entryList.some(e => nameMatch(e.name, r.driver)))
-// Add entry list drivers with zero qualifying history
-entryList.forEach(e => {
-const found = rows.some(r => nameMatch(e.name, r.driver))
-if (!found) rows.push({ driver: e.name, carNumber: e.car, positions: {}, trackAvg: null, historicalPositions: [] })
-})
+  const norm = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\./g, '').toLowerCase().trim()
+  const nameMatch = (a, b) => { const na = norm(a), nb = norm(b); return na === nb || nb.startsWith(na + ' ') || na.startsWith(nb + ' ') }
+  rows = rows.filter(r => entryList.some(e => nameMatch(e.name, r.driver)))
+  entryList.forEach(e => {
+    const found = rows.some(r => nameMatch(e.name, r.driver))
+    if (!found) rows.push({ driver: e.name, carNumber: e.car, positions: {}, trackAvg: null, corrYearAvg: null, historicalPositions: [] })
+  })
 }
 
 if (sortBy === 'avg') {
@@ -360,7 +365,15 @@ const simInput = rows.map(r => ({
 driver: r.driver, carNumber: r.carNumber,
 trackAvg: r.trackAvg, historicalPositions: r.historicalPositions,
 }))
-setSimResults(runSimulation(simInput, 2000))
+const fmt = qualFormatFromTrackType(config._trackType) || qualFormat(config.track_name)
+const nudgeMap = {
+  'oval': simConfig?.nudge_oval ?? 3,
+  'short-track': simConfig?.nudge_short_track ?? 2,
+  'superspeedway': simConfig?.nudge_superspeedway ?? 1,
+  'road': simConfig?.nudge_road ?? 0,
+}
+const nudge = nudgeMap[fmt] ?? 0
+setSimResults(runSimulation(simInput, 2000, nudge))
 setSimRunning(false)
 }, 50)
 }
@@ -379,8 +392,6 @@ borderBottom: '1px solid var(--border)',
 }
 
 const hasData = rows.length > 0 && allCols.length > 0
-// Derive the correlation label to display (prefer from tracks table)
-const displayCorrLabel = config._corrGroupLabel || config.correlation_label
 
 return (
 <div className="page" style={{ maxWidth: 1400 }}>
@@ -388,9 +399,9 @@ return (
 <div>
 <h1 className="page-title" style={{ margin: 0 }}>Qualifying Center</h1>
 <p className="page-subtitle" style={{ margin: '4px 0 0' }}>
-Cup Series · {config.track_name} · {displayCorrLabel}
+Cup Series · {config.track_name} · {config.correlation_label}
 {(() => {
-const fmt = qualFormatFromTrackType(config._trackType) || qualFormat(config.track_name)
+const fmt = qualFormat(config.track_name)
 const { label, color, desc } = QUAL_FORMAT_LABELS[fmt]
 return (
 <span style={{
@@ -405,7 +416,7 @@ textTransform: 'uppercase', verticalAlign: 'middle', cursor: 'default',
 </div>
 <button className="btn btn-secondary" onClick={loadData} disabled={loading}
 style={{ fontSize: '0.75rem', padding: '5px 14px' }}>
-{loading ? '⟳ Loading…' : '⟳ Refresh'}
+{loading ? 'Loading...' : 'Refresh'}
 </button>
 </div>
 
@@ -418,14 +429,14 @@ style={{ fontSize: '0.75rem', padding: '5px 14px' }}>
 {loading && !hasData && (
 <div className="empty-state">
 <div className="spinner" style={{ margin: '0 auto 12px' }} />
-<p>Loading qualifying data…</p>
+<p>Loading qualifying data...</p>
 </div>
 )}
 
 {!loading && !hasData && (
 <div className="empty-state">
 <h3>No qualifying data loaded yet</h3>
-<p>Use Admin → Load Qualifying to fetch qualifying results from Racing Reference.</p>
+<p>Use Admin -> Load Qualifying to fetch qualifying results from Racing Reference.</p>
 </div>
 )}
 
@@ -433,7 +444,7 @@ style={{ fontSize: '0.75rem', padding: '5px 14px' }}>
 <>
 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
 <div style={{ display: 'flex', gap: 6 }}>
-{[['avg', `Avg @ ${trackAbbr(config.track_name)}`], ['name', 'A–Z']].map(([val, lbl]) => (
+{[['avg', `Avg @ ${trackAbbr(config.track_name)}`], ['name', 'A-Z']].map(([val, lbl]) => (
 <button key={val} onClick={() => setSortBy(val)} style={{
 padding: '4px 12px', borderRadius: 20, fontSize: '0.75rem',
 border: '1px solid var(--border)',
@@ -461,6 +472,9 @@ return <div key={pct} style={{ width: 18, height: 12, borderRadius: 3, backgroun
 <th style={{ ...thStyle, minWidth: 72, color: 'var(--accent)' }}>
 Avg<br /><span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>{trackAbbr(config.track_name)}</span>
 </th>
+<th style={{ ...thStyle, minWidth: 72, color: '#f59e0b' }}>
+Avg<br /><span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>'{String(config.correlation_year || new Date().getFullYear()).slice(2)} Corr</span>
+</th>
 {histCols.length > 0 && (
 <th colSpan={histCols.length} style={{ ...thStyle, borderLeft: '2px solid rgba(99,102,241,0.3)', color: 'var(--accent)', opacity: 0.7 }}>
 {config.track_name.split(' ').slice(0, 2).join(' ')} History
@@ -471,13 +485,14 @@ Avg<br /><span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0
 ))}
 {corrCols.length > 0 && (
 <th colSpan={corrCols.length} style={{ ...thStyle, borderLeft: '2px solid var(--border)', color: 'var(--text-secondary)' }}>
-{displayCorrLabel} · {corrYear}
+{config.correlation_label} · {corrYear}
 </th>
 )}
 </tr>
 <tr>
 <th style={thStyle} />
 <th style={{ ...thStyle, textAlign: 'left', paddingLeft: 14, position: 'sticky', left: 0, zIndex: 2 }} />
+<th style={thStyle} />
 <th style={thStyle} />
 {histCols.map(col => (
 <th key={col.key} style={{ ...thStyle, borderLeft: col === histCols[0] ? '2px solid rgba(99,102,241,0.3)' : undefined }}>{col.label}</th>
@@ -509,6 +524,14 @@ position: 'sticky', left: 0, background: ri % 2 === 0 ? 'var(--bg-card)' : 'var(
 <td style={{ ...tdBase, background: avgColor ? avgColor.bg : 'transparent', color: avgColor ? avgColor.text : 'var(--text-muted)', fontWeight: 700 }}>
 {row.trackAvg != null ? row.trackAvg.toFixed(1) : '—'}
 </td>
+{(() => {
+const cAvgColor = row.corrYearAvg != null ? heatColor(Math.round(row.corrYearAvg), totalDrivers) : null
+return (
+  <td style={{ ...tdBase, background: cAvgColor ? cAvgColor.bg : 'transparent', color: cAvgColor ? cAvgColor.text : 'var(--text-muted)', fontWeight: 700 }}>
+    {row.corrYearAvg != null ? row.corrYearAvg.toFixed(1) : '—'}
+  </td>
+)
+})()}
 {histCols.map((col, i) => {
 const pos = row.positions[`${col.trackName}_${col.year}`]
 const { bg, text } = heatColor(pos, totalDrivers)
@@ -548,7 +571,7 @@ Avg column = mean qualifying position at {config.track_name} across {trackYears.
 Lower number = better qualifier. Use this as your baseline for PrizePicks over/under picks.
 </p>
 
-{config.show_qual_sim && (
+{simConfig?.show_sim && (
 <div style={{ borderTop: '1px solid var(--border)', paddingTop: 24 }}>
 <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
 <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, margin: 0 }}>Qualifying Simulation</h2>
@@ -559,7 +582,7 @@ border: '1px solid rgba(99,102,241,0.3)', textTransform: 'uppercase',
 }}>BETA</span>
 <button className="btn btn-secondary" onClick={handleRunSim} disabled={simRunning}
 style={{ fontSize: '0.75rem', padding: '5px 14px', marginLeft: 'auto' }}>
-{simRunning ? '⟳ Running…' : simResults ? '⟳ Re-run' : '▶ Run Simulation'}
+{simRunning ? 'Running...' : simResults ? 'Re-run' : 'Run Simulation'}
 </button>
 </div>
 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 16, lineHeight: 1.6 }}>
@@ -574,7 +597,7 @@ Monte Carlo simulation (2,000 runs) using each driver's historical qualifying po
 <th style={{ ...thStyle, textAlign: 'center', width: 36 }}>#</th>
 <th style={{ ...thStyle, textAlign: 'left', paddingLeft: 14, minWidth: 160 }}>Driver</th>
 <th style={{ ...thStyle, color: '#22c55e' }}>Projected</th>
-<th style={thStyle}>Range (P10–P90)</th>
+<th style={thStyle}>Range (P10-P90)</th>
 <th style={thStyle}>Historical Avg</th>
 <th style={thStyle}>Data pts</th>
 </tr>
@@ -586,22 +609,4 @@ const { bg, text } = heatColor(r.simExpected, totalDrivers)
 return (
 <tr key={r.driver} style={{ background: ri % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-elevated)', borderBottom: '1px solid var(--border)' }}>
 <td style={{ ...tdBase, color: 'var(--text-muted)', fontSize: '0.72rem' }}>{ri + 1}</td>
-<td style={{ ...tdBase, textAlign: 'left', paddingLeft: 14, fontFamily: 'var(--font-sans)', fontWeight: ri < 5 ? 600 : 400 }}>{r.driver}</td>
-<td style={{ ...tdBase, background: bg, color: text, fontWeight: 700 }}>P{r.simExpected}</td>
-<td style={{ ...tdBase, color: 'var(--text-secondary)', fontSize: '0.75rem' }}>P{r.simP10} – P{r.simP90}</td>
-<td style={{ ...tdBase, color: 'var(--text-muted)' }}>{r.simMean?.toFixed(1)}</td>
-<td style={{ ...tdBase, color: 'var(--text-muted)', fontSize: '0.72rem' }}>{r.sampleCount}</td>
-</tr>
-)
-})}
-</tbody>
-</table>
-</div>
-)}
-</div>
-)}
-</>
-)}
-</div>
-)
-}
+<td style={{ ...tdBase, textAlign: 'left', paddingLeft: 14, fontFamily: 'var(--font-sans)', fontWeight: ri < 5 ? 6
