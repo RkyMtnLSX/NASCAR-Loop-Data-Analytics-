@@ -356,12 +356,19 @@ export default function QualifyingCenter({ isSubscriber }) {
   const elCarMap = {}
   const orgMap = {}
   if (entryList && entryList.length > 0) {
-    entryList.forEach(function(el) { elCarMap[normalizeName(el.name)] = el.carNumber; orgMap[normalizeName(el.name)] = el.org || null })
+    entryList.forEach(function(el) {
+      elCarMap[normalizeName(el.name)] = el.carNumber
+      orgMap[normalizeName(el.name)] = el.org || null
+    })
   }
 
   let rows = Object.values(driverMap)
   // Override historical car numbers with entry list (fixes e.g. Suárez #99→#7)
-  rows.forEach(function(r) { const cn = elCarMap[normalizeName(r.driver)]; if (cn != null) r.carNumber = cn; r.org = orgMap[normalizeName(r.driver)] || null })
+  rows.forEach(function(r) {
+    const cn = elCarMap[normalizeName(r.driver)]
+    if (cn != null) r.carNumber = cn
+    r.org = orgMap[normalizeName(r.driver)] || null
+  })
 
   if (entryList && entryList.length > 0) {
     rows = rows.filter(function(r) { return entryList.some(function(el) { return normalizeName(el.name) === normalizeName(r.driver) }) })
@@ -369,7 +376,7 @@ export default function QualifyingCenter({ isSubscriber }) {
     const inTableNorm = new Set(rows.map(function(r) { return normalizeName(r.driver) }))
     const missingDrivers = entryList
       .filter(function(el) { return !inTableNorm.has(normalizeName(el.name)) })
-      .map(function(el) { return { driver: el.name, carNumber: el.carNumber, org: el.org || null, positions: {}, trackAvg: null, historicalPositions: [] } })
+      .map(function(el) { return { driver: el.name, carNumber: el.carNumber, org: el.org || null, positions: {}, speeds: {}, trackAvg: null, corrYearAvg: null, historicalPositions: [] } })
     rows = rows.concat(missingDrivers)
   }
 
@@ -482,7 +489,12 @@ export default function QualifyingCenter({ isSubscriber }) {
                 )
               })}
             </div>
-            <button onClick={function() { setShow2025(!show2025) }} style={{ padding: '4px 12px', borderRadius: 20, fontSize: '0.75rem', border: '1px solid var(--border)', background: show2025 ? 'var(--accent)' : 'var(--bg-elevated)', color: show2025 ? '#fff' : 'var(--text-secondary)', cursor: 'pointer' }}>Show 2025</button>
+            <button onClick={function() { setShow2025(!show2025) }} style={{
+              padding: '4px 12px', borderRadius: 20, fontSize: '0.75rem',
+              border: '1px solid var(--border)',
+              background: show2025 ? 'var(--accent)' : 'var(--bg-elevated)',
+              color: show2025 ? '#fff' : 'var(--text-secondary)', cursor: 'pointer',
+            }}>Show 2025</button>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
               <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>P1</span>
               {[0, 0.2, 0.4, 0.6, 0.8, 1].map(function(pct) {
@@ -507,12 +519,54 @@ export default function QualifyingCenter({ isSubscriber }) {
                       {config.track_name.split(' ').slice(0, 2).join(' ')} History
                     </th>
                   )}
->
+                  {showCorrAvgCol && (
+                    <th style={Object.assign({}, thStyle, { borderLeft: '2px solid rgba(99,102,241,0.5)', color: '#a78bfa' })}>
+                      2026<br />Avg
+                    </th>
+                  )}
+                  {featuredCurrYear.map(function(col) {
+                    return <th key={col.key} style={Object.assign({}, thStyle, { borderLeft: '2px solid rgba(99,102,241,0.5)', color: 'var(--accent)' })}>{col.label}</th>
+                  })}
+                  {corrCols.length > 0 && (
+                    <th colSpan={corrCols.length} style={Object.assign({}, thStyle, { borderLeft: '2px solid var(--border)', color: 'var(--text-secondary)' })}>
+                      {config.correlation_label} &middot; {show2025 ? '2025/' : ''}{corrYear}
+                    </th>
+                  )}
+                </tr>
+                <tr>
+                  <th style={thStyle} />
+                  <th style={Object.assign({}, thStyle, { textAlign: 'left', paddingLeft: 14, position: 'sticky', left: 0, zIndex: 2 })} />
+                  <th style={thStyle} />
+                  {histCols.map(function(col, i) {
+                    return <th key={col.key} style={Object.assign({}, thStyle, i === 0 ? { borderLeft: '2px solid rgba(99,102,241,0.3)' } : {})}>{col.label}</th>
+                  })}
+                  {showCorrAvgCol && <th style={Object.assign({}, thStyle, { borderLeft: '2px solid rgba(99,102,241,0.5)' })} />}
+                  {featuredCurrYear.map(function(col) {
+                    return <th key={col.key} style={Object.assign({}, thStyle, { borderLeft: '2px solid rgba(99,102,241,0.5)' })}>{col.label}</th>
+                  })}
+                  {corrCols.map(function(col, i) {
+                    return <th key={col.key} style={Object.assign({}, thStyle, i === 0 ? { borderLeft: '2px solid var(--border)' } : {})}>{col.label}</th>
+                  })}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map(function(row, ri) {
+                  const avgColor = row.trackAvg ? heatColor(Math.round(row.trackAvg), totalDrivers) : null
+                  const corrAvgColor = row.corrYearAvg ? heatColor(Math.round(row.corrYearAvg), totalDrivers) : null
+                  const rowBg = ri % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-elevated)'
+                  return (
+                    <tr key={row.driver} style={{ background: rowBg }}>
+                      <td style={Object.assign({}, tdBase, { color: 'var(--text-muted)', fontSize: '0.72rem' })}>{ri + 1}</td>
+                      <td style={Object.assign({}, tdBase, {
+                        textAlign: 'left', paddingLeft: 14, fontFamily: 'var(--font-sans)',
+                        fontWeight: ri < 5 ? 600 : 400, color: 'var(--text-primary)',
+                        position: 'sticky', left: 0, background: rowBg, zIndex: 1,
+                      })}>
                         {row.carNumber && (
                           <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', fontSize: '0.7rem', marginRight: 6 }}>#{row.carNumber}</span>
                         )}
                         {row.driver}
-                  {row.org && <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 400 }}>{row.org}</div>}
+                        {row.org && <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 400 }}>{row.org}</div>}
                       </td>
                       <td style={Object.assign({}, tdBase, {
                         background: avgColor ? avgColor.bg : 'transparent',
@@ -532,50 +586,16 @@ export default function QualifyingCenter({ isSubscriber }) {
                           </td>
                         )
                       })}
-                      {showCorrAvgCol && (
-                    <th style={Object.assign({}, thStyle, { borderLeft: '2px solid rgba(99,102,241,0.5)', color: '#a78bfa' })}>
-                      2026<br />Avg
-                    </th>
-                  )}
-                  {showCorrAvgCol && <th style={Object.assign({}, thStyle, { borderLeft: '2px solid rgba(99,102,241,0.5)' })} />}
-                  {featuredCurrYear.map(function(col) {
-                    return <th key={col.key} style={Object.assign({}, thStyle, { borderLeft: '2px solid rgba(99,102,241,0.5)', color: 'var(--accent)' })}>{col.label}</th>
-                  })}
-                  {corrCols.length > 0 && (
-                    <th colSpan={corrCols.length} style={Object.assign({}, thStyle, { borderLeft: '2px solid var(--border)', color: 'var(--text-secondary)' })}>
-                      {config.correlation_label} &middot; {corrYear}
-                    </th>
-                  )}
-                </tr>
-                <tr>
-                  <th style={thStyle} />
-                  <th style={Object.assign({}, thStyle, { textAlign: 'left', paddingLeft: 14, position: 'sticky', left: 0, zIndex: 2 })} />
-                  <th style={thStyle} />
-                  {histCols.map(function(col, i) {
-                    return <th key={col.key} style={Object.assign({}, thStyle, i === 0 ? { borderLeft: '2px solid rgba(99,102,241,0.3)' } : {})}>{col.label}</th>
-                  })}
-                  {featuredCurrYear.map(function(col) {
-                    return <th key={col.key} style={Object.assign({}, thStyle, { borderLeft: '2px solid rgba(99,102,241,0.5)' })}>{col.label}</th>
-                  })}
-                  {corrCols.map(function(col, i) {
-                    return <th key={col.key} style={Object.assign({}, thStyle, i === 0 ? { borderLeft: '2px solid var(--border)' } : {})}>{col.label}</th>
-                  })}
-                  
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map(function(row, ri) {
-                  const avgColor = row.trackAvg ? heatColor(Math.round(row.trackAvg), totalDrivers) : null
-                  const corrAvgColor = row.corrYearAvg ? heatColor(Math.round(row.corrYearAvg), totalDrivers) : null
-                  const rowBg = ri % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-elevated)'
-                  return (
-                    <tr key={row.driver} style={{ background: rowBg }}>
-                      <td style={Object.assign({}, tdBase, { color: 'var(--text-muted)', fontSize: '0.72rem' })}>{ri + 1}</td>
-                      <td style={Object.assign({}, tdBase, {
-                        textAlign: 'left', paddingLeft: 14, fontFamily: 'var(--font-sans)',
-                        fontWeight: ri < 5 ? 600 : 400, color: 'var(--text-primary)',
-                        position: 'sticky', left: 0, background: rowBg, zIndex: 1,
-                      })}
+{showCorrAvgCol && (
+                        <td style={Object.assign({}, tdBase, {
+                          borderLeft: '2px solid rgba(99,102,241,0.5)',
+                          background: corrAvgColor ? corrAvgColor.bg : 'transparent',
+                          color: corrAvgColor ? corrAvgColor.text : 'var(--text-muted)',
+                          fontWeight: 700,
+                        })}>
+                          {row.corrYearAvg != null ? row.corrYearAvg.toFixed(1) : '-'}
+                        </td>
+                      )}
                       {featuredCurrYear.map(function(col) {
                         const pos = row.positions[col.trackName + '_' + col.year]
                         const spd = row.speeds ? row.speeds[col.trackName + '_' + col.year] : null
@@ -598,16 +618,6 @@ export default function QualifyingCenter({ isSubscriber }) {
                           </td>
                         )
                       })}
-                      {showCorrAvgCol && (
-                        <td style={Object.assign({}, tdBase, {
-                          borderLeft: '2px solid rgba(99,102,241,0.2)',
-                          background: corrAvgColor ? corrAvgColor.bg : 'transparent',
-                          color: corrAvgColor ? corrAvgColor.text : 'var(--text-muted)',
-                          fontWeight: 600,
-                        })}>
-                          {row.corrYearAvg != null ? row.corrYearAvg.toFixed(1) : '-'}
-                        </td>
-                      )}
                     </tr>
                   )
                 })}
