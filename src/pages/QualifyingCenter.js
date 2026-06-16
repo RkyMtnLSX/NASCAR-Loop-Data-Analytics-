@@ -52,7 +52,8 @@ const SHORT_TRACKS_2LAP = [
   'North Wilkesboro Speedway', 'Richmond Raceway',
 ]
 
-function qualFormat(trackName) {
+function qualFormat(trackName, corrGroup) {
+  if (corrGroup) { const cg = corrGroup.toLowerCase(); if (cg.includes('road')) return 'road'; if (cg.includes('super')) return 'superspeedway'; if (cg.includes('short')) return 'short-track'; return 'oval'; }
   if (!trackName) return 'oval'
   if (ROAD_COURSES.some(t => trackName.includes(t.split(' ')[0]))) return 'road'
   if (SUPERSPEEDWAYS.some(t => trackName.includes(t.split(' ')[0]))) return 'superspeedway'
@@ -276,7 +277,7 @@ export default function QualifyingCenter({ isSubscriber }) {
   const trackYears = config.track_years || []
   const corrYear = config.correlation_year || new Date().getFullYear()
   const simCorrYears = (simConfig && simConfig.sim_corr_years) ? simConfig.sim_corr_years : []
-  const fmt = qualFormat(config.track_name)
+  const fmt = qualFormat(config.track_name, config.correlation_group)
 
   // Only show columns where qualifying data actually exists
   const trackYearCombosWithData = new Set(qualData.map(function(r) { return r.track_name + '_' + r.year }))
