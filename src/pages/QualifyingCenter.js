@@ -239,11 +239,13 @@ setQualData(rows || [])
 // 5. Entry list for filtering inactive drivers
 const { data: elRows } = await supabase
         .from('entry_list')
-        .select('driver_name')
+        .select('driver_name, car_number')
         .eq('series', 'cup')
         .eq('track_name', cfg.track_name)
-      // Strip (i) suffix so names match qualifying_results
-      setEntryList(elRows && elRows.length > 0 ? elRows.map(r => r.driver_name.replace(/\s*\(i\)\s*$/, '').trim()) : null)
+      // Store as objects {name, car} so we can add no-history drivers later
+      setEntryList(elRows && elRows.length > 0
+        ? elRows.map(r => ({ name: r.driver_name.replace(/\s*\(i\)\s*$/, '').trim(), car: r.car_number }))
+        : null)
 
 } catch (err) {
 setError(err.message)
@@ -328,8 +330,16 @@ const totalDrivers = allPositions.length > 0 ? Math.max(...allPositions) : 40
 // After entry list is loaded: show only drivers on the entry list
 let rows = Object.values(driverMap)
 if (entryList && entryList.length > 0) {
-const norm = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
-rows = rows.filter(r => entryList.some(e => norm(e) === norm(r.driver)))
+// Normalize: strip accents, periods (A.J.→AJ), lowercase
+const norm = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\./g, '').toLowerCase().trim()
+const nameMatch = (a, b) => { const na = norm(a), nb = norm(b); return na === nb || nb.startsWith(na + ' ') || na.startsWith(nb + ' ') }
+// Filter qualifying rows to entry list drivers
+rows = rows.filter(r => entryList.some(e => nameMatch(e.name, r.driver)))
+// Add entry list drivers with zero qualifying history
+entryList.forEach(e => {
+const found = rows.some(r => nameMatch(e.name, r.driver))
+if (!found) rows.push({ driver: e.name, carNumber: e.car, positions: {}, trackAvg: null, historicalPositions: [] })
+})
 }
 
 if (sortBy === 'avg') {
