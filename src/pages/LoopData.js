@@ -495,11 +495,21 @@ export default function LoopData({ isSubscriber }) {
         </div>
       )}
 
-      <DataTable rows={mainRows} title={mainTitle} loading={loading} yearCols={yearCols} />
+      {loading || mainRows.length > 0
+        ? <DataTable rows={mainRows} title={mainTitle} loading={loading} yearCols={yearCols} />
+        : !error && config && (
+          <div style={{
+            padding: '9px 14px', background: 'rgba(99,102,241,0.07)',
+            border: '1px solid rgba(99,102,241,0.22)', borderRadius: 7,
+            color: 'var(--text-secondary)', fontSize: '0.8rem', marginBottom: 20,
+          }}>
+            No loop data history for {config.track_label} — showing correlated track data only.
+          </div>
+        )
+      }
 
       {!loading && !error && (
         <DataTable rows={corrRows} title={corrTitle} subtitle={corrSubtitle} loading={false} raceCols={corrRaceCols} />
-
       )}
 
     </div>
