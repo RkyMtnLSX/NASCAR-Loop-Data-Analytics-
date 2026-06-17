@@ -253,7 +253,7 @@ function DataTable({ rows, title, subtitle, loading, yearCols = [] }) {
                         background: isActive
                           ? (i % 2 === 0 ? 'rgba(99,102,241,0.06)' : 'rgba(99,102,241,0.04)')
                           : isYear
-                          ? (i % 2 === 0 ? 'rgba(99,102,241,0.04)' : 'rgba(99,102,241,0.02)')
+                          ? (() => { const p = parseInt(row[col.key]); if (!p || isNaN(p)) return undefined; if (p <= 5) return 'rgba(34,197,94,0.30)'; if (p <= 10) return 'rgba(132,204,22,0.24)'; if (p <= 15) return 'rgba(234,179,8,0.22)'; if (p <= 20) return 'rgba(249,115,22,0.22)'; return 'rgba(239,68,68,0.22)'; })()
                           : undefined,
                       }}>
                         {fmtVal(row[col.key], col)}
