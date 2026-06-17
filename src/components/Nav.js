@@ -94,7 +94,7 @@ export default function Nav({ isAdmin, onAdminClick }) {
               display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'var(--font-sans)',
             }}>
               Practice Center
-              <span style={{ fontSize: '0.55rem', opacity: 0.7, marginTop: 1 }}>â¾</span>
+              <span style={{ fontSize: '0.55rem', opacity: 0.7, marginTop: 1 }}>▾</span>
             </button>
             <Dropdown links={PRACTICE_LINKS} open={practiceOpen} />
           </div>
@@ -106,7 +106,7 @@ export default function Nav({ isAdmin, onAdminClick }) {
               display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'var(--font-sans)',
             }}>
               Loop Data
-              <span style={{ fontSize: '0.55rem', opacity: 0.7, marginTop: 1 }}>â¾</span>
+              <span style={{ fontSize: '0.55rem', opacity: 0.7, marginTop: 1 }}>▾</span>
             </button>
             <Dropdown links={LOOP_LINKS} open={loopOpen} />
           </div>
