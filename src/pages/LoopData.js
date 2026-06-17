@@ -401,7 +401,7 @@ export default function LoopData({ isSubscriber }) {
 
         const { data: trackData, error: trackErr } = await supabase
           .from('loop_data')
-          .select('driver_name, year, finish_position, start_position, avg_position, driver_rating, quality_passes, pass_diff, pct_laps_led, pct_top15_laps, fastest_laps, stage1_finish, stage2_finish')
+          .select('driver_name, year, finish_position, start_position, avg_position, driver_rating, quality_passes, pass_diff, laps_led, pct_laps_led, pct_top15_laps, fastest_laps, stage1_finish, stage2_finish')
           .eq('track_name', cfg.track_name).eq('series', s).in('year', cfg.track_years)
         if (trackErr) throw trackErr
         if (cancelled) return
@@ -417,7 +417,7 @@ export default function LoopData({ isSubscriber }) {
         if (corrNameList.length) {
           const { data: cd, error: corrErr } = await supabase
             .from('loop_data')
-            .select('driver_name, year, track_name, finish_position, start_position, avg_position, driver_rating, quality_passes, pass_diff, pct_laps_led, pct_top15_laps, fastest_laps, stage1_finish, stage2_finish')
+            .select('driver_name, year, track_name, finish_position, start_position, avg_position, driver_rating, quality_passes, pass_diff, laps_led, pct_laps_led, pct_top15_laps, fastest_laps, stage1_finish, stage2_finish')
             .in('track_name', corrNameList).eq('series', s).eq('year', cfg.correlation_year)
           if (corrErr) throw corrErr
           if (cancelled) return
