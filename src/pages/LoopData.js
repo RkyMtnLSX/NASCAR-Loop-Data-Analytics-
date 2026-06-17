@@ -495,7 +495,7 @@ export default function LoopData({ isSubscriber }) {
         </div>
       )}
 
-      {loading || mainRows.length > 0
+      {loading || mainRows.some(r => r.races > 0)
         ? <DataTable rows={mainRows} title={mainTitle} loading={loading} yearCols={yearCols} />
         : !error && config && (
           <div style={{
