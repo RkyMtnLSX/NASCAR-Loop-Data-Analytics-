@@ -7,10 +7,8 @@ const SERIES_OPTIONS = [
   { value: 'trucks',  label: 'Truck Series' },
 ]
 
-// Identity columns from entry list (text, left-aligned)
 const ENTRY_COLS = []
 
-// Stat columns (numeric averages)
 const STAT_COLS = [
   { key: 'races',            label: 'Races',     decimals: 0 },
   { key: 'avg_start',        label: 'Avg St',    decimals: 1 },
@@ -44,8 +42,6 @@ function computeDriverAvg(rows) {
   }
 }
 
-// entryMap: Map<driver_name, {car_number, organization}> | null
-// trackYears: int[] for per-year finish columns, null = skip
 function groupByDriver(rows, entryMap, trackYears) {
   const map = {}
   rows.forEach(row => {
@@ -63,7 +59,6 @@ function groupByDriver(rows, entryMap, trackYears) {
       const entry = entryMap ? (entryMap.get(driver) || {}) : {}
       const stats = computeDriverAvg(dRows)
 
-      // Per-year finish at this track
       const yearFinishes = {}
       if (trackYears) {
         dRows.forEach(r => {
@@ -98,7 +93,6 @@ function fmtVal(val, col) {
   return fixed
 }
 
-// --- Styles ---
 const sectionHead = {
   fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)',
   margin: '0 0 4px 0', textTransform: 'uppercase', letterSpacing: '0.06em',
@@ -133,7 +127,38 @@ const numCell = {
   fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap',
 }
 
-// --- DataTable ---
+function YearPicker({ label, availableYears, selectedYears, onToggle }) {
+  if (!availableYears.length) return null
+  return (
+    <div style={{
+      display: 'flex', gap: 16, alignItems: 'center', marginBottom: 10,
+      padding: '7px 14px', background: 'var(--bg-surface)',
+      borderRadius: 7, border: '1px solid var(--border)', flexWrap: 'wrap',
+    }}>
+      <span style={{
+        fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)',
+        textTransform: 'uppercase', letterSpacing: '0.07em',
+      }}>{label}</span>
+      {availableYears.map(yr => (
+        <label key={yr} style={{
+          display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer',
+          fontSize: '0.83rem',
+          color: selectedYears.includes(yr) ? 'var(--text-primary)' : 'var(--text-muted)',
+          fontWeight: selectedYears.includes(yr) ? 600 : 400,
+        }}>
+          <input
+            type="checkbox"
+            checked={selectedYears.includes(yr)}
+            onChange={() => onToggle(yr)}
+            style={{ accentColor: 'var(--accent)', cursor: 'pointer' }}
+          />
+          {yr}
+        </label>
+      ))}
+    </div>
+  )
+}
+
 function DataTable({ rows, title, subtitle, loading, yearCols = [] }) {
   const [sortKey, setSortKey] = useState('avg_rating')
   const [sortDir, setSortDir] = useState('desc')
@@ -245,47 +270,47 @@ function DataTable({ rows, title, subtitle, loading, yearCols = [] }) {
   )
 }
 
-// --- Main page ---
 // eslint-disable-next-line no-unused-vars
 export default function LoopData({ isSubscriber }) {
-  const [series, setSeries]                 = useState('cup')
-  const [config, setConfig]                 = useState(null)
-  const [allTrackData, setAllTrackData]     = useState([])
-  const [availableYears, setAvailableYears] = useState([])
-  const [selectedYears, setSelectedYears]   = useState([])
-  const [corrRows, setCorrRows]             = useState([])
-  const [corrNames, setCorrNames]           = useState([])
-  const [hasEntryList, setHasEntryList]     = useState(false)
-  const [loading, setLoading]               = useState(true)
-  const [error, setError]                   = useState(null)
+  const [series, setSeries]                     = useState('cup')
+  const [config, setConfig]                     = useState(null)
+  const [allTrackData, setAllTrackData]         = useState([])
+  const [availableYears, setAvailableYears]     = useState([])
+  const [selectedYears, setSelectedYears]       = useState([])
+  const [allCorrData, setAllCorrData]           = useState([])
+  const [corrAvailableYears, setCorrAvailableYears] = useState([])
+  const [corrSelectedYears, setCorrSelectedYears]   = useState([])
+  const [corrNames, setCorrNames]               = useState([])
+  const [hasEntryList, setHasEntryList]         = useState(false)
+  const [loading, setLoading]                   = useState(true)
+  const [error, setError]                       = useState(null)
   const entryMapRef = useRef(null)
 
   useEffect(() => {
     let cancelled = false
     setLoading(true); setError(null); setConfig(null)
-    setAllTrackData([]); setCorrRows([]); setCorrNames([])
-    setHasEntryList(false); setAvailableYears([]); setSelectedYears([])
+    setAllTrackData([]); setAllCorrData([]); setCorrNames([])
+    setHasEntryList(false)
+    setAvailableYears([]); setSelectedYears([])
+    setCorrAvailableYears([]); setCorrSelectedYears([])
     entryMapRef.current = null
 
     async function load() {
       try {
         const s = series
 
-        // 1. Featured weekend config
         const { data: cfg, error: cfgErr } = await supabase
           .from('featured_weekend').select('*').eq('series', s).single()
         if (cfgErr) throw new Error('Weekend config not set for this series.')
         if (cancelled) return
         setConfig(cfg)
 
-        // 2. Entry list
         const { data: entryData } = await supabase
           .from('entry_list')
           .select('driver_name, car_number, organization')
           .eq('series', s)
           .eq('race_year', cfg.correlation_year)
           .eq('track_name', cfg.track_name)
-        // 2b. Name aliases
         const { data: aliasData } = await supabase.from('driver_aliases').select('alias, canonical_name')
         const aliasLookup = new Map((aliasData || []).map(a => [a.alias, a.canonical_name]))
         const normalize = n => { const clean = n.trim().replace(/\s*\([a-zA-Z]\)\s*$/, ''); return aliasLookup.get(clean) || aliasLookup.get(n) || clean; }
@@ -296,7 +321,7 @@ export default function LoopData({ isSubscriber }) {
         setHasEntryList(!!entryMap)
         entryMapRef.current = entryMap
 
-        // 3. Main track data -- fetch ALL years so checkboxes can filter client-side
+        // Main track -- all years
         const { data: trackData, error: trackErr } = await supabase
           .from('loop_data')
           .select('driver_name, year, finish_position, start_position, avg_position, driver_rating, quality_passes, pass_diff, laps_led, pct_laps_led, pct_top15_laps, fastest_laps, stage1_finish, stage2_finish')
@@ -307,14 +332,10 @@ export default function LoopData({ isSubscriber }) {
         const avail = [...new Set((trackData || []).map(r => parseInt(r.year)))].filter(Boolean).sort((a, b) => a - b)
         setAvailableYears(avail)
         setAllTrackData(trackData || [])
-
-        // Default: cfg.track_years intersected with available, fallback to all available
-        const defaultSel = cfg.track_years
-          ? cfg.track_years.filter(y => avail.includes(y))
-          : avail
+        const defaultSel = cfg.track_years ? cfg.track_years.filter(y => avail.includes(y)) : avail
         setSelectedYears(defaultSel.length ? defaultSel : avail)
 
-        // 4. Correlated track names
+        // Correlated track names
         const { data: correlated, error: corrTrackErr } = await supabase
           .from('tracks').select('name').eq('correlation_group_label', cfg.correlation_label)
         if (corrTrackErr) throw corrTrackErr
@@ -322,14 +343,20 @@ export default function LoopData({ isSubscriber }) {
         if (cancelled) return
         setCorrNames(corrNameList)
 
-        // 5. Correlated loop data
+        // Correlated loop data -- ALL years
         if (corrNameList.length) {
           const { data: cd, error: corrErr } = await supabase
             .from('loop_data')
             .select('driver_name, year, finish_position, start_position, avg_position, driver_rating, quality_passes, pass_diff, laps_led, pct_laps_led, pct_top15_laps, fastest_laps, stage1_finish, stage2_finish')
-            .in('track_name', corrNameList).eq('series', s).eq('year', cfg.correlation_year)
+            .in('track_name', corrNameList).eq('series', s)
           if (corrErr) throw corrErr
-          if (!cancelled) setCorrRows(groupByDriver(cd || [], entryMap, null))
+          if (cancelled) return
+          const corrAvail = [...new Set((cd || []).map(r => parseInt(r.year)))].filter(Boolean).sort((a, b) => a - b)
+          setCorrAvailableYears(corrAvail)
+          setAllCorrData(cd || [])
+          const corrDefault = cfg.track_years ? cfg.track_years.filter(y => corrAvail.includes(y)) : [cfg.correlation_year]
+          const corrSel = corrDefault.filter(y => corrAvail.includes(y))
+          setCorrSelectedYears(corrSel.length ? corrSel : corrAvail.slice(-1))
         }
       } catch (e) {
         if (!cancelled) setError(e.message)
@@ -342,10 +369,14 @@ export default function LoopData({ isSubscriber }) {
     return () => { cancelled = true }
   }, [series])
 
-  // Compute mainRows client-side from filtered data (instant, no API call)
+  // Compute rows client-side
   const sortedSelectedYears = [...selectedYears].sort((a, b) => a - b)
   const filteredTrackData = allTrackData.filter(r => selectedYears.includes(parseInt(r.year)))
   const mainRows = groupByDriver(filteredTrackData, entryMapRef.current, sortedSelectedYears)
+
+  const sortedCorrSelectedYears = [...corrSelectedYears].sort((a, b) => a - b)
+  const filteredCorrData = allCorrData.filter(r => corrSelectedYears.includes(parseInt(r.year)))
+  const corrRows = groupByDriver(filteredCorrData, entryMapRef.current, sortedCorrSelectedYears)
 
   const mainTitle = config
     ? config.track_label + ' Averages' + (
@@ -355,24 +386,27 @@ export default function LoopData({ isSubscriber }) {
       )
     : 'Track Averages'
   const corrTitle = config
-    ? config.correlation_label + ' Averages ' + config.correlation_year
+    ? config.correlation_label + ' Averages' + (
+        sortedCorrSelectedYears.length === 0 ? '' :
+        sortedCorrSelectedYears.length === 1 ? ' ' + sortedCorrSelectedYears[0] :
+        ' ' + sortedCorrSelectedYears[0] + '–' + sortedCorrSelectedYears[sortedCorrSelectedYears.length - 1]
+      )
     : 'Correlated Track Averages'
   const corrSubtitle = corrNames.length ? corrNames.slice().sort().join(' • ') : null
 
   const yearCols = sortedSelectedYears.map(yr => ({
     key: 'y_' + yr, label: String(yr), decimals: 0, isYear: true, minWidth: 52,
   }))
+  const corrYearCols = sortedCorrSelectedYears.map(yr => ({
+    key: 'y_' + yr, label: String(yr), decimals: 0, isYear: true, minWidth: 52,
+  }))
 
-  const toggleYear = (yr) => {
-    setSelectedYears(prev =>
-      prev.includes(yr) ? prev.filter(y => y !== yr) : [...prev, yr]
-    )
-  }
+  const toggleYear = (yr) => setSelectedYears(prev => prev.includes(yr) ? prev.filter(y => y !== yr) : [...prev, yr])
+  const toggleCorrYear = (yr) => setCorrSelectedYears(prev => prev.includes(yr) ? prev.filter(y => y !== yr) : [...prev, yr])
 
   return (
     <div style={{ padding: '24px 20px', maxWidth: 1300, margin: '0 auto' }}>
 
-      {/* Series selector */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 28 }}>
         {SERIES_OPTIONS.map(opt => (
           <button key={opt.value} onClick={() => setSeries(opt.value)} style={{
@@ -403,34 +437,14 @@ export default function LoopData({ isSubscriber }) {
         </div>
       )}
 
-      {/* Year filter checkboxes */}
+      {/* Main track year picker */}
       {!loading && availableYears.length > 0 && (
-        <div style={{
-          display: 'flex', gap: 16, alignItems: 'center', marginBottom: 16,
-          padding: '8px 14px', background: 'var(--bg-surface)',
-          borderRadius: 7, border: '1px solid var(--border)', flexWrap: 'wrap',
-        }}>
-          <span style={{
-            fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)',
-            textTransform: 'uppercase', letterSpacing: '0.07em', marginRight: 2,
-          }}>Years:</span>
-          {availableYears.map(yr => (
-            <label key={yr} style={{
-              display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer',
-              fontSize: '0.83rem',
-              color: selectedYears.includes(yr) ? 'var(--text-primary)' : 'var(--text-muted)',
-              fontWeight: selectedYears.includes(yr) ? 600 : 400,
-            }}>
-              <input
-                type="checkbox"
-                checked={selectedYears.includes(yr)}
-                onChange={() => toggleYear(yr)}
-                style={{ accentColor: 'var(--accent)', cursor: 'pointer' }}
-              />
-              {yr}
-            </label>
-          ))}
-        </div>
+        <YearPicker
+          label="Track Years:"
+          availableYears={availableYears}
+          selectedYears={selectedYears}
+          onToggle={toggleYear}
+        />
       )}
 
       {/* Main track table */}
@@ -461,9 +475,23 @@ export default function LoopData({ isSubscriber }) {
         : null
       }
 
-      {/* Correlated tracks table */}
+      {/* Correlated tracks section */}
       {!loading && !error && (
-        <DataTable rows={corrRows} title={corrTitle} subtitle={corrSubtitle} loading={false} yearCols={[]} />
+        <>
+          <YearPicker
+            label="Corr. Years:"
+            availableYears={corrAvailableYears}
+            selectedYears={corrSelectedYears}
+            onToggle={toggleCorrYear}
+          />
+          <DataTable
+            rows={corrRows}
+            title={corrTitle}
+            subtitle={corrSubtitle}
+            loading={false}
+            yearCols={corrYearCols}
+          />
+        </>
       )}
 
     </div>
