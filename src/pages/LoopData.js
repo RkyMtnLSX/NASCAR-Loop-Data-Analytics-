@@ -66,6 +66,7 @@ const STAT_COLS = [
   { key: 'avg_laps_led_pct', label: 'Laps Led%', decimals: 1, pct: true },
   { key: 'avg_top15_pct',    label: 'Top 15%',   decimals: 1, pct: true },
   { key: 'avg_fastest',      label: 'Fast Laps', decimals: 1 },
+  { key: 'avg_laps_led',     label: 'Avg LL', decimals: 1 },
 ]
 
 // higher count = better = green
@@ -92,6 +93,7 @@ function computeDriverAvg(rows) {
     avg_pass_diff:    sum('pass_diff') / n,
     avg_laps_led_pct: sum('pct_laps_led') / n,
     avg_top15_pct:    sum('pct_top15_laps') / n,
+    avg_laps_led:     sum('laps_led') / n,
     avg_fastest:      sum('fastest_laps') / n,
     wins:  cnt(1),
     top3:  cnt(3),
