@@ -436,6 +436,16 @@ export default function LoopData({ isSubscriber }) {
       {/* Main track table */}
       {loading
         ? <DataTable rows={[]} title={mainTitle} loading={true} yearCols={[]} />
+        : availableYears.length === 0 && !error && config
+        ? (
+          <div style={{
+            padding: '9px 14px', background: 'rgba(99,102,241,0.07)',
+            border: '1px solid rgba(99,102,241,0.22)', borderRadius: 7,
+            color: 'var(--text-secondary)', fontSize: '0.8rem', marginBottom: 20,
+          }}>
+            No loop data history for {config.track_label} — showing correlated track data only.
+          </div>
+        )
         : selectedYears.length === 0
         ? (
           <div style={{
@@ -448,16 +458,6 @@ export default function LoopData({ isSubscriber }) {
         )
         : mainRows.some(r => r.races > 0)
         ? <DataTable rows={mainRows} title={mainTitle} loading={false} yearCols={yearCols} />
-        : !error && config
-        ? (
-          <div style={{
-            padding: '9px 14px', background: 'rgba(99,102,241,0.07)',
-            border: '1px solid rgba(99,102,241,0.22)', borderRadius: 7,
-            color: 'var(--text-secondary)', fontSize: '0.8rem', marginBottom: 20,
-          }}>
-            No loop data history for {config.track_label} — showing correlated track data only.
-          </div>
-        )
         : null
       }
 
