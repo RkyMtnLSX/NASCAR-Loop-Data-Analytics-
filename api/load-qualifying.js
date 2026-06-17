@@ -63,20 +63,8 @@ function parseQualifyingPage(html) {
       }
     }
 
-    // Time — lap time in seconds (e.g. 27.456), distinct from speed
-    let time = null
-    for (let i = 3; i < Math.min(cells.length, 8); i++) {
-      const cell = cells[i].trim()
-      const val = parseFloat(cell)
-      if (!isNaN(val) && val !== speed && /^\d{1,3}\.\d{3,}$/.test(cell)) {
-        // Looks like a precise lap time (3+ decimal places)
-        time = val
-        break
-      }
-    }
-
     if (driverName && pos) {
-      drivers.push({ position: pos, carNumber, driverName, speed, time })
+      drivers.push({ position: pos, carNumber, driverName, speed })
     }
   }
 
@@ -115,29 +103,28 @@ module.exports = async function handler(req, res) {
   if (!year || !raceNumber) {
     return res.status(400).json({ error: 'year and raceNumber are required' })
   }
-  // trackName is optional — will be auto-detected from the Racing Reference page if omitted
+  if (!trackName) {
+    return res.status(400).json({ error: 'trackName is required' })
+  }
 
   const raceNumPadded = String(raceNumber).padStart(2, '0')
   const seriesCode = SERIES_CODES[series] || 'W'
   const racingRefId = `${year}-${raceNumPadded}-qual-${series}`
-  const url = `https://www.racing-reference.info/qual-results/${year}-${raceNumPadded}/${seriesCode}/`
+  // Racing Reference uses /qual-results/ (with hyphen) — not /qualresults/
+  const url = `https://www.racing-reference.info/qual-results/${year}-${raceNumPadded}/${seriesCode}`
 
-  // Fetch the page
+  // Fetch the page with browser-like headers to avoid 403 blocks
   let html
   try {
     const resp = await fetch(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Language': 'en-US,en;q=0.5',
         'Accept-Encoding': 'gzip, deflate, br',
         'Referer': 'https://www.racing-reference.info/',
         'Connection': 'keep-alive',
         'Upgrade-Insecure-Requests': '1',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'same-origin',
-        'Sec-Fetch-User': '?1',
         'Cache-Control': 'max-age=0',
       }
     })
@@ -150,12 +137,6 @@ module.exports = async function handler(req, res) {
     html = await resp.text()
   } catch (err) {
     return res.status(502).json({ error: `Fetch failed: ${err.message}`, url })
-  }
-
-  // Auto-detect trackName from page if not provided
-  const resolvedTrackName = trackName || parseTrackName(html)
-  if (!resolvedTrackName) {
-    return res.status(422).json({ error: 'Could not detect track name from page — provide trackName', url })
   }
 
   // Check for no data
@@ -239,13 +220,12 @@ module.exports = async function handler(req, res) {
     series,
     year: parseInt(year),
     race_number: parseInt(raceNumber),
-    track_name: resolvedTrackName,
+    track_name: trackName,
     racing_reference_id: racingRefId,
     driver_name: d.driverName,
     car_number: d.carNumber || null,
     qualifying_position: d.position,
     qualifying_speed: d.speed || null,
-    qualifying_time: d.time || null,
   }))
 
   // Insert in batches
@@ -266,8 +246,8 @@ module.exports = async function handler(req, res) {
 
   return res.json({
     success: true,
-    message: `Loaded ${rows.length} qualifying results for ${resolvedTrackName} ${year}`,
-    trackName: resolvedTrackName,
+    message: `Loaded ${rows.length} qualifying results for ${trackName} ${year}`,
+    trackName,
     year,
     racingRefId,
     driversLoaded: rows.length,
