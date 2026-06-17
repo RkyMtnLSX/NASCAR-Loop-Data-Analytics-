@@ -59,7 +59,7 @@ const STAT_COLS = [
   { key: 'races',            label: 'Races',     decimals: 0, noHeat: true },
   { key: 'avg_start',        label: 'Avg St',    decimals: 1, lowerIsBetter: true },
   { key: 'avg_finish',       label: 'Avg Fin',   decimals: 1, lowerIsBetter: true },
-  { key: 'avg_mid',          label: 'Avg Mid',   decimals: 1, lowerIsBetter: true },
+  { key: 'avg_mid',          label: 'ARP',   decimals: 1, lowerIsBetter: true },
   { key: 'avg_rating',       label: 'Drv Rtg',   decimals: 1, highlight: true },
   { key: 'avg_qp',           label: 'Qual Pass', decimals: 1 },
   { key: 'avg_pass_diff',    label: 'Pass Diff', decimals: 1, signed: true },
