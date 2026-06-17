@@ -589,3 +589,10 @@ export default function LoopData({ isSubscriber }) {
                 Select at least one year to view correlated track data.
               </div>
             : <DataTable rows={corrRows} title={corrTitle} subtitle={corrSubtitle} loading={false} raceCols={corrRaceDefs} />
+          }
+        </>
+      )}
+
+    </div>
+  )
+}
