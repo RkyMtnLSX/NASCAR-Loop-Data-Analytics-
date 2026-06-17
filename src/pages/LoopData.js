@@ -188,7 +188,7 @@ function fmtVal(val, col) {
   if (col.signed && v > 0) return '+' + fixed
   if (col.pct) return fixed + '%'
   return fixed
-  }
+}
 
 function YearPicker({ label, availableYears, selectedYears, onToggle }) {
   if (!availableYears.length) return null
@@ -336,7 +336,7 @@ function DataTable({ rows, title, subtitle, loading, yearCols = [], raceCols = [
                     {isYear
                       ? <><div style={{ fontSize: '0.6rem', opacity: 0.6, letterSpacing: '0.06em', marginBottom: 1 }}>FIN</div>{col.label}</>
                       : col.label}
-                    {isActive && <span style={{ marginLeft: 4, fontSize: '0.65rem' }}>{sortDir === 'desc' ? 'v', o: '^'}</span>}
+                    {isActive && <span style={{ marginLeft: 4, fontSize: '0.65rem' }}>{sortDir === 'desc' ? 'v' : '^'}</span>}
                   </th>
                 )
               })}
@@ -366,7 +366,7 @@ function DataTable({ rows, title, subtitle, loading, yearCols = [], raceCols = [
                     const cr = colRanks[col.key]
                     const heat = cr ? heatBg(cr.ranks[i], cr.total) : null
                     // Finish position columns use position-based color; stat cols use rank-based
-                    const finPos = isYear ? posHed(parseInt(rawVal)) : null
+                    const finPos = isYear ? posHeat(parseInt(rawVal)) : null
                     return (
                       <td key={col.key} style={{
                         ...numCell,
