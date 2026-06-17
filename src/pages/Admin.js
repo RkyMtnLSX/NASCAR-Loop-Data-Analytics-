@@ -694,26 +694,78 @@ function LoadNewRace() {
 
 // Load Qualifying Results
 function LoadQualifying() {
-  const [series, setSeries] = React.useState('cup')
-  const [year, setYear] = React.useState(new Date().getFullYear())
-  const [raceNumber, setRaceNumber] = React.useState('')
-  const [trackName, setTrackName] = React.useState('')
-  const [loading, setLoading] = React.useState(false)
-  const [status, setStatus] = React.useState(null)
+  const SERIES_CODES = { cup: 'W', oreilly: 'B', trucks: 'C' }
+  const [series, setSeries] = useState('cup')
+  const [year, setYear] = useState(new Date().getFullYear())
+  const [raceNumber, setRaceNumber] = useState('')
+  const [trackName, setTrackName] = useState('')
+  const [pastedText, setPastedText] = useState('')
+  const [preview, setPreview] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [status, setStatus] = useState(null)
+
+  function getRacingRefUrl() {
+    if (!year || !raceNumber) return null
+    const padded = String(raceNumber).padStart(2, '0')
+    const code = SERIES_CODES[series] || 'W'
+    return `https://www.racing-reference.info/qual-results/${year}-${padded}/${code}`
+  }
+
+  function parseText(text) {
+    const drivers = []
+    for (const line of text.split('\n')) {
+      const parts = line.trim().split(/\s+/)
+      if (parts.length < 6) continue
+      const rank = parseInt(parts[0])
+      if (isNaN(rank) || rank < 1 || rank > 99) continue
+      const speed = parseFloat(parts[parts.length - 1])
+      if (isNaN(speed) || speed < 50 || speed > 350) continue
+      const lapTime = parts[parts.length - 2]
+      if (!/^\d+:\d{2}\.\d+$/.test(lapTime)) continue
+      const carNumber = parts[parts.length - 4]
+      if (!/^\d{1,3}$/.test(carNumber)) continue
+      const driverName = parts.slice(1, parts.length - 4).join(' ')
+      if (!driverName || driverName.length < 2) continue
+      drivers.push({ rank, driverName, carNumber, speed })
+    }
+    return drivers
+  }
+
+  function handleTextChange(text) {
+    setPastedText(text)
+    setStatus(null)
+    if (text.trim()) {
+      const drivers = parseText(text)
+      setPreview(drivers.length > 0 ? drivers : null)
+      if (drivers.length === 0) setStatus({ type: 'error', msg: 'No qualifying rows found — make sure you Ctrl+A / Ctrl+C the full Racing Reference page' })
+    } else {
+      setPreview(null)
+    }
+  }
 
   async function handleLoad() {
-    if (!raceNumber || !trackName) return
+    if (!preview || !trackName || !raceNumber) return
     setLoading(true)
     setStatus(null)
     try {
-      const resp = await fetch('/api/load-qualifying', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ series, year: parseInt(year), raceNumber: parseInt(raceNumber), trackName }),
-      })
-      const data = await resp.json()
-      if (!resp.ok) throw new Error(data.error || 'Failed')
-      setStatus({ type: 'success', msg: data.message + (data.pole ? ' -- Pole: ' + data.pole : '') })
+      const racingRefId = `${year}-${String(raceNumber).padStart(2,'0')}-qual-${series}`
+      await supabase.from('qualifying_results').delete().eq('racing_reference_id', racingRefId)
+      const rows = preview.map(d => ({
+        series,
+        year: parseInt(year),
+        race_number: parseInt(raceNumber),
+        track_name: trackName,
+        racing_reference_id: racingRefId,
+        driver_name: d.driverName,
+        car_number: d.carNumber || null,
+        qualifying_position: d.rank,
+        qualifying_speed: d.speed || null,
+      }))
+      const { error } = await supabase.from('qualifying_results').insert(rows)
+      if (error) throw error
+      setStatus({ type: 'success', msg: `Loaded ${rows.length} drivers for ${trackName} ${year}. Pole: ${preview[0].driverName} (${preview[0].speed} mph)` })
+      setPastedText('')
+      setPreview(null)
     } catch (err) {
       setStatus({ type: 'error', msg: err.message })
     } finally {
@@ -721,53 +773,96 @@ function LoadQualifying() {
     }
   }
 
-  const inp = {
-    padding: '7px 10px', borderRadius: 6, border: '1px solid var(--border)',
-    background: 'var(--bg-elevated)', color: 'var(--text-primary)',
-    fontSize: '0.825rem', fontFamily: 'var(--font-sans)',
-  }
+  const url = getRacingRefUrl()
+  const inp = { width: '100%', padding: '7px 10px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', fontSize: '0.8125rem', outline: 'none' }
+  const lbl = { display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.04em' }
 
   return (
     <div className="card" style={{ marginBottom: 20 }}>
       <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 8 }}>Load Qualifying Results</h2>
       <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 16 }}>
-        Fetch qualifying results from Racing Reference and store in Supabase.
+        Go to Racing Reference, press <strong>Ctrl+A</strong> then <strong>Ctrl+C</strong>, then paste below.
+        {url && <> <a href={url} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', marginLeft: 6 }}>Open Racing Reference ↗</a></>}
       </p>
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10, marginBottom: 14 }}>
         <div>
-          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Series</label>
+          <label style={lbl}>Series</label>
           <select value={series} onChange={e => setSeries(e.target.value)} style={inp}>
             {SERIES_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </div>
         <div>
-          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Year</label>
-          <input type="number" value={year} onChange={e => setYear(e.target.value)} style={{ ...inp, width: 80 }} />
+          <label style={lbl}>Year</label>
+          <input type="number" value={year} onChange={e => setYear(parseInt(e.target.value))} style={inp} />
         </div>
         <div>
-          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Race #</label>
-          <input type="number" placeholder="e.g. 14" value={raceNumber} onChange={e => setRaceNumber(e.target.value)} style={{ ...inp, width: 80 }} />
+          <label style={lbl}>Race #</label>
+          <input type="number" value={raceNumber} onChange={e => setRaceNumber(e.target.value)} placeholder="e.g. 16" style={inp} />
         </div>
-        <div style={{ flex: 1, minWidth: 180 }}>
-          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Track Name</label>
-          <input type="text" placeholder="e.g. Pocono Raceway" value={trackName} onChange={e => setTrackName(e.target.value)} style={{ ...inp, width: '100%' }} />
-        </div>
-        <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-          <button className="btn btn-primary" onClick={handleLoad} disabled={loading || !raceNumber || !trackName} style={{ fontSize: '0.8125rem' }}>
-            {loading ? 'Loading...' : 'Load Qualifying'}
-          </button>
+        <div>
+          <label style={lbl}>Track Name</label>
+          <input type="text" value={trackName} onChange={e => setTrackName(e.target.value)} placeholder="e.g. Autodromo Hermanos Rodriguez" style={inp} />
         </div>
       </div>
+
+      <div style={{ marginBottom: 14 }}>
+        <label style={lbl}>Paste Racing Reference Page (Ctrl+A, Ctrl+C on the qual-results page)</label>
+        <textarea
+          value={pastedText}
+          onChange={e => handleTextChange(e.target.value)}
+          rows={6}
+          placeholder={"Paste the full Racing Reference qualifying page here...\n\nExample line:\n1  Shane Van Gisbergen  88  Chevrolet  1:32.776  93.904"}
+          style={{ width: '100%', fontFamily: 'monospace', fontSize: '0.78rem', padding: 8, borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', resize: 'vertical', boxSizing: 'border-box' }}
+        />
+      </div>
+
+      {preview && preview.length > 0 && (
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: '0.8rem', color: '#22c55e', marginBottom: 8 }}>
+            Parsed {preview.length} drivers — Pole: {preview[0].driverName} ({preview[0].speed} mph)
+          </div>
+          <div style={{ overflowX: 'auto', borderRadius: 6, border: '1px solid var(--border)', maxHeight: 200, overflowY: 'auto' }}>
+            <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: '0.78rem' }}>
+              <thead>
+                <tr style={{ background: 'var(--bg-elevated)' }}>
+                  {['Pos','#','Driver','Speed'].map(h => <th key={h} style={{ padding: '5px 10px', textAlign: 'left', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)' }}>{h}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {preview.map((d, i) => (
+                  <tr key={i} style={{ background: i % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-elevated)' }}>
+                    <td style={{ padding: '4px 10px', fontFamily: 'monospace', color: 'var(--text-muted)' }}>{d.rank}</td>
+                    <td style={{ padding: '4px 10px', fontFamily: 'monospace' }}>{d.carNumber}</td>
+                    <td style={{ padding: '4px 10px' }}>{d.driverName}</td>
+                    <td style={{ padding: '4px 10px', fontFamily: 'monospace' }}>{d.speed}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {status && (
-        <div style={{ fontSize: '0.8125rem', color: status.type === 'success' ? '#22c55e' : '#ef4444', padding: '8px 12px', borderRadius: 6, background: status.type === 'success' ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)', border: '1px solid ' + (status.type === 'success' ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)') }}>
+        <div style={{ padding: '8px 12px', borderRadius: 6, marginBottom: 12, fontSize: '0.8rem', background: status.type === 'success' ? '#14532d20' : '#7f1d1d20', border: `1px solid ${status.type === 'success' ? '#14532d40' : '#7f1d1d40'}`, color: status.type === 'success' ? '#22c55e' : '#f87171' }}>
           {status.msg}
         </div>
       )}
+
+      <button
+        className="btn btn-primary"
+        onClick={handleLoad}
+        disabled={loading || !preview || !trackName || !raceNumber}
+        style={{ minWidth: 140, fontSize: '0.8125rem' }}
+      >
+        {loading ? 'Saving...' : `Load ${preview ? preview.length + ' Drivers' : 'Qualifying'}`}
+      </button>
     </div>
   )
 }
 
-// Load Fastest Laps
+
 function LoadFastestLaps() {
   const [year, setYear] = React.useState(new Date().getFullYear())
   const [trackType, setTrackType] = React.useState('')
