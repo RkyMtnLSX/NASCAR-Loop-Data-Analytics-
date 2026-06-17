@@ -12,6 +12,7 @@ const TRACK_ABBR = {
   'Homestead-Miami Speedway': 'HOM',
   'Texas Motor Speedway': 'TEX',
   'Charlotte Motor Speedway': 'CLT',
+  'Charlotte Motor Speedway Road Course': 'ROVAL',
   'Pocono Raceway': 'POC',
   'Indianapolis Motor Speedway': 'IND',
   'Kansas Speedway': 'KAN',
@@ -588,10 +589,3 @@ export default function LoopData({ isSubscriber }) {
                 Select at least one year to view correlated track data.
               </div>
             : <DataTable rows={corrRows} title={corrTitle} subtitle={corrSubtitle} loading={false} raceCols={corrRaceDefs} />
-          }
-        </>
-      )}
-
-    </div>
-  )
-}
