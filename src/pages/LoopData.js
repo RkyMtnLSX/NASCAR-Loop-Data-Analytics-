@@ -42,6 +42,7 @@ const TRACK_ABBR = {
   'Road America': 'RA',
   'Naval Base Coronado': 'NBC',
   'Autodromo Hermanos Rodriguez': 'AMR',
+  'Indianapolis Grand Prix Circuit': 'Indy GP',
 }
 
 function trackLabel(name, year) {
@@ -56,18 +57,18 @@ function sanitizeKey(name) {
 const ENTRY_COLS = []
 
 const STAT_COLS = [
-  { key: 'races',            label: 'Races',     decimals: 0, noHeat: true },
-  { key: 'avg_start',        label: 'Avg St',    decimals: 2, lowerIsBetter: true },
-  { key: 'avg_finish',       label: 'Avg Fin',   decimals: 2, lowerIsBetter: true },
-  { key: 'avg_mid',          label: 'ARP',       decimals: 2, lowerIsBetter: true },
-  { key: 'avg_rating',       label: 'Drv Rtg',   decimals: 1, highlight: true },
-  { key: 'avg_qp',           label: 'Qual Pass', decimals: 2 },
-  { key: 'avg_pass_diff',    label: 'Pass Diff', decimals: 2, signed: true },
-  { key: 'avg_laps_led_pct', label: 'Laps Led%', decimals: 1, pct: true },
-  { key: 'avg_top15_pct',    label: 'Top 15%',   decimals: 1, pct: true },
-  { key: 'avg_fastest',      label: 'Fast Laps', decimals: 2 },
-  { key: 'avg_laps_led',     label: 'Avg LL',    decimals: 2 },
-  { key: 'avg_dk_pts',       label: 'Avg DK',    decimals: 2 },
+  { key: 'races',            label: 'Races',         decimals: 0, noHeat: true },
+  { key: 'avg_start',        label: 'Avg St',        decimals: 2, lowerIsBetter: true },
+  { key: 'avg_finish',       label: 'Avg Fin',       decimals: 2, lowerIsBetter: true },
+  { key: 'avg_mid',          label: 'ARP',           decimals: 2, lowerIsBetter: true },
+  { key: 'avg_rating',       label: 'Driver Rating', decimals: 1, highlight: true },
+  { key: 'avg_dk_pts',       label: 'Avg DK Pts',    decimals: 2 },
+  { key: 'avg_qp',           label: 'Qual Pass',     decimals: 2 },
+  { key: 'avg_pass_diff',    label: 'Pass Diff',     decimals: 2, signed: true },
+  { key: 'avg_top15_pct',    label: 'Top 15%',       decimals: 1, pct: true },
+  { key: 'avg_fastest',      label: 'Fast Laps',     decimals: 2 },
+  { key: 'avg_laps_led_pct', label: 'Laps Led%',     decimals: 1, pct: true },
+  { key: 'avg_laps_led',     label: 'Avg Laps Led',  decimals: 2 },
 ]
 
 const COUNT_COLS = [
@@ -76,6 +77,7 @@ const COUNT_COLS = [
   { key: 'top5',  label: 'T5',  decimals: 0, isCount: true },
   { key: 'top10', label: 'T10', decimals: 0, isCount: true },
   { key: 'top15', label: 'T15', decimals: 0, isCount: true },
+  { key: 'top20', label: 'T20', decimals: 0, isCount: true },
 ]
 
 function dkFinishPts(pos) {
@@ -113,6 +115,7 @@ function computeDriverAvg(rows) {
     top5:  cnt(5),
     top10: cnt(10),
     top15: cnt(15),
+    top20: cnt(20),
   }
 }
 
