@@ -40,11 +40,6 @@ function computeDriverAvg(rows) {
     avg_finish:       sum('finish_position') / n,
     avg_mid:          sum('avg_position') / n,
     avg_rating:       sum('driver_rating') / n,
-    avg_qp:           sum('quality_passes') / n,
-    avg_pass_diff:    sum('pass_diff') / n,
-    avg_laps_led_pct: sum('pct_laps_led') / n,
-    avg_top15_pct:    sum('pct_top15_laps') / n,
-    avg_fastest:      sum('fastest_laps') / n,
     avg_dk_pts:       rows.reduce((s, r) => {
       const fin = parseInt(r.finish_position) || 0
       const st  = parseInt(r.start_position)  || 0
@@ -52,6 +47,11 @@ function computeDriverAvg(rows) {
       const ll  = parseFloat(r.laps_led)       || 0
       return s + dkFinishPts(fin) + (st - fin) + (fl * 0.45) + (ll * 0.25)
     }, 0) / n,
+    avg_qp:           sum('quality_passes') / n,
+    avg_pass_diff:    sum('pass_diff') / n,
+    avg_laps_led_pct: sum('pct_laps_led') / n,
+    avg_top15_pct:    sum('pct_top15_laps') / n,
+    avg_fastest:      sum('fastest_laps') / n,
   }
 }
 
@@ -99,17 +99,17 @@ function groupByDriver(rows, entryMap, trackYears) {
 }
 
 function fmtVal(val, col) {
-  if (val == null || (typeof val === 'number' && isNaN(val))) return 'â'
-  if (col.isText || col.isYear) return val != null ? String(val) : 'â'
+  if (val == null || (typeof val === 'number' && isNaN(val))) return '—'
+  if (col.isText || col.isYear) return val != null ? String(val) : '—'
   const v = parseFloat(val)
-  if (isNaN(v)) return 'â'
+  if (isNaN(v)) return '—'
   const fixed = v.toFixed(col.decimals)
   if (col.signed && v > 0) return '+' + fixed
   if (col.pct) return fixed + '%'
   return fixed
 }
 
-// Styles
+// ─── Styles ──────────────────────────────────────────────
 const sectionHead = {
   fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)',
   margin: '0 0 4px 0', textTransform: 'uppercase', letterSpacing: '0.06em',
@@ -144,7 +144,7 @@ const numCell = {
   fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap',
 }
 
-// DataTable
+// ─── DataTable ──────────────────────────────────────────────
 function DataTable({ rows, title, subtitle, loading, yearCols = [] }) {
   const [sortKey, setSortKey] = useState('avg_rating')
   const [sortDir, setSortDir] = useState('desc')
@@ -171,7 +171,7 @@ function DataTable({ rows, title, subtitle, loading, yearCols = [] }) {
   if (loading) return (
     <div style={{ marginBottom: 32 }}>
       <h3 style={sectionHead}>{title}</h3>
-      <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Loading...</div>
+      <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Loading…</div>
     </div>
   )
   if (!rows.length) return (
@@ -207,7 +207,7 @@ function DataTable({ rows, title, subtitle, loading, yearCols = [] }) {
                     title={'Sort by ' + col.label}
                   >
                     {isYear ? <><div style={{fontSize:'0.6rem',opacity:0.6,letterSpacing:'0.06em',marginBottom:1}}>FIN</div>{col.label}</> : col.label}
-                    {isActive && <span style={{ marginLeft: 4, fontSize: '0.65rem' }}>{sortDir === 'desc' ? 'â¼' : 'â²'}|/span>}
+                    {isActive && <span style={{ marginLeft: 4, fontSize: '0.65rem' }}>{sortDir === 'desc' ? '▼' : '▲'}</span>}
                   </th>
                 )
               })}
@@ -256,7 +256,7 @@ function DataTable({ rows, title, subtitle, loading, yearCols = [] }) {
   )
 }
 
-// Main page
+// ─── Main page ──────────────────────────────────────────────
 export default function LoopData({ isSubscriber }) {
   const [series, setSeries]             = useState('cup')
   const [config, setConfig]             = useState(null)
@@ -339,12 +339,12 @@ export default function LoopData({ isSubscriber }) {
   }, [series])
 
   const mainTitle = config
-    ? config.track_label + ' Averages ' + config.track_years.slice().sort().join('â')
+    ? config.track_label + ' Averages ' + config.track_years.slice().sort().join('–')
     : 'Track Averages'
   const corrTitle = config
     ? config.correlation_label + ' Averages ' + config.correlation_year
     : 'Correlated Track Averages'
-  const corrSubtitle = corrNames.length ? corrNames.slice().sort().join(' â¢ ') : null
+  const corrSubtitle = corrNames.length ? corrNames.slice().sort().join(' • ') : null
 
   const yearCols = config
     ? [...config.track_years].sort((a, b) => a - b).map(yr => ({
@@ -381,7 +381,7 @@ export default function LoopData({ isSubscriber }) {
           border: '1px solid rgba(234,179,8,0.22)', borderRadius: 7,
           color: 'var(--text-secondary)', fontSize: '0.8rem', marginBottom: 20,
         }}>
-          Entry list not yet configured - showing all available drivers. Add this week's entry list in Admin once Jayski publishes it.
+          Entry list not yet configured — showing all available drivers. Add this week's entry list in Admin once Jayski publishes it.
         </div>
       )}
 
