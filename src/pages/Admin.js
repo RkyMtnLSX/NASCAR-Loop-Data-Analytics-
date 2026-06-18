@@ -883,16 +883,19 @@ function parseSource(text) {
   for (const line of text.split('\n')) {
     const clean = line.trim()
     if (!clean) continue
-    // Jayski format: "1  48  William Byron  Hendrick Motorsports" or "1 Driver Name"
-    const m = clean.match(/^(\d{1,2})\s+(?:#?(\d{1,3})\s+)?([A-Z][A-Za-z .'-]{2,})/)
+    // Jayski format: line starts with draw number, then optional car#, then driver name
+    // e.g. "1 Ryan Blaney" or "1 12 Ryan Blaney" or "1. Ryan Blaney #12 Team Penske"
+    const m = clean.match(/^(\d{1,2})[.\s]+(?:#?(\d{1,3})[.\s]+)?([A-Z][A-Za-z]+(?: [A-Za-z]+){1,3})/)
     if (!m) continue
     const draw = parseInt(m[1])
     if (isNaN(draw) || draw < 1 || draw > 70) continue
     const name = m[3].trim()
-    if (name.length < 3) continue
+    if (name.length < 4) continue
     rows.push({ draw_order: draw, driver_name: name })
   }
-  return rows
+  // Deduplicate by draw_order (keep first)
+  const seen = new Set()
+  return rows.filter(r => { if (seen.has(r.draw_order)) return false; seen.add(r.draw_order); return true })
 }
 
 function LoadQualifyingOrder() {
@@ -918,7 +921,16 @@ function LoadQualifyingOrder() {
       for (let p = 1; p <= pdf.numPages; p++) {
         const page = await pdf.getPage(p)
         const content = await page.getTextContent()
-        fullText += content.items.map(i => i.str).join(' ') + '\n'
+        // Group text items by Y coordinate to reconstruct lines
+        const byY = {}
+        for (const item of content.items) {
+          const y = Math.round(item.transform[5])
+          if (!byY[y]) byY[y] = []
+          byY[y].push(item.str)
+        }
+        const lines = Object.keys(byY).map(Number).sort((a, b) => b - a)
+          .map(y => byY[y].join(' ').trim()).filter(l => l)
+        fullText += lines.join('\n') + '\n'
       }
       const rows = parseSource(fullText)
       if (rows.length === 0) throw new Error('No draw order rows found. Check PDF format.')
