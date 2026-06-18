@@ -863,17 +863,32 @@ function LoadQualifying() {
 }
 
 
+async function loadPdfJs() {
+  if (window.pdfjsLib) return window.pdfjsLib
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script')
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'
+    script.onload = () => {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+      resolve(window.pdfjsLib)
+    }
+    script.onerror = reject
+    document.head.appendChild(script)
+  })
+}
+
 function parseSource(text) {
   const rows = []
   for (const line of text.split('\n')) {
     const clean = line.trim()
     if (!clean) continue
-    // Match draw order lines: "1 Driver Name" or "1. Driver Name #4" or "1 #4 Driver Name"
-    const m = clean.match(/^(\d+)[.\s]+(?:#?\d+\s+)?([A-Za-z][A-Za-z .'-]{2,}?)(?:\s+#?\d+.*)?$/)
+    // Jayski format: "1  48  William Byron  Hendrick Motorsports" or "1 Driver Name"
+    const m = clean.match(/^(\d{1,2})\s+(?:#?(\d{1,3})\s+)?([A-Z][A-Za-z .'-]{2,})/)
     if (!m) continue
     const draw = parseInt(m[1])
     if (isNaN(draw) || draw < 1 || draw > 70) continue
-    const name = m[2].trim()
+    const name = m[3].trim()
     if (name.length < 3) continue
     rows.push({ draw_order: draw, driver_name: name })
   }
@@ -884,15 +899,35 @@ function LoadQualifyingOrder() {
   const [series, setSeries] = useState('cup')
   const [year, setYear] = useState(new Date().getFullYear())
   const [trackName, setTrackName] = useState('')
-  const [pastedText, setPastedText] = useState('')
+  const [file, setFile] = useState(null)
   const [preview, setPreview] = useState(null)
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState(null)
 
-  function handlePreview() {
-    const rows = parseSource(pastedText)
-    setPreview(rows.length ? rows : null)
-    setStatus(rows.length ? null : { type: 'error', msg: 'No rows parsed. Check pasted text format.' })
+  async function handleFileChange(e) {
+    const f = e.target.files[0]
+    if (!f) return
+    setFile(f)
+    setPreview(null)
+    setStatus({ type: 'info', msg: 'Parsing PDF...' })
+    try {
+      const pdfjs = await loadPdfJs()
+      const arrayBuf = await f.arrayBuffer()
+      const pdf = await pdfjs.getDocument({ data: arrayBuf }).promise
+      let fullText = ''
+      for (let p = 1; p <= pdf.numPages; p++) {
+        const page = await pdf.getPage(p)
+        const content = await page.getTextContent()
+        fullText += content.items.map(i => i.str).join(' ') + '\n'
+      }
+      const rows = parseSource(fullText)
+      if (rows.length === 0) throw new Error('No draw order rows found. Check PDF format.')
+      setPreview(rows)
+      setStatus(null)
+    } catch (err) {
+      setStatus({ type: 'error', msg: err.message })
+      setPreview(null)
+    }
   }
 
   async function handleSave() {
@@ -912,7 +947,7 @@ function LoadQualifyingOrder() {
         .upsert(records, { onConflict: 'series,year,track_name,driver_name' })
       if (error) throw error
       setStatus({ type: 'success', msg: `Saved draw order for ${records.length} drivers.` })
-      setPastedText('')
+      setFile(null)
       setPreview(null)
     } catch (e) {
       setStatus({ type: 'error', msg: e.message })
@@ -935,33 +970,28 @@ function LoadQualifyingOrder() {
         <input type="text" placeholder="Track name (exact)" value={trackName} onChange={e => setTrackName(e.target.value)}
           style={{ minWidth: 220, fontSize: '0.875rem' }} />
       </div>
-      <textarea
-        rows={8}
-        placeholder={"Paste Jayski qualifying draw order text here...\n1 Driver Name\n2 Driver Name\n..."}
-        value={pastedText}
-        onChange={e => { setPastedText(e.target.value); setPreview(null); setStatus(null) }}
-        style={{ width: '100%', fontFamily: 'monospace', fontSize: '0.8rem', marginBottom: 8, boxSizing: 'border-box' }}
-      />
-      <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-        <button onClick={handlePreview} disabled={!pastedText.trim()} style={{ fontSize: '0.8125rem' }}>
-          Preview Parse
-        </button>
-        {preview && (
+      <div style={{ marginBottom: 10 }}>
+        <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
+          Upload Jayski qualifying draw order PDF:
+        </label>
+        <input type="file" accept=".pdf" onChange={handleFileChange} style={{ fontSize: '0.8125rem' }} />
+      </div>
+      {status && (
+        <div style={{ marginBottom: 8, fontSize: '0.8125rem',
+          color: status.type === 'success' ? 'var(--success)' : status.type === 'error' ? 'var(--error)' : 'var(--text-muted)' }}>
+          {status.msg}
+        </div>
+      )}
+      {preview && (
+        <>
+          <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', maxHeight: 160, overflowY: 'auto', marginBottom: 8, fontFamily: 'monospace' }}>
+            {preview.map((r, i) => <div key={i}>{r.draw_order}. {r.driver_name}</div>)}
+          </div>
           <button onClick={handleSave} disabled={loading || !trackName}
             style={{ fontSize: '0.8125rem', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 14px', cursor: 'pointer' }}>
             {loading ? 'Saving...' : `Save ${preview.length} Draw Orders`}
           </button>
-        )}
-      </div>
-      {preview && (
-        <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', maxHeight: 160, overflowY: 'auto', marginBottom: 6 }}>
-          {preview.map((r, i) => <div key={i}>{r.draw_order}. {r.driver_name}</div>)}
-        </div>
-      )}
-      {status && (
-        <div style={{ marginTop: 6, fontSize: '0.8125rem', color: status.type === 'success' ? 'var(--success)' : 'var(--error)' }}>
-          {status.msg}
-        </div>
+        </>
       )}
     </div>
   )
