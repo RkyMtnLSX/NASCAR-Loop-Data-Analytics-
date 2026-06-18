@@ -67,7 +67,6 @@ const STAT_COLS = [
   { key: 'avg_pass_diff',    label: 'Pass Diff',     decimals: 2, signed: true },
   { key: 'avg_top15_pct',    label: 'Top 15%',       decimals: 1, pct: true },
   { key: 'avg_fastest',      label: 'Fast Laps',     decimals: 2 },
-  { key: 'avg_laps_led_pct', label: 'Laps Led%',     decimals: 1, pct: true },
   { key: 'avg_laps_led',     label: 'Avg Laps Led',  decimals: 2 },
 ]
 
@@ -99,7 +98,6 @@ function computeDriverAvg(rows) {
     avg_rating:       sum('driver_rating') / n,
     avg_qp:           sum('quality_passes') / n,
     avg_pass_diff:    sum('pass_diff') / n,
-    avg_laps_led_pct: sum('pct_laps_led') / n,
     avg_top15_pct:    sum('pct_top15_laps') / n,
     avg_laps_led:     sum('laps_led') / n,
     avg_fastest:      sum('fastest_laps') / n,
