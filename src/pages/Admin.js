@@ -863,6 +863,111 @@ function LoadQualifying() {
 }
 
 
+function parseSource(text) {
+  const rows = []
+  for (const line of text.split('\n')) {
+    const clean = line.trim()
+    if (!clean) continue
+    // Match draw order lines: "1 Driver Name" or "1. Driver Name #4" or "1 #4 Driver Name"
+    const m = clean.match(/^(\d+)[.\s]+(?:#?\d+\s+)?([A-Za-z][A-Za-z .'-]{2,}?)(?:\s+#?\d+.*)?$/)
+    if (!m) continue
+    const draw = parseInt(m[1])
+    if (isNaN(draw) || draw < 1 || draw > 70) continue
+    const name = m[2].trim()
+    if (name.length < 3) continue
+    rows.push({ draw_order: draw, driver_name: name })
+  }
+  return rows
+}
+
+function LoadQualifyingOrder() {
+  const [series, setSeries] = useState('cup')
+  const [year, setYear] = useState(new Date().getFullYear())
+  const [trackName, setTrackName] = useState('')
+  const [pastedText, setPastedText] = useState('')
+  const [preview, setPreview] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [status, setStatus] = useState(null)
+
+  function handlePreview() {
+    const rows = parseSource(pastedText)
+    setPreview(rows.length ? rows : null)
+    setStatus(rows.length ? null : { type: 'error', msg: 'No rows parsed. Check pasted text format.' })
+  }
+
+  async function handleSave() {
+    if (!preview || !trackName || !year) return
+    setLoading(true)
+    setStatus(null)
+    try {
+      const records = preview.map(r => ({
+        series,
+        year: parseInt(year),
+        track_name: trackName,
+        driver_name: r.driver_name,
+        draw_order: r.draw_order,
+      }))
+      const { error } = await supabase
+        .from('qualifying_results')
+        .upsert(records, { onConflict: 'series,year,track_name,driver_name' })
+      if (error) throw error
+      setStatus({ type: 'success', msg: `Saved draw order for ${records.length} drivers.` })
+      setPastedText('')
+      setPreview(null)
+    } catch (e) {
+      setStatus({ type: 'error', msg: e.message })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="card" style={{ marginBottom: 20 }}>
+      <h3 style={{ marginBottom: 12, fontSize: '1rem', fontWeight: 600 }}>Load Qualifying Order (Jayski PDF)</h3>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+        <select value={series} onChange={e => setSeries(e.target.value)} style={{ fontSize: '0.875rem' }}>
+          <option value="cup">Cup</option>
+          <option value="oreilly">O'Reilly</option>
+          <option value="trucks">Trucks</option>
+        </select>
+        <input type="number" placeholder="Year" value={year} onChange={e => setYear(e.target.value)}
+          style={{ width: 80, fontSize: '0.875rem' }} />
+        <input type="text" placeholder="Track name (exact)" value={trackName} onChange={e => setTrackName(e.target.value)}
+          style={{ minWidth: 220, fontSize: '0.875rem' }} />
+      </div>
+      <textarea
+        rows={8}
+        placeholder={"Paste Jayski qualifying draw order text here...\n1 Driver Name\n2 Driver Name\n..."}
+        value={pastedText}
+        onChange={e => { setPastedText(e.target.value); setPreview(null); setStatus(null) }}
+        style={{ width: '100%', fontFamily: 'monospace', fontSize: '0.8rem', marginBottom: 8, boxSizing: 'border-box' }}
+      />
+      <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+        <button onClick={handlePreview} disabled={!pastedText.trim()} style={{ fontSize: '0.8125rem' }}>
+          Preview Parse
+        </button>
+        {preview && (
+          <button onClick={handleSave} disabled={loading || !trackName}
+            style={{ fontSize: '0.8125rem', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 14px', cursor: 'pointer' }}>
+            {loading ? 'Saving...' : `Save ${preview.length} Draw Orders`}
+          </button>
+        )}
+      </div>
+      {preview && (
+        <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', maxHeight: 160, overflowY: 'auto', marginBottom: 6 }}>
+          {preview.map((r, i) => <div key={i}>{r.draw_order}. {r.driver_name}</div>)}
+        </div>
+      )}
+      {status && (
+        <div style={{ marginTop: 6, fontSize: '0.8125rem', color: status.type === 'success' ? 'var(--success)' : 'var(--error)' }}>
+          {status.msg}
+        </div>
+      )}
+    </div>
+  )
+}
+
+
 function LoadFastestLaps() {
   const [year, setYear] = React.useState(new Date().getFullYear())
   const [trackType, setTrackType] = React.useState('')
@@ -1133,6 +1238,7 @@ export default function Admin() {
       <EntryListManager />
       <LoadNewRace />
       <LoadQualifying />
+      <LoadQualifyingOrder />
       <LoadFastestLaps />
       <div className="card" style={{ marginBottom: 20 }}>
         <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 8 }}>Data Audit</h2>
