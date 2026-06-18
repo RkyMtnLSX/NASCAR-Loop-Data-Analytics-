@@ -881,7 +881,7 @@ async function loadPdfJs() {
 function parseSource(text) {
   const rows = []
   for (const line of text.split('\n')) {
-    const clean = line.trim()
+    const clean = line.trim().replace(/\*/g, '').trim()
     if (!clean) continue
     // Jayski format: line starts with draw number, then optional car#, then driver name
     // e.g. "1 Ryan Blaney" or "1 12 Ryan Blaney" or "1. Ryan Blaney #12 Team Penske"
