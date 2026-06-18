@@ -571,7 +571,7 @@ export default function LoopData({ isSubscriber }) {
             border: '1px solid rgba(99,102,241,0.22)', borderRadius: 7,
             color: 'var(--text-secondary)', fontSize: '0.8rem', marginBottom: 20,
           }}>
-            No loop data history for {config.track_label} â showing correlated track data only.
+            No loop data history for {config.track_label} - showing correlated track data only.
           </div>
         )
       }
