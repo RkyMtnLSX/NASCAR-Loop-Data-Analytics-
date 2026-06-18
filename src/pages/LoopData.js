@@ -2,49 +2,49 @@ import React, { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 
 const SERIES_OPTIONS = [
-  { value: 'cup',     label: 'Cup Series' },
+  { value: 'cup', label: 'Cup Series' },
   { value: 'oreilly', label: "O'Reilly Series" },
-  { value: 'trucks',  label: 'Truck Series' },
+  { value: 'trucks', label: 'Truck Series' },
 ]
 
 const TRACK_ABBR = {
-  'Las Vegas Motor Speedway':      'LV',
-  'Homestead-Miami Speedway':      'HOM',
-  'Texas Motor Speedway':          'TEX',
-  'Charlotte Motor Speedway':      'CLT',
-  'Pocono Raceway':                'POC',
-  'Indianapolis Motor Speedway':   'IND',
-  'Kansas Speedway':               'KAN',
-  'Nashville Superspeedway':       'NSS',
-  'New Hampshire Motor Speedway':  'NH',
-  'Bristol Motor Speedway':        'BRI',
-  'Talladega Superspeedway':       'TAL',
-  'Daytona International Speedway':'DAY',
-  'Phoenix Raceway':               'PHX',
-  'Martinsville Speedway':         'MAR',
-  'Atlanta Motor Speedway':        'ATL',
-  'Dover Motor Speedway':          'DOV',
-  'Richmond Raceway':              'RIC',
-  'Watkins Glen International':    'WGI',
-  'Circuit of the Americas':       'COTA',
-  'Chicago Street Course':         'CHI',
-  'Sonoma Raceway':                'SON',
-  'Michigan International Speedway':'MIS',
-  'Darlington Raceway':            'DAR',
-  'Auto Club Speedway':            'FON',
+  'Las Vegas Motor Speedway': 'LV',
+  'Homestead-Miami Speedway': 'HOM',
+  'Texas Motor Speedway': 'TEX',
+  'Charlotte Motor Speedway': 'CLT',
+  'Pocono Raceway': 'POC',
+  'Indianapolis Motor Speedway': 'IND',
+  'Kansas Speedway': 'KAN',
+  'Nashville Superspeedway': 'NSS',
+  'New Hampshire Motor Speedway': 'NH',
+  'Bristol Motor Speedway': 'BRI',
+  'Talladega Superspeedway': 'TAL',
+  'Daytona International Speedway': 'DAY',
+  'Phoenix Raceway': 'PHX',
+  'Martinsville Speedway': 'MAR',
+  'Atlanta Motor Speedway': 'ATL',
+  'Dover Motor Speedway': 'DOV',
+  'Richmond Raceway': 'RIC',
+  'Watkins Glen International': 'WGI',
+  'Circuit of the Americas': 'COTA',
+  'Chicago Street Course': 'CHI',
+  'Sonoma Raceway': 'SON',
+  'Michigan International Speedway': 'MIS',
+  'Darlington Raceway': 'DAR',
+  'Auto Club Speedway': 'FON',
   'World Wide Technology Raceway': 'WWT',
-  'Iowa Speedway':                 'IOWA',
-  'Lime Rock Park':                'LRP',
-  'Mid-Ohio Sports Car Course':    'MID',
-  'Streets of St. Petersburg':     'St.Pt',
-  'Portland International Raceway':'POR',
-  'Road America':                  'RA',
-  'Naval Base Coronado':           'NBC',
-  'Autodromo Hermanos Rodriguez':  'AMR',
+  'Iowa Speedway': 'IOWA',
+  'Lime Rock Park': 'LRP',
+  'Mid-Ohio Sports Car Course': 'MID',
+  'Streets of St. Petersburg': 'St.Pt',
+  'Portland International Raceway': 'POR',
+  'Road America': 'RA',
+  'Naval Base Coronado': 'NBC',
+  'Autodromo Hermanos Rodriguez': 'AMR',
 }
 
 function trackLabel(name, year) {
-  const abbr = TRACK_ABBR[name] || name.replace(/[aeiou\s-]/gi, '').substring(0, 3).toUpperCase()
+  const abbr = TRACK_ABBR[name] || name.replace(/[aeiou\s\-]/gi, '').substring(0, 3).toUpperCase()
   return abbr + " '" + String(year).slice(2)
 }
 
@@ -60,13 +60,13 @@ const STAT_COLS = [
   { key: 'avg_finish',       label: 'Avg Fin',   decimals: 1, lowerIsBetter: true },
   { key: 'avg_mid',          label: 'ARP',       decimals: 1, lowerIsBetter: true },
   { key: 'avg_rating',       label: 'Drv Rtg',   decimals: 1, highlight: true },
-  { key: 'avg_dk_pts',       label: 'Avg DK',    decimals: 1 },
   { key: 'avg_qp',           label: 'Qual Pass', decimals: 1 },
   { key: 'avg_pass_diff',    label: 'Pass Diff', decimals: 1, signed: true },
   { key: 'avg_laps_led_pct', label: 'Laps Led%', decimals: 1, pct: true },
   { key: 'avg_top15_pct',    label: 'Top 15%',   decimals: 1, pct: true },
   { key: 'avg_fastest',      label: 'Fast Laps', decimals: 1 },
   { key: 'avg_laps_led',     label: 'Avg LL',    decimals: 1 },
+  { key: 'avg_dk_pts',       label: 'Avg DK',    decimals: 1 },
 ]
 
 const COUNT_COLS = [
@@ -78,8 +78,9 @@ const COUNT_COLS = [
 ]
 
 function dkFinishPts(pos) {
-  const pts = [0,45,42,41,40,39,38,37,36,35,34,32,31,30,29,28,27,26,25,24,23,21,20,19,18,17,16,15,14,13,12,10,9,8,7,6,5,4,3,2,1]
-  return pts[pos] || 0
+  if (pos <= 0 || isNaN(pos)) return 0
+  const table = [0,40,35,34,33,32,31,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1]
+  return pos <= 36 ? table[pos] : 0
 }
 
 function computeDriverAvg(rows) {
@@ -93,19 +94,19 @@ function computeDriverAvg(rows) {
     avg_finish:       sum('finish_position') / n,
     avg_mid:          sum('avg_position') / n,
     avg_rating:       sum('driver_rating') / n,
-    avg_dk_pts:       rows.reduce((s, r) => {
-      const fin = parseInt(r.finish_position) || 0
-      const st  = parseInt(r.start_position)  || 0
-      const fl  = parseFloat(r.fastest_laps)  || 0
-      const ll  = parseFloat(r.laps_led)       || 0
-      return s + dkFinishPts(fin) + (st - fin) + (fl * 0.45) + (ll * 0.25)
-    }, 0) / n,
     avg_qp:           sum('quality_passes') / n,
     avg_pass_diff:    sum('pass_diff') / n,
     avg_laps_led_pct: sum('pct_laps_led') / n,
     avg_top15_pct:    sum('pct_top15_laps') / n,
     avg_laps_led:     sum('laps_led') / n,
     avg_fastest:      sum('fastest_laps') / n,
+    avg_dk_pts: rows.reduce((s, r) => {
+      const fin = parseInt(r.finish_position) || 0
+      const st  = parseInt(r.start_position)  || 0
+      const fl  = parseFloat(r.fastest_laps)  || 0
+      const ll  = parseFloat(r.laps_led)       || 0
+      return s + dkFinishPts(fin) + (st - fin) + (fl * 0.45) + (ll * 0.25)
+    }, 0) / n,
     wins:  cnt(1),
     top3:  cnt(3),
     top5:  cnt(5),
@@ -158,7 +159,7 @@ function groupByDriver(rows, entryMap, trackYears, raceDefs) {
 
       return {
         driver,
-        car_number:   entry.car_number   || null,
+        car_number: entry.car_number || null,
         organization: entry.organization || null,
         ...stats,
         ...yearFinishes,
@@ -177,26 +178,26 @@ function heatBg(rank, total) {
   return 'rgba(' + r + ',' + g + ',0,0.38)'
 }
 
-// Position-based heat for finish columns
+// Position-based heat for finish columns: P1=green, P5=lime, P10=yellow, P20=orange, P21+=red
 function posHeat(pos) {
   if (!pos || pos <= 0 || isNaN(pos)) return null
-  if (pos === 1) return 'rgba(34,197,94,0.45)'
-  if (pos <= 5)  return 'rgba(34,197,94,0.30)'
-  if (pos <= 10) return 'rgba(132,204,22,0.28)'
-  if (pos <= 15) return 'rgba(234,179,8,0.26)'
-  if (pos <= 20) return 'rgba(249,115,22,0.26)'
+  if (pos === 1)  return 'rgba(34,197,94,0.45)'
+  if (pos <= 5)   return 'rgba(34,197,94,0.30)'
+  if (pos <= 10)  return 'rgba(132,204,22,0.28)'
+  if (pos <= 15)  return 'rgba(234,179,8,0.26)'
+  if (pos <= 20)  return 'rgba(249,115,22,0.26)'
   return 'rgba(239,68,68,0.28)'
 }
 
 function fmtVal(val, col) {
-  if (val == null) return '—'
+  if (val == null) return '-'
   if (col.isCount) {
     const v = parseInt(val)
-    return isNaN(v) ? '—' : String(v)
+    return isNaN(v) ? '-' : String(v)
   }
-  if (col.isText || col.isYear) return val != null ? String(val) : '—'
+  if (col.isText || col.isYear) return val != null ? String(val) : '-'
   const v = parseFloat(val)
-  if (isNaN(v)) return '—'
+  if (isNaN(v)) return '-'
   const fixed = v.toFixed(col.decimals)
   if (col.signed && v > 0) return '+' + fixed
   if (col.pct) return fixed + '%'
@@ -226,7 +227,6 @@ function YearPicker({ label, availableYears, selectedYears, onToggle }) {
   )
 }
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
 const sectionHead = {
   fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)',
   margin: '0 0 4px 0', textTransform: 'uppercase', letterSpacing: '0.06em',
@@ -238,8 +238,8 @@ const stickyHead = {
   position: 'sticky', top: 0, left: 0, zIndex: 3,
   textAlign: 'left', padding: '10px 16px', fontSize: '0.75rem', fontWeight: 600,
   color: 'var(--text-secondary)', whiteSpace: 'nowrap',
-  borderBottom: '1px solid var(--border)', borderRight: '1px solid var(--border)',
-  minWidth: 170, maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis',
+  borderBottom: '1px solid var(--border)', borderRight: '1px solid var(--border)', minWidth: 170, maxWidth: 180,
+  overflow: 'hidden', textOverflow: 'ellipsis',
   background: 'var(--bg-base)',
 }
 const baseHead = {
@@ -261,7 +261,6 @@ const numCell = {
   fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap',
 }
 
-// ─── DataTable ───────────────────────────────────────────────────────────────
 function DataTable({ rows, title, subtitle, loading, yearCols = [], raceCols = [] }) {
   const [sortKey, setSortKey] = useState('avg_rating')
   const [sortDir, setSortDir] = useState('desc')
@@ -285,7 +284,7 @@ function DataTable({ rows, title, subtitle, loading, yearCols = [], raceCols = [
     return sortDir === 'desc' ? bv - av : av - bv
   })
 
-  // Rank-based heat for stat/count cols (not year/finish cols)
+  // Rank-based heat only for non-year stat/count cols
   const colRanks = {}
   allCols.forEach(col => {
     if (col.isText || col.noHeat || col.isYear) return
@@ -306,7 +305,7 @@ function DataTable({ rows, title, subtitle, loading, yearCols = [], raceCols = [
   if (loading) return (
     <div style={{ marginBottom: 32 }}>
       <h3 style={sectionHead}>{title}</h3>
-      <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Loading…</div>
+      <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Loading...</div>
     </div>
   )
   if (!rows.length) return (
@@ -327,10 +326,10 @@ function DataTable({ rows, title, subtitle, loading, yearCols = [], raceCols = [
               <th style={stickyHead}>Driver</th>
               {allCols.map((col) => {
                 const isActive = sortKey === col.key
-                const isYear   = !!col.isYear
-                const isCount  = !!col.isCount
-                const isWin    = !!col.isWin
-                const isFirst  = isCount && col.key === 'wins'
+                const isYear = !!col.isYear
+                const isCount = !!col.isCount
+                const isWin = !!col.isWin
+                const isFirst = isCount && col.key === 'wins'
                 return (
                   <th key={col.key}
                     style={{
@@ -339,17 +338,19 @@ function DataTable({ rows, title, subtitle, loading, yearCols = [], raceCols = [
                       minWidth: isCount ? 36 : col.minWidth,
                       padding: isCount ? '10px 8px' : undefined,
                       color: isActive ? 'var(--accent)'
-                           : isWin    ? '#f59e0b'
-                           : isYear   ? 'var(--text-primary)'
-                           : 'var(--text-secondary)',
+                        : isWin ? '#f59e0b'
+                        : isYear ? 'var(--text-primary)'
+                        : 'var(--text-secondary)',
                       background: isActive ? 'var(--bg-surface)' : 'var(--bg-elevated)',
                       borderLeft: (isFirst || isYear) ? '1px solid var(--border)' : undefined,
                     }}
                     onClick={() => handleSort(col.key)}
                     title={'Sort by ' + col.label}
                   >
-                    {isYear ? <><div style={{ fontSize: '0.6rem', opacity: 0.6, letterSpacing: '0.06em', marginBottom: 1 }}>FIN</div>{col.label}</> : col.label}
-                    {isActive && <span style={{ marginLeft: 4, fontSize: '0.65rem' }}>{sortDir === 'desc' ? '▼' : '▲'}</span>}
+                    {isYear
+                      ? <><div style={{ fontSize: '0.6rem', opacity: 0.6, letterSpacing: '0.06em', marginBottom: 1 }}>FIN</div>{col.label}</>
+                      : col.label}
+                    {isActive && <span style={{ marginLeft: 4, fontSize: '0.65rem' }}>{sortDir === 'desc' ? 'v' : '^'}</span>}
                   </th>
                 )
               })}
@@ -369,25 +370,26 @@ function DataTable({ rows, title, subtitle, loading, yearCols = [], raceCols = [
                     {row.driver}
                   </td>
                   {allCols.map(col => {
-                    const isYear   = !!col.isYear
-                    const isCount  = !!col.isCount
-                    const isWin    = !!col.isWin
-                    const isFirst  = isCount && col.key === 'wins'
+                    const isYear = !!col.isYear
+                    const isCount = !!col.isCount
+                    const isWin = !!col.isWin
+                    const isFirst = isCount && col.key === 'wins'
                     const isActive = sortKey === col.key
-                    const rawVal   = row[col.key]
-                    const hasWin   = isWin && parseInt(rawVal) > 0
-                    const cr       = colRanks[col.key]
-                    const heat     = cr ? heatBg(cr.ranks[i], cr.total) : null
-                    const finPos   = isYear ? posHeat(parseInt(rawVal)) : null
+                    const rawVal = row[col.key]
+                    const hasWin = isWin && parseInt(rawVal) > 0
+                    const cr = colRanks[col.key]
+                    const heat = cr ? heatBg(cr.ranks[i], cr.total) : null
+                    // Finish position columns use position-based color; stat cols use rank-based
+                    const finPos = isYear ? posHeat(parseInt(rawVal)) : null
                     return (
                       <td key={col.key} style={{
                         ...numCell,
                         textAlign: col.isText ? 'left' : 'right',
                         padding: isCount ? '8px 8px' : undefined,
                         color: col.highlight ? 'var(--accent)'
-                             : hasWin         ? '#f59e0b'
-                             : isYear         ? 'var(--text-primary)'
-                             : undefined,
+                          : hasWin ? '#f59e0b'
+                          : isYear ? 'var(--text-primary)'
+                          : undefined,
                         fontWeight: col.highlight ? 600 : (isYear || hasWin) ? 500 : undefined,
                         borderLeft: (isFirst || isYear) ? '1px solid var(--border)' : undefined,
                         background: isActive
@@ -408,18 +410,17 @@ function DataTable({ rows, title, subtitle, loading, yearCols = [], raceCols = [
   )
 }
 
-// ─── Main page ──────────────────────────────────────────────
-euport default function LoopData({ isSubscriber }) {
-  const [series, setSeries]                         = useState('cup')
-  const [config, setConfig]                         = useState(null)
-  const [mainRows, setMainRows]                     = useState([])
-  const [allCorrData, setAllCorrData]               = useState([])
+export default function LoopData({ isSubscriber }) {
+  const [series, setSeries]                       = useState('cup')
+  const [config, setConfig]                       = useState(null)
+  const [mainRows, setMainRows]                   = useState([])
+  const [allCorrData, setAllCorrData]             = useState([])
   const [corrAvailableYears, setCorrAvailableYears] = useState([])
-  const [corrSelectedYears, setCorrSelectedYears]   = useState([])
-  const [corrNames, setCorrNames]                   = useState([])
-  const [hasEntryList, setHasEntryList]             = useState(false)
-  const [loading, setLoading]                       = useState(true)
-  const [error, setError]                           = useState(null)
+  const [corrSelectedYears, setCorrSelectedYears] = useState([])
+  const [corrNames, setCorrNames]                 = useState([])
+  const [hasEntryList, setHasEntryList]           = useState(false)
+  const [loading, setLoading]                     = useState(true)
+  const [error, setError]                         = useState(null)
   const entryMapRef = useRef(null)
 
   useEffect(() => {
@@ -433,14 +434,12 @@ euport default function LoopData({ isSubscriber }) {
       try {
         const s = series
 
-        // 1. Featured weekend config
         const { data: cfg, error: cfgErr } = await supabase
           .from('featured_weekend').select('*').eq('series', s).single()
         if (cfgErr) throw new Error('Weekend config not set for this series.')
         if (cancelled) return
         setConfig(cfg)
 
-        // 2. Entry list + aliases
         const { data: entryData } = await supabase
           .from('entry_list')
           .select('driver_name, car_number, organization')
@@ -460,7 +459,6 @@ euport default function LoopData({ isSubscriber }) {
         entryMapRef.current = entryMap
         setHasEntryList(!!entryMap)
 
-        // 3. Main track data
         const { data: trackData, error: trackErr } = await supabase
           .from('loop_data')
           .select('driver_name, year, finish_position, start_position, avg_position, driver_rating, quality_passes, pass_diff, laps_led, pct_laps_led, pct_top15_laps, fastest_laps, stage1_finish, stage2_finish')
@@ -469,7 +467,6 @@ euport default function LoopData({ isSubscriber }) {
         if (cancelled) return
         setMainRows(groupByDriver(trackData || [], entryMap, cfg.track_years, null))
 
-        // 4. Correlated track names
         const { data: correlated, error: corrTrackErr } = await supabase
           .from('tracks').select('name').eq('correlation_group_label', cfg.correlation_label)
         if (corrTrackErr) throw corrTrackErr
@@ -477,8 +474,8 @@ euport default function LoopData({ isSubscriber }) {
         if (cancelled) return
         setCorrNames(corrNameList)
 
-        // 5. Correlated loop data (all years, filtered by checkboxes in UI)
         if (corrNameList.length) {
+          // Fetch ALL years â no year filter â so checkboxes can control what's shown
           const { data: cd, error: corrErr } = await supabase
             .from('loop_data')
             .select('driver_name, year, track_name, finish_position, start_position, avg_position, driver_rating, quality_passes, pass_diff, laps_led, pct_laps_led, pct_top15_laps, fastest_laps, stage1_finish, stage2_finish')
@@ -490,6 +487,7 @@ euport default function LoopData({ isSubscriber }) {
           setAllCorrData(allCd)
           const yrs = [...new Set(allCd.map(r => parseInt(r.year)))].filter(Boolean).sort((a, b) => a - b)
           setCorrAvailableYears(yrs)
+          // Default: show only the configured correlation year
           const defaultYr = cfg.correlation_year
           setCorrSelectedYears(yrs.includes(defaultYr) ? [defaultYr] : yrs.slice(-1))
         }
@@ -504,7 +502,7 @@ euport default function LoopData({ isSubscriber }) {
     return () => { cancelled = true }
   }, [series])
 
-  // Compute corr race defs + rows from selected years
+  // Compute corr race defs + rows dynamically whenever selected years change
   const filteredCorrData = allCorrData.filter(r => corrSelectedYears.includes(parseInt(r.year)))
 
   const corrRaceDefs = []
@@ -528,10 +526,10 @@ euport default function LoopData({ isSubscriber }) {
     : []
 
   const mainTitle = config
-    ? config.track_label + ' Averages ' + config.track_years.slice().sort().join('–')
+    ? config.track_label + ' Averages ' + config.track_years.slice().sort().join('-')
     : 'Track Averages'
-  const corrTitle    = config ? config.correlation_label + ' Results' : 'Correlated Track Results'
-  const corrSubtitle = corrNames.length ? corrNames.slice().sort().join(' • ') : null
+  const corrTitle = config ? config.correlation_label + ' Results' : 'Correlated Track Results'
+  const corrSubtitle = corrNames.length ? corrNames.slice().sort().join(' / ') : null
 
   const yearCols = config
     ? [...config.track_years].sort((a, b) => a - b).map(yr => ({
@@ -574,7 +572,7 @@ euport default function LoopData({ isSubscriber }) {
           border: '1px solid rgba(234,179,8,0.22)', borderRadius: 7,
           color: 'var(--text-secondary)', fontSize: '0.8rem', marginBottom: 20,
         }}>
-          Entry list not yet configured — showing all available drivers. Add this week's entry list in Admin once Jayski publishes it.
+          Entry list not yet configured â showing all available drivers. Add this week's entry list in Admin once Jayski publishes it.
         </div>
       )}
 
@@ -586,7 +584,7 @@ euport default function LoopData({ isSubscriber }) {
             border: '1px solid rgba(99,102,241,0.22)', borderRadius: 7,
             color: 'var(--text-secondary)', fontSize: '0.8rem', marginBottom: 20,
           }}>
-            No loop data history for {config.track_label} — showing correlated track data only.
+            No loop data history for {config.track_label} â showing correlated track data only.
           </div>
         )
       }
