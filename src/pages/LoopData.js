@@ -41,7 +41,7 @@ const TRACK_ABBR = {
   'Portland International Raceway': 'POR',
   'Road America': 'RA',
   'Naval Base Coronado': 'NBC',
-  'Autodromo Hermanos Rodriguez': 'AMR',
+  'Autodromo Hermanos Rodriguez': 'MEX',
 }
 
 function trackLabel(name, year) {
