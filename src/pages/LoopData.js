@@ -14,6 +14,7 @@ const TRACK_ABBR = {
   'Charlotte Motor Speedway': 'CLT',
   'Pocono Raceway': 'POC',
   'Indianapolis Motor Speedway': 'IND',
+  'Indianapolis Grand Prix Circuit': 'Indy GP',
   'Kansas Speedway': 'KAN',
   'Nashville Superspeedway': 'NSS',
   'New Hampshire Motor Speedway': 'NH',
