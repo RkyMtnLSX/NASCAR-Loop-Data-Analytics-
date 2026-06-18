@@ -530,7 +530,7 @@ export default function LoopData({ isSubscriber }) {
   const mainTitle = config
     ? config.track_label + ' Averages ' + config.track_years.slice().sort().join('-')
     : 'Track Averages'
-  const corrTitle = config ? config.correlation_label + ' Results' : 'Correlated Track Results'
+  const corrTitle = config ? config.correlation_label + ' Averages' : 'Correlated Track Averages'
   const corrSubtitle = corrNames.length ? corrNames.slice().sort().join(' / ') : null
 
   const yearCols = config
@@ -574,7 +574,7 @@ export default function LoopData({ isSubscriber }) {
           border: '1px solid rgba(234,179,8,0.22)', borderRadius: 7,
           color: 'var(--text-secondary)', fontSize: '0.8rem', marginBottom: 20,
         }}>
-          Entry list not yet configured â showing all available drivers. Add this week's entry list in Admin once Jayski publishes it.
+          Entry list not yet configured - showing all available drivers. Add this week's entry list in Admin once Jayski publishes it.
         </div>
       )}
 
@@ -586,7 +586,7 @@ export default function LoopData({ isSubscriber }) {
             border: '1px solid rgba(99,102,241,0.22)', borderRadius: 7,
             color: 'var(--text-secondary)', fontSize: '0.8rem', marginBottom: 20,
           }}>
-            No loop data history for {config.track_label} â showing correlated track data only.
+            No loop data history for {config.track_label} - showing correlated track data only.
           </div>
         )
       }
