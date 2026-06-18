@@ -904,6 +904,7 @@ function LoadQualifyingOrder() {
   const [trackName, setTrackName] = useState('')
   const [file, setFile] = useState(null)
   const [preview, setPreview] = useState(null)
+  const [rawText, setRawText] = useState(null)
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState(null)
 
@@ -932,6 +933,7 @@ function LoadQualifyingOrder() {
           .map(y => byY[y].join(' ').trim()).filter(l => l)
         fullText += lines.join('\n') + '\n'
       }
+      setRawText(fullText)
       const rows = parseSource(fullText)
       if (rows.length === 0) throw new Error('No draw order rows found. Check PDF format.')
       setPreview(rows)
@@ -993,6 +995,13 @@ function LoadQualifyingOrder() {
           color: status.type === 'success' ? 'var(--success)' : status.type === 'error' ? 'var(--error)' : 'var(--text-muted)' }}>
           {status.msg}
         </div>
+      )}
+      {status && status.type === 'error' && rawText && (
+        <details style={{ marginBottom: 8 }}>
+          <summary style={{ fontSize: '0.78rem', color: 'var(--text-muted)', cursor: 'pointer' }}>Show raw extracted text (for debugging)</summary>
+          <textarea readOnly rows={10} value={rawText.slice(0, 3000)}
+            style={{ width: '100%', fontFamily: 'monospace', fontSize: '0.72rem', marginTop: 4, boxSizing: 'border-box' }} />
+        </details>
       )}
       {preview && (
         <>
