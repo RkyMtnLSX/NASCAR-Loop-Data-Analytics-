@@ -57,17 +57,17 @@ const ENTRY_COLS = []
 
 const STAT_COLS = [
   { key: 'races',            label: 'Races',     decimals: 0, noHeat: true },
-  { key: 'avg_start',        label: 'Avg St',    decimals: 1, lowerIsBetter: true },
-  { key: 'avg_finish',       label: 'Avg Fin',   decimals: 1, lowerIsBetter: true },
-  { key: 'avg_mid',          label: 'ARP',       decimals: 1, lowerIsBetter: true },
+  { key: 'avg_start',        label: 'Avg St',    decimals: 2, lowerIsBetter: true },
+  { key: 'avg_finish',       label: 'Avg Fin',   decimals: 2, lowerIsBetter: true },
+  { key: 'avg_mid',          label: 'ARP',       decimals: 2, lowerIsBetter: true },
   { key: 'avg_rating',       label: 'Drv Rtg',   decimals: 1, highlight: true },
-  { key: 'avg_qp',           label: 'Qual Pass', decimals: 1 },
-  { key: 'avg_pass_diff',    label: 'Pass Diff', decimals: 1, signed: true },
+  { key: 'avg_qp',           label: 'Qual Pass', decimals: 2 },
+  { key: 'avg_pass_diff',    label: 'Pass Diff', decimals: 2, signed: true },
   { key: 'avg_laps_led_pct', label: 'Laps Led%', decimals: 1, pct: true },
   { key: 'avg_top15_pct',    label: 'Top 15%',   decimals: 1, pct: true },
-  { key: 'avg_fastest',      label: 'Fast Laps', decimals: 1 },
-  { key: 'avg_laps_led',     label: 'Avg LL',    decimals: 1 },
-  { key: 'avg_dk_pts',       label: 'Avg DK',    decimals: 1 },
+  { key: 'avg_fastest',      label: 'Fast Laps', decimals: 2 },
+  { key: 'avg_laps_led',     label: 'Avg LL',    decimals: 2 },
+  { key: 'avg_dk_pts',       label: 'Avg DK',    decimals: 2 },
 ]
 
 const COUNT_COLS = [
