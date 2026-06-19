@@ -14,21 +14,6 @@ import QualifyingCenter from './pages/QualifyingCenter'
 import FastestLap from './pages/FastestLap'
 import LoopDataAudit from './pages/LoopDataAudit'
 
-function Correlations({ isSubscriber }) {
-  return (
-    <div className="page">
-      <div className="page-header">
-        <h1 className="page-title">Track Correlations</h1>
-        <p className="page-subtitle">Current year loop data across correlated tracks â coming soon</p>
-      </div>
-      <div className="empty-state">
-        <h3>Coming soon</h3>
-        <p>Track correlation tool is being built.</p>
-      </div>
-    </div>
-  )
-}
-
 function Subscribe() {
   return (
     <div className="page" style={{ maxWidth: 600 }}>
@@ -58,7 +43,6 @@ export default function App() {
         <Route path="/lap-comparison" element={<LapComparison isSubscriber={isSubscriber} />} />
         <Route path="/practice-lap-table" element={<PracticeLapTable isSubscriber={isSubscriber} />} />
         <Route path="/loop-data" element={<LoopData isSubscriber={isSubscriber} />} />
-        <Route path="/correlations" element={<Correlations isSubscriber={isSubscriber} />} />
         <Route path="/qualifying"   element={<QualifyingCenter isSubscriber={isSubscriber} />} />
         <Route path="/fastest-laps" element={<FastestLap isSubscriber={isSubscriber} />} />
         <Route path="/loop-audit" element={<LoopDataAudit />} />
