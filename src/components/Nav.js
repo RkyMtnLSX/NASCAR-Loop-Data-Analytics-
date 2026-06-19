@@ -111,10 +111,6 @@ export default function Nav({ isAdmin, onAdminClick }) {
             <Dropdown links={LOOP_LINKS} open={loopOpen} />
           </div>
 
-          <Link to="/correlations" style={linkStyle(location.pathname === '/correlations')}>
-            Track Correlations
-          </Link>
-
           <Link to="/qualifying" style={linkStyle(location.pathname === '/qualifying')}>
             Qualifying
           </Link>
