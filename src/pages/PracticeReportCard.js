@@ -70,7 +70,7 @@ export default function PracticeReportCard({ isSubscriber }) {
         .eq('year', session.year)
         .eq('track_name', session.track_name)
         .eq('session_number', session.session_number)
-        .order('practice_score', { ascending: false })
+        .order('practice_score', { ascending: false, nullsFirst: false })
 
       if (error) { setError(error.message); setLoading(false); return }
       setRows(data || [])
