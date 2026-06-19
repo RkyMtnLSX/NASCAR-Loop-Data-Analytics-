@@ -29,8 +29,7 @@ function heatColor(t) {
     g = Math.round(215 * (1 - f))
     b = 0
   }
-  const lum = 0.299 * r + 0.587 * g + 0.114 * b
-  return { bg: `rgb(${r},${g},${b})`, text: lum > 128 ? '#111' : '#fff' }
+  return { bg: `rgb(${r},${g},${b})`, text: '#111' }
 }
 export default function PracticeLapTable({ isSubscriber }) {
   const [series, setSeries]               = useState('cup')
