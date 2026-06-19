@@ -309,21 +309,22 @@ export default function QualifyingCenter({ isSubscriber }) {
 
   const driverMap = {}
   for (const row of qualData) {
-    if (!driverMap[row.driver_name]) {
-      driverMap[row.driver_name] = { driver: row.driver_name, carNumber: row.car_number, positions: {}, speeds: {} }
+    const normKey = normalizeName(row.driver_name)
+    if (!driverMap[normKey]) {
+      driverMap[normKey] = { driver: row.driver_name, carNumber: row.car_number, positions: {}, speeds: {} }
     }
-    driverMap[row.driver_name].positions[row.track_name + '_' + row.year] = row.qualifying_position
-    if (row.qualifying_speed != null) driverMap[row.driver_name].speeds[row.track_name + '_' + row.year] = row.qualifying_speed
+    driverMap[normKey].positions[row.track_name + '_' + row.year] = row.qualifying_position
+    if (row.qualifying_speed != null) driverMap[normKey].speeds[row.track_name + '_' + row.year] = row.qualifying_speed
   }
 
   const drawOrderMap = {}
   for (const row of qualData) {
     if (row.draw_order && row.track_name === config.track_name && row.year === corrYear) {
-      drawOrderMap[row.driver_name] = row.draw_order
+      drawOrderMap[normalizeName(row.driver_name)] = row.draw_order
     }
   }
   for (const d of Object.values(driverMap)) {
-    d.drawOrder = drawOrderMap[d.driver] || null
+    d.drawOrder = drawOrderMap[normalizeName(d.driver)] || null
   }
 
   for (const d of Object.values(driverMap)) {
