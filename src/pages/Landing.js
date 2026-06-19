@@ -62,7 +62,7 @@ export default function Landing() {
             lineHeight: 1.7,
             marginBottom: 32,
           }}>
-            Loop data, practice grades, and track correlations — all in one place.
+            Loop data, practice grades, and practice comparisons — all in one place.
             Built for DFS lineups and race betting.
           </p>
 
@@ -142,12 +142,13 @@ export default function Landing() {
               link: '/practice',
             },
             {
-              icon: '🔗',
-              title: 'Track Correlations',
-              desc: 'See how drivers perform across correlated track packages. Identify who goes well at similar tracks heading into race week.',
-              tag: 'Coming soon',
-              link: '/correlations',
+              icon: '📈',
+              title: 'Practice Comparison Tool',
+              desc: 'Compare drivers side-by-side on practice lap times. Spot pace gaps and consistency trends before race day.',
+              tag: 'Subscriber',
+              link: '/lap-comparison',
             },
+
             {
               icon: '🎯',
               title: 'DFS Tools',
@@ -211,7 +212,7 @@ export default function Landing() {
             Ready to get an edge?
           </h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: 24, lineHeight: 1.6 }}>
-            Subscribe to unlock practice report cards, track correlations, and everything we add going forward.
+            Subscribe to unlock practice report cards, comparison tools, and everything we add going forward.
           </p>
           <Link to="/subscribe" className="btn btn-primary" style={{ padding: '10px 28px' }}>
             Subscribe — Coming Soon
