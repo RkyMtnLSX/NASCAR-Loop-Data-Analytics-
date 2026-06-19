@@ -126,7 +126,7 @@ export default function PracticeLapTable({ isSubscriber }) {
     return { drivers, lapNumbers, globalMin, globalMax }
   }, [rows])
 
-  const normalizeTime = (t) => (t - globalMin) / Math.max(globalMax - globalMin, 0.001)
+  const normalizeTime = (t) => Math.min(1, Math.max(0, (t - globalMin) / Math.max(globalMax - globalMin, 0.001)))
 
   const avgLap = (d) => {
     const times = Object.values(d.lapTimes)
