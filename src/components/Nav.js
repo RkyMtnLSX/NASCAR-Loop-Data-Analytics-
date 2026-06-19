@@ -4,12 +4,12 @@ import { Link, useLocation } from 'react-router-dom'
 const PRACTICE_LINKS = [
   { path: '/practice',           label: 'Practice Report Cards' },
   { path: '/lap-comparison',     label: 'Practice Comparison Tool' },
-  { path: '/practice-lap-table', label: 'Lap by Lap Data' },
+  { path: '/practice-lap-table', label: 'Raw Lap Times' },
 ]
 
 const LOOP_LINKS = [
-  { path: '/loop-data',     label: 'Loop Data' },
-  { path: '/fastest-laps',  label: 'Fastest Laps' },
+  { path: '/loop-data',    label: 'Loop Data' },
+  { path: '/fastest-laps', label: 'Fastest Laps' },
 ]
 
 export default function Nav({ isAdmin, onAdminClick }) {
@@ -78,7 +78,7 @@ export default function Nav({ isAdmin, onAdminClick }) {
         <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
           <span style={{ fontSize: '0.6875rem', fontWeight: 700, letterSpacing: '0.12em',
             color: 'var(--accent)', textTransform: 'uppercase' }}>
-            â¬¡ PitBoard
+            ⬡ PitBoard
           </span>
         </Link>
 
@@ -113,6 +113,10 @@ export default function Nav({ isAdmin, onAdminClick }) {
 
           <Link to="/qualifying" style={linkStyle(location.pathname === '/qualifying')}>
             Qualifying
+          </Link>
+
+          <Link to="/simulation" style={linkStyle(location.pathname === '/simulation')}>
+            Sim Center
           </Link>
 
         </div>
