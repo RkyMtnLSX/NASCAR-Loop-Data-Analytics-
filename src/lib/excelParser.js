@@ -98,7 +98,7 @@ export function parsePracticeExcel(file, series = 'cup') {
             const val = row[index]
             if (val !== undefined && val !== null && val !== '' && val !== '--') {
               const time = parseFloat(val)
-              if (!isNaN(time) && time > 10 && time < 120) {
+              if (!isNaN(time) && time > 10 && time < 1200) {
                 lapData[String(lapNum)] = time
               }
             }
