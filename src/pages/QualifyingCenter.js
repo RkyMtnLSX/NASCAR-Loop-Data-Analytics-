@@ -515,12 +515,31 @@ export default function QualifyingCenter({ isSubscriber }) {
             </div>
           </div>
 
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginRight: 2 }}>Sort:</span>
+            {[
+              { key: 'trackAvg', label: 'Avg @ ' + trackAbbr(config.track_name) },
+              hasDrawOrder ? { key: 'drawOrder', label: 'Draw Order' } : null,
+              { key: 'name', label: 'A–Z' },
+            ].filter(Boolean).map(function(opt) {
+              const active = sortBy === opt.key
+              return (
+                <button key={opt.key} onClick={function() { handleSort(opt.key) }} style={{
+                  padding: '4px 12px', borderRadius: 20, fontSize: '0.75rem',
+                  border: '1px solid ' + (active ? 'transparent' : 'var(--border)'),
+                  background: active ? 'var(--accent)' : 'var(--bg-elevated)',
+                  color: active ? '#fff' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: active ? 600 : 400,
+                }}>{opt.label}{active ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''}</button>
+              )
+            })}
+          </div>
           <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid var(--border)', marginBottom: 28 }}>
             <table style={{ borderCollapse: 'collapse', width: '100%', whiteSpace: 'nowrap' }}>
               <thead>
                 <tr>
-                  <th style={Object.assign({}, thStyle, { textAlign: 'center', width: 36, cursor: hasDrawOrder ? 'pointer' : 'default' })} onClick={hasDrawOrder ? function() { handleSort('drawOrder') } : undefined}>{hasDrawOrder ? 'QO' : '#'}{sortArrow('drawOrder')}</th>
+                  <th style={Object.assign({}, thStyle, { textAlign: 'center', width: 36 })}>#</th>
                   <th onClick={function() { handleSort('name') }} style={Object.assign({}, thStyle, { textAlign: 'left', paddingLeft: 14, minWidth: 170, position: 'sticky', left: 0, zIndex: 2, cursor: 'pointer' })}>Driver{sortArrow('name')}</th>
+                  {hasDrawOrder && <th onClick={function() { handleSort('drawOrder') }} style={Object.assign({}, thStyle, { color: '#f59e0b', cursor: 'pointer', minWidth: 120 })}>Qualifying Order{sortArrow('drawOrder')}</th>}
                   <th onClick={function() { handleSort('trackAvg') }} style={Object.assign({}, thStyle, { minWidth: 72, color: 'var(--accent)', cursor: 'pointer' })}>
                     Avg{sortArrow('trackAvg')}<br /><span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>{trackAbbr(config.track_name)}</span>
                   </th>
@@ -547,6 +566,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                 <tr>
                   <th style={thStyle} />
                   <th style={Object.assign({}, thStyle, { textAlign: 'left', paddingLeft: 14, position: 'sticky', left: 0, zIndex: 2 })} />
+                  {hasDrawOrder && <th style={thStyle} />}
                   <th style={thStyle} />
                   {histCols.map(function(col, i) {
                     var pk = col.trackName + '_' + col.year
@@ -569,7 +589,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                   const rowBg = ri % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-elevated)'
                   return (
                     <tr key={row.driver} style={{ background: rowBg }}>
-                      <td style={Object.assign({}, tdBase, { color: 'var(--text-muted)', fontSize: '0.72rem' })}>{row.drawOrder != null ? row.drawOrder : ri + 1}</td>
+                      <td style={Object.assign({}, tdBase, { color: 'var(--text-muted)', fontSize: '0.72rem' })}>{ri + 1}</td>
                       <td style={Object.assign({}, tdBase, {
                         textAlign: 'left', paddingLeft: 14, fontFamily: 'var(--font-sans)',
                         fontWeight: ri < 5 ? 600 : 400, color: 'var(--text-primary)',
@@ -581,6 +601,11 @@ export default function QualifyingCenter({ isSubscriber }) {
                         {row.driver}
                         {row.org && <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 400 }}>{row.org}</div>}
                       </td>
+                      {hasDrawOrder && (
+                        <td style={Object.assign({}, tdBase, { color: row.drawOrder != null ? '#f59e0b' : 'var(--text-muted)', fontWeight: row.drawOrder != null ? 700 : 400, minWidth: 120 })}>
+                          {row.drawOrder != null ? row.drawOrder : '–'}
+                        </td>
+                      )}
                       <td style={Object.assign({}, tdBase, {
                         background: avgColor ? avgColor.bg : 'transparent',
                         color: avgColor ? avgColor.text : 'var(--text-muted)',
