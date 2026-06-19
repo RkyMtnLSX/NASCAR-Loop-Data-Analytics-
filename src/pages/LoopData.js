@@ -240,8 +240,7 @@ const stickyHead = {
   position: 'sticky', top: 0, left: 0, zIndex: 3,
   textAlign: 'left', padding: '10px 16px', fontSize: '0.75rem', fontWeight: 600,
   color: 'var(--text-secondary)', whiteSpace: 'nowrap',
-  borderBottom: '1px solid var(--border)', borderRight: '1px solid var(--border)', minWidth: 170, maxWidth: 180,
-  overflow: 'hidden', textOverflow: 'ellipsis',
+  borderBottom: '1px solid var(--border)', borderRight: '1px solid var(--border)', minWidth: 220,
   background: 'var(--bg-base)',
 }
 const baseHead = {
@@ -253,9 +252,8 @@ const baseHead = {
 }
 const stickyCell = {
   position: 'sticky', left: 0, zIndex: 1, padding: '8px 16px',
-  fontSize: '0.8125rem', whiteSpace: 'nowrap',
-  borderRight: '1px solid var(--border)', minWidth: 170, maxWidth: 180,
-  overflow: 'hidden', textOverflow: 'ellipsis',
+  fontSize: '0.8125rem',
+  borderRight: '1px solid var(--border)', minWidth: 220,
   background: 'var(--bg-base)',
 }
 const numCell = {
@@ -363,13 +361,17 @@ function DataTable({ rows, title, subtitle, loading, yearCols = [], raceCols = [
               const bg = i % 2 === 0 ? 'var(--bg-surface)' : 'var(--bg-elevated)'
               return (
                 <tr key={row.driver} style={{ background: bg }}>
-                  <td style={{ ...stickyCell, background: bg, fontWeight: i < 3 ? 600 : 400 }}>
-                    <span style={{
-                      marginRight: 8, color: 'var(--text-muted)', fontSize: '0.7rem',
-                      fontFamily: 'var(--font-mono)', minWidth: 18, display: 'inline-block',
-                    }}>{i + 1}</span>
-                    {row.car_number && <span style={{ marginRight: 6, color: 'var(--text-muted)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>{row.car_number}</span>}
-                    {row.driver}
+                  <td style={{ ...stickyCell, background: bg }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                      <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', fontFamily: 'var(--font-mono)', minWidth: 18, paddingTop: 2 }}>{i + 1}</span>
+                      <div>
+                        <div style={{ fontWeight: i < 3 ? 600 : 400, whiteSpace: 'nowrap' }}>
+                          {row.car_number && <span style={{ marginRight: 6, color: 'var(--text-muted)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>{row.car_number}</span>}
+                          {row.driver}
+                        </div>
+                        {row.organization && <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: 1 }}>{row.organization}</div>}
+                      </div>
+                    </div>
                   </td>
                   {allCols.map(col => {
                     const isYear = !!col.isYear
