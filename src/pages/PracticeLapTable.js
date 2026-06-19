@@ -16,19 +16,25 @@ function fmtTime(sec) {
 
 // Map a normalized value 0 (fastest) → 1 (slowest) to a heatmap color
 function heatColor(t) {
-  // Power curve shifts midpoint toward yellow/orange faster —
-  // green only dominates the genuinely fast laps (bottom ~25%)
-  const tCurved = Math.pow(t, 0.65)
-  const hue = Math.round(120 * (1 - tCurved))
-  const sat = 90
-  // Sine curve peaks lightness at midpoint so yellow reads vivid, not muddy
-  const light = Math.round(40 + Math.sin(t * Math.PI) * 10)
+  // Excel-style: bright green (#00B050) → gold (#FFD700) → dark red (#D00000)
+  let r, g, b
+  if (t <= 0.5) {
+    const f = t * 2
+    r = Math.round(f * 255)
+    g = Math.round(176 + f * (215 - 176))
+    b = Math.round(80 * (1 - f))
+  } else {
+    const f = (t - 0.5) * 2
+    r = Math.round(255 + f * (208 - 255))
+    g = Math.round(215 * (1 - f))
+    b = 0
+  }
+  const lum = 0.299 * r + 0.587 * g + 0.114 * b
   return {
-    bg: `hsl(${hue}, ${sat}%, ${light}%)`,
-    text: '#000',
+    bg: `rgb(${r},${g},${b})`,
+    text: lum > 128 ? '#111' : '#fff',
   }
 }
-
 export default function PracticeLapTable({ isSubscriber }) {
   const [series, setSeries]               = useState('cup')
   const [sessions, setSessions]           = useState([])
