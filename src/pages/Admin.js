@@ -247,7 +247,7 @@ function EntryListManager() {
           const isTeamName = t => /racing|motorsports|motor|penske|hendrick|gibbs|23xi|rfk|kaulig|haas|wood|trackhouse|spire|hyak|club|legacy|front row|ware/i.test(t)
           let org
           if (series === 'trucks') {
-            org = ne[i+4] ? ne[i+4].trim() : ''
+            org = ne[i+2] ? ne[i+2].trim() : ''
           } else {
             const rawOrg = ne[i+2] ? ne[i+2].trim() : ''
             // Detect surname continuation: PDF wraps "John Hunter" / "Nemechek" across lines
