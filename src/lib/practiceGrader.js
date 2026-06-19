@@ -20,7 +20,7 @@ const WEIGHTS = {
   bestLap:      0.10,
 }
 
-const MIN_MEANINGFUL_LAPS = 5
+const MIN_MEANINGFUL_LAPS = 3
 const FALLOFF_MIN_LAPS    = 10
 
 // Parse raw lap data into stint arrays (consecutive lap number sequences)
