@@ -29,7 +29,7 @@ export function parseStints(lapData) {
   for (const [lapNum, lapTime] of Object.entries(lapData)) {
     const num  = parseInt(lapNum)
     const time = parseFloat(lapTime)
-    if (!isNaN(num) && !isNaN(time) && time > 10 && time < 120) {
+    if (!isNaN(num) && !isNaN(time) && time > 10 && time < 1200) {
       laps.push([num, time])
     }
   }
