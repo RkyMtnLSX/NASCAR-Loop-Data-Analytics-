@@ -118,9 +118,12 @@ export default function PracticeLapTable({ isSubscriber }) {
       return aAvg - bAvg
     })
 
-    const allTimes = rows.map(r => r.lap_time)
-    const globalMin = Math.min(...allTimes)
-    const globalMax = Math.max(...allTimes)
+    // Exclude outlap times from color scale (outlaps are typically >1.5x median)
+    const allTimes = rows.map(r => r.lap_time).sort((a, b) => a - b)
+    const median = allTimes[Math.floor(allTimes.length / 2)]
+    const validTimes = allTimes.filter(t => t < median * 1.5)
+    const globalMin = Math.min(...(validTimes.length ? validTimes : allTimes))
+    const globalMax = Math.max(...(validTimes.length ? validTimes : allTimes))
 
     return { drivers, lapNumbers, globalMin, globalMax }
   }, [rows])
