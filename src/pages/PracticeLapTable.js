@@ -16,24 +16,21 @@ function fmtTime(sec) {
 
 // Map a normalized value 0 (fastest) → 1 (slowest) to a heatmap color
 function heatColor(t) {
-  // Excel-style: bright green (#00B050) → gold (#FFD700) → dark red (#D00000)
+  // Green (fastest) → yellow → red (slowest), inflection at t=0.25
   let r, g, b
-  if (t <= 0.5) {
-    const f = t * 2
+  if (t <= 0.25) {
+    const f = t / 0.25
     r = Math.round(f * 255)
     g = Math.round(176 + f * (215 - 176))
     b = Math.round(80 * (1 - f))
   } else {
-    const f = (t - 0.5) * 2
+    const f = (t - 0.25) / 0.75
     r = Math.round(255 + f * (208 - 255))
     g = Math.round(215 * (1 - f))
     b = 0
   }
   const lum = 0.299 * r + 0.587 * g + 0.114 * b
-  return {
-    bg: `rgb(${r},${g},${b})`,
-    text: lum > 128 ? '#111' : '#fff',
-  }
+  return { bg: `rgb(${r},${g},${b})`, text: lum > 128 ? '#111' : '#fff' }
 }
 export default function PracticeLapTable({ isSubscriber }) {
   const [series, setSeries]               = useState('cup')
@@ -118,12 +115,13 @@ export default function PracticeLapTable({ isSubscriber }) {
       return aAvg - bAvg
     })
 
-    // Exclude outlap times from color scale (outlaps are typically >1.5x median)
-    const allTimes = rows.map(r => r.lap_time).sort((a, b) => a - b)
-    const median = allTimes[Math.floor(allTimes.length / 2)]
-    const validTimes = allTimes.filter(t => t < median * 1.5)
-    const globalMin = Math.min(...(validTimes.length ? validTimes : allTimes))
-    const globalMax = Math.max(...(validTimes.length ? validTimes : allTimes))
+    // Use 5th–95th percentile for color scale so tight lap time ranges spread visually
+    const allTimesSorted = rows.map(r => r.lap_time).sort((a, b) => a - b)
+    const median = allTimesSorted[Math.floor(allTimesSorted.length / 2)]
+    const validTimes = allTimesSorted.filter(t => t < median * 1.5)
+    const scale = validTimes.length ? validTimes : allTimesSorted
+    const globalMin = scale[Math.floor(scale.length * 0.05)] ?? scale[0]
+    const globalMax = scale[Math.floor(scale.length * 0.95)] ?? scale[scale.length - 1]
 
     return { drivers, lapNumbers, globalMin, globalMax }
   }, [rows])
