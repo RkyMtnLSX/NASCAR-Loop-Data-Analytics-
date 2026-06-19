@@ -13,6 +13,7 @@ import Admin from './pages/Admin'
 import QualifyingCenter from './pages/QualifyingCenter'
 import FastestLap from './pages/FastestLap'
 import LoopDataAudit from './pages/LoopDataAudit'
+import SimulationCenter from './pages/SimulationCenter'
 
 function Subscribe() {
   return (
@@ -31,24 +32,25 @@ function Subscribe() {
 }
 
 export default function App() {
-  // Temporary subscriber state â will be replaced with real auth
+  // Temporary subscriber state — will be replaced with real auth
   const [isSubscriber] = useState(true)
 
   return (
     <BrowserRouter>
       <Nav isAdmin={false} />
       <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/practice" element={<PracticeReportCard isSubscriber={isSubscriber} />} />
-        <Route path="/lap-comparison" element={<LapComparison isSubscriber={isSubscriber} />} />
+        <Route path="/"                   element={<Landing />} />
+        <Route path="/practice"           element={<PracticeReportCard isSubscriber={isSubscriber} />} />
+        <Route path="/lap-comparison"     element={<LapComparison isSubscriber={isSubscriber} />} />
         <Route path="/practice-lap-table" element={<PracticeLapTable isSubscriber={isSubscriber} />} />
-        <Route path="/loop-data" element={<LoopData isSubscriber={isSubscriber} />} />
-        <Route path="/qualifying"   element={<QualifyingCenter isSubscriber={isSubscriber} />} />
-        <Route path="/fastest-laps" element={<FastestLap isSubscriber={isSubscriber} />} />
-        <Route path="/loop-audit" element={<LoopDataAudit />} />
-        <Route path="/odds" element={<OddsPage />} />
-        <Route path="/subscribe" element={<Subscribe />} />
-        <Route path="/admin" element={<Admin />} />
+        <Route path="/loop-data"          element={<LoopData isSubscriber={isSubscriber} />} />
+        <Route path="/qualifying"         element={<QualifyingCenter isSubscriber={isSubscriber} />} />
+        <Route path="/fastest-laps"       element={<FastestLap isSubscriber={isSubscriber} />} />
+        <Route path="/loop-audit"         element={<LoopDataAudit />} />
+        <Route path="/simulation"         element={<SimulationCenter isSubscriber={isSubscriber} />} />
+        <Route path="/odds"               element={<OddsPage />} />
+        <Route path="/subscribe"          element={<Subscribe />} />
+        <Route path="/admin"              element={<Admin />} />
       </Routes>
     </BrowserRouter>
   )
