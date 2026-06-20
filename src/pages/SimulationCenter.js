@@ -361,7 +361,7 @@ export default function SimulationCenter({ isSubscriber }) {
         })
         const corrAvgMap = new Map(
           Object.entries(loopByDriver).map(([name, rows]) => {
-            const yrWt = yr => yr >= 2026 ? 2.0 : yr === 2025 ? 1.2 : yr === 2024 ? 1.0 : yr === 2023 ? 0.8 : 0.6
+            const yrWt = yr => yr >= 2026 ? 2.0 : yr === 2025 ? 1.3 : yr === 2024 ? 0.7 : yr === 2023 ? 0.4 : 0.2
             const totalWt = rows.reduce((s, r) => s + yrWt(r.yr), 0)
             const avgFin = rows.reduce((s, r) => s + r.fin * yrWt(r.yr), 0) / totalWt
             const rRows  = rows.filter(r => r.rating != null)
