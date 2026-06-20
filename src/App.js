@@ -14,6 +14,7 @@ import QualifyingCenter from './pages/QualifyingCenter'
 import FastestLap from './pages/FastestLap'
 import LoopDataAudit from './pages/LoopDataAudit'
 import SimulationCenter from './pages/SimulationCenter'
+import SimResults       from './pages/SimResults'
 
 function Subscribe() {
   return (
@@ -32,7 +33,7 @@ function Subscribe() {
 }
 
 export default function App() {
-  // Temporary subscriber state — will be replaced with real auth
+  // Temporary subscriber state â will be replaced with real auth
   const [isSubscriber] = useState(true)
 
   return (
