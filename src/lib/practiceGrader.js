@@ -190,7 +190,10 @@ export function gradePracticeSession(drivers) {
     const realShortTimes = shortCands
       .filter(c => !mqSet.has(c.stint))
       .flatMap(c => c.stint.map(([, t]) => t))
-    const shortRunPace = realShortTimes.length ? _avg(realShortTimes) : null
+    const srpSorted = [...realShortTimes].sort((a, b) => a - b)
+    const srpMedian = srpSorted[Math.floor(srpSorted.length / 2)]
+    const filteredSRT = srpMedian != null ? realShortTimes.filter(t => t <= srpMedian * 1.08) : realShortTimes
+    const shortRunPace = filteredSRT.length ? _avg(filteredSRT) : null
 
     // Long run pace: all laps across all stints, drop any lap >8% slower than session median
     const lrpSorted    = [...allTimes].sort((a, b) => a - b)
