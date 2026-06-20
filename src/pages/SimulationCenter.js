@@ -158,7 +158,7 @@ function runRaceSim(drivers, simConfig) {
       simPos[s.i] = rank + 1
       sumFinish[s.i] += rank + 1
       finishHist[s.i][rank + 1]++
-      if (s.dnf) dnfCnt[s.i]++
+      if (s.dnf) dfCnt[s.i]++
     })
 
     // 4. Laps led — exponential decay from P1, flattened by caution chaos
@@ -206,7 +206,7 @@ function runRaceSim(drivers, simConfig) {
     const projFinish   = sumFinish[i]  / numSims
     const projLapsLed  = sumLapsLed[i] / numSims
     const flPct        = fastestLapCnt[i] / numSims * 100
-    const dfCnt        = dnfCnt[i]     / numSims * 100
+    const dnfPct       = dfCnt[i]      / numSims * 100
     const projDK       = sumDK[i]      / numSims
     const startPos     = d.startPos || Math.round(projFinish)
     const projPlaceDiff = startPos - projFinish
