@@ -77,7 +77,7 @@ function _linSlope(stint) {
   const tMed = tSorted[Math.floor(tSorted.length / 2)]
   const clean = tMed != null ? stint.filter(([, t]) => t <= tMed * 1.08) : stint
   const n = clean.length
-  if (n < 2) return 0
+  if (n < 8) return null
   const xs = clean.map((_, i) => i)
   const ys = clean.map(([, t]) => t)
   const sx  = xs.reduce((a, b) => a + b, 0)
