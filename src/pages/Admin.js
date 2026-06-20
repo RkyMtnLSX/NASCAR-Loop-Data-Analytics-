@@ -1121,6 +1121,111 @@ function LoadFastestLaps() {
   )
 }
 
+
+// ============================================================
+// Sim Center Formula Panel — read-only reference for Admin
+// ============================================================
+function SimFormulaPanel() {
+  const ovalW = [
+    ['Corr. History',  '30%'],
+    ['Long Run Pace',  '25%'],
+    ['Short Run Pace', '15%'],
+    ['Start Position', '15%'],
+    ['Tire Falloff',   '10%'],
+    ['Race Craft',      '5%'],
+  ]
+  const rcW = [
+    ['Corr. History',  '40%'],
+    ['Long Run Pace',  '15%'],
+    ['Short Run Pace', '15%'],
+    ['Start Position', '10%'],
+    ['Tire Falloff',   '10%'],
+    ['Race Craft',     '10%'],
+  ]
+  const factors = [
+    ['Corr. History',  'driver_ratings + avg_finish at correlated tracks, year-weighted. Blended 70% rating / 30% finish score. Confidence = min(1, nRaces / 4).'],
+    ['Long Run Pace',  'overall_avg from practice_sessions — all laps across all stints, any lap >8% slower than session median dropped (V5.1). Lower is better.'],
+    ['Short Run Pace', 'late_run_avg from practice_sessions — short-stint laps, mock-qual stints excluded. Lower is better.'],
+    ['Start Position', 'qualifying_position from practice_sessions (placeholder until qual runs). Lower is better.'],
+    ['Tire Falloff',   'trend_slope from practice_sessions — lap-time slope vs lap # in longest stint (min 10 laps required, else null → 50). Lower is better.'],
+    ['Race Craft',     'Avg quality pass % (pct_quality_passes) from loop_data at correlated tracks, year-weighted (2026 = 3x, 2025 = 2x, older = 1x). Higher is better.'],
+  ]
+  const yearW = [
+    ['2026', '2.0x'],
+    ['2025', '1.2x'],
+    ['2024', '1.0x'],
+    ['2023', '0.8x'],
+    ['2022-', '0.6x'],
+  ]
+  const cell  = { padding: '4px 10px', fontSize: '0.78125rem', borderBottom: '1px solid var(--border-color)' }
+  const hd    = { ...cell, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: '0.6875rem' }
+  const tbl   = { borderCollapse: 'collapse', width: '100%' }
+  const label = { fontSize: '0.75rem', fontWeight: 600, marginBottom: 6, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }
+
+  return (
+    <div className="card" style={{ marginBottom: 20 }}>
+      <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 4 }}>Sim Center Formula</h2>
+      <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 16 }}>
+        Read-only reference — current weights and data sources used by Race Simulation.
+      </p>
+
+      <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', marginBottom: 20 }}>
+        <div style={{ flex: 1, minWidth: 180 }}>
+          <div style={label}>Oval Weights</div>
+          <table style={tbl}>
+            <thead><tr><th style={hd}>Factor</th><th style={{ ...hd, textAlign: 'right' }}>Weight</th></tr></thead>
+            <tbody>
+              {ovalW.map(([f, w]) => (
+                <tr key={f}><td style={cell}>{f}</td><td style={{ ...cell, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{w}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div style={{ flex: 1, minWidth: 180 }}>
+          <div style={label}>Road Course Weights</div>
+          <table style={tbl}>
+            <thead><tr><th style={hd}>Factor</th><th style={{ ...hd, textAlign: 'right' }}>Weight</th></tr></thead>
+            <tbody>
+              {rcW.map(([f, w]) => (
+                <tr key={f}><td style={cell}>{f}</td><td style={{ ...cell, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{w}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div style={{ flex: 1, minWidth: 140 }}>
+          <div style={label}>Year Weights (Corr. History)</div>
+          <table style={tbl}>
+            <thead><tr><th style={hd}>Year</th><th style={{ ...hd, textAlign: 'right' }}>Mult.</th></tr></thead>
+            <tbody>
+              {yearW.map(([y, m]) => (
+                <tr key={y}><td style={cell}>{y}</td><td style={{ ...cell, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{m}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div style={label}>Factor Definitions</div>
+      <table style={tbl}>
+        <thead><tr><th style={{ ...hd, width: 130 }}>Factor</th><th style={hd}>Source &amp; Logic</th></tr></thead>
+        <tbody>
+          {factors.map(([f, desc]) => (
+            <tr key={f}>
+              <td style={{ ...cell, fontWeight: 600, whiteSpace: 'nowrap', verticalAlign: 'top' }}>{f}</td>
+              <td style={{ ...cell, color: 'var(--text-muted)', lineHeight: 1.5 }}>{desc}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 12, marginBottom: 0 }}>
+        All factors are field-normalized 0-100 before weighting. Drivers missing data default to 50 (neutral).
+        Road course auto-detected by track name — weights switch automatically in Simulation Center.
+      </p>
+    </div>
+  )
+}
+
 export default function Admin() {
   const [authed, setAuthed] = useState(false)
   const [password, setPassword] = useState('')
@@ -1291,6 +1396,7 @@ export default function Admin() {
       <LoadQualifying />
       <LoadQualifyingOrder />
       <LoadFastestLaps />
+      <SimFormulaPanel />
       <div className="card" style={{ marginBottom: 20 }}>
         <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 8 }}>Data Audit</h2>
         <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 12 }}>
