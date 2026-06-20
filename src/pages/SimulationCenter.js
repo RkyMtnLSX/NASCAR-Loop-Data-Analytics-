@@ -60,11 +60,14 @@ function normalizeArr(values, lowerIsBetter = false) {
 function buildSpeedScores(drivers, weights) {
   if (!drivers.length) return drivers
 
-  const corrScores  = normalizeArr(drivers.map(d => d.corrAvgFinish), true)  // lower finish = better
-  const lrpScores   = normalizeArr(drivers.map(d => d.lrpTime),        true)  // lower lap time = better
-  const srpScores   = normalizeArr(drivers.map(d => d.srpTime),         true)
-  const startScores = normalizeArr(drivers.map(d => d.startPos),        true)  // P1 = 100
-  const fallScores  = normalizeArr(drivers.map(d => d.trendSlope),      true)  // lower falloff = better
+  // Corr history: blend driver rating (70%) + finish position (30%)
+  // Higher driver rating = better (lowerIsBetter=false); lower finish = better (lowerIsBetter=true)
+  const corrRatingScores = normalizeArr(drivers.map(d => d.corrAvgRating), false) // higher = better
+  const corrFinishScores = normalizeArr(drivers.map(d => d.corrAvgFinish), true   // lower = better
+  const lrpScores        = normalizeArr(drivers.map(d => d.lrpTime),       true   // lower lap time = better
+  const srpScores        = normalizeArr(drivers.map(d => d.srpTime),        true)
+  const startScores      = normalizeArr(drivers.map(d => d.startPos),       true   // P1 = 100
+  const fallScores       = normalizeArr(drivers.map(d => d.trendSlope),     true   // lower falloff = better
 
   // Normalize weights to sum to 1
   const wTotal = Object.values(weights).reduce((a, b) => a + b, 0) || 1
@@ -77,7 +80,19 @@ function buildSpeedScores(drivers, weights) {
   }
 
   return drivers.map((d, i) => {
-    const c   = corrScores[i]  ?? 50
+    // Blend rating (70%) + finish (30%); fall back to whichever is available
+    const rs = corrRatingScores[i]
+    const fs = corrFinishScores[i]
+    const hasR = d.corrAvgRating != null
+    const hasF = d.corrAvgFinish != null
+    const blendedC = hasR && hasF ? rs * 0.7 + fs * 0.3
+                   : hasR         ? rs
+                   : hasF         ? fs
+                   :                null
+    // Sample-size confidence: < 4 corr races pulls score toward neutral (50)
+    const rawC = blendedC ?? 50
+    const conf = d.nCorrRaces > 0 ? Math.min(1, d.nCorrRaces / 4) : (blendedC != null ? 1 : 0)
+    const c    = rawC * conf + 50 * (1 - conf)  // sample-size confidence penalty
     const lrp = lrpScores[i]  ?? 50
     const srp = srpScores[i]  ?? 50
     const sp  = startScores[i] ?? 50
@@ -119,7 +134,7 @@ function runRaceSim(drivers, simConfig) {
   const sumDK          = new Float64Array(n)
   const sumLapsLed     = new Float64Array(n)
   const fastestLapCnt  = new Int32Array(n)
-  const dnfCnt         = new Int32Array(n)
+  const dfCnt         = new Int32Array(n)
   // finishHist[i][pos] = count of times driver i finished at pos
   const finishHist = Array.from({ length: n }, () => new Int32Array(n + 2))
 
@@ -191,7 +206,7 @@ function runRaceSim(drivers, simConfig) {
     const projFinish   = sumFinish[i]  / numSims
     const projLapsLed  = sumLapsLed[i] / numSims
     const flPct        = fastestLapCnt[i] / numSims * 100
-    const dnfPct       = dnfCnt[i]     / numSims * 100
+    const dfCnt        = dnfCnt[i]     / numSims * 100
     const projDK       = sumDK[i]      / numSims
     const startPos     = d.startPos || Math.round(projFinish)
     const projPlaceDiff = startPos - projFinish
@@ -271,18 +286,18 @@ export default function SimulationCenter({ isSubscriber }) {
           supabase.from('entry_list')
             .select('driver_name, car_number, organization')
             .eq('series', s)
-            .eq('race_year', cfg.correlation_year)
+            .eq('race_year', cfg.race_year || new Date().getFullYear())     // current race year
             .eq('track_name', cfg.track_name),
           supabase.from('qualifying_results')
             .select('driver_name, final_position, lap_time')
             .eq('series', s)
             .eq('track_name', cfg.track_name)
-            .eq('year', cfg.correlation_year),
+            .eq('year', cfg.race_year || new Date().getFullYear()),         // current race year
           supabase.from('practice_sessions')
             .select('driver_name, overall_avg, late_run_avg, trend_slope, practice_score, session_number, qualifying_position')
             .eq('series', s)
             .eq('track_name', cfg.track_name)
-            .eq('year', cfg.correlation_year)
+            .eq('year', cfg.race_year || new Date().getFullYear())          // current race year
             .order('session_number', { ascending: false }),
           supabase.from('tracks')
             .select('name')
@@ -295,7 +310,7 @@ export default function SimulationCenter({ isSubscriber }) {
         if (corrNames.length) {
           const { data: ld } = await supabase
             .from('loop_data')
-            .select('driver_name, finish_position, laps_led, fastest_laps, driver_rating')
+            .select('driver_name, finish_position, laps_led, fastest_laps, driver_rating, year')
             .in('track_name', corrNames)
             .eq('series', s)
           loopRows = ld || []
@@ -303,7 +318,7 @@ export default function SimulationCenter({ isSubscriber }) {
 
         if (cancelled) return
 
-        // ── Build lookup maps ──────────────────────────────────────────────
+        // ── Build lookup maps ─────────────────────────────────────────────
         const qualMap = new Map((qualData || []).map(q => [q.driver_name?.trim(), q]))
 
         // Practice: keep only most recent session per driver
@@ -313,20 +328,29 @@ export default function SimulationCenter({ isSubscriber }) {
           if (!practiceMap.has(name)) practiceMap.set(name, p)
         })
 
-        // Correlated track avg finish per driver (lower = better)
+        // Correlated track history: track avg finish + driver rating per driver
         const loopByDriver = {}
         loopRows.forEach(r => {
-          const name = r.driver_name?.trim()
-          const fin  = parseFloat(r.finish_position)
+          const name   = r.driver_name?.trim()
+          const fin    = parseFloat(r.finish_position)
+          const rating = parseFloat(r.driver_rating)
+          const yr     = parseInt(r.year) || 0
           if (name && fin > 0) {
             if (!loopByDriver[name]) loopByDriver[name] = []
-            loopByDriver[name].push(fin)
+            loopByDriver[name].push({ fin, rating: isNaN(rating) ? null : rating, yr })
           }
         })
         const corrAvgMap = new Map(
-          Object.entries(loopByDriver).map(([name, fins]) => [
-            name, fins.reduce((a, b) => a + b, 0) / fins.length,
-          ])
+          Object.entries(loopByDriver).map(([name, rows]) => {
+            // Year recency weights: 2026=1.5, 2025=1.2, 2024=1.0, 2023=0.8, older=0.6
+            const yrWt = yr => yr >= 2026 ? 1.5 : yr === 2025 ? 1.2 : yr === 2024 ? 1.0 : yr === 2023 ? 0.8 : 0.6
+            const totalWt = rows.reduce((s, r) => s + yrWt(r.yr), 0)
+            const avgFin = rows.reduce((s, r) => s + r.fin * yrWt(r.yr), 0) / totalWt
+            const rRows  = rows.filter(r => r.rating != null)
+            const rTotalWt = rRows.reduce((s, r) => s + yrWt(r.yr), 0)
+            const avgRating = rRows.length > 0 ? rRows.reduce((s, r) => s + r.rating * yrWt(r.yr), 0) / rTotalWt : null
+            return [name, { avg: avgFin, avgRating, n: rows.length }]
+          })
         )
 
         // ── Determine driver list ──────────────────────────────────────────
@@ -353,7 +377,9 @@ export default function SimulationCenter({ isSubscriber }) {
               srpTime:       prac ? parseFloat(prac.late_run_avg)   || null : null,
               trendSlope:    prac ? parseFloat(prac.trend_slope)    || null : null,
               practiceScore: prac ? parseFloat(prac.practice_score) || null : null,
-              corrAvgFinish: corrAvgMap.get(name) ?? null,
+              corrAvgFinish: corrAvgMap.get(name)?.avg       ?? null,
+              corrAvgRating: corrAvgMap.get(name)?.avgRating ?? null,
+              nCorrRaces:    corrAvgMap.get(name)?.n         ?? 0,
             }
           })
           .filter(Boolean)
@@ -404,7 +430,7 @@ export default function SimulationCenter({ isSubscriber }) {
   }, [simResults, sortKey, sortDir])
 
   const handleSort = (key) => {
-    const defaultsAsc = ['projFinish', 'startPos', 'finishP50']
+    const defaultsAsc= ['projFinish', 'startPos', 'finishP50']
     if (sortKey === key) setSortDir(d => d === 'desc' ? 'asc' : 'desc')
     else { setSortKey(key); setSortDir(defaultsAsc.includes(key) ? 'asc' : 'desc') }
   }
