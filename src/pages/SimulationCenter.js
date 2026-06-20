@@ -63,11 +63,11 @@ function buildSpeedScores(drivers, weights) {
   // Corr history: blend driver rating (70%) + finish position (30%)
   // Higher driver rating = better (lowerIsBetter=false); lower finish = better (lowerIsBetter=true)
   const corrRatingScores = normalizeArr(drivers.map(d => d.corrAvgRating), false) // higher = better
-  const corrFinishScores = normalizeArr(drivers.map(d => d.corrAvgFinish), true   // lower = better
-  const lrpScores        = normalizeArr(drivers.map(d => d.lrpTime),       true   // lower lap time = better
+  const corrFinishScores = normalizeArr(drivers.map(d => d.corrAvgFinish), true)  // lower = better
+  const lrpScores        = normalizeArr(drivers.map(d => d.lrpTime),       true)  // lower lap time = better
   const srpScores        = normalizeArr(drivers.map(d => d.srpTime),        true)
-  const startScores      = normalizeArr(drivers.map(d => d.startPos),       true   // P1 = 100
-  const fallScores       = normalizeArr(drivers.map(d => d.trendSlope),     true   // lower falloff = better
+  const startScores      = normalizeArr(drivers.map(d => d.startPos),       true)  // P1 = 100
+  const fallScores       = normalizeArr(drivers.map(d => d.trendSlope),     true)  // lower falloff = better
 
   // Normalize weights to sum to 1
   const wTotal = Object.values(weights).reduce((a, b) => a + b, 0) || 1
