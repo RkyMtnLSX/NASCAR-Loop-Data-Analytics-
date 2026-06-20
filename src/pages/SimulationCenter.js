@@ -8,24 +8,25 @@ const SERIES_TABS = [
 ]
 
 const DEFAULT_WEIGHTS = {
-  corrHistory:  0.35,
+  corrHistory:  0.30,
   longRunPace:  0.25,
   shortRunPace: 0.15,
   startPos:     0.15,
   tireFalloff:  0.10,
+  raceCraft:    0.05,
 }
 
 // Road course-specific weights.
-// Data from loop_data Pearson correlation (start_position vs finish_position):
-//   road_course r=0.439 (n=682) — HIGHER than ovals r=0.361 (n=6013)
-// Start position is actually more predictive on road courses (limited passing).
-// Practice long-run pace translates less reliably on roads → shift weight to corr history.
+// startPos reduced — observed overpenalization of strong road course cars with poor qualifying
+// (Hemric P32->2nd, Grala P16->3rd at San Diego 2026). raceCraft (quality pass %) added:
+// captures meaningful passing in traffic, correlates with road/street course survival.
 const ROAD_COURSE_WEIGHTS = {
-  corrHistory:  0.45,  // +0.10 vs default
-  longRunPace:  0.15,  // -0.10 vs default
+  corrHistory:  0.40,
+  longRunPace:  0.15,
   shortRunPace: 0.15,
-  startPos:     0.15,  // unchanged — data confirms start pos MORE predictive on roads
+  startPos:     0.10,
   tireFalloff:  0.10,
+  raceCraft:    0.10,
 }
 
 const ROAD_COURSE_TRACKS = [
@@ -90,6 +91,7 @@ function buildSpeedScores(drivers, weights) {
   const srpScores        = normalizeArr(drivers.map(d => d.srpTime),        true)
   const startScores      = normalizeArr(drivers.map(d => d.startPos),       true)  // P1 = 100
   const fallScores       = normalizeArr(drivers.map(d => d.trendSlope),     true)  // lower falloff = better
+  const raceCraftScores  = normalizeArr(drivers.map(d => d.raceCraftPct),    false) // higher pct = better
 
   const wTotal = Object.values(weights).reduce((a, b) => a + b, 0) || 1
   const w = {
@@ -98,6 +100,7 @@ function buildSpeedScores(drivers, weights) {
     shortRunPace: weights.shortRunPace / wTotal,
     startPos:     weights.startPos     / wTotal,
     tireFalloff:  weights.tireFalloff  / wTotal,
+    raceCraft:    (weights.raceCraft || 0) / wTotal,
   }
 
   return drivers.map((d, i) => {
@@ -116,13 +119,15 @@ function buildSpeedScores(drivers, weights) {
     const srp = srpScores[i]   ?? 50
     const sp  = startScores[i] ?? 50
     const fl  = fallScores[i]  ?? 50
+    const rc  = raceCraftScores[i] ?? 50
 
     const speedScore =
       c   * w.corrHistory  +
       lrp * w.longRunPace  +
       srp * w.shortRunPace +
       sp  * w.startPos     +
-      fl  * w.tireFalloff
+      fl  * w.tireFalloff +
+    rc  * w.raceCraft
 
     return {
       ...d,
@@ -133,6 +138,7 @@ function buildSpeedScores(drivers, weights) {
         srp:  Math.round(srp),
         sp:   Math.round(sp),
         fall: Math.round(fl),
+        rc:   Math.round(rc),
       },
     }
   })
@@ -318,7 +324,7 @@ export default function SimulationCenter({ isSubscriber }) {
         if (corrNames.length) {
           const { data: ld } = await supabase
             .from('loop_data')
-            .select('driver_name, finish_position, laps_led, fastest_laps, driver_rating, year')
+            .select('driver_name, finish_position, laps_led, fastest_laps, driver_rating, pct_quality_passes, year')
             .in('track_name', corrNames)
             .eq('series', s)
           loopRows = ld || []
@@ -342,7 +348,7 @@ export default function SimulationCenter({ isSubscriber }) {
           const yr     = parseInt(r.year) || 0
           if (name && fin > 0) {
             if (!loopByDriver[name]) loopByDriver[name] = []
-            loopByDriver[name].push({ fin, rating: isNaN(rating) ? null : rating, yr })
+            loopByDriver[name].push({ fin, rating: isNaN(rating) ? null : rating, qp: isNaN(qp) ? null : qp, yr })
           }
         })
         const corrAvgMap = new Map(
@@ -353,7 +359,10 @@ export default function SimulationCenter({ isSubscriber }) {
             const rRows  = rows.filter(r => r.rating != null)
             const rTotalWt = rRows.reduce((s, r) => s + yrWt(r.yr), 0)
             const avgRating = rRows.length > 0 ? rRows.reduce((s, r) => s + r.rating * yrWt(r.yr), 0) / rTotalWt : null
-            return [name, { avg: avgFin, avgRating, n: rows.length }]
+            const qpRows    = rows.filter(r => r.qp != null)
+          const qpTotalWt = qpRows.reduce((s, r) => s + yrWt(r.yr), 0)
+          const avgQP     = qpRows.length > 0 ? qpRows.reduce((s, r) => s + r.qp * yrWt(r.yr), 0) / qpTotalWt : null
+          return [name, { avg: avgFin, avgRating, avgQP, n: rows.length }]
           })
         )
 
@@ -381,6 +390,7 @@ export default function SimulationCenter({ isSubscriber }) {
               practiceScore: prac ? parseFloat(prac.practice_score) || null : null,
               corrAvgFinish: corrAvgMap.get(name)?.avg       ?? null,
               corrAvgRating: corrAvgMap.get(name)?.avgRating ?? null,
+              raceCraftPct:  corrAvgMap.get(name)?.avgQP     ?? null,
               nCorrRaces:    corrAvgMap.get(name)?.n         ?? 0,
             }
           })
@@ -447,6 +457,7 @@ export default function SimulationCenter({ isSubscriber }) {
   const hasQual     = rawDrivers.some(d => d.startPos != null)
   const hasPractice = rawDrivers.some(d => d.lrpTime != null || d.srpTime != null)
   const hasCorr     = rawDrivers.some(d => d.corrAvgFinish != null)
+  const hasRaceCraft = rawDrivers.some(d => d.raceCraftPct  != null)
 
   return (
     <div className="page">
@@ -571,6 +582,7 @@ export default function SimulationCenter({ isSubscriber }) {
                 { key: 'shortRunPace', label: 'Short Run Pace' },
                 { key: 'startPos',     label: 'Starting Position' },
                 { key: 'tireFalloff',  label: 'Tire Falloff' },
+               { key: 'raceCraft',   label: 'Race Craft'  },
               ].map(({ key, label }) => (
                 <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: 5, minWidth: 130 }}>
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>{label}</div>
@@ -635,6 +647,7 @@ export default function SimulationCenter({ isSubscriber }) {
                         { key: null, label: 'SRP',   sortable: false, title: 'Short run pace score' },
                         { key: null, label: 'Start', sortable: false, title: 'Starting pos score' },
                         { key: null, label: 'Fall',  sortable: false, title: 'Tire falloff score' },
+                        { key: null, label: 'RC',    sortable: false, title: 'Race craft score (avg quality pass %)' },
                         { key: 'speedScore', label: 'Speed', title: 'Composite speed score' },
                       ] : []),
                     ].map((col, ci) => (
@@ -721,7 +734,7 @@ export default function SimulationCenter({ isSubscriber }) {
 
                         {showBreakdown && (
                           <>
-                            {['corr', 'lrp', 'srp', 'sp', 'fall'].map(k => (
+                            {['corr', 'lrp', 'srp', 'sp', 'fall', 'rc'].map(k => (
                               <td key={k} style={{ padding: '7px 10px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', fontSize: '0.72rem' }}>
                                 {row.scores?.[k] != null ? row.scores[k] : '—'}
                               </td>
