@@ -411,7 +411,7 @@ export default function SimulationCenter({ isSubscriber }) {
 
   const sortIcon = (key) => sortKey === key ? (sortDir === 'desc' ? ' ▼' : ' ▲') : ''
 
-  const ad�ustWeight= (key, delta) => {
+  const adjustWeight = (key, delta) => {
     setWeights(prev => ({
       ...prev,
       [key]: Math.max(0, Math.min(1, +(prev[key] + delta).toFixed(2))),
