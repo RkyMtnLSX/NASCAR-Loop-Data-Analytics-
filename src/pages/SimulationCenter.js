@@ -511,6 +511,10 @@ export default function SimulationCenter({ isSubscriber }) {
               {hasCorr ? 'Corr. history loaded' : 'No corr. history'}
             </span>
             <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>|</span>
+            <span style={{ fontSize: '0.72rem', color: hasRaceCraft ? '#22c55e' : 'var(--text-muted)' }}>
+              {hasRaceCraft ? 'Race craft loaded' : 'No race craft data'}
+            </span>
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>|</span>
             <span style={{ fontSize: '0.72rem', color: hasPractice ? '#22c55e' : '#f59e0b' }}>
               {hasPractice ? 'Practice data loaded' : 'No practice data'}
             </span>
