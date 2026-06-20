@@ -72,10 +72,14 @@ function _mid50(stint) {
 
 // Linear regression slope (seconds per lap)
 function _linSlope(stint) {
-  const n = stint.length
+  const allT = stint.map(([, t]) => t)
+  const tSorted = [...allT].sort((a, b) => a - b)
+  const tMed = tSorted[Math.floor(tSorted.length / 2)]
+  const clean = tMed != null ? stint.filter(([, t]) => t <= tMed * 1.08) : stint
+  const n = clean.length
   if (n < 2) return 0
-  const xs  = stint.map((_, i) => i)
-  const ys  = stint.map(([, t]) => t)
+  const xs = clean.map((_, i) => i)
+  const ys = clean.map(([, t]) => t)
   const sx  = xs.reduce((a, b) => a + b, 0)
   const sy  = ys.reduce((a, b) => a + b, 0)
   const sxy = xs.reduce((s, x, i) => s + x * ys[i], 0)
