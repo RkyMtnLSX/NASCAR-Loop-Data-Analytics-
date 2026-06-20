@@ -19,16 +19,16 @@ const DEFAULT_WEIGHTS = {
 }
 
 // Road course-specific weights.
-// startPos reduced Ã¢ÂÂ observed overpenalization of strong road course cars with poor qualifying
+// startPos reduced ÃÂ¢ÃÂÃÂ observed overpenalization of strong road course cars with poor qualifying
 // (Hemric P32->2nd, Grala P16->3rd at San Diego 2026). raceCraft (quality pass %) added:
 // captures meaningful passing in traffic, correlates with road/street course survival.
 const ROAD_COURSE_WEIGHTS = {
-  corrHistory:  0.40,
-  longRunPace:  0.15,
-  shortRunPace: 0.15,
-  startPos:     0.10,
-  tireFalloff:  0.10,
-  raceCraft:    0.10,
+  corrHistory:  0.35,  // strong signal, track-type history reliable
+  longRunPace:  0.15,  // fewer laps at road courses, still useful
+  shortRunPace: 0.05,  // near-redundant with LRP when stints are short
+  startPos:     0.15,  // backed by r=0.416 correlation across 682 obs
+  tireFalloff:  0.05,  // can't measure properly without long stints
+  raceCraft:    0.25,  // actual race data, most meaningful at road courses
 }
 
 const ROAD_COURSE_TRACKS = [
@@ -54,7 +54,7 @@ const DNF_PRESETS = [
   { label: 'High',   value: 0.25 },
 ]
 
-// Ã¢ÂÂÃ¢ÂÂ DK scoring Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ DK scoring ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 function dkFinishPts(pos) {
   if (!pos || pos <= 0 || isNaN(pos)) return 0
   const table = [0,45,42,41,40,39,38,37,36,35,34,32,31,30,29,28,27,26,25,24,23,21,20,19,18,17,16,15,14,13,12,10,9,8,7,6,5,4,3,2,1]
@@ -69,7 +69,7 @@ function gaussNoise() {
   return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v)
 }
 
-// Ã¢ÂÂÃ¢ÂÂ Normalize array to 0-100. lowerIsBetter inverts. Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Normalize array to 0-100. lowerIsBetter inverts. ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 function normalizeArr(values, lowerIsBetter = false) {
   const valid = values.filter(v => v != null && !isNaN(v))
   if (valid.length < 2) return values.map(v => (v == null ? null : 50))
@@ -83,13 +83,13 @@ function normalizeArr(values, lowerIsBetter = false) {
   })
 }
 
-// Normalize driver name: strip accents, punctuation, lowercase Ã¢ÂÂ fixes A.J./AJ, Suarez/SuÃÂ¡rez, etc.
+// Normalize driver name: strip accents, punctuation, lowercase ÃÂ¢ÃÂÃÂ fixes A.J./AJ, Suarez/SuÃÂÃÂ¡rez, etc.
 function normalizeName(s) {
   if (!s) return ''
-  return s.normalize('NFD').replace(/[ÃÂ-ÃÂ¯]/g, '').replace(/[^a-z0-9s]/gi, '').replace(/s+/g, ' ').trim().toLowerCase()
+  return s.normalize('NFD').replace(/[ÃÂÃÂ-ÃÂÃÂ¯]/g, '').replace(/[^a-z0-9s]/gi, '').replace(/s+/g, ' ').trim().toLowerCase()
 }
 
-// Ã¢ÂÂÃ¢ÂÂ Speed scores Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Speed scores ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 function buildSpeedScores(drivers, weights) {
   if (!drivers.length) return drivers
 
@@ -152,7 +152,7 @@ function buildSpeedScores(drivers, weights) {
   })
 }
 
-// Ã¢ÂÂÃ¢ÂÂ Monte Carlo simulation Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Monte Carlo simulation ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 function runRaceSim(drivers, simConfig) {
   const { numSims, cautionPreset, dnfRate, totalRaceLaps } = simConfig
   const noiseWidth = cautionPreset.noise
@@ -264,7 +264,7 @@ function runRaceSim(drivers, simConfig) {
   }).sort((a, b) => b.projDK - a.projDK)
 }
 
-// Ã¢ÂÂÃ¢ÂÂ Component Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Component ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 export default function SimulationCenter({ isSubscriber }) {
   const [series, setSeries]                 = useState('cup')
   const [config, setConfig]                 = useState(null)
@@ -297,7 +297,7 @@ export default function SimulationCenter({ isSubscriber }) {
 
         const { data: cfg, error: cfgErr } = await supabase
           .from('featured_weekend').select('*').eq('series', s).single()
-        if (cfgErr) throw new Error('Weekend config not set for ' + s + ' Ã¢ÂÂ configure in Admin.')
+        if (cfgErr) throw new Error('Weekend config not set for ' + s + ' ÃÂ¢ÃÂÃÂ configure in Admin.')
         if (cancelled) return
         setConfig(cfg)
 
@@ -497,7 +497,7 @@ export default function SimulationCenter({ isSubscriber }) {
     else { setSortKey(key); setSortDir(defaultsAsc.includes(key) ? 'asc' : 'desc') }
   }
 
-  const sortIcon = (key) => sortKey === key ? (sortDir === 'desc' ? ' Ã¢ÂÂ¼' : ' Ã¢ÂÂ²') : ''
+  const sortIcon = (key) => sortKey === key ? (sortDir === 'desc' ? ' ÃÂ¢ÃÂÃÂ¼' : ' ÃÂ¢ÃÂÃÂ²') : ''
 
   const adjustWeight = (key, delta) => {
     setWeights(prev => ({
@@ -685,7 +685,7 @@ export default function SimulationCenter({ isSubscriber }) {
               display: 'flex', alignItems: 'center', gap: 8, transition: 'background 0.15s',
             }}>
               {running && <div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />}
-              {running ? `Running ${numSims.toLocaleString()} simulationsÃ¢ÂÂ¦` : `Run ${numSims.toLocaleString()} Simulations`}
+              {running ? `Running ${numSims.toLocaleString()} simulationsÃÂ¢ÃÂÃÂ¦` : `Run ${numSims.toLocaleString()} Simulations`}
             </button>
             {simResults && (
               <button onClick={publishResults} style={{
@@ -695,7 +695,7 @@ export default function SimulationCenter({ isSubscriber }) {
                 fontSize: '0.875rem', cursor: published ? 'default' : 'pointer',
                 transition: 'background 0.15s',
               }}>
-                {published ? 'â Published' : 'Publish Results'}
+                {published ? 'Ã¢ÂÂ Published' : 'Publish Results'}
               </button>
             )}
 
@@ -759,9 +759,9 @@ export default function SimulationCenter({ isSubscriber }) {
                 <tbody>
                   {displayRows.map((row, ri) => {
                     const bg = ri % 2 === 0 ? 'var(--bg-surface)' : 'var(--bg-elevated)'
-                    const fmt    = (v, d = 1) => v == null ? 'Ã¢ÂÂ' : (+v).toFixed(d)
-                    const fmtPct = v => v == null ? 'Ã¢ÂÂ' : (+v).toFixed(1) + '%'
-                    const fmtSgn = v => v == null ? 'Ã¢ÂÂ' : (v >= 0 ? '+' : '') + (+v).toFixed(1)
+                    const fmt    = (v, d = 1) => v == null ? 'ÃÂ¢ÃÂÃÂ' : (+v).toFixed(d)
+                    const fmtPct = v => v == null ? 'ÃÂ¢ÃÂÃÂ' : (+v).toFixed(1) + '%'
+                    const fmtSgn = v => v == null ? 'ÃÂ¢ÃÂÃÂ' : (v >= 0 ? '+' : '') + (+v).toFixed(1)
                     const pdColor  = row.projPlaceDiff > 2 ? '#22c55e' : row.projPlaceDiff < -2 ? '#ef4444' : 'var(--text-secondary)'
                     const finColor = row.projFinish <= 5 ? '#22c55e' : row.projFinish <= 15 ? 'var(--text-primary)' : 'var(--text-secondary)'
 
@@ -826,11 +826,11 @@ export default function SimulationCenter({ isSubscriber }) {
                           <>
                             {['corr', 'lrp', 'srp', 'sp', 'fall', 'rc'].map(k => (
                               <td key={k} style={{ padding: '7px 10px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', fontSize: '0.72rem' }}>
-                                {row.scores?.[k] != null ? row.scores[k] : 'Ã¢ÂÂ'}
+                                {row.scores?.[k] != null ? row.scores[k] : 'ÃÂ¢ÃÂÃÂ'}
                               </td>
                             ))}
                             <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--accent)', fontSize: '0.78rem' }}>
-                              {row.speedScore != null ? Math.round(row.speedScore) : 'Ã¢ÂÂ'}
+                              {row.speedScore != null ? Math.round(row.speedScore) : 'ÃÂ¢ÃÂÃÂ'}
                             </td>
                           </>
                         )}
