@@ -81,6 +81,12 @@ function normalizeArr(values, lowerIsBetter = false) {
   })
 }
 
+// Normalize driver name: strip accents, punctuation, lowercase — fixes A.J./AJ, Suarez/Suárez, etc.
+function normalizeName(s) {
+  if (!s) return ''
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9s]/gi, '').replace(/s+/g, ' ').trim().toLowerCase()
+}
+
 // ── Speed scores ───────────────────────────────────────────────────────────
 function buildSpeedScores(drivers, weights) {
   if (!drivers.length) return drivers
@@ -348,8 +354,9 @@ export default function SimulationCenter({ isSubscriber }) {
           const yr     = parseInt(r.year) || 0
           const qp     = parseFloat(r.pct_quality_passes)
           if (name && fin > 0) {
-            if (!loopByDriver[name]) loopByDriver[name] = []
-            loopByDriver[name].push({ fin, rating: isNaN(rating) ? null : rating, qp: isNaN(qp) ? null : qp, yr })
+            const normN = normalizeName(name)
+            if (!loopByDriver[normN]) loopByDriver[normN] = []
+            loopByDriver[normN].push({ fin, rating: isNaN(rating) ? null : rating, qp: isNaN(qp) ? null : qp, yr })
           }
         })
         const corrAvgMap = new Map(
@@ -389,10 +396,10 @@ export default function SimulationCenter({ isSubscriber }) {
               srpTime:       prac ? parseFloat(prac.late_run_avg)   || null : null,
               trendSlope:    prac ? parseFloat(prac.trend_slope)    || null : null,
               practiceScore: prac ? parseFloat(prac.practice_score) || null : null,
-              corrAvgFinish: corrAvgMap.get(name)?.avg       ?? null,
-              corrAvgRating: corrAvgMap.get(name)?.avgRating ?? null,
-              raceCraftPct:  corrAvgMap.get(name)?.avgQP     ?? null,
-              nCorrRaces:    corrAvgMap.get(name)?.n         ?? 0,
+              corrAvgFinish: corrAvgMap.get(normalizeName(name))?.avg       ?? null,
+              corrAvgRating: corrAvgMap.get(normalizeName(name))?.avgRating ?? null,
+              raceCraftPct:  corrAvgMap.get(normalizeName(name))?.avgQP     ?? null,
+              nCorrRaces:    corrAvgMap.get(normalizeName(name))?.n         ?? 0,
             }
           })
           .filter(Boolean)
