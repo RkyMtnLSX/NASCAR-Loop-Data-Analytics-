@@ -1,4 +1,3 @@
-/* eslint-disable */
 import React, { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 
@@ -347,6 +346,7 @@ export default function SimulationCenter({ isSubscriber }) {
           const fin    = parseFloat(r.finish_position)
           const rating = parseFloat(r.driver_rating)
           const yr     = parseInt(r.year) || 0
+          const qp     = parseFloat(r.pct_quality_passes)
           if (name && fin > 0) {
             if (!loopByDriver[name]) loopByDriver[name] = []
             loopByDriver[name].push({ fin, rating: isNaN(rating) ? null : rating, qp: isNaN(qp) ? null : qp, yr })
