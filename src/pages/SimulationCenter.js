@@ -343,7 +343,7 @@ export default function SimulationCenter({ isSubscriber }) {
         const corrAvgMap = new Map(
           Object.entries(loopByDriver).map(([name, rows]) => {
             // Year recency weights: 2026=1.5, 2025=1.2, 2024=1.0, 2023=0.8, older=0.6
-            const yrWt = yr => yr >= 2026 ? 1.5 : yr === 2025 ? 1.2 : yr === 2024 ? 1.0 : yr === 2023 ? 0.8 : 0.6
+            const yrWt = yr => yr >= 2026 ? 2.0 : yr === 2025 ? 1.2 : yr === 2024 ? 1.0 : yr === 2023 ? 0.8 : 0.6
             const totalWt = rows.reduce((s, r) => s + yrWt(r.yr), 0)
             const avgFin = rows.reduce((s, r) => s + r.fin * yrWt(r.yr), 0) / totalWt
             const rRows  = rows.filter(r => r.rating != null)
