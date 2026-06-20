@@ -279,7 +279,7 @@ export default function SimulationCenter({ isSubscriber }) {
             .eq('track_name', cfg.track_name)
             .eq('year', cfg.correlation_year),
           supabase.from('practice_sessions')
-            .select('driver_name, overall_avg, late_run_avg, trend_slope, practice_score, session_number')
+            .select('driver_name, overall_avg, late_run_avg, trend_slope, practice_score, session_number, qualifying_position')
             .eq('series', s)
             .eq('track_name', cfg.track_name)
             .eq('year', cfg.correlation_year)
@@ -347,7 +347,7 @@ export default function SimulationCenter({ isSubscriber }) {
               name,
               carNumber:     e.car_number   || null,
               organization:  e.organization || null,
-              startPos:      qual ? parseFloat(qual.final_position) || null : null,
+              startPos:      prac && prac.qualifying_position ? parseFloat(prac.qualifying_position) : (qual ? parseFloat(qual.final_position) || null : null),
               qualTime:      qual ? parseFloat(qual.lap_time)       || null : null,
               lrpTime:       prac ? parseFloat(prac.overall_avg)    || null : null,
               srpTime:       prac ? parseFloat(prac.late_run_avg)   || null : null,
@@ -411,7 +411,7 @@ export default function SimulationCenter({ isSubscriber }) {
 
   const sortIcon = (key) => sortKey === key ? (sortDir === 'desc' ? ' ▼' : ' ▲') : ''
 
-  const adjustWeight = (key, delta) => {
+  const ad�ustWeight= (key, delta) => {
     setWeights(prev => ({
       ...prev,
       [key]: Math.max(0, Math.min(1, +(prev[key] + delta).toFixed(2))),
