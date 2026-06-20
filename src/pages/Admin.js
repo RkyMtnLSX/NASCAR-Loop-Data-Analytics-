@@ -7,7 +7,7 @@ const ADMIN_PASSWORD = process.env.REACT_APP_ADMIN_PASSWORD
 
 const SERIES_OPTIONS = [
   { value: 'cup', label: 'Cup Series' },
-  { value: 'xfinity', label: "O'Reilly Series" },
+  { value: 'oreilly', label: "O'Reilly Series" },
   { value: 'trucks', label: 'Truck Series' },
 ]
 
@@ -192,7 +192,7 @@ function WeekendConfig() {
 // Entry List Manager
 const SERIES_OPTS = [
   { value: 'cup', label: 'Cup Series' },
-  { value: 'xfinity', label: "O'Reilly Series" },
+  { value: 'oreilly', label: "O'Reilly Series" },
   { value: 'trucks', label: 'Truck Series' },
 ]
 
@@ -694,7 +694,7 @@ function LoadNewRace() {
 
 // Load Qualifying Results
 function LoadQualifying() {
-  const SERIES_CODES = { cup: 'W', xfinity: 'B', trucks: 'C' }
+  const SERIES_CODES = { cup: 'W', oreilly: 'B', trucks: 'C' }
   const [series, setSeries] = useState('cup')
   const [year, setYear] = useState(new Date().getFullYear())
   const [raceNumber, setRaceNumber] = useState('')
@@ -976,7 +976,7 @@ function LoadQualifyingOrder() {
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
         <select value={series} onChange={e => setSeries(e.target.value)} style={{ fontSize: '0.875rem' }}>
           <option value="cup">Cup</option>
-          <option value="xfinity">O'Reilly</option>
+          <option value="oreilly">O'Reilly</option>
           <option value="trucks">Trucks</option>
         </select>
         <input type="number" placeholder="Year" value={year} onChange={e => setYear(e.target.value)}
