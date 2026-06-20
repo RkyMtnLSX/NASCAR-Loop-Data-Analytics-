@@ -6,7 +6,7 @@
 //   - longRunPace weight raised to 0.50 (speed is king)
 //   - stintAvgPace removed (redundant with raw long run pace)
 //   - shortRunPace reduced to 0.15; consistency to 0.10; bestLap raised to 0.10
-//   - Long run pace: raw avg of ALL laps across ALL >=5-lap stints (no mid50 trimming)
+//   - Long run pace: all laps across all stints, drop any lap >8% slower than session median
 //   - Tire falloff: longest stint only, >=10-lap minimum (was length-weighted avg)
 //   - Mock qual stints detected and excluded from short run pace
 //   - Median fill for drivers missing lrp or srp (not penalized)
@@ -192,8 +192,10 @@ export function gradePracticeSession(drivers) {
       .flatMap(c => c.stint.map(([, t]) => t))
     const shortRunPace = realShortTimes.length ? _avg(realShortTimes) : null
 
-    // Long run pace: raw avg of ALL laps across ALL >=5-lap stints (no mid50 trimming)
-    const longRunTimes = longStints.flatMap(c => c.stint.map(([, t]) => t))
+    // Long run pace: all laps across all stints, drop any lap >8% slower than session median
+    const lrpSorted    = [...allTimes].sort((a, b) => a - b)
+    const lrpMedian    = lrpSorted.length ? lrpSorted[Math.floor(lrpSorted.length / 2)] : null
+    const longRunTimes = lrpMedian != null ? allTimes.filter(t => t <= lrpMedian * 1.08) : allTimes
     const longRunPace  = longRunTimes.length ? _avg(longRunTimes) : null
 
     // INC check: too few meaningful laps
