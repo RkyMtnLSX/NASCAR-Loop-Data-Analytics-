@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 
 const SERIES_OPTIONS = [
   { value: 'cup', label: 'Cup Series' },
-  { value: 'oreilly', label: "O'Reilly Series" },
+  { value: 'xfinity', label: "O'Reilly Series" },
   { value: 'trucks', label: 'Truck Series' },
 ]
 
