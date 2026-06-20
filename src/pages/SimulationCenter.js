@@ -194,8 +194,7 @@ function runRaceSim(drivers, simConfig) {
     const dnfPct       = dnfCnt[i]     / numSims * 100
     const projDK       = sumDK[i]      / numSims
     const startPos     = d.startPos || Math.round(projFinish)
-    const projPlaceDiff
-= startPos - projFinish
+    const projPlaceDiff = startPos - projFinish
 
     // Finish distribution percentiles
     const hist = finishHist[i]
@@ -280,7 +279,7 @@ export default function SimulationCenter({ isSubscriber }) {
             .eq('track_name', cfg.track_name)
             .eq('year', cfg.correlation_year),
           supabase.from('practice_sessions')
-            .select('driver_name, overallAvg, lateRunAvg, trendSlope, consistency, practice_score, session_number')
+            .select('driver_name, overall_avg, late_run_avg, trend_slope, practice_score, session_number')
             .eq('series', s)
             .eq('track_name', cfg.track_name)
             .eq('year', cfg.correlation_year)
@@ -350,9 +349,9 @@ export default function SimulationCenter({ isSubscriber }) {
               organization:  e.organization || null,
               startPos:      qual ? parseFloat(qual.final_position) || null : null,
               qualTime:      qual ? parseFloat(qual.lap_time)       || null : null,
-              lrpTime:       prac ? parseFloat(prac.overallAvg)     || null : null,
-              srpTime:       prac ? parseFloat(prac.lateRunAvg)     || null : null,
-              trendSlope:    prac ? parseFloat(prac.trendSlope)     || null : null,
+              lrpTime:       prac ? parseFloat(prac.overall_avg)    || null : null,
+              srpTime:       prac ? parseFloat(prac.late_run_avg)   || null : null,
+              trendSlope:    prac ? parseFloat(prac.trend_slope)    || null : null,
               practiceScore: prac ? parseFloat(prac.practice_score) || null : null,
               corrAvgFinish: corrAvgMap.get(name) ?? null,
             }
@@ -568,7 +567,7 @@ export default function SimulationCenter({ isSubscriber }) {
             </button>
 
             <select value={numSims} onChange={e => setNumSims(parseInt(e.target.value))}
-              style={{ padding: '9px 10px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--xt-primary)', fontSize: '0.8rem', cursor: 'pointer' }}>
+              style={{ padding: '9px 10px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text-primary)', fontSize: '0.8rem', cursor: 'pointer' }}>
               <option value={1000}>1,000 sims (fast)</option>
               <option value={10000}>10,000 sims</option>
               <option value={50000}>50,000 sims (precise)</option>
@@ -677,7 +676,7 @@ export default function SimulationCenter({ isSubscriber }) {
                           {fmt(row.projLapsLed)}
                         </td>
 
-                        {/* Fastest lap % */}       {/* Fastest lap % */}
+                        {/* Fastest lap % */}
                         <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: row.flPct > 12 ? '#f59e0b' : 'var(--text-secondary)' }}>
                           {fmtPct(row.flPct)}
                         </td>
