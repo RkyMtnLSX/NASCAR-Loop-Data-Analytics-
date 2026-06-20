@@ -1152,10 +1152,10 @@ function SimFormulaPanel() {
   ]
   const yearW = [
     ['2026', '2.0x'],
-    ['2025', '1.2x'],
-    ['2024', '1.0x'],
-    ['2023', '0.8x'],
-    ['2022-', '0.6x'],
+    ['2025', '1.3x'],
+    ['2024', '0.7x'],
+    ['2023', '0.4x'],
+    ['2022-', '0.2x'],
   ]
   const cell  = { padding: '4px 10px', fontSize: '0.78125rem', borderBottom: '1px solid var(--border-color)' }
   const hd    = { ...cell, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: '0.6875rem' }
