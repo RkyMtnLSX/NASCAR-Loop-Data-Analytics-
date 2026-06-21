@@ -737,7 +737,7 @@ function LoadQualifying() {
     if (text.trim()) {
       const drivers = parseText(text)
       setPreview(drivers.length > 0 ? drivers : null)
-      if (drivers.length === 0) setStatus({ type: 'error', msg: 'No qualifying rows found — make sure you Ctrl+A / Ctrl+C the full Racing Reference page' })
+      if (drivers.length === 0) setStatus({ type: 'error', msg: 'No qualifying rows found â make sure you Ctrl+A / Ctrl+C the full Racing Reference page' })
     } else {
       setPreview(null)
     }
@@ -782,7 +782,7 @@ function LoadQualifying() {
       <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 8 }}>Load Qualifying Results</h2>
       <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 16 }}>
         Go to Racing Reference, press <strong>Ctrl+A</strong> then <strong>Ctrl+C</strong>, then paste below.
-        {url && <> <a href={url} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', marginLeft: 6 }}>Open Racing Reference ↗</a></>}
+        {url && <> <a href={url} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', marginLeft: 6 }}>Open Racing Reference â</a></>}
       </p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10, marginBottom: 14 }}>
@@ -820,7 +820,7 @@ function LoadQualifying() {
       {preview && preview.length > 0 && (
         <div style={{ marginBottom: 14 }}>
           <div style={{ fontSize: '0.8rem', color: '#22c55e', marginBottom: 8 }}>
-            Parsed {preview.length} drivers — Pole: {preview[0].driverName} ({preview[0].speed} mph)
+            Parsed {preview.length} drivers â Pole: {preview[0].driverName} ({preview[0].speed} mph)
           </div>
           <div style={{ overflowX: 'auto', borderRadius: 6, border: '1px solid var(--border)', maxHeight: 200, overflowY: 'auto' }}>
             <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: '0.78rem' }}>
@@ -1123,7 +1123,7 @@ function LoadFastestLaps() {
 
 
 // ============================================================
-// Sim Center Formula Panel — read-only reference for Admin
+// Sim Center Formula Panel â read-only reference for Admin
 // ============================================================
 function SimFormulaPanel() {
   const ovalW = [
@@ -1144,18 +1144,18 @@ function SimFormulaPanel() {
   ]
   const factors = [
     ['Corr. History',  'driver_ratings + avg_finish at correlated tracks, year-weighted. Blended 70% rating / 30% finish score. Confidence = min(1, nRaces / 4).'],
-    ['Long Run Pace',  'overall_avg from practice_sessions — all laps across all stints, any lap >8% slower than session median dropped (V5.1). Lower is better.'],
-    ['Short Run Pace', 'late_run_avg from practice_sessions — short-stint laps, mock-qual stints excluded. Lower is better.'],
+    ['Long Run Pace',  'overall_avg from practice_sessions â all laps across all stints, any lap >8% slower than session median dropped (V5.1). Lower is better.'],
+    ['Short Run Pace', 'late_run_avg from practice_sessions â short-stint laps, mock-qual stints excluded. Lower is better.'],
     ['Start Position', 'qualifying_position from practice_sessions (placeholder until qual runs). Lower is better.'],
-    ['Tire Falloff',   'trend_slope from practice_sessions — lap-time slope vs lap # in longest stint (min 10 laps required, else null → 50). Lower is better.'],
+    ['Tire Falloff',   'trend_slope from practice_sessions â lap-time slope vs lap # in longest stint (min 10 laps required, else null â 50). Lower is better.'],
     ['Race Craft',     'Avg quality pass % (pct_quality_passes) from loop_data at correlated tracks, year-weighted (2026 = 3x, 2025 = 2x, older = 1x). Higher is better.'],
   ]
   const yearW = [
     ['2026', '2.0x'],
     ['2025', '1.3x'],
-    ['2024', '0.7x'],
-    ['2023', '0.4x'],
-    ['2022-', '0.2x'],
+    ['2024', '0.9x'],
+    ['2023', '0.6x'],
+    ['2022-', '0.4x'],
   ]
   const cell  = { padding: '4px 10px', fontSize: '0.78125rem', borderBottom: '1px solid var(--border-color)' }
   const hd    = { ...cell, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: '0.6875rem' }
@@ -1166,7 +1166,7 @@ function SimFormulaPanel() {
     <div className="card" style={{ marginBottom: 20 }}>
       <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 4 }}>Sim Center Formula</h2>
       <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 16 }}>
-        Read-only reference — current weights and data sources used by Race Simulation.
+        Read-only reference â current weights and data sources used by Race Simulation.
       </p>
 
       <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', marginBottom: 20 }}>
@@ -1220,7 +1220,7 @@ function SimFormulaPanel() {
 
       <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 12, marginBottom: 0 }}>
         All factors are field-normalized 0-100 before weighting. Drivers missing data default to 50 (neutral).
-        Road course auto-detected by track name — weights switch automatically in Simulation Center.
+        Road course auto-detected by track name â weights switch automatically in Simulation Center.
       </p>
     </div>
   )
