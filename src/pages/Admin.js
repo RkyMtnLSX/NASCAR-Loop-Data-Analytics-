@@ -636,7 +636,7 @@ function LoadNewRace() {
     const trackName = atMatch ? atMatch[1].trim() : ('Race ' + raceNum + ' ' + year)
     const lapsMatch = text.match(/(\d+)\s+laps?\*/i)
     const expectedLaps = lapsMatch ? parseInt(lapsMatch[1]) : 0
-    const driverRowRe = /^([A-Za-z][A-Za-z .'\-]+?)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+([\d.]+)\s+(-?\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+([\d.]+)\s+(\d+)\s+(\d+)\s+([\d.]+)\s+(\d+)\s+([\d.]+)\s+(\d+)\s+([\d.]+)\s*$/gm
+    const driverRowRe = /^(.+?)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+([\d.]+)\s+(-?\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+([\d.]+)\s+(\d+)\s+(\d+)\s+([\d.]+)\s+(\d+)\s+([\d.]+)\s+(\d+)\s+([\d.]+)\s*$/gm
     const rows = []
     let m
     while ((m = driverRowRe.exec(text)) !== null) {
