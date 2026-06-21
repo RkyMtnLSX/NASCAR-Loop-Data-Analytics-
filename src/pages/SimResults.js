@@ -7,19 +7,18 @@ const SERIES_TABS = [
   { value: 'truck',   label: 'Truck Series' },
 ]
 
-const fmt = (n, dec = 1) => n == null ? '—' : (+n * 100).toFixed(dec) + '%'
-const fmtDK = (n) => n == null ? '—' : (+n).toFixed(2)
+// Values stored as percentages (e.g. 60.9), not decimals
+const fmt    = (n, dec = 1) => n == null ? '—' : (+n).toFixed(dec) + '%'
+const fmtDK  = (n)          => n == null ? '—' : (+n).toFixed(2)
 
 export default function SimResults() {
-  const [series, setSeries]     = useState('cup')
-  const [data, setData]         = useState(null)
-  const [loading, setLoading]   = useState(true)
-  const [error, setError]       = useState(null)
+  const [series, setSeries]   = useState('cup')
+  const [data, setData]       = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError]     = useState(null)
 
   useEffect(() => {
-    setLoading(true)
-    setError(null)
-    setData(null)
+    setLoading(true); setError(null); setData(null)
     supabase
       .from('sim_results')
       .select('*')
@@ -51,8 +50,16 @@ export default function SimResults() {
     textTransform: 'uppercase', whiteSpace: 'nowrap',
     borderBottom: '1px solid var(--border)',
   }
-  const tdStyle = { padding: '10px 12px', fontSize: '0.85rem', borderBottom: '1px solid var(--border-subtle)', whiteSpace: 'nowrap' }
-  const pctStyle = (v, hi) => ({ ...tdStyle, color: v >= hi ? '#4ade80' : v >= hi * 0.5 ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: v >= hi ? 700 : 400 })
+  const tdStyle = {
+    padding: '10px 12px', fontSize: '0.85rem',
+    borderBottom: '1px solid var(--border-subtle)', whiteSpace: 'nowrap',
+  }
+  // hi is a percentage threshold (e.g. 5 means 5%)
+  const pctStyle = (v, hi) => ({
+    ...tdStyle,
+    color: v >= hi ? '#4ade80' : v >= hi * 0.5 ? 'var(--text-primary)' : 'var(--text-muted)',
+    fontWeight: v >= hi ? 700 : 400,
+  })
 
   return (
     <div className="page">
@@ -90,6 +97,7 @@ export default function SimResults() {
                 <th style={{ ...thStyle, textAlign: 'center' }}>Proj Finish</th>
                 <th style={{ ...thStyle, textAlign: 'center' }}>Proj DK</th>
                 <th style={{ ...thStyle, textAlign: 'center' }}>Win%</th>
+                <th style={{ ...thStyle, textAlign: 'center' }}>Top 3%</th>
                 <th style={{ ...thStyle, textAlign: 'center' }}>Top 5%</th>
                 <th style={{ ...thStyle, textAlign: 'center' }}>Top 10%</th>
                 <th style={{ ...thStyle, textAlign: 'center' }}>DNF%</th>
@@ -109,9 +117,10 @@ export default function SimResults() {
                   <td style={{ ...tdStyle, textAlign: 'center', color: 'var(--text-muted)' }}>{d.start_pos ?? '—'}</td>
                   <td style={{ ...tdStyle, textAlign: 'center' }}>{d.proj_finish != null ? (+d.proj_finish).toFixed(1) : '—'}</td>
                   <td style={{ ...tdStyle, textAlign: 'center', color: 'var(--accent)', fontWeight: 600 }}>{fmtDK(d.proj_dk)}</td>
-                  <td style={{ ...pctStyle(d.win_pct, 0.05), textAlign: 'center' }}>{fmt(d.win_pct)}</td>
-                  <td style={{ ...pctStyle(d.top5_pct, 0.15), textAlign: 'center' }}>{fmt(d.top5_pct)}</td>
-                  <td style={{ ...pctStyle(d.top10_pct, 0.25), textAlign: 'center' }}>{fmt(d.top10_pct)}</td>
+                  <td style={{ ...pctStyle(d.win_pct, 5),    textAlign: 'center' }}>{fmt(d.win_pct)}</td>
+                  <td style={{ ...pctStyle(d.top3_pct, 10),  textAlign: 'center' }}>{fmt(d.top3_pct)}</td>
+                  <td style={{ ...pctStyle(d.top5_pct, 15),  textAlign: 'center' }}>{fmt(d.top5_pct)}</td>
+                  <td style={{ ...pctStyle(d.top10_pct, 25), textAlign: 'center' }}>{fmt(d.top10_pct)}</td>
                   <td style={{ ...tdStyle, textAlign: 'center', color: 'var(--text-muted)' }}>{fmt(d.dnf_pct)}</td>
                 </tr>
               ))}
