@@ -8,17 +8,19 @@ const SERIES_TABS = [
 ]
 
 // Values stored as percentages (e.g. 60.9), not decimals
-const fmt    = (n, dec = 1) => n == null ? '—' : (+n).toFixed(dec) + '%'
-const fmtDK  = (n)          => n == null ? '—' : (+n).toFixed(2)
+const fmt = (n, dec = 1) => n == null ? '—' : (+n).toFixed(dec) + '%'
+const fmtDK = (n) => n == null ? '—' : (+n).toFixed(2)
 
 export default function SimResults() {
-  const [series, setSeries]   = useState('cup')
-  const [data, setData]       = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError]     = useState(null)
+  const [series, setSeries]     = useState('cup')
+  const [data, setData]         = useState(null)
+  const [loading, setLoading]   = useState(true)
+  const [error, setError]       = useState(null)
 
   useEffect(() => {
-    setLoading(true); setError(null); setData(null)
+    setLoading(true)
+    setError(null)
+    setData(null)
     supabase
       .from('sim_results')
       .select('*')
@@ -35,7 +37,8 @@ export default function SimResults() {
   }, [series])
 
   const results = data?.results || []
-  const sorted  = [...results].sort((a, b) => (b.win_pct || 0) - (a.win_pct || 0))
+  // Sort by projected finish ascending (1st = best)
+  const sorted  = [...results].sort((a, b) => (a.proj_finish || 99) - (b.proj_finish || 99))
 
   const tabStyle = (s) => ({
     padding: '8px 18px', border: 'none', borderRadius: 6, cursor: 'pointer',
@@ -54,7 +57,6 @@ export default function SimResults() {
     padding: '10px 12px', fontSize: '0.85rem',
     borderBottom: '1px solid var(--border-subtle)', whiteSpace: 'nowrap',
   }
-  // hi is a percentage threshold (e.g. 5 means 5%)
   const pctStyle = (v, hi) => ({
     ...tdStyle,
     color: v >= hi ? '#4ade80' : v >= hi * 0.5 ? 'var(--text-primary)' : 'var(--text-muted)',
@@ -63,7 +65,6 @@ export default function SimResults() {
 
   return (
     <div className="page">
-      {/* Series tabs */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
         {SERIES_TABS.map(t => (
           <button key={t.value} style={tabStyle(t.value)} onClick={() => setSeries(t.value)}>
@@ -72,7 +73,6 @@ export default function SimResults() {
         ))}
       </div>
 
-      {/* Header */}
       {data && (
         <div style={{ marginBottom: 16, padding: '10px 14px', background: 'var(--bg-surface)', borderRadius: 8, display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ fontWeight: 700, color: 'var(--accent)' }}>{data.track_name}</span>
@@ -117,9 +117,9 @@ export default function SimResults() {
                   <td style={{ ...tdStyle, textAlign: 'center', color: 'var(--text-muted)' }}>{d.start_pos ?? '—'}</td>
                   <td style={{ ...tdStyle, textAlign: 'center' }}>{d.proj_finish != null ? (+d.proj_finish).toFixed(1) : '—'}</td>
                   <td style={{ ...tdStyle, textAlign: 'center', color: 'var(--accent)', fontWeight: 600 }}>{fmtDK(d.proj_dk)}</td>
-                  <td style={{ ...pctStyle(d.win_pct, 5),    textAlign: 'center' }}>{fmt(d.win_pct)}</td>
-                  <td style={{ ...pctStyle(d.top3_pct, 10),  textAlign: 'center' }}>{fmt(d.top3_pct)}</td>
-                  <td style={{ ...pctStyle(d.top5_pct, 15),  textAlign: 'center' }}>{fmt(d.top5_pct)}</td>
+                  <td style={{ ...pctStyle(d.win_pct, 5), textAlign: 'center' }}>{fmt(d.win_pct)}</td>
+                  <td style={{ ...pctStyle(d.top3_pct, 10), textAlign: 'center' }}>{fmt(d.top3_pct)}</td>
+                  <td style={{ ...pctStyle(d.top5_pct, 15), textAlign: 'center' }}>{fmt(d.top5_pct)}</td>
                   <td style={{ ...pctStyle(d.top10_pct, 25), textAlign: 'center' }}>{fmt(d.top10_pct)}</td>
                   <td style={{ ...tdStyle, textAlign: 'center', color: 'var(--text-muted)' }}>{fmt(d.dnf_pct)}</td>
                 </tr>
