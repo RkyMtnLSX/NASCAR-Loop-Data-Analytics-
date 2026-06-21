@@ -624,75 +624,150 @@ function QualSimConfig() {
 
 // Load New Race
 function LoadNewRace() {
-  const [series, setSeries] = React.useState('cup')
-  const [year, setYear] = React.useState(new Date().getFullYear())
-  const [raceNumber, setRaceNumber] = React.useState('')
-  const [loading, setLoading] = React.useState(false)
-  const [status, setStatus] = React.useState(null)
+  const [series, setSeries]     = useState('cup')
+  const [year, setYear]         = useState(new Date().getFullYear().toString())
+  const [raceNum, setRaceNum]   = useState('')
+  const [pasteText, setPasteText] = useState('')
+  const [status, setStatus]     = useState(null)
+  const [loading, setLoading]   = useState(false)
+
+  function parseLoopData(text) {
+    const atMatch = text.match(/at\s+([^,\n]+)/i)
+    const trackName = atMatch ? atMatch[1].trim() : ('Race ' + raceNum + ' ' + year)
+    const lapsMatch = text.match(/(\d+)\s+laps?\*/i)
+    const expectedLaps = lapsMatch ? parseInt(lapsMatch[1]) : 0
+    const driverRowRe = /^([A-Za-z][A-Za-z .'\-]+?)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+([\d.]+)\s+(-?\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+([\d.]+)\s+(\d+)\s+(\d+)\s+([\d.]+)\s+(\d+)\s+([\d.]+)\s+(\d+)\s+([\d.]+)\s*$/gm
+    const rows = []
+    let m
+    while ((m = driverRowRe.exec(text)) !== null) {
+      rows.push({
+        driver_name: m[1].trim(),
+        start_position: parseInt(m[2]), mid_race_position: parseInt(m[3]),
+        finish_position: parseInt(m[4]), high_position: parseInt(m[5]),
+        low_position: parseInt(m[6]), avg_position: parseFloat(m[7]),
+        pass_diff: parseInt(m[8]), green_flag_passes: parseInt(m[9]),
+        green_flag_times_passed: parseInt(m[10]), quality_passes: parseInt(m[11]),
+        pct_quality_passes: parseFloat(m[12]), fastest_laps: parseInt(m[13]),
+        top15_laps: parseInt(m[14]), pct_top15_laps: parseFloat(m[15]),
+        laps_led: parseInt(m[16]), pct_laps_led: parseFloat(m[17]),
+        laps_completed: parseInt(m[18]), driver_rating: parseFloat(m[19]),
+      })
+    }
+    return { trackName, expectedLaps, rows }
+  }
 
   async function handleLoad() {
-    if (!raceNumber) return
+    if (!pasteText.trim()) return setStatus({ error: 'Paste the Racing Reference loop data page first.' })
+    if (!raceNum) return setStatus({ error: 'Enter a race number.' })
     setLoading(true)
     setStatus(null)
     try {
-      const resp = await fetch('/api/load-race', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ series, year: parseInt(year), raceNumber: parseInt(raceNumber) }),
-      })
-      const data = await resp.json()
-      if (!resp.ok) throw new Error(data.error || 'Failed')
-      setStatus({ type: 'success', msg: data.message })
+      const { trackName, expectedLaps, rows } = parseLoopData(pasteText)
+      if (rows.length === 0) return setStatus({ error: 'No driver rows found. Make sure you copied the full page (Ctrl+A, Ctrl+C).' })
+      const seriesCodeMap = { cup: 'W', oreilly: 'B', xfinity: 'B', trucks: 'C', truck: 'C' }
+      const racingRefId = year + '-' + String(raceNum).padStart(2,'0') + '-' + (seriesCodeMap[series] || 'W')
+      const { data: existing } = await supabase.from('races').select('id,track_name').eq('racing_reference_id', racingRefId).maybeSingle()
+      if (existing) return setStatus({ error: 'Already loaded: ' + existing.track_name + ' ' + year + ' (' + racingRefId + ')' })
+      const totalLaps = expectedLaps || Math.max(...rows.map(r => r.laps_completed || 0))
+      const winner = rows.find(r => r.finish_position === 1)?.driver_name || null
+      const { data: raceRecord, error: raceErr } = await supabase.from('races').insert({
+        racing_reference_id: racingRefId,
+        race_name: trackName + ' ' + year,
+        track_name: trackName,
+        year: parseInt(year),
+        race_number: parseInt(raceNum),
+        series,
+        winning_driver: winner,
+        total_laps: totalLaps || null,
+        racing_reference_url: 'https://www.racing-reference.info/loopdata/' + year + '-' + String(raceNum).padStart(2,'0') + '/' + (seriesCodeMap[series] || 'W'),
+      }).select('id').single()
+      if (raceErr) return setStatus({ error: 'Race insert failed: ' + raceErr.message })
+      const raceId = raceRecord.id
+      let inserted = 0
+      const errors = []
+      for (const row of rows) {
+        await supabase.from('drivers').upsert({ name: row.driver_name, series }, { onConflict: 'name,series', ignoreDuplicates: true })
+        const finishStatus = (row.laps_completed && totalLaps && row.laps_completed < totalLaps * 0.9) ? 'dnf' : 'running'
+        const { error } = await supabase.from('loop_data').insert({
+          race_id: raceId, driver_name: row.driver_name, series,
+          year: parseInt(year), track_name: trackName,
+          start_position: row.start_position, mid_race_position: row.mid_race_position,
+          finish_position: row.finish_position, high_position: row.high_position,
+          low_position: row.low_position, avg_position: row.avg_position,
+          pass_diff: row.pass_diff, green_flag_passes: row.green_flag_passes,
+          green_flag_times_passed: row.green_flag_times_passed,
+          quality_passes: row.quality_passes, pct_quality_passes: row.pct_quality_passes,
+          fastest_laps: row.fastest_laps, top15_laps: row.top15_laps,
+          pct_top15_laps: row.pct_top15_laps, laps_led: row.laps_led,
+          pct_laps_led: row.pct_laps_led, laps_completed: row.laps_completed,
+          driver_rating: row.driver_rating, finish_status: finishStatus,
+        })
+        if (error) errors.push(row.driver_name + ': ' + error.message)
+        else inserted++
+      }
+      setStatus({ success: 'Loaded ' + inserted + ' drivers for ' + trackName + ' ' + year, errors })
     } catch (err) {
-      setStatus({ type: 'error', msg: err.message })
+      setStatus({ error: 'Unexpected error: ' + err.message })
     } finally {
       setLoading(false)
     }
   }
 
-  const inp = {
-    padding: '7px 10px', borderRadius: 6, border: '1px solid var(--border)',
-    background: 'var(--bg-elevated)', color: 'var(--text-primary)',
-    fontSize: '0.825rem', fontFamily: 'var(--font-sans)',
-  }
+  const inputStyle = { padding: '6px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: '0.85rem' }
+  const labelStyle = { fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.08em', textTransform: 'uppercase', display: 'block', marginBottom: 4 }
 
   return (
-    <div className="card" style={{ marginBottom: 20 }}>
-      <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 8 }}>Load New Race</h2>
-      <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 16 }}>
-        Fetch loop data from Racing Reference and store in Supabase.
+    <div className="card" style={{ marginBottom: 24 }}>
+      <h3 style={{ margin: '0 0 4px', fontSize: '1rem' }}>Load New Race</h3>
+      <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0 0 16px' }}>
+        Visit the Racing Reference loop data page in your browser, press <strong>Ctrl+A</strong> then <strong>Ctrl+C</strong>, and paste below.
       </p>
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+      <div style={{ display: 'flex', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
         <div>
-          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Series</label>
-          <select value={series} onChange={e => setSeries(e.target.value)} style={inp}>
-            {SERIES_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          <label style={labelStyle}>Series</label>
+          <select value={series} onChange={e => setSeries(e.target.value)} style={inputStyle}>
+            <option value="cup">Cup Series</option>
+            <option value="oreilly">O'Reilly Series</option>
+            <option value="trucks">Truck Series</option>
           </select>
         </div>
         <div>
-          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Year</label>
-          <input type="number" value={year} onChange={e => setYear(e.target.value)} style={{ ...inp, width: 80 }} />
+          <label style={labelStyle}>Year</label>
+          <input value={year} onChange={e => setYear(e.target.value)} style={{ ...inputStyle, width: 70 }} />
         </div>
         <div>
-          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Race #</label>
-          <input type="number" placeholder="e.g. 14" value={raceNumber} onChange={e => setRaceNumber(e.target.value)} style={{ ...inp, width: 80 }} />
-        </div>
-        <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-          <button className="btn btn-primary" onClick={handleLoad} disabled={loading || !raceNumber} style={{ fontSize: '0.8125rem' }}>
-            {loading ? 'Loading...' : 'Load Race'}
-          </button>
+          <label style={labelStyle}>Race #</label>
+          <input value={raceNum} onChange={e => setRaceNum(e.target.value)} style={{ ...inputStyle, width: 60 }} />
         </div>
       </div>
-      {status && (
-        <div style={{ fontSize: '0.8125rem', color: status.type === 'success' ? '#22c55e' : '#ef4444', padding: '8px 12px', borderRadius: 6, background: status.type === 'success' ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)', border: '1px solid ' + (status.type === 'success' ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)') }}>
-          {status.msg}
+      <div style={{ marginBottom: 12 }}>
+        <label style={labelStyle}>Paste Racing Reference Page (Ctrl+A, Ctrl+C on the loop data page)</label>
+        <textarea
+          value={pasteText}
+          onChange={e => setPasteText(e.target.value)}
+          placeholder="Paste here..."
+          rows={6}
+          style={{ ...inputStyle, width: '100%', boxSizing: 'border-box', resize: 'vertical', fontFamily: 'monospace', fontSize: '0.75rem' }}
+        />
+      </div>
+      <button onClick={handleLoad} disabled={loading} className="btn btn-primary" style={{ fontSize: '0.85rem' }}>
+        {loading ? 'Loading…' : 'Parse & Load'}
+      </button>
+      {status?.success && (
+        <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.3)', borderRadius: 8, color: '#4ade80', fontSize: '0.85rem' }}>
+          {status.success}
+          {status.errors?.length > 0 && <pre style={{ marginTop: 8, fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'pre-wrap' }}>{status.errors.join('\n')}</pre>}
+        </div>
+      )}
+      {status?.error && (
+        <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)', borderRadius: 8, color: '#f87171', fontSize: '0.85rem' }}>
+          {status.error}
         </div>
       )}
     </div>
   )
 }
 
-// Load Qualifying Results
 function LoadQualifying() {
   const SERIES_CODES = { cup: 'W', oreilly: 'B', trucks: 'C' }
   const [series, setSeries] = useState('cup')
