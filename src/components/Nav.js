@@ -8,16 +8,24 @@ const PRACTICE_LINKS = [
 ]
 
 const LOOP_LINKS = [
-  { path: '/loop-data',    label: 'Loop Data' },
-  { path: '/fastest-laps', label: 'Fastest Laps' },
+  { path: '/loop-data',       label: 'Loop Data' },
+  { path: '/fastest-laps',    label: 'Fastest Laps' },
+  { path: '/loop-data-audit', label: 'Data Audit' },
+]
+
+const SIM_LINKS = [
+  { path: '/sim-results',       label: 'Sim Results' },
+  { path: '/simulation-center', label: 'Sim Center' },
 ]
 
 export default function Nav({ isAdmin, onAdminClick }) {
   const location = useLocation()
   const [practiceOpen, setPracticeOpen] = useState(false)
   const [loopOpen, setLoopOpen]         = useState(false)
+  const [simOpen, setSimOpen]           = useState(false)
   const practiceTimer = useRef(null)
   const loopTimer     = useRef(null)
+  const simTimer      = useRef(null)
 
   function makeHover(setter, timer) {
     return {
@@ -28,6 +36,7 @@ export default function Nav({ isAdmin, onAdminClick }) {
 
   const isPracticePage = PRACTICE_LINKS.some(l => location.pathname === l.path)
   const isLoopPage     = LOOP_LINKS.some(l => location.pathname === l.path)
+  const isSimPage      = SIM_LINKS.some(l => location.pathname === l.path)
 
   const linkStyle = (active) => ({
     padding: '6px 12px', borderRadius: 'var(--radius-md)',
@@ -65,6 +74,11 @@ export default function Nav({ isAdmin, onAdminClick }) {
     ) : null
   }
 
+  const dropBtn = (active) => ({
+    ...linkStyle(active), border: 'none', cursor: 'pointer',
+    display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'var(--font-sans)',
+  })
+
   return (
     <nav style={{
       background: 'var(--bg-surface)', borderBottom: '1px solid var(--border)',
@@ -78,7 +92,7 @@ export default function Nav({ isAdmin, onAdminClick }) {
         <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
           <span style={{ fontSize: '0.6875rem', fontWeight: 700, letterSpacing: '0.12em',
             color: 'var(--accent)', textTransform: 'uppercase' }}>
-            â¬¡ PitBoard
+            ⬡ PitBoard
           </span>
         </Link>
 
@@ -89,24 +103,18 @@ export default function Nav({ isAdmin, onAdminClick }) {
 
           {/* Practice Center dropdown */}
           <div style={{ position: 'relative' }} {...makeHover(setPracticeOpen, practiceTimer)}>
-            <button style={{
-              ...linkStyle(isPracticePage), border: 'none', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'var(--font-sans)',
-            }}>
+            <button style={dropBtn(isPracticePage)}>
               Practice Center
-              <span style={{ fontSize: '0.55rem', opacity: 0.7, marginTop: 1 }}>â¾</span>
+              <span style={{ fontSize: '0.55rem', opacity: 0.7, marginTop: 1 }}>▾</span>
             </button>
             <Dropdown links={PRACTICE_LINKS} open={practiceOpen} />
           </div>
 
           {/* Loop Data dropdown */}
           <div style={{ position: 'relative' }} {...makeHover(setLoopOpen, loopTimer)}>
-            <button style={{
-              ...linkStyle(isLoopPage), border: 'none', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'var(--font-sans)',
-            }}>
+            <button style={dropBtn(isLoopPage)}>
               Loop Data
-              <span style={{ fontSize: '0.55rem', opacity: 0.7, marginTop: 1 }}>â¾</span>
+              <span style={{ fontSize: '0.55rem', opacity: 0.7, marginTop: 1 }}>▾</span>
             </button>
             <Dropdown links={LOOP_LINKS} open={loopOpen} />
           </div>
@@ -115,16 +123,24 @@ export default function Nav({ isAdmin, onAdminClick }) {
             Qualifying
           </Link>
 
-          <Link to="/simulation" style={linkStyle(location.pathname === '/simulation')}>
-            Sim Center
-          </Link>
+          {/* Simulation dropdown */}
+          <div style={{ position: 'relative' }} {...makeHover(setSimOpen, simTimer)}>
+            <button style={dropBtn(isSimPage)}>
+              Simulation
+              <span style={{ fontSize: '0.55rem', opacity: 0.7, marginTop: 1 }}>▾</span>
+            </button>
+            <Dropdown links={SIM_LINKS} open={simOpen} />
+          </div>
 
         </div>
 
         {/* Right side */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {isAdmin ? (
-            <Link to="/admin" className="btn btn-ghost" style={{ fontSize: '0.75rem' }}>Admin</Link>
+            <>
+              <Link to="/admin" className="btn btn-ghost" style={{ fontSize: '0.75rem' }}>Admin</Link>
+              <Link to="/simulation-center" className="btn btn-ghost" style={{ fontSize: '0.75rem' }}>Sim Center</Link>
+            </>
           ) : (
             <>
               <button onClick={onAdminClick} className="btn btn-ghost" style={{ fontSize: '0.75rem' }}>
