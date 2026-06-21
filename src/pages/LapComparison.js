@@ -17,7 +17,7 @@ const DRIVER_COLORS = [
 ]
 
 function fmtTime(sec) {
-  if (sec == null || isNaN(sec)) return 'â'
+  if (sec == null || isNaN(sec)) return 'Ã¢ÂÂ'
   const m = Math.floor(sec / 60)
   const s = (sec % 60).toFixed(3).padStart(6, '0')
   return m > 0 ? `${m}:${s}` : `${sec.toFixed(3)}`
@@ -132,7 +132,7 @@ export default function LapComparison({ isSubscriber }) {
       // Filter pit/outlaps: any lap > 1.5x the driver's best is a pit stop lap
         Object.values(map).forEach(d => {
           const best = Math.min(...d.laps.map(l => l.time))
-          d.laps = d.laps.filter(l => l.time <= best * 1.5)
+          d.laps = d.laps.filter(l => l.time <= best * 1.15)
         })
 
         const drivers = Object.values(map).sort((a, b) => {
@@ -271,7 +271,7 @@ CREATE INDEX ON practice_laps (series, year, track_name, session_number);`}</pre
                   borderColor: selectedSession?.key === s.key ? 'var(--accent)60' : 'var(--border)',
                 }}
               >
-                {s.track_name} {s.year} â S{s.session_number}
+                {s.track_name} {s.year} Ã¢ÂÂ S{s.session_number}
               </button>
             ))}
           </div>
@@ -279,7 +279,7 @@ CREATE INDEX ON practice_laps (series, year, track_name, session_number);`}</pre
           {loading && (
             <div className="empty-state">
               <div className="spinner" style={{ margin: '0 auto 12px' }} />
-              <p>Loading lap dataâ¦</p>
+              <p>Loading lap dataÃ¢ÂÂ¦</p>
             </div>
           )}
 
@@ -336,7 +336,7 @@ CREATE INDEX ON practice_laps (series, year, track_name, session_number);`}</pre
                         </div>
                         <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
                           {d.starting_position ? <span style={{ color: '#f59e0b', marginRight: 6 }}>P{d.starting_position}</span> : null}
-                          {d.laps.length} laps Â· best {fmtTime(Math.min(...d.laps.map(l => l.time)))}
+                          {d.laps.length} laps ÃÂ· best {fmtTime(Math.min(...d.laps.map(l => l.time)))}
                         </div>
                       </div>
                     </div>
@@ -416,7 +416,7 @@ CREATE INDEX ON practice_laps (series, year, track_name, session_number);`}</pre
                                   <span style={{ fontWeight: 500 }}>{name}</span>
                                 </td>
                                 <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: '#f59e0b', fontWeight: 600 }}>
-                                  {d.starting_position ? `P${d.starting_position}` : 'â'}
+                                  {d.starting_position ? `P${d.starting_position}` : 'Ã¢ÂÂ'}
                                 </td>
                                 <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{times.length}</td>
                                 <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--accent)', fontWeight: 600 }}>{fmtTime(best)}</td>
