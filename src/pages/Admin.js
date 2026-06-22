@@ -631,6 +631,27 @@ function LoadNewRace() {
   const [status, setStatus]     = useState(null)
   const [loading, setLoading]   = useState(false)
 
+  const NAME_MAP = {
+    'John H. Nemechek':      'John Hunter Nemechek',
+    'Baltazar Leguizamon':   'Baltazar Leguizamón',
+    'Daniel Suarez':         'Daniel Suárez',
+    'A.J. Allmendinger':     'AJ Allmendinger',
+    'Christopher Bell Jr':   'Christopher Bell',
+  }
+  // Last-name-only fallback for drivers Racing Reference abbreviates inconsistently
+  const NAME_LAST = [
+    { key: 'Nemechek',    val: 'John Hunter Nemechek' },
+    { key: 'Leguizamon',  val: 'Baltazar Leguizamón' },
+    { key: 'Suárez',      val: 'Daniel Suárez' },
+    { key: 'Suarez',      val: 'Daniel Suárez' },
+  ]
+  function normalizeDriverName(name) {
+    if (NAME_MAP[name]) return NAME_MAP[name]
+    for (const { key, val } of NAME_LAST) {
+      if (name.includes(key)) return val
+    }
+    return name
+  }
   function parseLoopData(text) {
     const atMatch = text.match(/at\s+([^,\n]+)/i)
     const trackName = atMatch ? atMatch[1].trim() : ('Race ' + raceNum + ' ' + year)
@@ -641,7 +662,7 @@ function LoadNewRace() {
     let m
     while ((m = driverRowRe.exec(text)) !== null) {
       rows.push({
-        driver_name: m[1].trim(),
+        driver_name: normalizeDriverName(m[1].trim()),
         start_position: parseInt(m[2]), mid_race_position: parseInt(m[3]),
         finish_position: parseInt(m[4]), high_position: parseInt(m[5]),
         low_position: parseInt(m[6]), avg_position: parseFloat(m[7]),
