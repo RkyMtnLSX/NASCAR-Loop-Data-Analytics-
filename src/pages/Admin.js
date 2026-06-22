@@ -633,17 +633,17 @@ function LoadNewRace() {
 
   const NAME_MAP = {
     'John H. Nemechek':      'John Hunter Nemechek',
-    'Baltazar Leguizamon':   'Baltazar LeguizamÃÂÃÂÃÂÃÂ³n',
-    'Daniel Suarez':         'Daniel SuÃÂÃÂÃÂÃÂ¡rez',
+    'Baltazar Leguizamon':   'Baltazar LeguizamÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ³n',
+    'Daniel Suarez':         'Daniel SuÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¡rez',
     'A.J. Allmendinger':     'AJ Allmendinger',
     'Christopher Bell Jr':   'Christopher Bell',
   }
   // Last-name-only fallback for drivers Racing Reference abbreviates inconsistently
   const NAME_LAST = [
     { key: 'Nemechek',    val: 'John Hunter Nemechek' },
-    { key: 'Leguizamon',  val: 'Baltazar LeguizamÃÂÃÂÃÂÃÂ³n' },
-    { key: 'SuÃÂÃÂÃÂÃÂ¡rez',      val: 'Daniel SuÃÂÃÂÃÂÃÂ¡rez' },
-    { key: 'Suarez',      val: 'Daniel SuÃÂÃÂÃÂÃÂ¡rez' },
+    { key: 'Leguizamon',  val: 'Baltazar LeguizamÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ³n' },
+    { key: 'SuÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¡rez',      val: 'Daniel SuÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¡rez' },
+    { key: 'Suarez',      val: 'Daniel SuÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¡rez' },
   ]
   function normalizeDriverName(name) {
     if (NAME_MAP[name]) return NAME_MAP[name]
@@ -772,7 +772,7 @@ function LoadNewRace() {
         />
       </div>
       <button onClick={handleLoad} disabled={loading} className="btn btn-primary" style={{ fontSize: '0.85rem' }}>
-        {loading ? 'LoadingÃÂÃÂ¢ÃÂÃÂÃÂÃÂ¦' : 'Parse & Load'}
+        {loading ? 'LoadingÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¦' : 'Parse & Load'}
       </button>
       {status?.success && (
         <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.3)', borderRadius: 8, color: '#4ade80', fontSize: '0.85rem' }}>
@@ -833,7 +833,7 @@ function LoadQualifying() {
     if (text.trim()) {
       const drivers = parseText(text)
       setPreview(drivers.length > 0 ? drivers : null)
-      if (drivers.length === 0) setStatus({ type: 'error', msg: 'No qualifying rows found ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ make sure you Ctrl+A / Ctrl+C the full Racing Reference page' })
+      if (drivers.length === 0) setStatus({ type: 'error', msg: 'No qualifying rows found ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ make sure you Ctrl+A / Ctrl+C the full Racing Reference page' })
     } else {
       setPreview(null)
     }
@@ -878,7 +878,7 @@ function LoadQualifying() {
       <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 8 }}>Load Qualifying Results</h2>
       <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 16 }}>
         Go to Racing Reference, press <strong>Ctrl+A</strong> then <strong>Ctrl+C</strong>, then paste below.
-        {url && <> <a href={url} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', marginLeft: 6 }}>Open Racing Reference ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ</a></>}
+        {url && <> <a href={url} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', marginLeft: 6 }}>Open Racing Reference ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ</a></>}
       </p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10, marginBottom: 14 }}>
@@ -916,7 +916,7 @@ function LoadQualifying() {
       {preview && preview.length > 0 && (
         <div style={{ marginBottom: 14 }}>
           <div style={{ fontSize: '0.8rem', color: '#22c55e', marginBottom: 8 }}>
-            Parsed {preview.length} drivers ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ Pole: {preview[0].driverName} ({preview[0].speed} mph)
+            Parsed {preview.length} drivers ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ Pole: {preview[0].driverName} ({preview[0].speed} mph)
           </div>
           <div style={{ overflowX: 'auto', borderRadius: 6, border: '1px solid var(--border)', maxHeight: 200, overflowY: 'auto' }}>
             <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: '0.78rem' }}>
@@ -1129,29 +1129,32 @@ function LoadFastestLaps() {
   const [loading, setLoading]     = useState(false)
   const [status, setStatus]       = useState(null)
 
-  // Lap Raptor columns: Rank  Driver  Car  Fastest Lap  Time  Speed  Start  Finish  Status
+  // Lap Raptor Lap Performance columns (use ?report=lap_performance tab):
+  // Driver  Car  Make  Start  Finish  Status  ARP  FL#  FL_Time(s)  P50_Time  P95_Time  FL_Speed(mph)  P50_Speed  P95_Speed
   function parsePaste() {
-    const RE = /^(\d{1,2})\s+(.+?)\s+(\d{1,3})\s+(\d+)\s+([\d.]+)\s+([\d.]+)\s+(\d+)\s+(\d+)\s+(.+)$/gm
+    const RE = /^(.+?)\s+(\d{1,3})\s+(?:Chevy|Chevrolet|Ford|Toyota|Dodge|Ram)\s+(\d+)\s+(\d+)\s+(\w+)\s+[\d.]+\s+(\d+)\s+([\d.]+)\s+[\d.]+\s+[\d.]+\s+([\d.]+)/gm
     const rows = []
     let m
     while ((m = RE.exec(pasteText)) !== null) {
       rows.push({
-        rank:            parseInt(m[1]),
-        driver:          m[2].trim(),
-        car:             m[3].trim(),
-        fastest_lap_num: m[4].trim(),
-        fastest_time:    m[5].trim(),
-        fastest_speed:   m[6].trim(),
-        start_pos:       m[7].trim(),
-        finish_pos:      m[8].trim(),
-        status:          m[9].trim(),
+        driver:          m[1].trim(),
+        car:             m[2].trim(),
+        start_pos:       m[3].trim(),
+        finish_pos:      m[4].trim(),
+        status:          m[5].trim(),
+        fastest_lap_num: m[6].trim(),
+        fastest_time:    m[7].trim(),
+        fastest_speed:   m[8].trim(),
       })
     }
+    // Sort by fastest_time ascending and assign rank (1 = fastest lap in race)
+    rows.sort((a, b) => parseFloat(a.fastest_time) - parseFloat(b.fastest_time))
+    rows.forEach((r, i) => { r.rank = i + 1 })
     setParsed(rows)
     if (rows.length === 0) {
-      setStatus({ type: 'error', msg: 'No rows parsed - go to Lap Raptor race page, Ctrl+A, Ctrl+C, paste here' })
+      setStatus({ type: 'error', msg: 'No rows parsed - go to Lap Raptor race page, click Lap Performance tab, Ctrl+A, Ctrl+C, paste here' })
     } else {
-      setStatus({ type: 'info', msg: `Parsed ${rows.length} drivers - fill in metadata then click Load` })
+      setStatus({ type: 'info', msg: 'Parsed ' + rows.length + ' drivers - fill in metadata then click Load' })
     }
   }
 
@@ -1194,7 +1197,7 @@ function LoadFastestLaps() {
     <div className="card" style={{ marginBottom: 20 }}>
       <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 8 }}>Load Fastest Laps</h2>
       <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 16 }}>
-        Go to the Lap Raptor race page: press Ctrl+A, Ctrl+C, paste below. Fill in metadata, then Parse, then Load.
+        Go to the Lap Raptor race page, click the Lap Performance tab, then Ctrl+A, Ctrl+C, paste below. Fill in metadata, Parse, then Load.
       </p>
 
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 14 }}>
@@ -1271,10 +1274,10 @@ function SimFormulaPanel() {
   ]
   const factors = [
     ['Corr. History',  'driver_ratings + avg_finish at correlated tracks, year-weighted. Blended 70% rating / 30% finish score. Confidence = min(1, nRaces / 4).'],
-    ['Long Run Pace',  'overall_avg from practice_sessions ÃÂ¢ÃÂÃÂ all laps across all stints, any lap >8% slower than session median dropped (V5.1). Lower is better.'],
-    ['Short Run Pace', 'late_run_avg from practice_sessions ÃÂ¢ÃÂÃÂ short-stint laps, mock-qual stints excluded. Lower is better.'],
+    ['Long Run Pace',  'overall_avg from practice_sessions ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ all laps across all stints, any lap >8% slower than session median dropped (V5.1). Lower is better.'],
+    ['Short Run Pace', 'late_run_avg from practice_sessions ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ short-stint laps, mock-qual stints excluded. Lower is better.'],
     ['Start Position', 'qualifying_position from practice_sessions (placeholder until qual runs). Lower is better.'],
-    ['Tire Falloff',   'trend_slope from practice_sessions ÃÂ¢ÃÂÃÂ lap-time slope vs lap # in longest stint (min 10 laps required, else null ÃÂ¢ÃÂÃÂ 50). Lower is better.'],
+    ['Tire Falloff',   'trend_slope from practice_sessions ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ lap-time slope vs lap # in longest stint (min 10 laps required, else null ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ 50). Lower is better.'],
     ['Race Craft',     'Avg quality pass % (pct_quality_passes) from loop_data at correlated tracks, year-weighted (2026 = 3x, 2025 = 2x, older = 1x). Higher is better.'],
   ]
   const yearW = [
@@ -1293,7 +1296,7 @@ function SimFormulaPanel() {
     <div className="card" style={{ marginBottom: 20 }}>
       <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 4 }}>Sim Center Formula</h2>
       <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 16 }}>
-        Read-only reference ÃÂ¢ÃÂÃÂ current weights and data sources used by Race Simulation.
+        Read-only reference ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ current weights and data sources used by Race Simulation.
       </p>
 
       <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', marginBottom: 20 }}>
@@ -1347,7 +1350,7 @@ function SimFormulaPanel() {
 
       <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 12, marginBottom: 0 }}>
         All factors are field-normalized 0-100 before weighting. Drivers missing data default to 50 (neutral).
-        Road course auto-detected by track name ÃÂ¢ÃÂÃÂ weights switch automatically in Simulation Center.
+        Road course auto-detected by track name ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ weights switch automatically in Simulation Center.
       </p>
     </div>
   )
