@@ -633,17 +633,17 @@ function LoadNewRace() {
 
   const NAME_MAP = {
     'John H. Nemechek':      'John Hunter Nemechek',
-    'Baltazar Leguizamon':   'Baltazar Leguizamón',
-    'Daniel Suarez':         'Daniel Suárez',
+    'Baltazar Leguizamon':   'Baltazar LeguizamÃ³n',
+    'Daniel Suarez':         'Daniel SuÃ¡rez',
     'A.J. Allmendinger':     'AJ Allmendinger',
     'Christopher Bell Jr':   'Christopher Bell',
   }
   // Last-name-only fallback for drivers Racing Reference abbreviates inconsistently
   const NAME_LAST = [
     { key: 'Nemechek',    val: 'John Hunter Nemechek' },
-    { key: 'Leguizamon',  val: 'Baltazar Leguizamón' },
-    { key: 'Suárez',      val: 'Daniel Suárez' },
-    { key: 'Suarez',      val: 'Daniel Suárez' },
+    { key: 'Leguizamon',  val: 'Baltazar LeguizamÃ³n' },
+    { key: 'SuÃ¡rez',      val: 'Daniel SuÃ¡rez' },
+    { key: 'Suarez',      val: 'Daniel SuÃ¡rez' },
   ]
   function normalizeDriverName(name) {
     if (NAME_MAP[name]) return NAME_MAP[name]
@@ -772,7 +772,7 @@ function LoadNewRace() {
         />
       </div>
       <button onClick={handleLoad} disabled={loading} className="btn btn-primary" style={{ fontSize: '0.85rem' }}>
-        {loading ? 'Loading…' : 'Parse & Load'}
+        {loading ? 'Loadingâ¦' : 'Parse & Load'}
       </button>
       {status?.success && (
         <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.3)', borderRadius: 8, color: '#4ade80', fontSize: '0.85rem' }}>
@@ -833,7 +833,7 @@ function LoadQualifying() {
     if (text.trim()) {
       const drivers = parseText(text)
       setPreview(drivers.length > 0 ? drivers : null)
-      if (drivers.length === 0) setStatus({ type: 'error', msg: 'No qualifying rows found â make sure you Ctrl+A / Ctrl+C the full Racing Reference page' })
+      if (drivers.length === 0) setStatus({ type: 'error', msg: 'No qualifying rows found Ã¢ÂÂ make sure you Ctrl+A / Ctrl+C the full Racing Reference page' })
     } else {
       setPreview(null)
     }
@@ -878,7 +878,7 @@ function LoadQualifying() {
       <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 8 }}>Load Qualifying Results</h2>
       <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 16 }}>
         Go to Racing Reference, press <strong>Ctrl+A</strong> then <strong>Ctrl+C</strong>, then paste below.
-        {url && <> <a href={url} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', marginLeft: 6 }}>Open Racing Reference â</a></>}
+        {url && <> <a href={url} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', marginLeft: 6 }}>Open Racing Reference Ã¢ÂÂ</a></>}
       </p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10, marginBottom: 14 }}>
@@ -916,7 +916,7 @@ function LoadQualifying() {
       {preview && preview.length > 0 && (
         <div style={{ marginBottom: 14 }}>
           <div style={{ fontSize: '0.8rem', color: '#22c55e', marginBottom: 8 }}>
-            Parsed {preview.length} drivers â Pole: {preview[0].driverName} ({preview[0].speed} mph)
+            Parsed {preview.length} drivers Ã¢ÂÂ Pole: {preview[0].driverName} ({preview[0].speed} mph)
           </div>
           <div style={{ overflowX: 'auto', borderRadius: 6, border: '1px solid var(--border)', maxHeight: 200, overflowY: 'auto' }}>
             <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: '0.78rem' }}>
@@ -1115,101 +1115,135 @@ function LoadQualifyingOrder() {
 }
 
 
+// Load Fastest Laps
+const FL_TRACK_TYPES = ['Short Track', 'Intermediate', 'Superspeedway', 'Road Course', 'Other']
+
 function LoadFastestLaps() {
-  const [year, setYear] = React.useState(new Date().getFullYear())
-  const [trackType, setTrackType] = React.useState('')
-  const [raceName, setRaceName] = React.useState('')
-  const [raceDate, setRaceDate] = React.useState('')
-  const [track, setTrack] = React.useState('')
-  const [csvText, setCsvText] = React.useState('')
-  const [loading, setLoading] = React.useState(false)
-  const [status, setStatus] = React.useState(null)
+  const [year, setYear]           = useState(new Date().getFullYear())
+  const [trackType, setTrackType] = useState('Intermediate')
+  const [raceName, setRaceName]   = useState('')
+  const [raceDate, setRaceDate]   = useState('')
+  const [trackName, setTrackName] = useState('')
+  const [pasteText, setPasteText] = useState('')
+  const [parsed, setParsed]       = useState(null)
+  const [loading, setLoading]     = useState(false)
+  const [status, setStatus]       = useState(null)
 
-  function parseRows(text) {
-    return text.trim().split('\n').filter(l => l.trim()).map(function(line) {
-      const parts = line.split(',').map(function(p) { return p.trim() })
-      return {
-        driver: parts[0] || '',
-        car: parts[1] || null,
-        fastest_lap_num: parts[2] || null,
-        fastest_time: parts[3] || null,
-        fastest_speed: parts[4] || null,
-        start_pos: parts[5] || null,
-        finish_pos: parts[6] || null,
-        status: parts[7] || null,
-      }
-    })
-  }
-
-  async function handleLoad() {
-    if (!raceName || !raceDate || !track || !csvText.trim()) return
-    setLoading(true)
-    setStatus(null)
-    try {
-      const rows = parseRows(csvText)
-      const resp = await fetch('/api/load-fastest-laps', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ year: parseInt(year), track_type: trackType || null, race_name: raceName, race_date: raceDate, track, rows }),
+  // Lap Raptor columns: Rank  Driver  Car  Fastest Lap  Time  Speed  Start  Finish  Status
+  function parsePaste() {
+    const RE = /^(\d{1,2})\s+(.+?)\s+(\d{1,3})\s+(\d+)\s+([\d.]+)\s+([\d.]+)\s+(\d+)\s+(\d+)\s+(.+)$/gm
+    const rows = []
+    let m
+    while ((m = RE.exec(pasteText)) !== null) {
+      rows.push({
+        rank:            parseInt(m[1]),
+        driver:          m[2].trim(),
+        car:             m[3].trim(),
+        fastest_lap_num: m[4].trim(),
+        fastest_time:    m[5].trim(),
+        fastest_speed:   m[6].trim(),
+        start_pos:       m[7].trim(),
+        finish_pos:      m[8].trim(),
+        status:          m[9].trim(),
       })
-      const data = await resp.json()
-      if (!resp.ok) throw new Error(data.error || 'Failed')
-      setStatus({ type: 'success', msg: data.message })
-    } catch (err) {
-      setStatus({ type: 'error', msg: err.message })
-    } finally {
-      setLoading(false)
+    }
+    setParsed(rows)
+    if (rows.length === 0) {
+      setStatus({ type: 'error', msg: 'No rows parsed — go to Lap Raptor race page, Ctrl+A, Ctrl+C, paste here' })
+    } else {
+      setStatus({ type: 'info', msg: `Parsed ${rows.length} drivers — fill in metadata then click Load` })
     }
   }
 
-  const inp = {
-    padding: '7px 10px', borderRadius: 6, border: '1px solid var(--border)',
-    background: 'var(--bg-elevated)', color: 'var(--text-primary)',
-    fontSize: '0.825rem', fontFamily: 'var(--font-sans)',
+  async function handleLoad() {
+    if (!parsed?.length || !raceName || !raceDate || !trackName) return
+    setLoading(true)
+    setStatus(null)
+    try {
+      const res = await fetch('/api/load-fastest-laps', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          year: String(year),
+          track_type: trackType,
+          race_name: raceName,
+          race_date: raceDate,
+          track: trackName,
+          rows: parsed,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Load failed')
+      setStatus({ type: 'success', msg: data.message || `Loaded ${parsed.length} drivers` })
+      setParsed(null)
+      setPasteText('')
+    } catch (err) {
+      setStatus({ type: 'error', msg: err.message })
+    }
+    setLoading(false)
   }
+
+  const inputStyle = {
+    padding: '7px 10px', background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+    borderRadius: 'var(--radius-md)', color: 'var(--text-primary)',
+    fontFamily: 'var(--font-sans)', fontSize: '0.8125rem', outline: 'none',
+  }
+  const labelStyle = { display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.04em' }
 
   return (
     <div className="card" style={{ marginBottom: 20 }}>
       <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 8 }}>Load Fastest Laps</h2>
       <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 16 }}>
-        Paste fastest lap data from Lap Raptor (CSV: driver, car, lap#, time, speed, start, finish, status).
+        Go to the Lap Raptor race page → Ctrl+A → Ctrl+C → paste below. Fill in race metadata then click Parse, then Load.
       </p>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10, marginBottom: 12 }}>
+
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 14 }}>
         <div>
-          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Year</label>
-          <input type="number" value={year} onChange={e => setYear(e.target.value)} style={inp} />
+          <label style={labelStyle}>Year</label>
+          <input type="number" value={year} onChange={e => setYear(parseInt(e.target.value))} style={{ ...inputStyle, width: 80 }} />
         </div>
         <div>
-          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Track Type</label>
-          <input type="text" placeholder="e.g. oval" value={trackType} onChange={e => setTrackType(e.target.value)} style={inp} />
+          <label style={labelStyle}>Track Type</label>
+          <select value={trackType} onChange={e => setTrackType(e.target.value)} style={inputStyle}>
+            {FL_TRACK_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
         </div>
         <div>
-          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Race Name</label>
-          <input type="text" placeholder="e.g. Pocono 400" value={raceName} onChange={e => setRaceName(e.target.value)} style={inp} />
+          <label style={labelStyle}>Race Name</label>
+          <input value={raceName} onChange={e => setRaceName(e.target.value)} style={{ ...inputStyle, width: 220 }} placeholder="Anduril 250" />
         </div>
         <div>
-          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Race Date</label>
-          <input type="date" value={raceDate} onChange={e => setRaceDate(e.target.value)} style={inp} />
+          <label style={labelStyle}>Race Date (MM/DD/YYYY)</label>
+          <input value={raceDate} onChange={e => setRaceDate(e.target.value)} style={{ ...inputStyle, width: 130 }} placeholder="06/22/2026" />
         </div>
         <div>
-          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>Track</label>
-          <input type="text" placeholder="e.g. Pocono Raceway" value={track} onChange={e => setTrack(e.target.value)} style={inp} />
+          <label style={labelStyle}>Track Name</label>
+          <input value={trackName} onChange={e => setTrackName(e.target.value)} style={{ ...inputStyle, width: 260 }} placeholder="Sonoma Raceway (1.99 miles)" />
         </div>
       </div>
-      <div style={{ marginBottom: 12 }}>
-        <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase' }}>
-          CSV Data (driver, car#, lap#, time, speed, start, finish, status)
-        </label>
-        <textarea value={csvText} onChange={e => setCsvText(e.target.value)} rows={8}
-          placeholder="Kyle Larson,5,312,28.456,189.2,1,1,Running"
-          style={{ width: '100%', fontFamily: 'monospace', fontSize: '0.8rem', padding: '8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', resize: 'vertical', boxSizing: 'border-box' }}
-        />
+
+      <textarea
+        value={pasteText}
+        onChange={e => { setPasteText(e.target.value); setParsed(null); setStatus(null) }}
+        placeholder="Paste Lap Raptor race page here (Ctrl+A, Ctrl+C)"
+        rows={6}
+        style={{ ...inputStyle, width: '100%', resize: 'vertical', marginBottom: 10 }}
+      />
+
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+        <button className="btn btn-secondary" onClick={parsePaste} disabled={!pasteText.trim()} style={{ fontSize: '0.8125rem' }}>
+          Parse
+        </button>
+        <button className="btn btn-primary" onClick={handleLoad}
+          disabled={loading || !parsed?.length || !raceName || !raceDate || !trackName}
+          style={{ fontSize: '0.8125rem' }}>
+          {loading ? 'Loading...' : `Load${parsed ? ` (${parsed.length} drivers)` : ''}`}
+        </button>
       </div>
-      <button className="btn btn-primary" onClick={handleLoad} disabled={loading || !raceName || !raceDate || !track || !csvText.trim()} style={{ fontSize: '0.8125rem' }}>
-        {loading ? 'Loading...' : 'Load Fastest Laps'}
-      </button>
+
       {status && (
-        <div style={{ marginTop: 10, fontSize: '0.8125rem', color: status.type === 'success' ? '#22c55e' : '#ef4444', padding: '8px 12px', borderRadius: 6, background: status.type === 'success' ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)', border: '1px solid ' + (status.type === 'success' ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)') }}>
+        <div style={{ marginTop: 12, fontSize: '0.8125rem',
+          color: status.type === 'success' ? '#22c55e' : status.type === 'info' ? 'var(--accent)' : '#ef4444' }}>
           {status.msg}
         </div>
       )}
@@ -1217,110 +1251,6 @@ function LoadFastestLaps() {
   )
 }
 
-
-// ============================================================
-// Sim Center Formula Panel â read-only reference for Admin
-// ============================================================
-function SimFormulaPanel() {
-  const ovalW = [
-    ['Corr. History',  '30%'],
-    ['Long Run Pace',  '25%'],
-    ['Short Run Pace', '15%'],
-    ['Start Position', '15%'],
-    ['Tire Falloff',   '10%'],
-    ['Race Craft',      '5%'],
-  ]
-  const rcW = [
-    ['Corr. History',  '40%'],
-    ['Long Run Pace',  '15%'],
-    ['Short Run Pace', '15%'],
-    ['Start Position', '10%'],
-    ['Tire Falloff',   '10%'],
-    ['Race Craft',     '10%'],
-  ]
-  const factors = [
-    ['Corr. History',  'driver_ratings + avg_finish at correlated tracks, year-weighted. Blended 70% rating / 30% finish score. Confidence = min(1, nRaces / 4).'],
-    ['Long Run Pace',  'overall_avg from practice_sessions â all laps across all stints, any lap >8% slower than session median dropped (V5.1). Lower is better.'],
-    ['Short Run Pace', 'late_run_avg from practice_sessions â short-stint laps, mock-qual stints excluded. Lower is better.'],
-    ['Start Position', 'qualifying_position from practice_sessions (placeholder until qual runs). Lower is better.'],
-    ['Tire Falloff',   'trend_slope from practice_sessions â lap-time slope vs lap # in longest stint (min 10 laps required, else null â 50). Lower is better.'],
-    ['Race Craft',     'Avg quality pass % (pct_quality_passes) from loop_data at correlated tracks, year-weighted (2026 = 3x, 2025 = 2x, older = 1x). Higher is better.'],
-  ]
-  const yearW = [
-    ['2026', '2.0x'],
-    ['2025', '1.3x'],
-    ['2024', '0.9x'],
-    ['2023', '0.6x'],
-    ['2022-', '0.4x'],
-  ]
-  const cell  = { padding: '4px 10px', fontSize: '0.78125rem', borderBottom: '1px solid var(--border-color)' }
-  const hd    = { ...cell, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: '0.6875rem' }
-  const tbl   = { borderCollapse: 'collapse', width: '100%' }
-  const label = { fontSize: '0.75rem', fontWeight: 600, marginBottom: 6, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }
-
-  return (
-    <div className="card" style={{ marginBottom: 20 }}>
-      <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 4 }}>Sim Center Formula</h2>
-      <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 16 }}>
-        Read-only reference â current weights and data sources used by Race Simulation.
-      </p>
-
-      <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', marginBottom: 20 }}>
-        <div style={{ flex: 1, minWidth: 180 }}>
-          <div style={label}>Oval Weights</div>
-          <table style={tbl}>
-            <thead><tr><th style={hd}>Factor</th><th style={{ ...hd, textAlign: 'right' }}>Weight</th></tr></thead>
-            <tbody>
-              {ovalW.map(([f, w]) => (
-                <tr key={f}><td style={cell}>{f}</td><td style={{ ...cell, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{w}</td></tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div style={{ flex: 1, minWidth: 180 }}>
-          <div style={label}>Road Course Weights</div>
-          <table style={tbl}>
-            <thead><tr><th style={hd}>Factor</th><th style={{ ...hd, textAlign: 'right' }}>Weight</th></tr></thead>
-            <tbody>
-              {rcW.map(([f, w]) => (
-                <tr key={f}><td style={cell}>{f}</td><td style={{ ...cell, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{w}</td></tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div style={{ flex: 1, minWidth: 140 }}>
-          <div style={label}>Year Weights (Corr. History)</div>
-          <table style={tbl}>
-            <thead><tr><th style={hd}>Year</th><th style={{ ...hd, textAlign: 'right' }}>Mult.</th></tr></thead>
-            <tbody>
-              {yearW.map(([y, m]) => (
-                <tr key={y}><td style={cell}>{y}</td><td style={{ ...cell, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{m}</td></tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div style={label}>Factor Definitions</div>
-      <table style={tbl}>
-        <thead><tr><th style={{ ...hd, width: 130 }}>Factor</th><th style={hd}>Source &amp; Logic</th></tr></thead>
-        <tbody>
-          {factors.map(([f, desc]) => (
-            <tr key={f}>
-              <td style={{ ...cell, fontWeight: 600, whiteSpace: 'nowrap', verticalAlign: 'top' }}>{f}</td>
-              <td style={{ ...cell, color: 'var(--text-muted)', lineHeight: 1.5 }}>{desc}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 12, marginBottom: 0 }}>
-        All factors are field-normalized 0-100 before weighting. Drivers missing data default to 50 (neutral).
-        Road course auto-detected by track name â weights switch automatically in Simulation Center.
-      </p>
-    </div>
-  )
-}
 
 export default function Admin() {
   const [authed, setAuthed] = useState(false)
