@@ -633,17 +633,17 @@ function LoadNewRace() {
 
   const NAME_MAP = {
     'John H. Nemechek':      'John Hunter Nemechek',
-    'Baltazar Leguizamon':   'Baltazar LeguizamÃ³n',
-    'Daniel Suarez':         'Daniel SuÃ¡rez',
+    'Baltazar Leguizamon':   'Baltazar LeguizamÃÂ³n',
+    'Daniel Suarez':         'Daniel SuÃÂ¡rez',
     'A.J. Allmendinger':     'AJ Allmendinger',
     'Christopher Bell Jr':   'Christopher Bell',
   }
   // Last-name-only fallback for drivers Racing Reference abbreviates inconsistently
   const NAME_LAST = [
     { key: 'Nemechek',    val: 'John Hunter Nemechek' },
-    { key: 'Leguizamon',  val: 'Baltazar LeguizamÃ³n' },
-    { key: 'SuÃ¡rez',      val: 'Daniel SuÃ¡rez' },
-    { key: 'Suarez',      val: 'Daniel SuÃ¡rez' },
+    { key: 'Leguizamon',  val: 'Baltazar LeguizamÃÂ³n' },
+    { key: 'SuÃÂ¡rez',      val: 'Daniel SuÃÂ¡rez' },
+    { key: 'Suarez',      val: 'Daniel SuÃÂ¡rez' },
   ]
   function normalizeDriverName(name) {
     if (NAME_MAP[name]) return NAME_MAP[name]
@@ -772,7 +772,7 @@ function LoadNewRace() {
         />
       </div>
       <button onClick={handleLoad} disabled={loading} className="btn btn-primary" style={{ fontSize: '0.85rem' }}>
-        {loading ? 'Loadingâ¦' : 'Parse & Load'}
+        {loading ? 'LoadingÃ¢ÂÂ¦' : 'Parse & Load'}
       </button>
       {status?.success && (
         <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.3)', borderRadius: 8, color: '#4ade80', fontSize: '0.85rem' }}>
@@ -833,7 +833,7 @@ function LoadQualifying() {
     if (text.trim()) {
       const drivers = parseText(text)
       setPreview(drivers.length > 0 ? drivers : null)
-      if (drivers.length === 0) setStatus({ type: 'error', msg: 'No qualifying rows found Ã¢ÂÂ make sure you Ctrl+A / Ctrl+C the full Racing Reference page' })
+      if (drivers.length === 0) setStatus({ type: 'error', msg: 'No qualifying rows found ÃÂ¢ÃÂÃÂ make sure you Ctrl+A / Ctrl+C the full Racing Reference page' })
     } else {
       setPreview(null)
     }
@@ -878,7 +878,7 @@ function LoadQualifying() {
       <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 8 }}>Load Qualifying Results</h2>
       <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 16 }}>
         Go to Racing Reference, press <strong>Ctrl+A</strong> then <strong>Ctrl+C</strong>, then paste below.
-        {url && <> <a href={url} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', marginLeft: 6 }}>Open Racing Reference Ã¢ÂÂ</a></>}
+        {url && <> <a href={url} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', marginLeft: 6 }}>Open Racing Reference ÃÂ¢ÃÂÃÂ</a></>}
       </p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10, marginBottom: 14 }}>
@@ -916,7 +916,7 @@ function LoadQualifying() {
       {preview && preview.length > 0 && (
         <div style={{ marginBottom: 14 }}>
           <div style={{ fontSize: '0.8rem', color: '#22c55e', marginBottom: 8 }}>
-            Parsed {preview.length} drivers Ã¢ÂÂ Pole: {preview[0].driverName} ({preview[0].speed} mph)
+            Parsed {preview.length} drivers ÃÂ¢ÃÂÃÂ Pole: {preview[0].driverName} ({preview[0].speed} mph)
           </div>
           <div style={{ overflowX: 'auto', borderRadius: 6, border: '1px solid var(--border)', maxHeight: 200, overflowY: 'auto' }}>
             <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: '0.78rem' }}>
@@ -1149,9 +1149,9 @@ function LoadFastestLaps() {
     }
     setParsed(rows)
     if (rows.length === 0) {
-      setStatus({ type: 'error', msg: 'No rows parsed — go to Lap Raptor race page, Ctrl+A, Ctrl+C, paste here' })
+      setStatus({ type: 'error', msg: 'No rows parsed â go to Lap Raptor race page, Ctrl+A, Ctrl+C, paste here' })
     } else {
-      setStatus({ type: 'info', msg: `Parsed ${rows.length} drivers — fill in metadata then click Load` })
+      setStatus({ type: 'info', msg: `Parsed ${rows.length} drivers â fill in metadata then click Load` })
     }
   }
 
@@ -1194,7 +1194,7 @@ function LoadFastestLaps() {
     <div className="card" style={{ marginBottom: 20 }}>
       <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 8 }}>Load Fastest Laps</h2>
       <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 16 }}>
-        Go to the Lap Raptor race page → Ctrl+A → Ctrl+C → paste below. Fill in race metadata then click Parse, then Load.
+        Go to the Lap Raptor race page â Ctrl+A â Ctrl+C â paste below. Fill in race metadata then click Parse, then Load.
       </p>
 
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 14 }}>
@@ -1237,7 +1237,7 @@ function LoadFastestLaps() {
         <button className="btn btn-primary" onClick={handleLoad}
           disabled={loading || !parsed?.length || !raceName || !raceDate || !trackName}
           style={{ fontSize: '0.8125rem' }}>
-          {loading ? 'Loading...' : `Load${parsed ? ` (${parsed.length} drivers)` : ''}`}
+          {loading ? 'Loading...' : (parsed ? 'Load (' + parsed.length + ' drivers)' : 'Load')}
         </button>
       </div>
 
