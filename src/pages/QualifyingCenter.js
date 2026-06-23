@@ -34,6 +34,7 @@ const TRACK_ABBR = {
   'Texas Motor Speedway': 'Texas',
   'Richmond Raceway': 'Richmond',
   'Martinsville Speedway': 'Martinsville',
+  'Naval Base Coronado': 'NBC',
   'North Wilkesboro Speedway': 'NWB',
 }
 
