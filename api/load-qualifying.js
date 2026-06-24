@@ -232,7 +232,7 @@ module.exports = async function handler(req, res) {
   const errors = []
   for (let i = 0; i < rows.length; i += 100) {
     const batch = rows.slice(i, i + 100)
-    const { error } = await supabase.from('qualifying_results').insert(batch)
+    const { error } = await supabase.from('qualifying_results').upsert(batch, { onConflict: 'series,year,track_name,driver_name' })
     if (error) errors.push(error.message)
   }
 
