@@ -633,17 +633,17 @@ function LoadNewRace() {
 
   const NAME_MAP = {
     'John H. Nemechek':      'John Hunter Nemechek',
-    'Baltazar Leguizamon':   'Baltazar LeguizamÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ³n',
-    'Daniel Suarez':         'Daniel SuÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¡rez',
+    'Baltazar Leguizamon':   'Baltazar Leguizam - n',
+    'Daniel Suarez':         'Daniel Su - rez',
     'A.J. Allmendinger':     'AJ Allmendinger',
     'Christopher Bell Jr':   'Christopher Bell',
   }
   // Last-name-only fallback for drivers Racing Reference abbreviates inconsistently
   const NAME_LAST = [
     { key: 'Nemechek',    val: 'John Hunter Nemechek' },
-    { key: 'Leguizamon',  val: 'Baltazar LeguizamÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ³n' },
-    { key: 'SuÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¡rez',      val: 'Daniel SuÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¡rez' },
-    { key: 'Suarez',      val: 'Daniel SuÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¡rez' },
+    { key: 'Leguizamon',  val: 'Baltazar Leguizam - n' },
+    { key: 'Su - rez',      val: 'Daniel Su - rez' },
+    { key: 'Suarez',      val: 'Daniel Su - rez' },
   ]
   function normalizeDriverName(name) {
     if (NAME_MAP[name]) return NAME_MAP[name]
@@ -772,7 +772,7 @@ function LoadNewRace() {
         />
       </div>
       <button onClick={handleLoad} disabled={loading} className="btn btn-primary" style={{ fontSize: '0.85rem' }}>
-        {loading ? 'LoadingÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¦' : 'Parse & Load'}
+        {loading ? 'Loading - ' : 'Parse & Load'}
       </button>
       {status?.success && (
         <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.3)', borderRadius: 8, color: '#4ade80', fontSize: '0.85rem' }}>
@@ -833,7 +833,7 @@ function LoadQualifying() {
     if (text.trim()) {
       const drivers = parseText(text)
       setPreview(drivers.length > 0 ? drivers : null)
-      if (drivers.length === 0) setStatus({ type: 'error', msg: 'No qualifying rows found ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ make sure you Ctrl+A / Ctrl+C the full Racing Reference page' })
+      if (drivers.length === 0) setStatus({ type: 'error', msg: 'No qualifying rows found  -  make sure you Ctrl+A / Ctrl+C the full Racing Reference page' })
     } else {
       setPreview(null)
     }
@@ -878,7 +878,7 @@ function LoadQualifying() {
       <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 8 }}>Load Qualifying Results</h2>
       <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 16 }}>
         Go to Racing Reference, press <strong>Ctrl+A</strong> then <strong>Ctrl+C</strong>, then paste below.
-        {url && <> <a href={url} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', marginLeft: 6 }}>Open Racing Reference ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ</a></>}
+        {url && <> <a href={url} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', marginLeft: 6 }}>Open Racing Reference  - </a></>}
       </p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10, marginBottom: 14 }}>
@@ -916,7 +916,7 @@ function LoadQualifying() {
       {preview && preview.length > 0 && (
         <div style={{ marginBottom: 14 }}>
           <div style={{ fontSize: '0.8rem', color: '#22c55e', marginBottom: 8 }}>
-            Parsed {preview.length} drivers ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ Pole: {preview[0].driverName} ({preview[0].speed} mph)
+            Parsed {preview.length} drivers  -  Pole: {preview[0].driverName} ({preview[0].speed} mph)
           </div>
           <div style={{ overflowX: 'auto', borderRadius: 6, border: '1px solid var(--border)', maxHeight: 200, overflowY: 'auto' }}>
             <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: '0.78rem' }}>
@@ -1263,22 +1263,25 @@ function SimFormulaPanel() {
     ['Start Position', '15%'],
     ['Tire Falloff',   '10%'],
     ['Race Craft',      '5%'],
+    ['Track History',   '0%'],
   ]
   const rcW = [
-    ['Corr. History',  '40%'],
+    ['Corr. History',  '35%'],
     ['Long Run Pace',  '15%'],
-    ['Short Run Pace', '15%'],
-    ['Start Position', '10%'],
-    ['Tire Falloff',   '10%'],
-    ['Race Craft',     '10%'],
+    ['Short Run Pace',  '5%'],
+    ['Start Position', '15%'],
+    ['Tire Falloff',    '5%'],
+    ['Race Craft',     '25%'],
+    ['Track History',   '0%'],
   ]
   const factors = [
     ['Corr. History',  'driver_ratings + avg_finish at correlated tracks, year-weighted. Blended 70% rating / 30% finish score. Confidence = min(1, nRaces / 4).'],
-    ['Long Run Pace',  'overall_avg from practice_sessions ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ all laps across all stints, any lap >8% slower than session median dropped (V5.1). Lower is better.'],
-    ['Short Run Pace', 'late_run_avg from practice_sessions ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ short-stint laps, mock-qual stints excluded. Lower is better.'],
+    ['Long Run Pace',  'overall_avg from practice_sessions  -  all laps across all stints, any lap >8% slower than session median dropped (V5.1). Lower is better.'],
+    ['Short Run Pace', 'late_run_avg from practice_sessions  -  short-stint laps, mock-qual stints excluded. Lower is better.'],
     ['Start Position', 'qualifying_position from practice_sessions (placeholder until qual runs). Lower is better.'],
-    ['Tire Falloff',   'trend_slope from practice_sessions ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ lap-time slope vs lap # in longest stint (min 10 laps required, else null ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ 50). Lower is better.'],
+    ['Tire Falloff',   'trend_slope from practice_sessions  -  lap-time slope vs lap # in longest stint (min 10 laps required, else null  -  50). Lower is better.'],
     ['Race Craft',     'Avg quality pass % (pct_quality_passes) from loop_data at correlated tracks, year-weighted (2026 = 3x, 2025 = 2x, older = 1x). Higher is better.'],
+    ['Track History',  'driver_ratings + avg_finish at this specific track only, year-weighted. Same 70/30 blend + confidence penalty as Corr. History. Defaults to 0% weight - dial up when specific track history is meaningful.'],
   ]
   const yearW = [
     ['2026', '2.0x'],
@@ -1296,7 +1299,7 @@ function SimFormulaPanel() {
     <div className="card" style={{ marginBottom: 20 }}>
       <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 4 }}>Sim Center Formula</h2>
       <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 16 }}>
-        Read-only reference ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ current weights and data sources used by Race Simulation.
+        Read-only reference  -  current weights and data sources used by Race Simulation.
       </p>
 
       <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', marginBottom: 20 }}>
@@ -1350,7 +1353,7 @@ function SimFormulaPanel() {
 
       <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 12, marginBottom: 0 }}>
         All factors are field-normalized 0-100 before weighting. Drivers missing data default to 50 (neutral).
-        Road course auto-detected by track name ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ weights switch automatically in Simulation Center.
+        Road course auto-detected by track name  -  weights switch automatically in Simulation Center.
       </p>
     </div>
   )
