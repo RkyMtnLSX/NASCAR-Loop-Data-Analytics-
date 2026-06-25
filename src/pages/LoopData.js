@@ -141,8 +141,7 @@ dRows.forEach(r => {
 const yr = parseInt(r.year)
 if (yr && trackYears.includes(yr)) {
 const fin = parseInt(r.finish_position)
-const existing = yearFinishes['y_' + yr]
-if (fin && fin > 0 && (!existing || fin < existing)) yearFinishes['y_' + yr] = fin
+if (fin && fin > 0) yearFinishes['y_' + yr + '_' + (r.race_number || 1)] = fin
 }
 })
 }
@@ -746,11 +745,18 @@ const mainTitle = config
 const corrTitle = config ? config.correlation_label + ' Averages' : 'Correlated Track Averages'
 const corrSubtitle = corrNames.length ? corrNames.slice().sort().join(' / ') : null
 
-const yearCols = config
-? [...config.track_years].sort((a, b) => a - b).map(yr => ({
-key: 'y_' + yr, label: String(yr), decimals: 0, isYear: true, minWidth: 52, lowerIsBetter: true,
-}))
-: []
+const yearCols = (() => {
+  if (!config) return []
+  const seen = {}; const pairs = []
+  mainRows.forEach(d => (d.rawRaces || []).forEach(r => {
+    const yr = parseInt(r.year); const rn = r.race_number || 1
+    if (!yr || !config.track_years.includes(yr)) return
+    const k = yr + '_' + rn; if (!seen[k]) { seen[k] = true; pairs.push({ yr, rn }) }
+  }))
+  if (!pairs.length) return [...config.track_years].sort((a,b)=>a-b).map(yr => ({ key: 'y_' + yr + '_1', label: String(yr), decimals: 0, isYear: true, minWidth: 52, lowerIsBetter: true }))
+  pairs.sort((a, b) => a.yr !== b.yr ? a.yr - b.yr : a.rn - b.rn)
+  return pairs.map(({ yr, rn }) => ({ key: 'y_' + yr + '_' + rn, label: rn > 1 ? String(yr) + ' R2' : String(yr), decimals: 0, isYear: true, minWidth: 52, lowerIsBetter: true }))
+})()
 
 const handleCorrYearToggle = (yr) => {
 setCorrSelectedYears(prev =>
