@@ -346,7 +346,7 @@ fontSize: '0.82rem', cursor: 'pointer',
 </select>
 </div>
 
-{compareDriver&&<div style={{display:'flex',gap:16,marginBottom:8,fontSize:'0.72rem'}}><span style={{color:'var(--accent)'}}>&#9679; {cardDriver.driver}</span><span style={{color:'#c9a227'}}>&#9679; {compareDriver.driver}</span></div>}
+{compareDriver&&<div style={{display:'flex',gap:16,marginBottom:8,fontSize:'0.72rem'}}><span style={{color:'var(--accent)'}}>&#9679; {cardDriver.driver}</span><span style={{color:'#29b6f6'}}>&#9679; {compareDriver.driver}</span></div>}
 {/* Stats table */}
 {years.length === 0 ? (
 <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', padding: '12px 0' }}>
@@ -399,7 +399,7 @@ verticalAlign: 'top',
 {fmtRaw(pVal, col.decimals)}
 </div>
 {compareDriver && (
-<div style={{ color: '#c9a227', fontSize: '0.72rem', marginTop: 2 }}>
+<div style={{ color: '#29b6f6', fontSize: '0.72rem', marginTop: 2 }}>
 {fmtRaw(cVal, col.decimals)}
 </div>
 )}
@@ -417,7 +417,7 @@ verticalAlign: 'top',
 {compareDriver && (
 <div style={{ marginTop: 12, display: 'flex', gap: 16, fontSize: '0.75rem' }}>
 <span style={{ color: 'var(--accent)', fontWeight: 600 }}>{cardDriver.driver} (primary)</span>
-<span style={{ color: '#c9a227', fontWeight: 600 }}>{compareDriver.driver} (compare)</span>
+<span style={{ color: '#29b6f6', fontWeight: 600 }}>{compareDriver.driver} (compare)</span>
 </div>
 )}
 </div>
