@@ -255,15 +255,13 @@ useEffect(function(){var _bg=document.createElement(String.fromCharCode(100,105,
 const CARD_COLS = [
 { key: 'finish_position', label: 'Finish', decimals: 0 },
 { key: 'start_position', label: 'Start', decimals: 0 },
-{ key: 'avg_position', label: 'Avg Pos', decimals: 2 },
-{ key: 'driver_rating', label: 'Rating', decimals: 1 },
+{ key: 'avg_position', label: 'Avg Run Pos', decimals: 2 },
+{ key: 'driver_rating', label: 'Driver Rating', decimals: 1 },
 { key: 'quality_passes', label: 'Q.Passes', decimals: 0 },
 { key: 'pass_diff', label: 'Pass Diff', decimals: 0 },
 { key: 'laps_led', label: 'Laps Led', decimals: 0 },
-{ key: 'pct_top15_laps', label: '% Top15', decimals: 1 },
-{ key: 'fastest_laps', label: 'Fastest', decimals: 0 },
-{ key: 'stage1_finish', label: 'S1', decimals: 0 },
-{ key: 'stage2_finish', label: 'S2', decimals: 0 },
+{ key: 'pct_top15_laps', label: 'Top 15 %', decimals: 1 },
+{ key: 'fastest_laps', label: 'Fastest Lap', decimals: 0 },
 ]
 
 const primaryRaces = (cardDriver.rawRaces || []).slice().sort((a, b) => parseInt(a.year) - parseInt(b.year))
@@ -346,11 +344,6 @@ fontSize: '0.82rem', cursor: 'pointer',
 <option key={d} value={d}>{d}</option>
 ))}
 </select>
-{compareDriver && (
-<span style={{ fontSize: '0.78rem', color: '#c9a227', fontWeight: 600 }}>
-vs {compareDriver.driver}
-</span>
-)}
 </div>
 
 {/* Stats table */}
@@ -387,7 +380,7 @@ return (
 color: 'var(--text-secondary)', position: 'sticky', left: 0,
 background: 'var(--bg-card)', zIndex: 1, fontSize: '0.75rem',
 }}>
-{col.label}
+{col.label}{compareDriver&&<div style={{fontSize:'0.65rem',color:'#c9a227',marginTop:2}}>{compareDriver.driver}</div>}
 </td>
 {years.map(yr => {
 const pRace = primaryRaces.find(r => parseInt(r.year) === yr)
