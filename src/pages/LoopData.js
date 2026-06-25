@@ -249,7 +249,9 @@ style={{ accentColor: 'var(--accent)', cursor: 'pointer' }} />
 }
 
 // DriverCard modal — shows per-race stats for a selected driver with optional comparison
-function DriverCard({ cardDriver, compareDriver, mainRows, onClose, onSetCompare }) {
+function DriverCard({
+var _pRef=React.useRef(null);if(_pRef.current===null){var _pe=document.createElement(String.fromCharCode(100,105,118));document.body.appendChild(_pe);_pRef.current=_pe;}React.useEffect(function(){return function(){var _e=_pRef.current;if(_e&&_e.parentNode)_e.parentNode.removeChild(_e);};},[]);
+ cardDriver, compareDriver, mainRows, onClose, onSetCompare }) {
 const CARD_COLS = [
 { key: 'finish_position', label: 'Finish', decimals: 0 },
 { key: 'start_position', label: 'Start', decimals: 0 },
@@ -281,7 +283,7 @@ borderBottom: '1px solid var(--border)',
 whiteSpace: 'nowrap',
 }
 
-return (
+return require('react-dom').createPortal(
 <div
 onClick={onClose}
 style={{
@@ -616,7 +618,7 @@ background: isActive
 </table>
 </div>
 </div>
-)
+, _pRef.current)
 }
 
 export default function LoopData({ isSubscriber }) {
