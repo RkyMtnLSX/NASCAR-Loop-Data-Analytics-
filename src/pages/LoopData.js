@@ -250,7 +250,7 @@ style={{ accentColor: 'var(--accent)', cursor: 'pointer' }} />
 
 // DriverCard modal — shows per-race stats for a selected driver with optional comparison
 function DriverCard({
-var _pRef=React.useRef(null);if(_pRef.current===null){var _pe=document.createElement(String.fromCharCode(100,105,118));document.body.appendChild(_pe);_pRef.current=_pe;}React.useEffect(function(){return function(){var _e=_pRef.current;if(_e&&_e.parentNode)_e.parentNode.removeChild(_e);};},[]);
+useEffect(function(){var _bg=document.createElement(String.fromCharCode(100,105,118));_bg.style.position=String.fromCharCode(102,105,120,101,100);_bg.style.top=String.fromCharCode(48);_bg.style.left=String.fromCharCode(48);_bg.style.width=String.fromCharCode(49,48,48,37);_bg.style.height=String.fromCharCode(49,48,48,37);_bg.style.zIndex=String.fromCharCode(57,57,57,55);_bg.style.background=String.fromCharCode(114,103,98,97,40,48,44,48,44,48,44,48,46,54,53,41);_bg.onclick=function(ev){if(ev.target===_bg)onClose();};document.body.appendChild(_bg);return function(){if(_bg.parentNode)_bg.parentNode.removeChild(_bg);};},[onClose]);
  cardDriver, compareDriver, mainRows, onClose, onSetCompare }) {
 const CARD_COLS = [
 { key: 'finish_position', label: 'Finish', decimals: 0 },
@@ -283,22 +283,13 @@ borderBottom: '1px solid var(--border)',
 whiteSpace: 'nowrap',
 }
 
-return require('react-dom').createPortal(
-<div
-onClick={onClose}
-style={{
-position: 'fixed', inset: 0, zIndex: 1000,
-background: 'rgba(0,0,0,0.6)',
-display: 'flex', alignItems: 'center', justifyContent: 'center',
-padding: '20px',
-}}
->
+return (
 <div
 onClick={e => e.stopPropagation()}
 style={{
-maxWidth: 900, width: '100%', maxHeight: '80vh', overflowY: 'auto',
+maxWidth: 900, width: '90%', maxHeight: '80vh', overflowY: 'auto',
 background: 'var(--bg-card)', borderRadius: 12, padding: 24,
-position: 'relative',
+position: 'fixed', top: '5%', left: '50%', transform: 'translateX(-50%)', zIndex: 9999,
 }}
 >
 {/* Header */}
@@ -617,8 +608,7 @@ background: isActive
 </tbody>
 </table>
 </div>
-</div>
-, _pRef.current)
+)
 }
 
 export default function LoopData({ isSubscriber }) {
