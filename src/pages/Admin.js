@@ -630,6 +630,7 @@ function LoadNewRace() {
   const [pasteText, setPasteText] = useState('')
   const [status, setStatus]     = useState(null)
   const [loading, setLoading]   = useState(false)
+  const [raceDate, setRaceDate]   = useState('')
 
   const NAME_MAP = {
     'John H. Nemechek':      'John Hunter Nemechek',
@@ -701,16 +702,20 @@ function LoadNewRace() {
         winning_driver: winner,
         total_laps: totalLaps || null,
         racing_reference_url: 'https://www.racing-reference.info/loopdata/' + year + '-' + String(raceNum).padStart(2,'0') + '/' + (seriesCodeMap[series] || 'W'),
+        race_date: raceDate || null,
       }).select('id').single()
       if (raceErr) return setStatus({ error: 'Race insert failed: ' + raceErr.message })
       const raceId = raceRecord.id
       let inserted = 0
       const errors = []
+      const { count: priorCount } = await supabase.from('races').select('id', { count: 'exact', head: true }).eq('track_name', trackName).eq('year', parseInt(year)).eq('series', series).neq('id', raceId)
+      const trackRaceNum = (priorCount || 0) + 1
       for (const row of rows) {
         await supabase.from('drivers').upsert({ name: row.driver_name, series }, { onConflict: 'name,series', ignoreDuplicates: true })
         const finishStatus = (row.laps_completed && totalLaps && row.laps_completed < totalLaps * 0.9) ? 'dnf' : 'running'
         const { error } = await supabase.from('loop_data').insert({
           race_id: raceId, driver_name: row.driver_name, series,
+          race_number: trackRaceNum,
           year: parseInt(year), track_name: trackName,
           start_position: row.start_position, mid_race_position: row.mid_race_position,
           finish_position: row.finish_position, high_position: row.high_position,
@@ -759,6 +764,10 @@ function LoadNewRace() {
         <div>
           <label style={labelStyle}>Race #</label>
           <input value={raceNum} onChange={e => setRaceNum(e.target.value)} style={{ ...inputStyle, width: 60 }} />
+        </div>
+        <div>
+          <label style={labelStyle}>Race Date</label>
+          <input type="date" value={raceDate} onChange={e => setRaceDate(e.target.value)} style={{ ...inputStyle, width: 140 }} />
         </div>
       </div>
       <div style={{ marginBottom: 12 }}>
