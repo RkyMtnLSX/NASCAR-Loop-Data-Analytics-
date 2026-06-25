@@ -430,7 +430,6 @@ verticalAlign: 'top',
 </div>
 )}
 </div>
-</div>
 )
 }
 
