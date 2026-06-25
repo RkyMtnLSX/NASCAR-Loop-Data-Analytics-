@@ -350,7 +350,7 @@ fontSize: '0.82rem', cursor: 'pointer',
 
 {compareDriver&&<div style={{display:'flex',gap:16,marginBottom:8,fontSize:'0.72rem'}}><span style={{color:'var(--accent)'}}>&#9679; {cardDriver.driver}</span><span style={{color:'#29b6f6'}}>&#9679; {compareDriver.driver}</span></div>}
 {/* Stats table */}
-{years.length === 0 ? (
+{raceCols.length === 0 ? (
 <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', padding: '12px 0' }}>
 No data at this track.
 </div>
