@@ -17,19 +17,20 @@ export default function LoopDataAudit() {
     setLoading(true); setError(null); setRows([])
     supabase
       .from('loop_data')
-      .select('track_name, year, driver_name')
+      .select('track_name, year, race_number, driver_name')
       .eq('series', series)
       .range(0, 99999)
       .then(({ data, error: err }) => {
         if (err) { setError(err.message); setLoading(false); return }
         const map = {}
         ;(data || []).forEach(r => {
-          const key = r.year + '||' + r.track_name
-          if (!map[key]) map[key] = { year: r.year, track: r.track_name, drivers: 0 }
+          const rn = r.race_number || 1
+          const key = r.year + '||' + rn + '||' + r.track_name
+          if (!map[key]) map[key] = { year: r.year, raceNum: rn, track: r.track_name, drivers: 0 }
           map[key].drivers++
         })
         const sorted = Object.values(map).sort((a, b) =>
-          a.year !== b.year ? a.year - b.year : a.track.localeCompare(b.track)
+          a.year !== b.year ? a.year - b.year : a.raceNum !== b.raceNum ? a.raceNum - b.raceNum : a.track.localeCompare(b.track)
         )
         setRows(sorted)
         setLoading(false)
@@ -63,7 +64,7 @@ export default function LoopDataAudit() {
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8125rem', fontFamily: 'monospace' }}>
         <thead>
           <tr style={{ borderBottom: '1px solid var(--border)' }}>
-            {['YEAR', 'TRACK', 'DRIVERS'].map(h => (
+            {['YEAR', 'RACE #', 'TRACK', 'DRIVERS'].map(h => (
               <th key={h} style={{
                 textAlign: h === 'DRIVERS' ? 'right' : 'left',
                 padding: '6px 8px', color: 'var(--text-muted)', fontWeight: 600,
@@ -76,6 +77,7 @@ export default function LoopDataAudit() {
           {rows.map((r, i) => (
             <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
               <td style={{ padding: '5px 8px', color: 'var(--text-muted)' }}>{r.year}</td>
+              <td style={{ padding: '5px 8px', color: 'var(--text-muted)' }}>{r.raceNum}</td>
               <td style={{ padding: '5px 8px' }}>{r.track}</td>
               <td style={{ padding: '5px 8px', textAlign: 'right', color: r.drivers < 30 ? '#f87171' : 'var(--text-muted)' }}>
                 {r.drivers}
