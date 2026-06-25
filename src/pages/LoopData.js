@@ -270,7 +270,7 @@ const compareRaces = compareDriver ? (effectiveRows.find(r => r.driver === compa
 
 // All years from primary driver
 const seenRcKeys = {}
-const raceCols = primaryRaces.map(r => { const yr = parseInt(r.year); const tn = r.track_name || ''; return { year: yr, track_name: tn, key: yr + '_' + tn } }).filter(c => c.year && (seenRcKeys[c.key] ? false : (seenRcKeys[c.key] = true))).sort((a, b) => a.year !== b.year ? a.year - b.year : (a.track_name || '').localeCompare(b.track_name || ''))
+const raceCols = primaryRaces.map(r => { const yr = parseInt(r.year); const tn = r.track_name || ''; const rn = r.race_number || 1; return { year: yr, track_name: tn, raceNum: rn, key: yr + '_' + tn + '_' + rn } }).filter(c => c.year && (seenRcKeys[c.key] ? false : (seenRcKeys[c.key] = true))).sort((a, b) => a.year !== b.year ? a.year - b.year : a.raceNum !== b.raceNum ? a.raceNum - b.raceNum : (a.track_name || '').localeCompare(b.track_name || ''))
 
 const otherDrivers = effectiveRows.filter(r => r.driver !== cardDriver.driver).map(r => r.driver).sort()
 
@@ -369,7 +369,7 @@ background: 'var(--bg-card)', zIndex: 2, borderBottom: '2px solid var(--border)'
 ...cellBase, fontWeight: 700, fontSize: '0.75rem',
 color: 'var(--text-secondary)', borderBottom: '2px solid var(--border)',
 }}>
-{trackLabel(rc.track_name, rc.year)}
+{trackLabel(rc.track_name, rc.year)}{rc.raceNum > 1 ? ' R2' : ''}
 </th>
 ))}
 </tr>
@@ -386,8 +386,8 @@ background: 'var(--bg-card)', zIndex: 1, fontSize: '0.75rem',
 {col.label}
 </td>
 {raceCols.map(rc => {
-const pRace = primaryRaces.find(r => parseInt(r.year) === rc.year && (r.track_name || '') === rc.track_name)
-const cRace = compareDriver ? compareRaces.find(r => parseInt(r.year) === rc.year && (r.track_name || '') === rc.track_name) : null
+const pRace = primaryRaces.find(r => parseInt(r.year) === rc.year && (r.track_name || '') === rc.track_name && (r.race_number || 1) === rc.raceNum)
+const cRace = compareDriver ? compareRaces.find(r => parseInt(r.year) === rc.year && (r.track_name || '') === rc.track_name && (r.race_number || 1) === rc.raceNum) : null
 const pVal = pRace ? pRace[col.key] : null
 const cVal = cRace ? cRace[col.key] : null
 const finBg = undefined
@@ -678,7 +678,7 @@ setHasEntryList(!!entryMap)
 
 const { data: trackData, error: trackErr } = await supabase
 .from('loop_data')
-.select('driver_name, year, finish_position, start_position, avg_position, driver_rating, quality_passes, pass_diff, laps_led, pct_laps_led, pct_top15_laps, fastest_laps, stage1_finish, stage2_finish')
+.select('driver_name, year, race_number, finish_position, start_position, avg_position, driver_rating, quality_passes, pass_diff, laps_led, pct_laps_led, pct_top15_laps, fastest_laps, stage1_finish, stage2_finish')
 .eq('track_name', cfg.track_name).eq('series', s).in('year', cfg.track_years)
 if (trackErr) throw trackErr
 if (cancelled) return
