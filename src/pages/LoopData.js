@@ -268,7 +268,8 @@ const primaryRaces = (cardDriver.rawRaces || []).slice().sort((a, b) => parseInt
 const compareRaces = compareDriver ? (compareDriver.rawRaces || []).slice().sort((a, b) => parseInt(a.year) - parseInt(b.year)) : []
 
 // All years from primary driver
-const years = [...new Set(primaryRaces.map(r => parseInt(r.year)))].filter(Boolean).sort((a, b) => a - b)
+const seenRcKeys = {}
+const raceCols = primaryRaces.map(r => { const yr = parseInt(r.year); const tn = r.track_name || ''; return { year: yr, track_name: tn, key: yr + '_' + tn } }).filter(c => c.year && (seenRcKeys[c.key] ? false : (seenRcKeys[c.key] = true))).sort((a, b) => a.year !== b.year ? a.year - b.year : (a.track_name || '').localeCompare(b.track_name || ''))
 
 const otherDrivers = mainRows.filter(r => r.driver !== cardDriver.driver).map(r => r.driver).sort()
 
@@ -362,12 +363,12 @@ No data at this track.
 color: 'var(--text-secondary)', position: 'sticky', left: 0,
 background: 'var(--bg-card)', zIndex: 2, borderBottom: '2px solid var(--border)',
 }}>Stat</th>
-{years.map(yr => (
-<th key={yr} style={{
+{raceCols.map(rc => (
+<th key={rc.key} style={{
 ...cellBase, fontWeight: 700, fontSize: '0.75rem',
 color: 'var(--text-secondary)', borderBottom: '2px solid var(--border)',
 }}>
-{yr}
+{trackLabel(rc.track_name, rc.year)}
 </th>
 ))}
 </tr>
@@ -383,14 +384,14 @@ background: 'var(--bg-card)', zIndex: 1, fontSize: '0.75rem',
 }}>
 {col.label}
 </td>
-{years.map(yr => {
-const pRace = primaryRaces.find(r => parseInt(r.year) === yr)
-const cRace = compareDriver ? compareRaces.find(r => parseInt(r.year) === yr) : null
+{raceCols.map(rc => {
+const pRace = primaryRaces.find(r => parseInt(r.year) === rc.year && r.track_name === rc.track_name)
+const cRace = compareDriver ? compareRaces.find(r => parseInt(r.year) === rc.year && r.track_name === rc.track_name) : null
 const pVal = pRace ? pRace[col.key] : null
 const cVal = cRace ? cRace[col.key] : null
 const finBg = undefined
 return (
-<td key={yr} style={{
+<td key={rc.key} style={{
 ...cellBase,
 background: finBg,
 verticalAlign: 'top',
