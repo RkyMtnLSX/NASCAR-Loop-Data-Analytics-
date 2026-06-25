@@ -10,7 +10,6 @@ const PRACTICE_LINKS = [
 const LOOP_LINKS = [
   { path: '/loop-data',       label: 'Loop Data' },
   { path: '/fastest-laps',    label: 'Fastest Laps' },
-  { path: '/loop-data-audit', label: 'Data Audit' },
 ]
 
 const SIM_LINKS = [
