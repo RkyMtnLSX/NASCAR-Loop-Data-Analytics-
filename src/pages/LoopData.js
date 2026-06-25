@@ -250,6 +250,8 @@ style={{ accentColor: 'var(--accent)', cursor: 'pointer' }} />
 
 // DriverCard modal — shows per-race stats for a selected driver with optional comparison
 function DriverCard({ cardDriver, compareDriver, mainRows, onClose, onSetCompare }) {
+useEffect(function(){var _bg=document.createElement(String.fromCharCode(100,105,118));_bg.style.position=String.fromCharCode(102,105,120,101,100);_bg.style.inset=String.fromCharCode(48);_bg.style.zIndex=String.fromCharCode(57,57,57,55);_bg.style.background=String.fromCharCode(114,103,98,97,40,48,44,48,44,48,44,48,46,55,53,41);_bg.onclick=function(){onClose();};document.body.appendChild(_bg);return function(){if(_bg.parentNode)_bg.parentNode.removeChild(_bg);};},[onClose]);
+
 const CARD_COLS = [
 { key: 'finish_position', label: 'Finish', decimals: 0 },
 { key: 'start_position', label: 'Start', decimals: 0 },
