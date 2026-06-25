@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase'
 
 const SERIES_OPTIONS = [
@@ -282,7 +281,7 @@ borderBottom: '1px solid var(--border)',
 whiteSpace: 'nowrap',
 }
 
-return createPortal(
+return (
 <div
 onClick={onClose}
 style={{
@@ -617,7 +616,7 @@ background: isActive
 </table>
 </div>
 </div>
-, document.body)
+)
 }
 
 export default function LoopData({ isSubscriber }) {
