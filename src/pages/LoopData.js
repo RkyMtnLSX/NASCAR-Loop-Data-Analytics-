@@ -249,7 +249,8 @@ style={{ accentColor: 'var(--accent)', cursor: 'pointer' }} />
 }
 
 // DriverCard modal — shows per-race stats for a selected driver with optional comparison
-function DriverCard({ cardDriver, compareDriver, mainRows, onClose, onSetCompare }) {
+function DriverCard({ cardDriver, compareDriver, mainRows, compareRows, onClose, onSetCompare }) {
+const effectiveRows = compareRows || mainRows
 useEffect(function(){var _bg=document.createElement(String.fromCharCode(100,105,118));_bg.style.position=String.fromCharCode(102,105,120,101,100);_bg.style.inset=String.fromCharCode(48);_bg.style.zIndex=String.fromCharCode(57,57,57,55);_bg.style.background=String.fromCharCode(114,103,98,97,40,48,44,48,44,48,44,48,46,55,53,41);_bg.onclick=function(){onClose();};document.body.appendChild(_bg);return function(){if(_bg.parentNode)_bg.parentNode.removeChild(_bg);};},[onClose]);
 
 const CARD_COLS = [
@@ -265,13 +266,13 @@ const CARD_COLS = [
 ]
 
 const primaryRaces = (cardDriver.rawRaces || []).slice().sort((a, b) => parseInt(a.year) - parseInt(b.year))
-const compareRaces = compareDriver ? (compareDriver.rawRaces || []).slice().sort((a, b) => parseInt(a.year) - parseInt(b.year)) : []
+const compareRaces = compareDriver ? (effectiveRows.find(r => r.driver === compareDriver.driver) || compareDriver).rawRaces.slice().sort((a, b) => parseInt(a.year) - parseInt(b.year)) : []
 
 // All years from primary driver
 const seenRcKeys = {}
 const raceCols = primaryRaces.map(r => { const yr = parseInt(r.year); const tn = r.track_name || ''; return { year: yr, track_name: tn, key: yr + '_' + tn } }).filter(c => c.year && (seenRcKeys[c.key] ? false : (seenRcKeys[c.key] = true))).sort((a, b) => a.year !== b.year ? a.year - b.year : (a.track_name || '').localeCompare(b.track_name || ''))
 
-const otherDrivers = mainRows.filter(r => r.driver !== cardDriver.driver).map(r => r.driver).sort()
+const otherDrivers = effectiveRows.filter(r => r.driver !== cardDriver.driver).map(r => r.driver).sort()
 
 const cellBase = {
 padding: '6px 10px',
@@ -332,7 +333,7 @@ Compare to:
 value={compareDriver ? compareDriver.driver : ''}
 onChange={e => {
 const val = e.target.value
-onSetCompare(mainRows.find(r => r.driver === val) || null)
+onSetCompare(effectiveRows.find(r => r.driver === val) || null)
 }}
 style={{
 background: 'var(--bg-surface)', border: '1px solid var(--border)',
@@ -349,7 +350,7 @@ fontSize: '0.82rem', cursor: 'pointer',
 
 {compareDriver&&<div style={{display:'flex',gap:16,marginBottom:8,fontSize:'0.72rem'}}><span style={{color:'var(--accent)'}}>&#9679; {cardDriver.driver}</span><span style={{color:'#29b6f6'}}>&#9679; {compareDriver.driver}</span></div>}
 {/* Stats table */}
-{raceCols.length === 0 ? (
+{years.length === 0 ? (
 <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', padding: '12px 0' }}>
 No data at this track.
 </div>
@@ -385,8 +386,8 @@ background: 'var(--bg-card)', zIndex: 1, fontSize: '0.75rem',
 {col.label}
 </td>
 {raceCols.map(rc => {
-const pRace = primaryRaces.find(r => parseInt(r.year) === rc.year && r.track_name === rc.track_name)
-const cRace = compareDriver ? compareRaces.find(r => parseInt(r.year) === rc.year && r.track_name === rc.track_name) : null
+const pRace = primaryRaces.find(r => parseInt(r.year) === rc.year && (r.track_name || '') === rc.track_name)
+const cRace = compareDriver ? compareRaces.find(r => parseInt(r.year) === rc.year && (r.track_name || '') === rc.track_name) : null
 const pVal = pRace ? pRace[col.key] : null
 const cVal = cRace ? cRace[col.key] : null
 const finBg = undefined
@@ -834,6 +835,7 @@ Select at least one year to view correlated track data.
 cardDriver={cardDriver}
 compareDriver={compareDriver}
 mainRows={mainRows}
+compareRows={cardDriver && cardDriver.rawRaces && cardDriver.rawRaces[0] && cardDriver.rawRaces[0].track_name ? corrRows : mainRows}
 onClose={() => setCardDriver(null)}
 onSetCompare={setCompareDriver}
 />
