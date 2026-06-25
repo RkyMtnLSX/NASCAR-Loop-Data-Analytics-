@@ -766,6 +766,7 @@ setCompareDriver(null)
 }
 
 return (
+<>
 <div style={{ padding: '24px 32px', maxWidth: 1600, margin: '0 auto' }}>
 
 <div style={{ display: 'flex', gap: 8, marginBottom: 28 }}>
@@ -828,6 +829,9 @@ Select at least one year to view correlated track data.
 </>
 )}
 
+
+
+</div>
 {cardDriver && (
 <DriverCard
 cardDriver={cardDriver}
@@ -837,7 +841,5 @@ onClose={() => setCardDriver(null)}
 onSetCompare={setCompareDriver}
 />
 )}
-
-</div>
-)
+</>)
 }
