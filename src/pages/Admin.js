@@ -1535,7 +1535,7 @@ export default function Admin() {
         <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 12 }}>
           Review qualifying data loaded per race and track.
         </p>
-        <a href="/loop-audit" style={{ color: '#f59e0b', fontSize: '0.875rem', textDecoration: 'none' }}>
+        <a href="/loop-data-audit" style={{ color: '#f59e0b', fontSize: '0.875rem', textDecoration: 'none' }}>
           Open Loop Data Audit
         </a>
       </div>
