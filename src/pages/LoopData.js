@@ -346,6 +346,7 @@ fontSize: '0.82rem', cursor: 'pointer',
 </select>
 </div>
 
+{compareDriver&&<div style={{display:'flex',gap:16,marginBottom:8,fontSize:'0.72rem'}}><span style={{color:'var(--accent)'}}>&#9679; {cardDriver.driver}</span><span style={{color:'#c9a227'}}>&#9679; {compareDriver.driver}</span></div>}
 {/* Stats table */}
 {years.length === 0 ? (
 <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', padding: '12px 0' }}>
@@ -380,14 +381,14 @@ return (
 color: 'var(--text-secondary)', position: 'sticky', left: 0,
 background: 'var(--bg-card)', zIndex: 1, fontSize: '0.75rem',
 }}>
-{col.label}{compareDriver&&<div style={{fontSize:'0.65rem',color:'#c9a227',marginTop:2}}>{compareDriver.driver}</div>}
+{col.label}
 </td>
 {years.map(yr => {
 const pRace = primaryRaces.find(r => parseInt(r.year) === yr)
 const cRace = compareDriver ? compareRaces.find(r => parseInt(r.year) === yr) : null
 const pVal = pRace ? pRace[col.key] : null
 const cVal = cRace ? cRace[col.key] : null
-const finBg = col.key === 'finish_position' ? finishCellColor(pVal) : undefined
+const finBg = undefined
 return (
 <td key={yr} style={{
 ...cellBase,
