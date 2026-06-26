@@ -247,7 +247,7 @@ style={{ accentColor: 'var(--accent)', cursor: 'pointer' }} />
 )
 }
 
-// DriverCard modal ÃÂ¢ÃÂÃÂ shows per-race stats for a selected driver with optional comparison
+// DriverCard modal ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ shows per-race stats for a selected driver with optional comparison
 function DriverCard({ cardDriver, compareDriver, mainRows, compareRows, onClose, onSetCompare, compareHistory }) {
 const effectiveRows = compareRows || mainRows
 useEffect(function(){var _bg=document.createElement(String.fromCharCode(100,105,118));_bg.style.position=String.fromCharCode(102,105,120,101,100);_bg.style.inset=String.fromCharCode(48);_bg.style.zIndex=String.fromCharCode(57,57,57,55);_bg.style.background=String.fromCharCode(114,103,98,97,40,48,44,48,44,48,44,48,46,55,53,41);_bg.onclick=function(){onClose();};document.body.appendChild(_bg);return function(){if(_bg.parentNode)_bg.parentNode.removeChild(_bg);};},[onClose]);
@@ -295,7 +295,7 @@ padding: '20px',
 <div
 onClick={e => e.stopPropagation()}
 style={{
-maxWidth: 900, width: '100%', maxHeight: '80vh', overflowY: 'auto',
+maxWidth: 1200, width: '100%', maxHeight: '90vh', overflowY: 'auto',
 background: 'var(--bg-card)', borderRadius: 12, padding: 24,
 position: 'relative',
 }}
