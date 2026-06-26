@@ -276,7 +276,7 @@ const CARD_COLS = [
 ]
 
 const primaryRaces = (cardDriver.rawRaces || []).slice().sort((a, b) => parseInt(a.year) - parseInt(b.year))
-const compareRaces = compareDriver ? (compareHistory || (effectiveRows.find(r => r.driver === compareDriver.driver) || compareDriver).rawRaces).slice().sort((a, b) => parseInt(a.year) - parseInt(b.year)) : []
+const compareRaces = compareDriver ? (compareHistory && compareHistory.length ? compareHistory : (effectiveRows.find(r => r.driver === compareDriver.driver) || compareDriver).rawRaces).slice().sort((a, b) => parseInt(a.year) - parseInt(b.year)) : []
 
 // All years from primary driver
 const seenRcKeys = {}
@@ -688,7 +688,7 @@ setHasEntryList(!!entryMap)
 
 const { data: trackData, error: trackErr } = await supabase
 .from('loop_data')
-.select('driver_name, year, race_number, finish_position, start_position, avg_position, driver_rating, quality_passes, pass_diff, laps_led, pct_laps_led, pct_top15_laps, fastest_laps, stage1_finish, stage2_finish')
+.select('driver_name, year, race_number, finish_position, start_position, avg_position, driver_rating, quality_passes, pass_diff, laps_led, pct_laps_led, pct_top15_laps, fastest_laps, stage1_finish, stage2_finish, track_name')
 .eq('track_name', cfg.track_name).eq('series', s).in('year', cfg.track_years)
 if (trackErr) throw trackErr
 if (cancelled) return
@@ -855,7 +855,7 @@ mainRows={mainRows}
 compareRows={cardDriver && cardDriver.rawRaces && cardDriver.rawRaces[0] && cardDriver.rawRaces[0].track_name ? corrRows : mainRows}
 onClose={() => setCardDriver(null)}
 onSetCompare={setCompareDriver}
-trackName={config && config.track_name}
+trackName={cardDriver && cardDriver.rawRaces && cardDriver.rawRaces[0] && cardDriver.rawRaces[0].track_name}
 seriesKey={series}
 />
 )}
