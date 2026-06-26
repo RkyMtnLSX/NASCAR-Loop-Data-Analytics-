@@ -649,13 +649,14 @@ const [compareDrivers, setCompareDrivers] = useState([])
 const [compareHistories, setCompareHistories] = useState({})
 useEffect(() => {
   if (!cardDriver || !cardDriver.rawRaces || !cardDriver.rawRaces[0]) { setCompareHistories({}); return }
-  const tn = (cardDriver.rawRaces[0] && cardDriver.rawRaces[0].track_name) || (config && config.track_name)
-  if (!tn || !compareDrivers.length) { setCompareHistories({}); return }
+  const tracks = [...new Set((cardDriver.rawRaces||[]).map(r=>r.track_name).filter(Boolean))]
+  const tn = tracks[0] || (config && config.track_name)
+  if (!tracks.length || !compareDrivers.length) { setCompareHistories({}); return }
   Promise.all(compareDrivers.map(cd =>
     supabase.from('loop_data')
       .select('year, race_number, track_name, finish_position, start_position, avg_position, driver_rating, quality_passes, pass_diff, laps_led, pct_laps_led, pct_top15_laps, fastest_laps, stage1_finish, stage2_finish, dk_points')
       .eq('driver_name', cd.driver)
-      .eq('track_name', tn)
+      .in('track_name', tracks)
       .eq('series', series)
       .order('year', { ascending: true })
       .then(({ data }) => ({ driver: cd.driver, data: data || [] }))
