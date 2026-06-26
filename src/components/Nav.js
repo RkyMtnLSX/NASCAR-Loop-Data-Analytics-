@@ -4,7 +4,7 @@ import { Link, useLocation } from 'react-router-dom'
 const PRACTICE_LINKS = [
   { path: '/practice',           label: 'Practice Report Cards' },
   { path: '/lap-comparison',     label: 'Practice Comparison Tool' },
-  { path: '/practice-lap-table', label: 'Raw Lap Times' },
+  { path: '/practice-lap-table', label: 'Lap by Lap Data' },
 ]
 
 const LOOP_LINKS = [
