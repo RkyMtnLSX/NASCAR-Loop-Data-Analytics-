@@ -247,7 +247,7 @@ style={{ accentColor: 'var(--accent)', cursor: 'pointer' }} />
 )
 }
 
-// DriverCard modal ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ shows per-race stats for a selected driver with optional comparison
+// DriverCard modal ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ shows per-race stats for a selected driver with optional comparison
 function DriverCard({ cardDriver, compareDriver, mainRows, compareRows, onClose, onSetCompare, compareHistory }) {
 const effectiveRows = compareRows || mainRows
 useEffect(function(){var _bg=document.createElement(String.fromCharCode(100,105,118));_bg.style.position=String.fromCharCode(102,105,120,101,100);_bg.style.inset=String.fromCharCode(48);_bg.style.zIndex=String.fromCharCode(57,57,57,55);_bg.style.background=String.fromCharCode(114,103,98,97,40,48,44,48,44,48,44,48,46,55,53,41);_bg.onclick=function(){onClose();};document.body.appendChild(_bg);return function(){if(_bg.parentNode)_bg.parentNode.removeChild(_bg);};},[onClose]);
@@ -275,7 +275,7 @@ const otherDrivers = effectiveRows.filter(r => r.driver !== cardDriver.driver).m
 
 const cellBase = {
 padding: '6px 10px',
-fontSize: '0.78rem',
+fontSize: '0.92rem',
 fontFamily: 'var(--font-mono)',
 textAlign: 'right',
 borderBottom: '1px solid var(--border)',
@@ -303,14 +303,14 @@ position: 'relative',
 {/* Header */}
 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
 <div>
-<div style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--accent)' }}>
+<div style={{ fontSize: '1.36rem', fontWeight: 700, color: 'var(--accent)' }}>
 {cardDriver.car_number && (
-<span style={{ marginRight: 8, fontSize: '0.9rem', color: 'var(--text-muted)' }}>#{cardDriver.car_number}</span>
+<span style={{ marginRight: 8, fontSize: '1.06rem', color: 'var(--text-muted)' }}>#{cardDriver.car_number}</span>
 )}
 {cardDriver.driver}
 </div>
 {cardDriver.organization && (
-<div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>{cardDriver.organization}</div>
+<div style={{ fontSize: '0.89rem', color: 'var(--text-muted)', marginTop: 2 }}>{cardDriver.organization}</div>
 )}
 </div>
 <button
@@ -318,14 +318,14 @@ onClick={onClose}
 style={{
 background: 'none', border: '1px solid var(--border)', borderRadius: 6,
 padding: '4px 10px', cursor: 'pointer', color: 'var(--text-muted)',
-fontSize: '0.85rem',
+fontSize: '1rem',
 }}
 >X</button>
 </div>
 
 {/* Compare dropdown */}
 <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
-<label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+<label style={{ fontSize: '0.94rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
 Compare to:
 </label>
 <select
@@ -337,7 +337,7 @@ onSetCompare(effectiveRows.find(r => r.driver === val) || null)
 style={{
 background: 'var(--bg-surface)', border: '1px solid var(--border)',
 borderRadius: 6, padding: '5px 10px', color: 'var(--text)',
-fontSize: '0.82rem', cursor: 'pointer',
+fontSize: '0.97rem', cursor: 'pointer',
 }}
 >
 <option value="">-- select a driver --</option>
@@ -347,10 +347,10 @@ fontSize: '0.82rem', cursor: 'pointer',
 </select>
 </div>
 
-{compareDriver&&<div style={{display:'flex',gap:16,marginBottom:8,fontSize:'0.72rem'}}><span style={{color:'var(--accent)'}}>&#9679; {cardDriver.driver}</span><span style={{color:'#29b6f6'}}>&#9679; {compareDriver.driver}</span></div>}
+{compareDriver&&<div style={{display:'flex',gap:16,marginBottom:8,fontSize: '0.85rem'}}><span style={{color:'var(--accent)'}}>&#9679; {cardDriver.driver}</span><span style={{color:'#29b6f6'}}>&#9679; {compareDriver.driver}</span></div>}
 {/* Stats table */}
 {raceCols.length === 0 ? (
-<div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', padding: '12px 0' }}>
+<div style={{ color: 'var(--text-muted)', fontSize: '1.03rem', padding: '12px 0' }}>
 No data at this track.
 </div>
 ) : (
@@ -359,13 +359,13 @@ No data at this track.
 <thead>
 <tr>
 <th style={{
-...cellBase, textAlign: 'left', fontWeight: 700, fontSize: '0.75rem',
+...cellBase, textAlign: 'left', fontWeight: 700, fontSize: '0.89rem',
 color: 'var(--text-secondary)', position: 'sticky', left: 0,
 background: 'var(--bg-card)', zIndex: 2, borderBottom: '2px solid var(--border)',
 }}>Stat</th>
 {raceCols.map(rc => (
 <th key={rc.key} style={{
-...cellBase, fontWeight: 700, fontSize: '0.75rem',
+...cellBase, fontWeight: 700, fontSize: '0.89rem',
 color: 'var(--text-secondary)', borderBottom: '2px solid var(--border)',
 }}>
 {trackLabel(rc.track_name, rc.year)}{rc.raceNum > 1 ? ' R2' : ''}
@@ -380,7 +380,7 @@ return (
 <td style={{
 ...cellBase, textAlign: 'left', fontWeight: 600,
 color: 'var(--text-secondary)', position: 'sticky', left: 0,
-background: 'var(--bg-card)', zIndex: 1, fontSize: '0.75rem',
+background: 'var(--bg-card)', zIndex: 1, fontSize: '0.89rem',
 }}>
 {col.label}
 </td>
@@ -400,7 +400,7 @@ verticalAlign: 'top',
 {fmtRaw(pVal, col.decimals)}
 </div>
 {compareDriver && (
-<div style={{ color: '#29b6f6', fontSize: '0.72rem', marginTop: 2 }}>
+<div style={{ color: '#29b6f6', fontSize: '0.85rem', marginTop: 2 }}>
 {fmtRaw(cVal, col.decimals)}
 </div>
 )}
@@ -416,7 +416,7 @@ verticalAlign: 'top',
 )}
 
 {compareDriver && (
-<div style={{ marginTop: 12, display: 'flex', gap: 16, fontSize: '0.75rem' }}>
+<div style={{ marginTop: 12, display: 'flex', gap: 16, fontSize: '0.89rem' }}>
 <span style={{ color: 'var(--accent)', fontWeight: 600 }}>{cardDriver.driver} (primary)</span>
 <span style={{ color: '#29b6f6', fontWeight: 600 }}>{compareDriver.driver} (compare)</span>
 </div>
@@ -427,34 +427,34 @@ verticalAlign: 'top',
 }
 
 const sectionHead = {
-fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)',
+fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)',
 margin: '0 0 4px 0', textTransform: 'uppercase', letterSpacing: '0.06em',
 }
 const trackSubtitle = {
-fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 10, fontStyle: 'italic',
+fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 10, fontStyle: 'italic',
 }
 const stickyHead = {
 position: 'sticky', top: 0, left: 0, zIndex: 3,
-textAlign: 'left', padding: '10px 16px', fontSize: '0.75rem', fontWeight: 600,
+textAlign: 'left', padding: '10px 16px', fontSize: '0.89rem', fontWeight: 600,
 color: 'var(--text-secondary)', whiteSpace: 'nowrap',
 borderBottom: '1px solid var(--border)', borderRight: '1px solid var(--border)', minWidth: 220,
 background: 'var(--bg-base)',
 }
 const baseHead = {
 position: 'sticky', top: 0, zIndex: 2,
-padding: '10px 12px', fontSize: '0.75rem', fontWeight: 600,
+padding: '10px 12px', fontSize: '0.89rem', fontWeight: 600,
 color: 'var(--text-secondary)', whiteSpace: 'nowrap',
 borderBottom: '1px solid var(--border)', background: 'var(--bg-elevated)',
 cursor: 'pointer', userSelect: 'none',
 }
 const stickyCell = {
 position: 'sticky', left: 0, zIndex: 1, padding: '8px 16px',
-fontSize: '0.8125rem',
+fontSize: '0.96rem',
 borderRight: '1px solid var(--border)', minWidth: 220,
 background: 'var(--bg-base)',
 }
 const numCell = {
-padding: '8px 12px', fontSize: '0.8125rem',
+padding: '8px 12px', fontSize: '0.96rem',
 fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap',
 }
 
@@ -502,13 +502,13 @@ colRanks[col.key] = { ranks, total: pairs.length }
 if (loading) return (
 <div style={{ marginBottom: 32 }}>
 <h3 style={sectionHead}>{title}</h3>
-<div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Loading...</div>
+<div style={{ color: 'var(--text-muted)', fontSize: '1.03rem' }}>Loading...</div>
 </div>
 )
 if (!rows.length) return (
 <div style={{ marginBottom: 32 }}>
 <h3 style={sectionHead}>{title}</h3>
-<div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>No data available.</div>
+<div style={{ color: 'var(--text-muted)', fontSize: '1.03rem' }}>No data available.</div>
 </div>
 )
 
@@ -545,9 +545,9 @@ onClick={() => handleSort(col.key)}
 title={'Sort by ' + col.label}
 >
 {isYear
-? <><div style={{ fontSize: '0.6rem', opacity: 0.6, letterSpacing: '0.06em', marginBottom: 1 }}>FIN</div>{col.label}</>
+? <><div style={{ fontSize: '0.71rem', opacity: 0.6, letterSpacing: '0.06em', marginBottom: 1 }}>FIN</div>{col.label}</>
 : col.label}
-{isActive && <span style={{ marginLeft: 4, fontSize: '0.65rem' }}>{sortDir === 'desc' ? 'v' : '^'}</span>}
+{isActive && <span style={{ marginLeft: 4, fontSize: '0.77rem' }}>{sortDir === 'desc' ? 'v' : '^'}</span>}
 </th>
 )
 })}
@@ -560,10 +560,10 @@ return (
 <tr key={row.driver} style={{ background: bg }}>
 <td style={{ ...stickyCell, background: bg }}>
 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
-<span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', fontFamily: 'var(--font-mono)', minWidth: 18, paddingTop: 2 }}>{i + 1}</span>
+<span style={{ color: 'var(--text-muted)', fontSize: '0.83rem', fontFamily: 'var(--font-mono)', minWidth: 18, paddingTop: 2 }}>{i + 1}</span>
 <div>
 <div style={{ fontWeight: i < 3 ? 600 : 400, whiteSpace: 'nowrap' }}>
-{row.car_number && <span style={{ marginRight: 6, color: 'var(--text-muted)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>{row.car_number}</span>}
+{row.car_number && <span style={{ marginRight: 6, color: 'var(--text-muted)', fontSize: '0.89rem', fontFamily: 'var(--font-mono)' }}>{row.car_number}</span>}
 <span
 style={{ cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted' }}
 onClick={() => onDriverClick && onDriverClick(row)}
@@ -571,7 +571,7 @@ onClick={() => onDriverClick && onDriverClick(row)}
 {row.driver}
 </span>
 </div>
-{row.organization && <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: 1 }}>{row.organization}</div>}
+{row.organization && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 1 }}>{row.organization}</div>}
 </div>
 </div>
 </td>
