@@ -247,14 +247,14 @@ style={{ accentColor: 'var(--accent)', cursor: 'pointer' }} />
 )
 }
 
-// DriverCard modal â shows per-race stats for a selected driver with optional comparison
+// DriverCard modal Ã¢ÂÂ shows per-race stats for a selected driver with optional comparison
 function DriverCard({ cardDriver, compareDriver, mainRows, compareRows, onClose, onSetCompare, trackName, seriesKey }) {
 const effectiveRows = compareRows || mainRows
 const [compareHistory, setCompareHistory] = useState(null)
 useEffect(() => {
   if (!compareDriver || !trackName || !seriesKey) { setCompareHistory(null); return }
   supabase.from('loop_data')
-    .select('year, race_number, finish_position, start_position, avg_position, driver_rating, quality_passes, pass_diff, laps_led, pct_laps_led, pct_top15_laps, fastest_laps, stage1_finish, stage2_finish, dk_points')
+    .select('year, race_number, track_name, finish_position, start_position, avg_position, driver_rating, quality_passes, pass_diff, laps_led, pct_laps_led, pct_top15_laps, fastest_laps, stage1_finish, stage2_finish, dk_points')
     .eq('driver_name', compareDriver.driver)
     .eq('track_name', trackName)
     .eq('series', seriesKey)
