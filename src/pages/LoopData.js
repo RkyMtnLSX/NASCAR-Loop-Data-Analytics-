@@ -247,20 +247,9 @@ style={{ accentColor: 'var(--accent)', cursor: 'pointer' }} />
 )
 }
 
-// DriverCard modal Ã¢ÂÂ shows per-race stats for a selected driver with optional comparison
-function DriverCard({ cardDriver, compareDriver, mainRows, compareRows, onClose, onSetCompare, trackName, seriesKey }) {
+// DriverCard modal ÃÂ¢ÃÂÃÂ shows per-race stats for a selected driver with optional comparison
+function DriverCard({ cardDriver, compareDriver, mainRows, compareRows, onClose, onSetCompare, compareHistory }) {
 const effectiveRows = compareRows || mainRows
-const [compareHistory, setCompareHistory] = useState(null)
-useEffect(() => {
-  if (!compareDriver || !trackName || !seriesKey) { setCompareHistory(null); return }
-  supabase.from('loop_data')
-    .select('year, race_number, track_name, finish_position, start_position, avg_position, driver_rating, quality_passes, pass_diff, laps_led, pct_laps_led, pct_top15_laps, fastest_laps, stage1_finish, stage2_finish, dk_points')
-    .eq('driver_name', compareDriver.driver)
-    .eq('track_name', trackName)
-    .eq('series', seriesKey)
-    .order('year', { ascending: true })
-    .then(({ data }) => setCompareHistory(data || []))
-}, [compareDriver ? compareDriver.driver : null, trackName, seriesKey])
 useEffect(function(){var _bg=document.createElement(String.fromCharCode(100,105,118));_bg.style.position=String.fromCharCode(102,105,120,101,100);_bg.style.inset=String.fromCharCode(48);_bg.style.zIndex=String.fromCharCode(57,57,57,55);_bg.style.background=String.fromCharCode(114,103,98,97,40,48,44,48,44,48,44,48,46,55,53,41);_bg.onclick=function(){onClose();};document.body.appendChild(_bg);return function(){if(_bg.parentNode)_bg.parentNode.removeChild(_bg);};},[onClose]);
 
 const CARD_COLS = [
@@ -641,6 +630,19 @@ const [error, setError] = useState(null)
 const entryMapRef = useRef(null)
 const [cardDriver, setCardDriver] = useState(null)
 const [compareDriver, setCompareDriver] = useState(null)
+const [compareHistory, setCompareHistory] = useState(null)
+useEffect(() => {
+  if (!compareDriver || !cardDriver || !cardDriver.rawRaces || !cardDriver.rawRaces[0]) { setCompareHistory(null); return }
+  const tn = (cardDriver.rawRaces[0] && cardDriver.rawRaces[0].track_name) || (config && config.track_name)
+  if (!tn) { setCompareHistory(null); return }
+  supabase.from('loop_data')
+    .select('year, race_number, track_name, finish_position, start_position, avg_position, driver_rating, quality_passes, pass_diff, laps_led, pct_laps_led, pct_top15_laps, fastest_laps, stage1_finish, stage2_finish, dk_points')
+    .eq('driver_name', compareDriver.driver)
+    .eq('track_name', tn)
+    .eq('series', series)
+    .order('year', { ascending: true })
+    .then(({ data }) => setCompareHistory(data || []))
+}, [compareDriver ? compareDriver.driver : null, cardDriver ? cardDriver.driver : null, series])
 
 useEffect(() => {
 const handleKeyDown = (e) => {
@@ -852,11 +854,10 @@ Select at least one year to view correlated track data.
 cardDriver={cardDriver}
 compareDriver={compareDriver}
 mainRows={mainRows}
-compareRows={cardDriver && cardDriver.rawRaces && cardDriver.rawRaces[0] && cardDriver.rawRaces[0].track_name ? corrRows : mainRows}
+compareRows={mainRows}
 onClose={() => setCardDriver(null)}
 onSetCompare={setCompareDriver}
-trackName={cardDriver && cardDriver.rawRaces && cardDriver.rawRaces[0] && cardDriver.rawRaces[0].track_name}
-seriesKey={series}
+compareHistory={compareHistory}
 />
 )}
 </>)
