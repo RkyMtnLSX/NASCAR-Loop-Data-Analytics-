@@ -101,7 +101,7 @@ export default function LoopDataAudit() {
           </thead>
           <tbody>
             {rows.map(r => {
-              const warn = r.drivers < 30
+              const warn = r.drivers === 0
               return (
                 <tr key={r.raceId} style={{ borderBottom: '1px solid #1a1a1a' }}>
                   <td style={tdStyle(false)}>{r.year}</td>
