@@ -8,84 +8,118 @@ const SERIES = [
 ]
 
 export default function LoopDataAudit() {
-  const [series, setSeries] = useState('cup')
-  const [loading, setLoading] = useState(true)
-  const [rows, setRows] = useState([])
-  const [error, setError] = useState(null)
+  const [series, setSeries]   = useState('cup')
+  const [rows, setRows]       = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError]     = useState(null)
 
-  useEffect(() => {
-    setLoading(true); setError(null); setRows([])
-    supabase
-      .from('loop_data')
-      .select('track_name, year, race_number, driver_name')
-      .eq('series', series)
-      .range(0, 99999)
-      .then(({ data, error: err }) => {
-        if (err) { setError(err.message); setLoading(false); return }
-        const map = {}
-        ;(data || []).forEach(r => {
-          const rn = r.race_number || 1
-          const key = r.year + '||' + rn + '||' + r.track_name
-          if (!map[key]) map[key] = { year: r.year, raceNum: rn, track: r.track_name, drivers: 0 }
-          map[key].drivers++
-        })
-        const sorted = Object.values(map).sort((a, b) =>
-          a.year !== b.year ? a.year - b.year : a.raceNum !== b.raceNum ? a.raceNum - b.raceNum : a.track.localeCompare(b.track)
-        )
-        setRows(sorted)
-        setLoading(false)
-      })
-  }, [series])
+  useEffect(() => { loadAudit() }, [series])
 
-  const active = { background: 'var(--accent)', color: '#000', fontWeight: 700 }
-  const inactive = { background: 'transparent', color: 'var(--text-muted)', fontWeight: 400 }
+  async function loadAudit() {
+    setLoading(true)
+    setError(null)
+
+    const [racesRes, ldRes] = await Promise.all([
+      supabase
+        .from('races')
+        .select('id, year, track_name, race_number, race_date')
+        .eq('series', series)
+        .order('year')
+        .order('race_number'),
+      supabase
+        .from('loop_data')
+        .select('race_id, race_number')
+        .eq('series', series)
+        .range(0, 99999),
+    ])
+
+    if (racesRes.error) { setError(racesRes.error.message); setLoading(false); return }
+    if (ldRes.error)    { setError(ldRes.error.message);    setLoading(false); return }
+
+    const counts   = {}
+    const trackRnMap = {}
+    for (const ld of ldRes.data) {
+      counts[ld.race_id]     = (counts[ld.race_id] || 0) + 1
+      trackRnMap[ld.race_id] = ld.race_number
+    }
+
+    const result = (racesRes.data || []).map(r => ({
+      year:      r.year,
+      seasonNum: r.race_number,
+      date:      r.race_date,
+      trackName: r.track_name,
+      raceId:    r.id,
+      trackRn:   trackRnMap[r.id] || 1,
+      drivers:   counts[r.id] || 0,
+    }))
+
+    setRows(result)
+    setLoading(false)
+  }
+
+  const containerStyle = {
+    padding: '24px', maxWidth: 900, margin: '0 auto',
+    fontFamily: 'monospace', color: '#ccc',
+  }
+  const thStyle = {
+    textAlign: 'left', padding: '6px 12px',
+    borderBottom: '1px solid #333', color: '#888', fontSize: 12,
+  }
+  const tdStyle = (warn) => ({
+    padding: '5px 12px', fontSize: 13,
+    color: warn ? '#e05c5c' : '#ccc',
+  })
 
   return (
-    <div style={{ padding: '2rem', maxWidth: 900, margin: '0 auto' }}>
-      <h1 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1.5rem', fontFamily: 'monospace' }}>
-        Loop Data Audit
-      </h1>
-      <div style={{ display: 'flex', gap: 8, marginBottom: '1.5rem' }}>
+    <div style={containerStyle}>
+      <h2 style={{ color: '#fff', marginBottom: 16 }}>Loop Data Audit</h2>
+
+      <div style={{ marginBottom: 20, display: 'flex', gap: 8 }}>
         {SERIES.map(s => (
           <button key={s.value} onClick={() => setSeries(s.value)} style={{
-            padding: '6px 16px', borderRadius: 6, border: '1px solid var(--border)',
-            cursor: 'pointer', fontSize: '0.875rem',
-            ...(series === s.value ? active : inactive)
+            padding: '6px 14px', borderRadius: 4, border: 'none', cursor: 'pointer',
+            background: series === s.value ? '#3b82f6' : '#2a2a2a',
+            color: series === s.value ? '#fff' : '#aaa', fontSize: 13,
           }}>{s.label}</button>
         ))}
       </div>
-      {loading && <p style={{ color: 'var(--text-muted)', fontFamily: 'monospace' }}>Loading...</p>}
-      {error && <p style={{ color: '#f87171', fontFamily: 'monospace' }}>Error: {error}</p>}
-      {!loading && !error && (
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', fontFamily: 'monospace', marginBottom: '1rem' }}>
-          {rows.length} races loaded
-        </p>
-      )}
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8125rem', fontFamily: 'monospace' }}>
-        <thead>
-          <tr style={{ borderBottom: '1px solid var(--border)' }}>
-            {['YEAR', 'RACE #', 'TRACK', 'DRIVERS'].map(h => (
-              <th key={h} style={{
-                textAlign: h === 'DRIVERS' ? 'right' : 'left',
-                padding: '6px 8px', color: 'var(--text-muted)', fontWeight: 600,
-                textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.7rem'
-              }}>{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r, i) => (
-            <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
-              <td style={{ padding: '5px 8px', color: 'var(--text-muted)' }}>{r.year}</td>
-              <td style={{ padding: '5px 8px', color: 'var(--text-muted)' }}>{r.raceNum}</td>
-              <td style={{ padding: '5px 8px' }}>{r.track}</td>
-              <td style={{ padding: '5px 8px', textAlign: 'right', color: r.drivers < 30 ? '#f87171' : 'var(--text-muted)' }}>
-                {r.drivers}
-              </td>
+
+      {loading && <div style={{ color: '#888' }}>Loading...</div>}
+      {error   && <div style={{ color: '#e05c5c' }}>Error: {error}</div>}
+
+      {!loading && rows.length > 0 && (
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr>
+              <th style={thStyle}>Year</th>
+              <th style={thStyle}>Date</th>
+              <th style={thStyle}>Season#</th>
+              <th style={thStyle}>R#</th>
+              <th style={thStyle}>Track</th>
+              <th style={{ ...thStyle, textAlign: 'right' }}>Drivers</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map(r => {
+              const warn = r.drivers < 30
+              return (
+                <tr key={r.raceId} style={{ borderBottom: '1px solid #1a1a1a' }}>
+                  <td style={tdStyle(false)}>{r.year}</td>
+                  <td style={tdStyle(false)}>{r.date || '--'}</td>
+                  <td style={tdStyle(false)}>{r.seasonNum || '--'}</td>
+                  <td style={tdStyle(false)}>{r.trackRn}</td>
+                  <td style={tdStyle(false)}>{r.trackName}</td>
+                  <td style={{ ...tdStyle(warn), textAlign: 'right' }}>{r.drivers || '--'}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      )}
+
+      {!loading && rows.length === 0 && !error && (
+        <div style={{ color: '#666' }}>No data found for {series}.</div>
+      )}
     </div>
   )
 }
