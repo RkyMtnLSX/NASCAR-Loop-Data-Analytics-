@@ -17,7 +17,7 @@ const DRIVER_COLORS = [
 ]
 
 function fmtTime(sec) {
-  if (sec == null || isNaN(sec)) return 'Ã¢ÂÂ'
+  if (sec == null || isNaN(sec)) return 'ÃÂ¢ÃÂÃÂ'
   const m = Math.floor(sec / 60)
   const s = (sec % 60).toFixed(3).padStart(6, '0')
   return m > 0 ? `${m}:${s}` : `${sec.toFixed(3)}`
@@ -29,7 +29,7 @@ function CustomTooltip({ active, payload, label }) {
   return (
     <div style={{
       background: 'var(--bg-elevated)', border: '1px solid var(--border)',
-      borderRadius: 8, padding: '10px 14px', fontSize: '0.78rem',
+      borderRadius: 8, padding: '10px 14px', fontSize: '0.92rem',
       boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
     }}>
       <div style={{ fontWeight: 700, marginBottom: 6, color: 'var(--text-secondary)' }}>
@@ -191,13 +191,13 @@ export default function LapComparison({ isSubscriber }) {
         <p className="page-subtitle">Head-to-head lap time comparison for matchup and group betting</p>
       </div>
       <div className="card" style={{ borderColor: 'rgba(99,102,241,0.3)' }}>
-        <h3 style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: 8 }}>Setup required</h3>
-        <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginBottom: 12 }}>
-          The <code style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>practice_laps</code> table doesn't exist yet. Run this SQL in your Supabase SQL editor, then re-upload a practice session from Admin:
+        <h3 style={{ fontSize: '1.06rem', fontWeight: 600, marginBottom: 8 }}>Setup required</h3>
+        <p style={{ fontSize: '0.96rem', color: 'var(--text-secondary)', marginBottom: 12 }}>
+          The <code style={{ fontFamily: 'var(--font-mono)', fontSize: '0.89rem' }}>practice_laps</code> table doesn't exist yet. Run this SQL in your Supabase SQL editor, then re-upload a practice session from Admin:
         </p>
         <pre style={{
           background: 'var(--bg-elevated)', border: '1px solid var(--border)',
-          borderRadius: 6, padding: '12px 16px', fontSize: '0.75rem',
+          borderRadius: 6, padding: '12px 16px', fontSize: '0.89rem',
           fontFamily: 'var(--font-mono)', color: 'var(--text-primary)',
           overflowX: 'auto', whiteSpace: 'pre',
         }}>{`CREATE TABLE practice_laps (
@@ -213,7 +213,7 @@ export default function LapComparison({ isSubscriber }) {
   created_at timestamptz default now()
 );
 CREATE INDEX ON practice_laps (series, year, track_name, session_number);`}</pre>
-        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 10 }}>
+        <p style={{ fontSize: '0.89rem', color: 'var(--text-muted)', marginTop: 10 }}>
           After creating the table, re-upload a practice Excel file in Admin to populate lap data.
         </p>
       </div>
@@ -242,7 +242,7 @@ CREATE INDEX ON practice_laps (series, year, track_name, session_number);`}</pre
 
       {/* Error */}
       {error && (
-        <div style={{ padding: '10px 14px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, color: '#ef4444', fontSize: '0.8125rem', marginBottom: 20 }}>
+        <div style={{ padding: '10px 14px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, color: '#ef4444', fontSize: '0.96rem', marginBottom: 20 }}>
           {error}
         </div>
       )}
@@ -265,13 +265,13 @@ CREATE INDEX ON practice_laps (series, year, track_name, session_number);`}</pre
                 onClick={() => setSelectedSession(s)}
                 className="btn btn-secondary"
                 style={{
-                  fontSize: '0.75rem', padding: '5px 12px',
+                  fontSize: '0.89rem', padding: '5px 12px',
                   background: selectedSession?.key === s.key ? 'var(--bg-elevated)' : 'transparent',
                   color: selectedSession?.key === s.key ? 'var(--text-primary)' : 'var(--text-secondary)',
                   borderColor: selectedSession?.key === s.key ? 'var(--accent)60' : 'var(--border)',
                 }}
               >
-                {s.track_name} {s.year} Ã¢ÂÂ S{s.session_number}
+                {s.track_name} {s.year} ÃÂ¢ÃÂÃÂ S{s.session_number}
               </button>
             ))}
           </div>
@@ -279,7 +279,7 @@ CREATE INDEX ON practice_laps (series, year, track_name, session_number);`}</pre
           {loading && (
             <div className="empty-state">
               <div className="spinner" style={{ margin: '0 auto 12px' }} />
-              <p>Loading lap dataÃ¢ÂÂ¦</p>
+              <p>Loading lap dataÃÂ¢ÃÂÃÂ¦</p>
             </div>
           )}
 
@@ -292,7 +292,7 @@ CREATE INDEX ON practice_laps (series, year, track_name, session_number);`}</pre
                 borderRadius: 10, padding: '14px 0', maxHeight: '72vh', overflowY: 'auto',
               }}>
                 <div style={{
-                  fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase',
+                  fontSize: '0.83rem', fontWeight: 700, textTransform: 'uppercase',
                   letterSpacing: '0.06em', color: 'var(--text-secondary)',
                   padding: '0 14px 10px', borderBottom: '1px solid var(--border)', marginBottom: 6,
                 }}>
@@ -300,11 +300,11 @@ CREATE INDEX ON practice_laps (series, year, track_name, session_number);`}</pre
                 </div>
                 <div style={{ display: 'flex', gap: 6, padding: '6px 14px 8px', borderBottom: '1px solid var(--border)', marginBottom: 4 }}>
                   <button onClick={() => setSelectedDrivers(allDrivers.slice(0, 8).map(d => d.driver_name))}
-                    style={{ fontSize: '0.7rem', padding: '3px 8px', border: '1px solid var(--border)', borderRadius: 4, background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                    style={{ fontSize: '0.83rem', padding: '3px 8px', border: '1px solid var(--border)', borderRadius: 4, background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer' }}>
                     Top 8
                   </button>
                   <button onClick={() => setSelectedDrivers([])}
-                    style={{ fontSize: '0.7rem', padding: '3px 8px', border: '1px solid var(--border)', borderRadius: 4, background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                    style={{ fontSize: '0.83rem', padding: '3px 8px', border: '1px solid var(--border)', borderRadius: 4, background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer' }}>
                     Clear
                   </button>
                 </div>
@@ -330,13 +330,13 @@ CREATE INDEX ON practice_laps (series, year, track_name, session_number);`}</pre
                         transition: 'all 0.15s',
                       }} />
                       <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: '0.8rem', fontWeight: active ? 600 : 400, color: active ? 'var(--text-primary)' : 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {d.car_number ? <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--text-muted)', marginRight: 5 }}>#{d.car_number}</span> : null}
+                        <div style={{ fontSize: '0.94rem', fontWeight: active ? 600 : 400, color: active ? 'var(--text-primary)' : 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {d.car_number ? <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', color: 'var(--text-muted)', marginRight: 5 }}>#{d.car_number}</span> : null}
                           {d.driver_name}
                         </div>
-                        <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
                           {d.starting_position ? <span style={{ color: '#f59e0b', marginRight: 6 }}>P{d.starting_position}</span> : null}
-                          {d.laps.length} laps ÃÂ· best {fmtTime(Math.min(...d.laps.map(l => l.time)))}
+                          {d.laps.length} laps ÃÂÃÂ· best {fmtTime(Math.min(...d.laps.map(l => l.time)))}
                         </div>
                       </div>
                     </div>
@@ -368,7 +368,7 @@ CREATE INDEX ON practice_laps (series, year, track_name, session_number);`}</pre
                         />
                         <Tooltip content={<CustomTooltip />} />
                         <Legend
-                          wrapperStyle={{ fontSize: '0.78rem', paddingTop: 8 }}
+                          wrapperStyle={{ fontSize: '0.92rem', paddingTop: 8 }}
                           formatter={(value) => (
                             <span style={{ color: 'var(--text-secondary)' }}>{value}</span>
                           )}
@@ -391,7 +391,7 @@ CREATE INDEX ON practice_laps (series, year, track_name, session_number);`}</pre
 
                     {/* Stats table below chart */}
                     <div style={{ marginTop: 16, overflowX: 'auto' }}>
-                      <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: '0.78rem' }}>
+                      <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: '0.92rem' }}>
                         <thead>
                           <tr>
                             {['Driver','Start','Laps','Best','Avg','Late Run Avg (last 25%)'].map(h => (
@@ -412,11 +412,11 @@ CREATE INDEX ON practice_laps (series, year, track_name, session_number);`}</pre
                               <tr key={name} style={{ background: idx % 2 === 0 ? 'var(--bg-surface)' : 'var(--bg-elevated)' }}>
                                 <td style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
                                   <div style={{ width: 10, height: 10, borderRadius: 2, background: DRIVER_COLORS[idx % DRIVER_COLORS.length], flexShrink: 0 }} />
-                                  {d.car_number && <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', fontSize: '0.72rem' }}>#{d.car_number}</span>}
+                                  {d.car_number && <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>#{d.car_number}</span>}
                                   <span style={{ fontWeight: 500 }}>{name}</span>
                                 </td>
                                 <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: '#f59e0b', fontWeight: 600 }}>
-                                  {d.starting_position ? `P${d.starting_position}` : 'Ã¢ÂÂ'}
+                                  {d.starting_position ? `P${d.starting_position}` : 'ÃÂ¢ÃÂÃÂ'}
                                 </td>
                                 <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{times.length}</td>
                                 <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--accent)', fontWeight: 600 }}>{fmtTime(best)}</td>
