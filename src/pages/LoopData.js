@@ -651,16 +651,15 @@ useEffect(() => {
   if (!cardDriver || !cardDriver.rawRaces || !cardDriver.rawRaces[0]) { setCompareHistories({}); return }
   const tracks = [...new Set((cardDriver.rawRaces||[]).map(r=>r.track_name).filter(Boolean))]
   const tn = tracks[0] || (config && config.track_name)
-  console.log('[CMP] tracks=',tracks,'cds=',compareDrivers.map(d=>d.driver),'series=',series)
   if (!tracks.length || !compareDrivers.length) { setCompareHistories({}); return }
   Promise.all(compareDrivers.map(cd =>
     supabase.from('loop_data')
-      .select('year, race_number, track_name, finish_position, start_position, avg_position, driver_rating, quality_passes, pass_diff, laps_led, pct_laps_led, pct_top15_laps, fastest_laps, stage1_finish, stage2_finish, dk_points')
+      .select('year, race_number, track_name, finish_position, start_position, avg_position, driver_rating, quality_passes, pass_diff, laps_led, pct_laps_led, pct_top15_laps, fastest_laps, stage1_finish, stage2_finish')
       .eq('driver_name', cd.driver)
       .in('track_name', tracks)
       .eq('series', series)
       .order('year', { ascending: true })
-      .then(({ data, error }) => { console.log('[CMP] result driver=',cd.driver,'rows=',(data||[]).length,'error=',error); return { driver: cd.driver, data: data || [] } })
+      .then(({ data }) => ({ driver: cd.driver, data: data || [] }))
   )).then(results => {
     const m = {}
     results.forEach(r => { m[r.driver] = r.data })
