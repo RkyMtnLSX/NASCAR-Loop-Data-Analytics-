@@ -654,7 +654,7 @@ function LoadNewRace() {
     return name
   }
   function parseLoopData(text) {
-    const atMatch = text.match(/at\s+([^,\n]+)/i)
+    const atMatch = text.match(/\bat\s+([A-Z][^,\n(]+)/)
     const trackName = atMatch ? atMatch[1].trim() : ('Race ' + raceNum + ' ' + year)
     const lapsMatch = text.match(/(\d+)\s+laps?\*/i)
     const expectedLaps = lapsMatch ? parseInt(lapsMatch[1]) : 0
