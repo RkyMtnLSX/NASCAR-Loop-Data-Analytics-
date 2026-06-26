@@ -19,38 +19,18 @@ export default function LoopDataAudit() {
     setLoading(true)
     setError(null)
 
-    const [racesRes, ldRes] = await Promise.all([
-      supabase
-        .from('races')
-        .select('id, year, track_name, race_number, race_date')
-        .eq('series', series)
-        .order('year')
-        .order('race_number'),
-      supabase
-        .from('loop_data')
-        .select('race_id, race_number')
-        .eq('series', series)
-        .range(0, 99999),
-    ])
+    const { data, error: rpcError } = await supabase.rpc('get_loop_audit_data', { p_series: series })
 
-    if (racesRes.error) { setError(racesRes.error.message); setLoading(false); return }
-    if (ldRes.error)    { setError(ldRes.error.message);    setLoading(false); return }
+    if (rpcError) { setError(rpcError.message); setLoading(false); return }
 
-    const counts   = {}
-    const trackRnMap = {}
-    for (const ld of ldRes.data) {
-      counts[ld.race_id]     = (counts[ld.race_id] || 0) + 1
-      trackRnMap[ld.race_id] = ld.race_number
-    }
-
-    const result = (racesRes.data || []).map(r => ({
+    const result = (data || []).map(r => ({
       year:      r.year,
-      seasonNum: r.race_number,
+      seasonNum: r.season_num,
       date:      r.race_date,
       trackName: r.track_name,
-      raceId:    r.id,
-      trackRn:   trackRnMap[r.id] || 1,
-      drivers:   counts[r.id] || 0,
+      raceId:    r.race_id,
+      trackRn:   r.track_rn || 1,
+      drivers:   Number(r.driver_count) || 0,
     }))
 
     setRows(result)
