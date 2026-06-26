@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
+// ââ Helpers ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 const TRACK_ABBR = {
   'Circuit of the Americas': 'COTA',
@@ -175,9 +175,9 @@ function SubscribePrompt() {
         <p className="page-subtitle">Qualifying heatmap &amp; simulation</p>
       </div>
       <div className="card" style={{ textAlign: 'center', padding: '40px 24px' }}>
-        <div style={{ fontSize: '2rem', marginBottom: 12 }}>&#127937;</div>
+        <div style={{ fontSize: '2.36rem', marginBottom: 12 }}>&#127937;</div>
         <h3 style={{ marginBottom: 8 }}>Subscriber Feature</h3>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: 20 }}>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '1.03rem', marginBottom: 20 }}>
           Qualifying heatmaps, historical averages, and simulations are available to subscribers.
         </p>
         <a href="/subscribe" className="btn btn-primary">Subscribe to Unlock</a>
@@ -361,7 +361,7 @@ export default function QualifyingCenter({ isSubscriber }) {
   const allPositions = qualData.map(function(r) { return r.qualifying_position }).filter(function(p) { return p != null })
   const totalDrivers = allPositions.length > 0 ? Math.max.apply(null, allPositions) : 40
 
-  // Normalize driver names: lowercase, strip accents (Suárez→suarez), strip periods (A.J.→AJ)
+  // Normalize driver names: lowercase, strip accents (SuÃ¡rezâsuarez), strip periods (A.J.âAJ)
   function normalizeName(name) {
     return name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\./g, '').replace(/\s+/g, ' ').trim()
   }
@@ -377,7 +377,7 @@ export default function QualifyingCenter({ isSubscriber }) {
   }
 
   let rows = Object.values(driverMap)
-  // Override historical car numbers with entry list (fixes e.g. Suárez #99→#7)
+  // Override historical car numbers with entry list (fixes e.g. SuÃ¡rez #99â#7)
   rows.forEach(function(r) {
     const cn = elCarMap[normalizeName(r.driver)]
     if (cn != null) r.carNumber = cn
@@ -398,7 +398,7 @@ export default function QualifyingCenter({ isSubscriber }) {
     if (sortBy === key) { setSortDir(sortDir === 'asc' ? 'desc' : 'asc') }
     else { setSortBy(key); setSortDir('asc') }
   }
-  function sortArrow(key) { return sortBy === key ? (sortDir === 'asc' ? ' ▲' : ' ▼') : '' }
+  function sortArrow(key) { return sortBy === key ? (sortDir === 'asc' ? ' â²' : ' â¼') : '' }
 
   rows.sort(function(a, b) {
     var va, vb, mul = sortDir === 'asc' ? 1 : -1
@@ -434,7 +434,7 @@ export default function QualifyingCenter({ isSubscriber }) {
   }
 
   const thStyle = {
-    padding: '8px 6px', fontWeight: 700, fontSize: '0.65rem',
+    padding: '8px 6px', fontWeight: 700, fontSize: '0.77rem',
     textTransform: 'uppercase', letterSpacing: '0.05em',
     color: 'var(--text-secondary)', textAlign: 'center',
     whiteSpace: 'nowrap', background: 'var(--bg-elevated)',
@@ -442,7 +442,7 @@ export default function QualifyingCenter({ isSubscriber }) {
   }
   const tdBase = {
     padding: '5px 6px', textAlign: 'center',
-    fontSize: '0.8rem', fontFamily: 'var(--font-mono)',
+    fontSize: '0.94rem', fontFamily: 'var(--font-mono)',
     borderBottom: '1px solid var(--border)',
   }
 
@@ -461,7 +461,7 @@ export default function QualifyingCenter({ isSubscriber }) {
               const fmtInfo = QUAL_FORMAT_LABELS[fmt]
               return (
                 <span style={{
-                  display: 'inline-block', marginLeft: 10, fontSize: '0.65rem', fontWeight: 700,
+                  display: 'inline-block', marginLeft: 10, fontSize: '0.77rem', fontWeight: 700,
                   letterSpacing: '0.06em', padding: '2px 8px', borderRadius: 20,
                   background: fmtInfo.color + '22', color: fmtInfo.color,
                   border: '1px solid ' + fmtInfo.color + '55',
@@ -472,13 +472,13 @@ export default function QualifyingCenter({ isSubscriber }) {
           </p>
         </div>
         <button className="btn btn-secondary" onClick={loadData} disabled={loading}
-          style={{ fontSize: '0.75rem', padding: '5px 14px' }}>
+          style={{ fontSize: '0.89rem', padding: '5px 14px' }}>
           {loading ? 'Loading...' : 'Refresh'}
         </button>
       </div>
 
       {error && (
-        <div style={{ padding: '12px 16px', borderRadius: 8, marginBottom: 20, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', fontSize: '0.8125rem' }}>
+        <div style={{ padding: '12px 16px', borderRadius: 8, marginBottom: 20, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', fontSize: '0.96rem' }}>
           {error}
         </div>
       )}
@@ -501,36 +501,36 @@ export default function QualifyingCenter({ isSubscriber }) {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
             <button onClick={function() { setShow2025(!show2025) }} style={{
-              padding: '4px 12px', borderRadius: 20, fontSize: '0.75rem',
+              padding: '4px 12px', borderRadius: 20, fontSize: '0.89rem',
               border: '1px solid var(--border)',
               background: show2025 ? 'var(--accent)' : 'var(--bg-elevated)',
               color: show2025 ? '#fff' : 'var(--text-secondary)', cursor: 'pointer',
             }}>Show 2025</button>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
-              <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>P1</span>
+              <span style={{ fontSize: '0.77rem', color: 'var(--text-muted)' }}>P1</span>
               {[0, 0.2, 0.4, 0.6, 0.8, 1].map(function(pct) {
                 const hc = heatColor(Math.round(pct * (totalDrivers - 1)) + 1, totalDrivers)
                 return <div key={pct} style={{ width: 18, height: 12, borderRadius: 3, background: hc.bg }} />
               })}
-              <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Last</span>
+              <span style={{ fontSize: '0.77rem', color: 'var(--text-muted)' }}>Last</span>
             </div>
           </div>
 
           <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginRight: 2 }}>Sort:</span>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginRight: 2 }}>Sort:</span>
             {[
               { key: 'trackAvg', label: 'Avg @ ' + trackAbbr(config.track_name) },
               hasDrawOrder ? { key: 'drawOrder', label: 'Draw Order' } : null,
-              { key: 'name', label: 'A–Z' },
+              { key: 'name', label: 'AâZ' },
             ].filter(Boolean).map(function(opt) {
               const active = sortBy === opt.key
               return (
                 <button key={opt.key} onClick={function() { handleSort(opt.key) }} style={{
-                  padding: '4px 12px', borderRadius: 20, fontSize: '0.75rem',
+                  padding: '4px 12px', borderRadius: 20, fontSize: '0.89rem',
                   border: '1px solid ' + (active ? 'transparent' : 'var(--border)'),
                   background: active ? 'var(--accent)' : 'var(--bg-elevated)',
                   color: active ? '#fff' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: active ? 600 : 400,
-                }}>{opt.label}{active ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''}</button>
+                }}>{opt.label}{active ? (sortDir === 'asc' ? ' â' : ' â') : ''}</button>
               )
             })}
           </div>
@@ -590,21 +590,21 @@ export default function QualifyingCenter({ isSubscriber }) {
                   const rowBg = ri % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-elevated)'
                   return (
                     <tr key={row.driver} style={{ background: rowBg }}>
-                      <td style={Object.assign({}, tdBase, { color: 'var(--text-muted)', fontSize: '0.72rem' })}>{ri + 1}</td>
+                      <td style={Object.assign({}, tdBase, { color: 'var(--text-muted)', fontSize: '0.85rem' })}>{ri + 1}</td>
                       <td style={Object.assign({}, tdBase, {
                         textAlign: 'left', paddingLeft: 14, fontFamily: 'var(--font-sans)',
                         fontWeight: ri < 5 ? 600 : 400, color: 'var(--text-primary)',
                         position: 'sticky', left: 0, background: rowBg, zIndex: 1,
                       })}>
                         {row.carNumber && (
-                          <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', fontSize: '0.7rem', marginRight: 6 }}>#{row.carNumber}</span>
+                          <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', fontSize: '0.83rem', marginRight: 6 }}>#{row.carNumber}</span>
                         )}
                         {row.driver}
-                        {row.org && <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 400 }}>{row.org}</div>}
+                        {row.org && <div style={{ fontSize: '0.77rem', color: 'var(--text-muted)', fontWeight: 400 }}>{row.org}</div>}
                       </td>
                       {hasDrawOrder && (
                         <td style={Object.assign({}, tdBase, { color: row.drawOrder != null ? '#f59e0b' : 'var(--text-muted)', fontWeight: row.drawOrder != null ? 700 : 400, minWidth: 120 })}>
-                          {row.drawOrder != null ? row.drawOrder : '–'}
+                          {row.drawOrder != null ? row.drawOrder : 'â'}
                         </td>
                       )}
                       <td style={Object.assign({}, tdBase, {
@@ -618,7 +618,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                         const pos = row.positions[col.trackName + '_' + col.year]
                         const spd = row.speeds ? row.speeds[col.trackName + '_' + col.year] : null
                         const hc = heatColor(pos, totalDrivers)
-                        const tip = pos != null ? ('P' + pos + (spd != null ? ' · ' + formatQualSpeed(spd, col.trackName) : '')) : undefined
+                        const tip = pos != null ? ('P' + pos + (spd != null ? ' Â· ' + formatQualSpeed(spd, col.trackName) : '')) : undefined
                         return (
                           <td key={col.key} title={tip} style={Object.assign({}, tdBase, i === 0 ? { borderLeft: '2px solid rgba(99,102,241,0.3)' } : {}, { background: hc.bg, color: hc.text })}>
                             {pos != null ? pos : '-'}
@@ -639,7 +639,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                         const pos = row.positions[col.trackName + '_' + col.year]
                         const spd = row.speeds ? row.speeds[col.trackName + '_' + col.year] : null
                         const hc = heatColor(pos, totalDrivers)
-                        const tip = pos != null ? ('P' + pos + (spd != null ? ' · ' + formatQualSpeed(spd, col.trackName) : '')) : undefined
+                        const tip = pos != null ? ('P' + pos + (spd != null ? ' Â· ' + formatQualSpeed(spd, col.trackName) : '')) : undefined
                         return (
                           <td key={col.key} title={tip} style={Object.assign({}, tdBase, { borderLeft: '2px solid rgba(99,102,241,0.5)', background: hc.bg, color: hc.text })}>
                             {pos != null ? pos : '-'}
@@ -650,7 +650,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                         const pos = row.positions[col.trackName + '_' + col.year]
                         const spd = row.speeds ? row.speeds[col.trackName + '_' + col.year] : null
                         const hc = heatColor(pos, totalDrivers)
-                        const tip = pos != null ? ('P' + pos + (spd != null ? ' · ' + formatQualSpeed(spd, col.trackName) : '')) : undefined
+                        const tip = pos != null ? ('P' + pos + (spd != null ? ' Â· ' + formatQualSpeed(spd, col.trackName) : '')) : undefined
                         return (
                           <td key={col.key} title={tip} style={Object.assign({}, tdBase, i === 0 ? { borderLeft: '2px solid var(--border)' } : {}, { background: hc.bg, color: hc.text })}>
                             {pos != null ? pos : '-'}
@@ -664,7 +664,7 @@ export default function QualifyingCenter({ isSubscriber }) {
             </table>
           </div>
 
-          <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 28, lineHeight: 1.6 }}>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 28, lineHeight: 1.6 }}>
             Avg column = mean qualifying position at {config.track_name} across {trackYears.join(', ') || 'selected years'}.
             Lower = better qualifier. Use as baseline for PrizePicks over/under picks.
           </p>
@@ -672,27 +672,27 @@ export default function QualifyingCenter({ isSubscriber }) {
           {showSimPanel && (
             <div style={{ borderTop: '1px solid var(--border)', paddingTop: 24 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
-                <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, margin: 0 }}>Qualifying Simulation</h2>
+                <h2 style={{ fontSize: '1.11rem', fontWeight: 600, margin: 0 }}>Qualifying Simulation</h2>
                 <span style={{
-                  fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.08em', padding: '2px 7px', borderRadius: 20,
+                  fontSize: '0.71rem', fontWeight: 700, letterSpacing: '0.08em', padding: '2px 7px', borderRadius: 20,
                   background: 'rgba(99,102,241,0.12)', color: 'var(--accent)',
                   border: '1px solid rgba(99,102,241,0.3)', textTransform: 'uppercase',
                 }}>BETA</span>
                 <button className="btn btn-secondary" onClick={handleRunSim} disabled={simRunning}
-                  style={{ fontSize: '0.75rem', padding: '5px 14px', marginLeft: 'auto' }}>
+                  style={{ fontSize: '0.89rem', padding: '5px 14px', marginLeft: 'auto' }}>
                   {simRunning ? 'Running...' : simResults ? 'Re-run' : 'Run Simulation'}
                 </button>
               </div>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 16, lineHeight: 1.6 }}>
+              <p style={{ fontSize: '0.94rem', color: 'var(--text-muted)', marginBottom: 16, lineHeight: 1.6 }}>
                 Monte Carlo simulation (2,000 runs) using historical qualifying positions.
                 {simCorrYears.length > 0 && (
                   <span style={{ color: '#f59e0b' }}> Using {simCorrYears.join(', ')} data.</span>
                 )}
-                <span style={{ color: '#94a3b8', marginLeft: 4 }}>{QUAL_FORMAT_LABELS[fmt].label} · floor: {nudgeVal}</span>
+                <span style={{ color: '#94a3b8', marginLeft: 4 }}>{QUAL_FORMAT_LABELS[fmt].label} Â· floor: {nudgeVal}</span>
               </p>
               {simResults && (
                 <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid var(--border)' }}>
-                  <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: '0.8125rem' }}>
+                  <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: '0.96rem' }}>
                     <thead>
                       <tr style={{ background: 'var(--bg-elevated)', borderBottom: '2px solid var(--border)' }}>
                         <th style={Object.assign({}, thStyle, { textAlign: 'center', width: 36 })}>#</th>
@@ -710,12 +710,12 @@ export default function QualifyingCenter({ isSubscriber }) {
                         const hc = heatColor(r.simExpected, totalDrivers)
                         return (
                           <tr key={r.driver} style={{ background: ri % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-elevated)', borderBottom: '1px solid var(--border)' }}>
-                            <td style={Object.assign({}, tdBase, { color: 'var(--text-muted)', fontSize: '0.72rem' })}>{ri + 1}</td>
+                            <td style={Object.assign({}, tdBase, { color: 'var(--text-muted)', fontSize: '0.85rem' })}>{ri + 1}</td>
                             <td style={Object.assign({}, tdBase, { textAlign: 'left', paddingLeft: 14, fontFamily: 'var(--font-sans)', fontWeight: ri < 5 ? 600 : 400 })}>{r.driver}</td>
                             <td style={Object.assign({}, tdBase, { background: hc.bg, color: hc.text, fontWeight: 700 })}>P{r.simExpected}</td>
-                            <td style={Object.assign({}, tdBase, { color: 'var(--text-secondary)', fontSize: '0.75rem' })}>P{r.simP10} - P{r.simP90}</td>
+                            <td style={Object.assign({}, tdBase, { color: 'var(--text-secondary)', fontSize: '0.89rem' })}>P{r.simP10} - P{r.simP90}</td>
                             <td style={Object.assign({}, tdBase, { color: 'var(--text-muted)' })}>{r.simMean != null ? r.simMean.toFixed(1) : ''}</td>
-                            <td style={Object.assign({}, tdBase, { color: 'var(--text-muted)', fontSize: '0.72rem' })}>{r.sampleCount}</td>
+                            <td style={Object.assign({}, tdBase, { color: 'var(--text-muted)', fontSize: '0.85rem' })}>{r.sampleCount}</td>
                           </tr>
                         )
                       })}
