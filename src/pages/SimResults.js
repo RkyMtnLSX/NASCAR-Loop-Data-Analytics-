@@ -16,6 +16,8 @@ export default function SimResults() {
   const [data, setData]         = useState(null)
   const [loading, setLoading]   = useState(true)
   const [error, setError]       = useState(null)
+  const [sortBy, setSortBy]     = useState('proj_finish')
+  const [sortDir, setSortDir]   = useState('asc')
 
   useEffect(() => {
     setLoading(true)
@@ -38,7 +40,17 @@ export default function SimResults() {
 
   const results = data?.results || []
   // Sort by projected finish ascending (1st = best)
-  const sorted  = [...results].sort((a, b) => (a.proj_finish || 99) - (b.proj_finish || 99))
+  const handleSort = (key) => {
+    if (sortBy === key) { setSortDir(d => d === 'asc' ? 'desc' : 'asc') }
+    else { setSortBy(key); setSortDir('asc') }
+  }
+  const arrow = (key) => sortBy === key ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ''
+  const sorted = [...results].sort((a, b) => {
+    const av = a[sortBy] ?? (sortDir === 'asc' ? Infinity : -Infinity)
+    const bv = b[sortBy] ?? (sortDir === 'asc' ? Infinity : -Infinity)
+    const diff = typeof av === 'string' ? av.localeCompare(bv) : av - bv
+    return sortDir === 'asc' ? diff : -diff
+  })
 
   const tabStyle = (s) => ({
     padding: '8px 18px', border: 'none', borderRadius: 6, cursor: 'pointer',
@@ -92,17 +104,17 @@ export default function SimResults() {
             <thead>
               <tr>
                 <th style={thStyle}>#</th>
-                <th style={thStyle}>Driver</th>
-                <th style={{ ...thStyle, textAlign: 'center' }}>Start</th>
-                <th style={{ ...thStyle, textAlign: 'center' }}>Proj Finish</th>
-                <th style={{ ...thStyle, textAlign: 'center' }}>Proj DK</th>
-                <th style={{ ...thStyle, textAlign: 'center' }}>Win%</th>
-                <th style={{ ...thStyle, textAlign: 'center' }}>Top 3%</th>
-                <th style={{ ...thStyle, textAlign: 'center' }}>Top 5%</th>
-                <th style={{ ...thStyle, textAlign: 'center' }}>Top 10%</th>
-                <th style={{ ...thStyle, textAlign: 'center' }}>Laps Led</th>
-                <th style={{ ...thStyle, textAlign: 'center' }}>Fast Laps</th>
-                <th style={{ ...thStyle, textAlign: 'center' }}>DNF%</th>
+                <th style={{ ...thStyle, cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('driver_name')}>Driver{arrow('driver_name')}</th>
+                <th style={{ ...thStyle, textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('start_pos')}>Start{arrow('start_pos')}</th>
+                <th style={{ ...thStyle, textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('proj_finish')}>Proj Finish{arrow('proj_finish')}</th>
+                <th style={{ ...thStyle, textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('proj_dk')}>Proj DK{arrow('proj_dk')}</th>
+                <th style={{ ...thStyle, textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('win_pct')}>Win%{arrow('win_pct')}</th>
+                <th style={{ ...thStyle, textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('top3_pct')}>Top 3%{arrow('top3_pct')}</th>
+                <th style={{ ...thStyle, textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('top5_pct')}>Top 5%{arrow('top5_pct')}</th>
+                <th style={{ ...thStyle, textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('top10_pct')}>Top 10%{arrow('top10_pct')}</th>
+                <th style={{ ...thStyle, textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('laps_led')}>Laps Led{arrow('laps_led')}</th>
+                <th style={{ ...thStyle, textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('avg_fast_laps')}>Fast Laps{arrow('avg_fast_laps')}</th>
+                <th style={{ ...thStyle, textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('dnf_pct')}>DNF%{arrow('dnf_pct')}</th>
               </tr>
             </thead>
             <tbody>
