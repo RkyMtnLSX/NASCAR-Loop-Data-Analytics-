@@ -345,12 +345,14 @@ export default function QualifyingCenter({ isSubscriber }) {
 
     if (simCorrYears.length > 0) {
       d.historicalPositions = []
+      const yrWeight = { 2022: 1, 2023: 1, 2024: 2, 2025: 4, 2026: 5 }
       for (const yr of simCorrYears) {
+        const reps = yrWeight[yr] || 1
         const fp = d.positions[config.track_name + '_' + yr]
-        if (fp != null) d.historicalPositions.push(fp)
+        if (fp != null) for (let ri = 0; ri < reps; ri++) d.historicalPositions.push(fp)
         for (const ct of corrTracks.filter(function(t) { return t !== config.track_name })) {
           const cp = d.positions[ct + '_' + yr]
-          if (cp != null) d.historicalPositions.push(cp)
+          if (cp != null) for (let ri = 0; ri < reps; ri++) d.historicalPositions.push(cp)
         }
       }
     } else {
