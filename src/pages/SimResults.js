@@ -123,9 +123,9 @@ export default function SimResults() {
                   <td style={{ ...pctStyle(d.top3_pct, 10), textAlign: 'center' }}>{fmt(d.top3_pct)}</td>
                   <td style={{ ...pctStyle(d.top5_pct, 15), textAlign: 'center' }}>{fmt(d.top5_pct)}</td>
                   <td style={{ ...pctStyle(d.top10_pct, 25), textAlign: 'center' }}>{fmt(d.top10_pct)}</td>
-                  <td style={{ ...tdStyle, textAlign: 'center', color: 'var(--text-muted)' }}>{fmt(d.dnf_pct)}</td>
                   <td style={{ ...tdStyle, textAlign: 'center', color: 'var(--text-muted)' }}>{d.laps_led != null ? (+d.laps_led).toFixed(1) : '—'}</td>
                   <td style={{ ...tdStyle, textAlign: 'center', color: 'var(--text-muted)' }}>{d.avg_fast_laps != null ? (+d.avg_fast_laps).toFixed(1) : '—'}</td>
+                  <td style={{ ...tdStyle, textAlign: 'center', color: 'var(--text-muted)' }}>{fmt(d.dnf_pct)}</td>
                 </tr>
               ))}
             </tbody>
