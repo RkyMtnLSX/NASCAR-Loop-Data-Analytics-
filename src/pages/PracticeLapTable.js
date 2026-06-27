@@ -76,11 +76,23 @@ export default function PracticeLapTable({ isSubscriber }) {
       .eq('session_number', selectedSession.session_number)
       .order('lap_number', { ascending: true })
       .limit(50000)
-      .then(({ data, error: err }) => {
+      .then(async ({ data, error: err }) => {
         if (cancelled) return
         setLoading(false)
         if (err) { setError(err.message); return }
-        setRows(data || [])
+        const { data: entryData } = await supabase
+          .from('entry_list')
+          .select('driver_name, car_number')
+          .eq('series', selectedSession.series)
+          .eq('race_year', selectedSession.year)
+          .eq('track_name', selectedSession.track_name)
+        const carMap = {}
+        ;(entryData || []).forEach(e => { carMap[e.driver_name] = e.car_number })
+        const merged = (data || []).map(row => ({
+          ...row,
+          car_number: row.car_number || carMap[row.driver_name] || null
+        }))
+        setRows(merged)
       })
 
     return () => { cancelled = true }
