@@ -133,7 +133,7 @@ function buildSpeedScores(drivers, weights) {
     const tfs = trackFinishScores[i]
     const hasTR = d.trackAvgRating != null
     const hasTF = d.trackAvgFinish != null
-    const blendedT = hasTR && hasTF ? trs * 0.7 + tfs * 0.3
+    const blendedT = hasTR && hasTF ? trs * 0.9 + tfs * 0.1
                    : hasTR           ? trs
                    : hasTF           ? tfs
                    :                   null
