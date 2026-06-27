@@ -31,6 +31,7 @@ export function parsePracticeExcel(file, series = 'cup') {
         const headers = rows[headerRowIndex].map(h => String(h || '').trim())
         const driverColIndex = headers.findIndex(h => h.toLowerCase() === 'driver')
         const startColIndex  = headers.findIndex(h => h.toLowerCase() === 'start' || h.toLowerCase() === 'spos')
+        const carColIndex     = headers.findIndex(h => { const l = h.toLowerCase(); return l === 'car' || l === 'car #' || l === 'car#' || l === '#' })
         if (driverColIndex === -1) { reject(new Error('Could not find Driver column')); return }
         // Find lap columns: plain numeric ('1','2') or 'Lap 1','Lap 2' format
         const lapColumns = []
@@ -49,6 +50,7 @@ export function parsePracticeExcel(file, series = 'cup') {
           const driverName = String(row[driverColIndex] || '').trim()
           if (!driverName) continue
           const startPos = startColIndex !== -1 ? parseInt(row[startColIndex]) || null : null
+          const carNumber  = carColIndex !== -1 ? String(row[carColIndex] || '').trim() : null
           const lapData = {}
           for (const { index, lapNum } of lapColumns) {
             const val = row[index]
@@ -58,7 +60,7 @@ export function parsePracticeExcel(file, series = 'cup') {
               if (!isNaN(time) && time > 20 && time < 500) lapData[String(lapNum)] = time
             }
           }
-          if (Object.keys(lapData).length > 0) drivers.push({ driver: driverName, start: startPos, lapData })
+          if (Object.keys(lapData).length > 0) drivers.push({ driver: driverName, carNumber, start: startPos, lapData })
         }
         if (drivers.length === 0) { reject(new Error('No valid driver data found')); return }
         resolve({ drivers, sheetName, totalDrivers: drivers.length })
