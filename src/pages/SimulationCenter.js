@@ -122,7 +122,7 @@ function buildSpeedScores(drivers, weights) {
     const fs = corrFinishScores[i]
     const hasR = d.corrAvgRating != null
     const hasF = d.corrAvgFinish != null
-    const blendedC = hasR && hasF ? rs * 0.7 + fs * 0.3
+    const blendedC = hasR && hasF ? rs * 0.9 + fs * 0.1
                    : hasR         ? rs
                    : hasF         ? fs
                    :                null
