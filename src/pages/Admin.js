@@ -798,6 +798,28 @@ function LoadNewRace() {
   )
 }
 
+async function loadPdfJs() {
+  if (window._pdfjs) return window._pdfjs
+  return new Promise((resolve, reject) => {
+    if (document.getElementById('pdfjs-script')) {
+      const check = setInterval(() => {
+        if (window.pdfjsLib) { clearInterval(check); window._pdfjs = window.pdfjsLib; resolve(window._pdfjs) }
+      }, 100)
+      return
+    }
+    const script = document.createElement('script')
+    script.id = 'pdfjs-script'
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'
+    script.onload = () => {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+      window._pdfjs = window.pdfjsLib
+      resolve(window._pdfjs)
+    }
+    script.onerror = () => reject(new Error('Failed to load PDF.js'))
+    document.head.appendChild(script)
+  })
+}
+
 function LoadQualifying() {
   const SERIES_CODES = { cup: 'W', oreilly: 'B', trucks: 'C' }
   const [series, setSeries]         = useState('cup')

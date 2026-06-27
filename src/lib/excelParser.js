@@ -30,7 +30,7 @@ export function parsePracticeExcel(file, series = 'cup') {
         }
         const headers = rows[headerRowIndex].map(h => String(h || '').trim())
         const driverColIndex = headers.findIndex(h => h.toLowerCase() === 'driver')
-        const startColIndex  = headers.findIndex(h => h.toLowerCase() === 'start' || h.toLowerCase() === 'spos')
+        const startColIndex  = headers.findIndex(h => h.toLowerCase() === 'start' || h.toLowerCase() === 'spos' || h.toLowerCase() === 'pos')
         const carColIndex     = headers.findIndex(h => { const l = h.toLowerCase(); return l === 'car' || l === 'car #' || l === 'car#' || l === '#' })
         if (driverColIndex === -1) { reject(new Error('Could not find Driver column')); return }
         // Find lap columns: plain numeric ('1','2') or 'Lap 1','Lap 2' format
