@@ -156,7 +156,7 @@ function runSimulation(drivers, numSims, nudge) {
       simExpected: Math.round(samples[Math.floor(numSims * 0.5)]),
       simP10: samples[Math.floor(numSims * 0.1)],
       simP90: samples[Math.floor(numSims * 0.9)],
-      sampleCount: positions.length,
+      sampleCount: driver.rawCount || positions.length,
     })
   })
   return results.sort(function(a, b) {
@@ -345,14 +345,15 @@ export default function QualifyingCenter({ isSubscriber }) {
 
     if (simCorrYears.length > 0) {
       d.historicalPositions = []
+      d.rawCount = 0
       const yrWeight = { 2022: 1, 2023: 1, 2024: 2, 2025: 4, 2026: 5 }
       for (const yr of simCorrYears) {
         const reps = yrWeight[yr] || 1
         const fp = d.positions[config.track_name + '_' + yr]
-        if (fp != null) for (let ri = 0; ri < reps; ri++) d.historicalPositions.push(fp)
+        if (fp != null) { for (let ri = 0; ri < reps; ri++) d.historicalPositions.push(fp); d.rawCount++ }
         for (const ct of corrTracks.filter(function(t) { return t !== config.track_name })) {
           const cp = d.positions[ct + '_' + yr]
-          if (cp != null) for (let ri = 0; ri < reps; ri++) d.historicalPositions.push(cp)
+          if (cp != null) { for (let ri = 0; ri < reps; ri++) d.historicalPositions.push(cp); d.rawCount++ }
         }
       }
     } else {
