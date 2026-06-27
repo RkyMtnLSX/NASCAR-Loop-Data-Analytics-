@@ -8,8 +8,8 @@ const SERIES_TABS = [
 ]
 
 // Values stored as percentages (e.g. 60.9), not decimals
-const fmt = (n, dec = 1) => n == null ? 'â' : (+n).toFixed(dec) + '%'
-const fmtDK = (n) => n == null ? 'â' : (+n).toFixed(2)
+const fmt = (n, dec = 1) => n == null ? '—' : (+n).toFixed(dec) + '%'
+const fmtDK = (n) => n == null ? '—' : (+n).toFixed(2)
 
 export default function SimResults() {
   const [series, setSeries]     = useState('cup')
@@ -116,8 +116,8 @@ export default function SimResults() {
                     </div>
                     {d.organization && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{d.organization}</div>}
                   </td>
-                  <td style={{ ...tdStyle, textAlign: 'center', color: 'var(--text-muted)' }}>{d.start_pos ?? 'â'}</td>
-                  <td style={{ ...tdStyle, textAlign: 'center' }}>{d.proj_finish != null ? (+d.proj_finish).toFixed(1) : 'â'}</td>
+                  <td style={{ ...tdStyle, textAlign: 'center', color: 'var(--text-muted)' }}>{d.start_pos ?? '—'}</td>
+                  <td style={{ ...tdStyle, textAlign: 'center' }}>{d.proj_finish != null ? (+d.proj_finish).toFixed(1) : '—'}</td>
                   <td style={{ ...tdStyle, textAlign: 'center', color: 'var(--accent)', fontWeight: 600 }}>{fmtDK(d.proj_dk)}</td>
                   <td style={{ ...pctStyle(d.win_pct, 5), textAlign: 'center' }}>{fmt(d.win_pct)}</td>
                   <td style={{ ...pctStyle(d.top3_pct, 10), textAlign: 'center' }}>{fmt(d.top3_pct)}</td>
