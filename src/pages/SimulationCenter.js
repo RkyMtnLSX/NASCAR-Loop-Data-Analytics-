@@ -526,12 +526,13 @@ export default function SimulationCenter({ isSubscriber }) {
         start_pos:    d.startPos,
         proj_finish:  d.projFinish,
         proj_dk:      +(d.projDK   || 0).toFixed(2),
-        win_pct:      +(d.winPct   || 0).toFixed(4),
-        top5_pct:     +(d.top5Pct  || 0).toFixed(4),
-        top10_pct:    +(d.top10Pct || 0).toFixed(4),
-        dnf_pct:      +(d.dnfPct   || 0).toFixed(4),
-        laps_led:     +(d.lapsLed  || 0).toFixed(2),
-        fl_pct:       +(d.flPct    || 0).toFixed(4),
+        win_pct:       +(d.winPct      || 0).toFixed(4),
+        top3_pct:      +(d.top3Pct     || 0).toFixed(4),
+        top5_pct:      +(d.top5Pct     || 0).toFixed(4),
+        top10_pct:     +(d.top10Pct    || 0).toFixed(4),
+        dnf_pct:       +(d.dnfPct      || 0).toFixed(4),
+        laps_led:      +(d.projLapsLed || 0).toFixed(2),
+        avg_fast_laps: +(d.avgFastLaps || 0).toFixed(2),
       }))
     }
     await supabase.from('sim_results').delete().eq('series', series)
