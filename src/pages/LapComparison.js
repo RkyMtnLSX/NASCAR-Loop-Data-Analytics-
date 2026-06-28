@@ -120,11 +120,21 @@ export default function LapComparison({ isSubscriber }) {
 
       if (err) { setError(err.message); return }
 
+      // Fetch entry list for car numbers (fallback if practice_laps.car_number is null)
+      const { data: entryData } = await supabase
+        .from('entry_list')
+        .select('driver_name, car_number')
+        .eq('series', selectedSession.series)
+        .eq('race_year', selectedSession.year)
+        .eq('track_name', selectedSession.track_name)
+      const entryMap = {}
+      for (const e of (entryData || [])) { entryMap[e.driver_name] = e.car_number }
+
       // Group by driver
       const map = {}
       for (const row of (data || [])) {
         if (!map[row.driver_name]) {
-          map[row.driver_name] = { driver_name: row.driver_name, car_number: row.car_number, starting_position: row.starting_position, laps: [] }
+          map[row.driver_name] = { driver_name: row.driver_name, car_number: row.car_number || entryMap[row.driver_name] || null, starting_position: row.starting_position, laps: [] }
         }
         map[row.driver_name].laps.push({ lap: row.lap_number, time: row.lap_time })
       }
