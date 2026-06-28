@@ -474,7 +474,7 @@ padding: '8px 12px', fontSize: '0.96rem',
 fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap',
 }
 
-function DataTable({ rows, title, subtitle, loading, yearCols = [], raceCols = [], onDriverClick }) {
+function DataTable({ rows, title, subtitle, loading, yearCols = [], raceCols = [], onDriverClick, series = 'cup' }) {
 const [sortKey, setSortKey] = useState('avg_rating')
 const [sortDir, setSortDir] = useState('desc')
 
@@ -840,7 +840,7 @@ Entry list not yet configured - showing all available drivers. Add this week's e
 )}
 
 {loading || mainRows.some(r => r.races > 0)
-? <DataTable rows={mainRows} title={mainTitle} loading={loading} yearCols={yearCols} onDriverClick={handleDriverClick} />
+? <DataTable rows={mainRows} title={mainTitle} loading={loading} yearCols={yearCols} onDriverClick={handleDriverClick} series={series} />
 : !error && config && (
 <div style={{
 padding: '9px 14px', background: 'rgba(99,102,241,0.07)',
@@ -864,7 +864,7 @@ onToggle={handleCorrYearToggle}
 ? <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: 24 }}>
 Select at least one year to view correlated track data.
 </div>
-: <DataTable rows={corrRows} title={corrTitle} subtitle={corrSubtitle} loading={false} raceCols={corrRaceDefs} onDriverClick={handleDriverClick} />
+: <DataTable rows={corrRows} title={corrTitle} subtitle={corrSubtitle} loading={false} raceCols={corrRaceDefs} onDriverClick={handleDriverClick} series={series} />
 }
 </>
 )}
