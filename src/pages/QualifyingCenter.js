@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
+// ââ Helpers ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 const TRACK_ABBR = {
   'Circuit of the Americas': 'COTA',
@@ -364,7 +364,7 @@ export default function QualifyingCenter({ isSubscriber }) {
   const allPositions = qualData.map(function(r) { return r.qualifying_position }).filter(function(p) { return p != null })
   const totalDrivers = allPositions.length > 0 ? Math.max.apply(null, allPositions) : 40
 
-  // Normalize driver names: lowercase, strip accents (Suárez→suarez), strip periods (A.J.→AJ)
+  // Normalize driver names: lowercase, strip accents (SuÃ¡rezâsuarez), strip periods (A.J.âAJ)
   function normalizeName(name) {
     return name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\./g, '').replace(/\s+/g, ' ').trim()
   }
@@ -380,7 +380,7 @@ export default function QualifyingCenter({ isSubscriber }) {
   }
 
   let rows = Object.values(driverMap)
-  // Override historical car numbers with entry list (fixes e.g. Suárez #99→#7)
+  // Override historical car numbers with entry list (fixes e.g. SuÃ¡rez #99â#7)
   rows.forEach(function(r) {
     const cn = elCarMap[normalizeName(r.driver)]
     if (cn != null) r.carNumber = cn
@@ -401,7 +401,7 @@ export default function QualifyingCenter({ isSubscriber }) {
     if (sortBy === key) { setSortDir(sortDir === 'asc' ? 'desc' : 'asc') }
     else { setSortBy(key); setSortDir('asc') }
   }
-  function sortArrow(key) { return sortBy === key ? (sortDir === 'asc' ? ' ▲' : ' ▼') : '' }
+  function sortArrow(key) { return sortBy === key ? (sortDir === 'asc' ? ' â²' : ' â¼') : '' }
 
   rows.sort(function(a, b) {
     var va, vb, mul = sortDir === 'asc' ? 1 : -1
@@ -524,7 +524,7 @@ export default function QualifyingCenter({ isSubscriber }) {
             {[
               { key: 'trackAvg', label: 'Avg @ ' + trackAbbr(config.track_name) },
               hasDrawOrder ? { key: 'drawOrder', label: 'Draw Order' } : null,
-              { key: 'name', label: 'A–Z' },
+              { key: 'name', label: 'AâZ' },
             ].filter(Boolean).map(function(opt) {
               const active = sortBy === opt.key
               return (
@@ -533,7 +533,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                   border: '1px solid ' + (active ? 'transparent' : 'var(--border)'),
                   background: active ? 'var(--accent)' : 'var(--bg-elevated)',
                   color: active ? '#fff' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: active ? 600 : 400,
-                }}>{opt.label}{active ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''}</button>
+                }}>{opt.label}{active ? (sortDir === 'asc' ? ' â' : ' â') : ''}</button>
               )
             })}
           </div>
@@ -600,14 +600,14 @@ export default function QualifyingCenter({ isSubscriber }) {
                         position: 'sticky', left: 0, background: rowBg, zIndex: 1,
                       })}>
                         {row.carNumber && (
-                          <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', fontSize: '0.83rem', marginRight: 6 }}>#{row.carNumber}</span>
+                          <img src={'/car-numbers/' + row.carNumber + '.png'} alt={'#' + row.carNumber} style={{ height: 28, marginRight: 6, verticalAlign: 'middle' }} />
                         )}
                         {row.driver}
                         {row.org && <div style={{ fontSize: '0.77rem', color: 'var(--text-muted)', fontWeight: 400 }}>{row.org}</div>}
                       </td>
                       {hasDrawOrder && (
                         <td style={Object.assign({}, tdBase, { color: row.drawOrder != null ? '#f59e0b' : 'var(--text-muted)', fontWeight: row.drawOrder != null ? 700 : 400, minWidth: 120 })}>
-                          {row.drawOrder != null ? row.drawOrder : '–'}
+                          {row.drawOrder != null ? row.drawOrder : 'â'}
                         </td>
                       )}
                       <td style={Object.assign({}, tdBase, {
@@ -621,7 +621,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                         const pos = row.positions[col.trackName + '_' + col.year]
                         const spd = row.speeds ? row.speeds[col.trackName + '_' + col.year] : null
                         const hc = heatColor(pos, totalDrivers)
-                        const tip = pos != null ? ('P' + pos + (spd != null ? ' · ' + formatQualSpeed(spd, col.trackName) : '')) : undefined
+                        const tip = pos != null ? ('P' + pos + (spd != null ? ' Â· ' + formatQualSpeed(spd, col.trackName) : '')) : undefined
                         return (
                           <td key={col.key} title={tip} style={Object.assign({}, tdBase, i === 0 ? { borderLeft: '2px solid rgba(99,102,241,0.3)' } : {}, { background: hc.bg, color: hc.text })}>
                             {pos != null ? pos : '-'}
@@ -642,7 +642,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                         const pos = row.positions[col.trackName + '_' + col.year]
                         const spd = row.speeds ? row.speeds[col.trackName + '_' + col.year] : null
                         const hc = heatColor(pos, totalDrivers)
-                        const tip = pos != null ? ('P' + pos + (spd != null ? ' · ' + formatQualSpeed(spd, col.trackName) : '')) : undefined
+                        const tip = pos != null ? ('P' + pos + (spd != null ? ' Â· ' + formatQualSpeed(spd, col.trackName) : '')) : undefined
                         return (
                           <td key={col.key} title={tip} style={Object.assign({}, tdBase, { borderLeft: '2px solid rgba(99,102,241,0.5)', background: hc.bg, color: hc.text })}>
                             {pos != null ? pos : '-'}
@@ -653,7 +653,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                         const pos = row.positions[col.trackName + '_' + col.year]
                         const spd = row.speeds ? row.speeds[col.trackName + '_' + col.year] : null
                         const hc = heatColor(pos, totalDrivers)
-                        const tip = pos != null ? ('P' + pos + (spd != null ? ' · ' + formatQualSpeed(spd, col.trackName) : '')) : undefined
+                        const tip = pos != null ? ('P' + pos + (spd != null ? ' Â· ' + formatQualSpeed(spd, col.trackName) : '')) : undefined
                         return (
                           <td key={col.key} title={tip} style={Object.assign({}, tdBase, i === 0 ? { borderLeft: '2px solid var(--border)' } : {}, { background: hc.bg, color: hc.text })}>
                             {pos != null ? pos : '-'}
@@ -691,7 +691,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                 {simCorrYears.length > 0 && (
                   <span style={{ color: '#f59e0b' }}> Using {simCorrYears.join(', ')} data.</span>
                 )}
-                <span style={{ color: '#94a3b8', marginLeft: 4 }}>{QUAL_FORMAT_LABELS[fmt].label} · floor: {nudgeVal}</span>
+                <span style={{ color: '#94a3b8', marginLeft: 4 }}>{QUAL_FORMAT_LABELS[fmt].label} Â· floor: {nudgeVal}</span>
               </p>
               {simResults && (
                 <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid var(--border)' }}>
