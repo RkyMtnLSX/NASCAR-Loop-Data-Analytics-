@@ -260,7 +260,8 @@ function EntryListManager() {
             }
           }
           if (drv && /[A-Z]/.test(drv) && drv.length > 3 && !/^\d/.test(drv)) {
-            rows.push(s + ',' + drv + ',' + org)
+            const carNum = (+s >= 101 && +s <= 199) ? String(+s - 100) : s
+            rows.push(carNum + ',' + drv + ',' + org)
           }
         }
       }
