@@ -579,7 +579,7 @@ return (
 <span style={{ color: 'var(--text-muted)', fontSize: '0.83rem', fontFamily: 'var(--font-mono)', minWidth: 18, paddingTop: 2 }}>{i + 1}</span>
 <div>
 <div style={{ fontWeight: i < 3 ? 600 : 400, whiteSpace: 'nowrap' }}>
-<img src={'/car-numbers/' + d.car_number + '.png'} alt={'#' + d.car_number} style={{ height: 28, marginRight: 6, verticalAlign: 'middle' }} />
+<img src={'/car-numbers/' + row.car_number + '.png'} alt={'#' + row.car_number} style={{ height: 28, marginRight: 6, verticalAlign: 'middle' }} />
 <span
 style={{ cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted' }}
 onClick={() => onDriverClick && onDriverClick(row)}
