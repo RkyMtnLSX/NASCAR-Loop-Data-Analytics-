@@ -412,7 +412,7 @@ CREATE INDEX ON practice_laps (series, year, track_name, session_number);`}</pre
                               <tr key={name} style={{ background: idx % 2 === 0 ? 'var(--bg-surface)' : 'var(--bg-elevated)' }}>
                                 <td style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
                                   <div style={{ width: 10, height: 10, borderRadius: 2, background: DRIVER_COLORS[idx % DRIVER_COLORS.length], flexShrink: 0 }} />
-                                  {d.car_number && <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>#{d.car_number}</span>}
+                                  <img src={'/car-numbers/' + d.car_number + '.png'} alt={'#' + d.car_number} style={{ height: 28, marginRight: 6, verticalAlign: 'middle' }} />
                                   <span style={{ fontWeight: 500 }}>{name}</span>
                                 </td>
                                 <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: '#f59e0b', fontWeight: 600 }}>
