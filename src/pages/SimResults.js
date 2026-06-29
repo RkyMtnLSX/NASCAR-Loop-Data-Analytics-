@@ -8,16 +8,16 @@ const SERIES_TABS = [
 ]
 
 // Values stored as percentages (e.g. 60.9), not decimals
-const fmt = (n, dec = 1) => n == null ? 'â' : (+n).toFixed(dec) + '%'
-const fmtDK = (n) => n == null ? 'â' : (+n).toFixed(2)
+const fmt    = (n, dec = 1) => n == null ? '—' : (+n).toFixed(dec) + '%'
+const fmtDK  = (n)          => n == null ? '—' : (+n).toFixed(2)
+const fmtNum = (n, dec = 1) => n == null ? '—' : (+n).toFixed(dec)
 
 export default function SimResults() {
-  const [series, setSeries]     = useState('cup')
-  const [data, setData]         = useState(null)
-  const [loading, setLoading]   = useState(true)
-  const [error, setError]       = useState(null)
-  const [sortBy, setSortBy]     = useState('proj_finish')
-  const [sortDir, setSortDir]   = useState('asc')
+  const [series, setSeries]       = useState('cup')
+  const [data, setData]           = useState(null)
+  const [loading, setLoading]     = useState(true)
+  const [error, setError]         = useState(null)
+  const [sortAsc, setSortAsc]     = useState(true)
 
   useEffect(() => {
     setLoading(true)
@@ -39,17 +39,11 @@ export default function SimResults() {
   }, [series])
 
   const results = data?.results || []
-  // Sort by projected finish ascending (1st = best)
-  const handleSort = (key) => {
-    if (sortBy === key) { setSortDir(d => d === 'asc' ? 'desc' : 'asc') }
-    else { setSortBy(key); setSortDir('asc') }
-  }
-  const arrow = (key) => sortBy === key ? (sortDir === 'asc' ? ' â²' : ' â¼') : ''
+
   const sorted = [...results].sort((a, b) => {
-    const av = a[sortBy] ?? (sortDir === 'asc' ? Infinity : -Infinity)
-    const bv = b[sortBy] ?? (sortDir === 'asc' ? Infinity : -Infinity)
-    const diff = typeof av === 'string' ? av.localeCompare(bv) : av - bv
-    return sortDir === 'asc' ? diff : -diff
+    const aVal = a.proj_finish ?? 99
+    const bVal = b.proj_finish ?? 99
+    return sortAsc ? aVal - bVal : bVal - aVal
   })
 
   const tabStyle = (s) => ({
@@ -75,6 +69,13 @@ export default function SimResults() {
     fontWeight: v >= hi ? 700 : 400,
   })
 
+  const sortableThStyle = {
+    ...thStyle,
+    textAlign: 'center',
+    cursor: 'pointer',
+    userSelect: 'none',
+  }
+
   return (
     <div className="page">
       <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
@@ -95,7 +96,7 @@ export default function SimResults() {
         </div>
       )}
 
-      {loading && <div style={{ color: 'var(--text-muted)', padding: 40, textAlign: 'center' }}>LoadingÃ¢ÂÂ¦</div>}
+      {loading && <div style={{ color: 'var(--text-muted)', padding: 40, textAlign: 'center' }}>Loading…</div>}
       {error   && <div style={{ color: 'var(--text-muted)', padding: 40, textAlign: 'center' }}>{error}</div>}
 
       {!loading && !error && sorted.length > 0 && (
@@ -104,17 +105,23 @@ export default function SimResults() {
             <thead>
               <tr>
                 <th style={thStyle}>#</th>
-                <th style={{ ...thStyle, cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('driver_name')}>Driver{arrow('driver_name')}</th>
-                <th style={{ ...thStyle, textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('start_pos')}>Start{arrow('start_pos')}</th>
-                <th style={{ ...thStyle, textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('proj_finish')}>Proj Finish{arrow('proj_finish')}</th>
-                <th style={{ ...thStyle, textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('proj_dk')}>Proj DK{arrow('proj_dk')}</th>
-                <th style={{ ...thStyle, textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('win_pct')}>Win%{arrow('win_pct')}</th>
-                <th style={{ ...thStyle, textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('top3_pct')}>Top 3%{arrow('top3_pct')}</th>
-                <th style={{ ...thStyle, textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('top5_pct')}>Top 5%{arrow('top5_pct')}</th>
-                <th style={{ ...thStyle, textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('top10_pct')}>Top 10%{arrow('top10_pct')}</th>
-                <th style={{ ...thStyle, textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('laps_led')}>Laps Led{arrow('laps_led')}</th>
-                <th style={{ ...thStyle, textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('avg_fast_laps')}>Fast Laps{arrow('avg_fast_laps')}</th>
-                <th style={{ ...thStyle, textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('dnf_pct')}>DNF%{arrow('dnf_pct')}</th>
+                <th style={thStyle}>Driver</th>
+                <th style={{ ...thStyle, textAlign: 'center' }}>Start</th>
+                <th
+                  style={sortableThStyle}
+                  onClick={() => setSortAsc(v => !v)}
+                  title="Click to flip sort order"
+                >
+                  Proj Finish {sortAsc ? '▲' : '▼'}
+                </th>
+                <th style={{ ...thStyle, textAlign: 'center' }}>Proj DK</th>
+                <th style={{ ...thStyle, textAlign: 'center' }}>Win%</th>
+                <th style={{ ...thStyle, textAlign: 'center' }}>Top 3%</th>
+                <th style={{ ...thStyle, textAlign: 'center' }}>Top 5%</th>
+                <th style={{ ...thStyle, textAlign: 'center' }}>Top 10%</th>
+                <th style={{ ...thStyle, textAlign: 'center' }}>Laps Led</th>
+                <th style={{ ...thStyle, textAlign: 'center' }}>Fast Laps</th>
+                <th style={{ ...thStyle, textAlign: 'center' }}>DNF%</th>
               </tr>
             </thead>
             <tbody>
@@ -122,21 +129,44 @@ export default function SimResults() {
                 <tr key={d.driver_name} style={{ background: i % 2 === 0 ? 'transparent' : 'var(--bg-surface)' }}>
                   <td style={{ ...tdStyle, color: 'var(--text-muted)', width: 32 }}>{i + 1}</td>
                   <td style={tdStyle}>
-                    <div style={{ fontWeight: 600 }}>
-                      <img src={'/car-numbers/' + d.car_number + '.png'} alt={'#' + d.car_number} style={{ height: 28, marginRight: 6, verticalAlign: 'middle' }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600 }}>
+                      {series === 'cup' && d.car_number ? (
+                        <img
+                          src={`/car-numbers/${d.car_number}.png`}
+                          alt={`#${d.car_number}`}
+                          style={{ height: 28, width: 'auto', objectFit: 'contain' }}
+                          onError={(e) => {
+                            e.target.style.display = 'none'
+                            if (e.target.nextSibling) e.target.nextSibling.style.display = 'inline'
+                          }}
+                        />
+                      ) : null}
+                      {series === 'cup' && d.car_number ? (
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', display: 'none' }}>
+                          #{d.car_number}
+                        </span>
+                      ) : d.car_number ? (
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                          #{d.car_number}
+                        </span>
+                      ) : null}
                       {d.driver_name}
                     </div>
-                    {d.organization && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{d.organization}</div>}
+                    {d.organization && (
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                        {d.organization}
+                      </div>
+                    )}
                   </td>
-                  <td style={{ ...tdStyle, textAlign: 'center', color: 'var(--text-muted)' }}>{d.start_pos ?? 'â'}</td>
-                  <td style={{ ...tdStyle, textAlign: 'center' }}>{d.proj_finish != null ? (+d.proj_finish).toFixed(1) : 'â'}</td>
+                  <td style={{ ...tdStyle, textAlign: 'center', color: 'var(--text-muted)' }}>{d.start_pos ?? '—'}</td>
+                  <td style={{ ...tdStyle, textAlign: 'center' }}>{d.proj_finish != null ? (+d.proj_finish).toFixed(1) : '—'}</td>
                   <td style={{ ...tdStyle, textAlign: 'center', color: 'var(--accent)', fontWeight: 600 }}>{fmtDK(d.proj_dk)}</td>
                   <td style={{ ...pctStyle(d.win_pct, 5), textAlign: 'center' }}>{fmt(d.win_pct)}</td>
                   <td style={{ ...pctStyle(d.top3_pct, 10), textAlign: 'center' }}>{fmt(d.top3_pct)}</td>
                   <td style={{ ...pctStyle(d.top5_pct, 15), textAlign: 'center' }}>{fmt(d.top5_pct)}</td>
                   <td style={{ ...pctStyle(d.top10_pct, 25), textAlign: 'center' }}>{fmt(d.top10_pct)}</td>
-                  <td style={{ ...tdStyle, textAlign: 'center', color: 'var(--text-muted)' }}>{d.laps_led != null ? (+d.laps_led).toFixed(1) : 'â'}</td>
-                  <td style={{ ...tdStyle, textAlign: 'center', color: 'var(--text-muted)' }}>{d.avg_fast_laps != null ? (+d.avg_fast_laps).toFixed(1) : 'â'}</td>
+                  <td style={{ ...tdStyle, textAlign: 'center', color: 'var(--text-muted)' }}>{fmtNum(d.laps_led)}</td>
+                  <td style={{ ...tdStyle, textAlign: 'center', color: 'var(--text-muted)' }}>{fmtNum(d.fast_laps)}</td>
                   <td style={{ ...tdStyle, textAlign: 'center', color: 'var(--text-muted)' }}>{fmt(d.dnf_pct)}</td>
                 </tr>
               ))}
