@@ -926,7 +926,7 @@ function LoadQualifying() {
 
         // Find POS and CAR — skip any leading "Row" / "N:" tokens
         let si = 0
-        while (si < parts.length && (parts[si] === 'Row' || /^\d+:$/.test(parts[si]))) si++
+        while (si < parts.length && (parts[si] === 'Row' || /^\d+:$/.test(parts[si]) || /^Row\s*\d+:?$/.test(parts[si]))) si++
 
         const pos = parseInt(parts[si])
         if (isNaN(pos) || pos < 1 || pos > 60) continue
