@@ -999,7 +999,7 @@ function LoadQualifying() {
         qualifying_speed:   d.speed || null,
         lap_time:           d.lapTime || null,
       }))
-      const { error } = await supabase.from('qualifying_results').insert(rows)
+      const { error } = await supabase.from('qualifying_results').upsert(rows, { onConflict: 'series,year,track_name,driver_name' })
       if (error) throw error
       const pole = preview[0]
       setStatus({ type: 'success', msg: 'Loaded ' + rows.length + ' drivers for ' + trackName + ' ' + year + '. Pole: ' + pole.driverName + ' (' + (pole.speed || pole.lapTime) + ')' })
