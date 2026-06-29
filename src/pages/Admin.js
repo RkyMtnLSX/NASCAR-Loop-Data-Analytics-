@@ -997,7 +997,6 @@ function LoadQualifying() {
         car_number:         d.carNumber || null,
         qualifying_position: d.rank,
         qualifying_speed:   d.speed || null,
-        lap_time:           d.lapTime || null,
       }))
       const { error } = await supabase.from('qualifying_results').insert(rows)
       if (error) throw error
