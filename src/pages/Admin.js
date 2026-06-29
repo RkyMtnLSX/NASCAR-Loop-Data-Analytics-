@@ -996,7 +996,6 @@ function LoadQualifying() {
         driver_name:        d.driverName,
         car_number:         d.carNumber || null,
         qualifying_position: d.rank,
-        final_position:     d.rank,
         qualifying_speed:   d.speed || null,
         lap_time:           d.lapTime || null,
       }))
