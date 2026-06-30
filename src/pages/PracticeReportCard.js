@@ -183,7 +183,7 @@ export default function PracticeReportCard({ isSubscriber }) {
                       </td>
                       {hasCarNumber && (
                         <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', fontSize: '0.96rem' }}>
-                          {d.car_number && (session.series === 'cup' || session.series === 'oreilly') ? <img src={(session.series === 'cup' ? '/car-numbers/' : '/car-numbers-oreilly/') + d.car_number + '.png'} alt={'#' + d.car_number} style={{ height: 28, verticalAlign: 'middle' }} /> : '—'}
+                          {d.car_number ? <img src={'/car-numbers/' + d.car_number + '.png'} alt={'#' + d.car_number} style={{ height: 28, verticalAlign: 'middle' }} /> : '—'}
                         </td>
                       )}
                       <td className="left" style={{ fontWeight: i < 3 ? 600 : 400 }}>
