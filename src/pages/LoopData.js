@@ -778,7 +778,8 @@ const corrRows = corrSelectedYears.length > 0
 const mainTitle = config
 ? config.track_label + ' Averages ' + config.track_years.slice().sort().join('-')
 : 'Track Averages'
-const corrTitle = config ? config.correlation_label + ' Averages' : 'Correlated Track Averages'
+const corrLabelDisplay = config ? (series === 'cup' ? config.correlation_label : config.correlation_label === '670hp Package' ? 'Intermediates' : config.correlation_label) : ''
+  const corrTitle = config ? corrLabelDisplay + ' Averages' : 'Correlated Track Averages'
 const corrSubtitle = corrNames.length ? corrNames.slice().sort().join(' / ') : null
 
 const yearCols = (() => {
