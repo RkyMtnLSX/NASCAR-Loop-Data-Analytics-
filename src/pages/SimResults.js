@@ -8,9 +8,9 @@ const SERIES_TABS = [
 ]
 
 // Values stored as percentages (e.g. 60.9), not decimals
-const fmt    = (n, dec = 1) => n == null ? '—' : (+n).toFixed(dec) + '%'
-const fmtDK  = (n)          => n == null ? '—' : (+n).toFixed(2)
-const fmtNum = (n, dec = 1) => n == null ? '—' : (+n).toFixed(dec)
+const fmt    = (n, dec = 1) => n == null ? 'â' : (+n).toFixed(dec) + '%'
+const fmtDK  = (n)          => n == null ? 'â' : (+n).toFixed(2)
+const fmtNum = (n, dec = 1) => n == null ? 'â' : (+n).toFixed(dec)
 
 export default function SimResults() {
   const [series, setSeries]       = useState('cup')
@@ -96,7 +96,7 @@ export default function SimResults() {
         </div>
       )}
 
-      {loading && <div style={{ color: 'var(--text-muted)', padding: 40, textAlign: 'center' }}>Loading…</div>}
+      {loading && <div style={{ color: 'var(--text-muted)', padding: 40, textAlign: 'center' }}>Loadingâ¦</div>}
       {error   && <div style={{ color: 'var(--text-muted)', padding: 40, textAlign: 'center' }}>{error}</div>}
 
       {!loading && !error && sorted.length > 0 && (
@@ -112,7 +112,7 @@ export default function SimResults() {
                   onClick={() => setSortAsc(v => !v)}
                   title="Click to flip sort order"
                 >
-                  Proj Finish {sortAsc ? '▲' : '▼'}
+                  Proj Finish {sortAsc ? 'â²' : 'â¼'}
                 </th>
                 <th style={{ ...thStyle, textAlign: 'center' }}>Proj DK</th>
                 <th style={{ ...thStyle, textAlign: 'center' }}>Win%</th>
@@ -158,8 +158,8 @@ export default function SimResults() {
                       </div>
                     )}
                   </td>
-                  <td style={{ ...tdStyle, textAlign: 'center', color: 'var(--text-muted)' }}>{d.start_pos ?? '—'}</td>
-                  <td style={{ ...tdStyle, textAlign: 'center' }}>{d.proj_finish != null ? (+d.proj_finish).toFixed(1) : '—'}</td>
+                  <td style={{ ...tdStyle, textAlign: 'center', color: 'var(--text-muted)' }}>{d.start_pos ?? 'â'}</td>
+                  <td style={{ ...tdStyle, textAlign: 'center' }}>{d.proj_finish != null ? (+d.proj_finish).toFixed(1) : 'â'}</td>
                   <td style={{ ...tdStyle, textAlign: 'center', color: 'var(--accent)', fontWeight: 600 }}>{fmtDK(d.proj_dk)}</td>
                   <td style={{ ...pctStyle(d.win_pct, 5), textAlign: 'center' }}>{fmt(d.win_pct)}</td>
                   <td style={{ ...pctStyle(d.top3_pct, 10), textAlign: 'center' }}>{fmt(d.top3_pct)}</td>
