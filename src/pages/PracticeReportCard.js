@@ -90,7 +90,7 @@ export default function PracticeReportCard({ isSubscriber }) {
     <div className="page">
       <div className="page-header">
         <h1 className="page-title">Practice Report Cards</h1>
-        <p className="page-subtitle">Stint-aware practice grades â long run pace, short run pace, tire falloff &amp; consistency</p>
+        <p className="page-subtitle">Stint-aware practice grades Ã¢ÂÂ long run pace, short run pace, tire falloff &amp; consistency</p>
       </div>
 
       {/* Series tabs */}
@@ -122,7 +122,7 @@ export default function PracticeReportCard({ isSubscriber }) {
                 borderColor:  selected === s.key ? 'var(--accent)60'     : 'var(--border)',
               }}
             >
-              {s.track_name} {s.year} â S{s.session_number}
+              {s.track_name} {s.year} Ã¢ÂÂ S{s.session_number}
             </button>
           ))}
         </div>
@@ -183,7 +183,7 @@ export default function PracticeReportCard({ isSubscriber }) {
                       </td>
                       {hasCarNumber && (
                         <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', fontSize: '0.96rem' }}>
-                          {d.car_number ? <img src={'/car-numbers/' + d.car_number + '.png'} alt={'#' + d.car_number} style={{ height: 28, verticalAlign: 'middle' }} /> : '—'}
+                          {d.car_number && (selectedSession.series === 'cup' || selectedSession.series === 'oreilly') ? <img src={(selectedSession.series === 'cup' ? '/car-numbers/' : '/car-numbers-oreilly/') + d.car_number + '.png'} alt={'#' + d.car_number} style={{ height: 28, verticalAlign: 'middle' }} /> : 'â'}
                         </td>
                       )}
                       <td className="left" style={{ fontWeight: i < 3 ? 600 : 400 }}>
@@ -195,30 +195,30 @@ export default function PracticeReportCard({ isSubscriber }) {
                             <span className="grade-pill" style={{ background: grpColors.bg, color: grpColors.text, fontSize: '0.83rem', padding: '2px 8px' }}>
                               {d.practice_group}
                             </span>
-                          ) : 'â'}
+                          ) : 'Ã¢ÂÂ'}
                         </td>
                       )}
                       <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
-                        {d.qualifying_position ?? 'â'}
+                        {d.qualifying_position ?? 'Ã¢ÂÂ'}
                       </td>
                       <td>
                         <span className="grade-pill" style={{ background: gc.bg, color: gc.text }}>
-                          {d.practice_grade || 'â'}
+                          {d.practice_grade || 'Ã¢ÂÂ'}
                         </span>
                       </td>
                       <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
-                        {d.practice_score?.toFixed(1) || 'â'}
+                        {d.practice_score?.toFixed(1) || 'Ã¢ÂÂ'}
                       </td>
-                      <td style={{ fontFamily: 'var(--font-mono)' }}>{d.total_laps ?? 'â'}</td>
-                      <td style={{ fontFamily: 'var(--font-mono)' }}>{d.overall_avg?.toFixed(3) || 'â'}</td>
-                      <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>{d.late_run_avg?.toFixed(3) || 'â'}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)' }}>{d.total_laps ?? 'Ã¢ÂÂ'}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)' }}>{d.overall_avg?.toFixed(3) || 'Ã¢ÂÂ'}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>{d.late_run_avg?.toFixed(3) || 'Ã¢ÂÂ'}</td>
                       <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent)' }}>
-                        {d.best_lap?.toFixed(3) || 'â'}
+                        {d.best_lap?.toFixed(3) || 'Ã¢ÂÂ'}
                       </td>
-                      <td style={{ fontFamily: 'var(--font-mono)' }}>{d.num_stints ?? 'â'}</td>
-                      <td style={{ fontFamily: 'var(--font-mono)' }}>{d.longest_stint ?? 'â'}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)' }}>{d.num_stints ?? 'Ã¢ÂÂ'}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)' }}>{d.longest_stint ?? 'Ã¢ÂÂ'}</td>
                       <td style={{ fontSize: '0.89rem', color: falloff?.color }}>
-                        {falloff?.label || 'â'}
+                        {falloff?.label || 'Ã¢ÂÂ'}
                       </td>
                     </tr>
                   )
