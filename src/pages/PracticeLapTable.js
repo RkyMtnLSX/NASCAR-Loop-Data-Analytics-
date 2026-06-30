@@ -258,7 +258,7 @@ export default function PracticeLapTable({ isSubscriber }) {
                           ) : '—'}
                         </td>
                         <td style={stickyTd(52, ri)}>
-                          {d.car && (selectedSession.series === 'cup' ? <img src={'/car-numbers/' + (({'133':'33'})[String(d.car)] || d.car) + '.png'} alt={'#' + d.car} style={{ height: 28, verticalAlign: 'middle' }} onError={(e)=>{e.target.style.display='none'}} /> : <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.88rem', color: 'var(--text-muted)', fontWeight: 600 }}>{'#' + d.car}</span>)}
+                          {d.car && ((selectedSession.series === 'cup' || selectedSession.series === 'oreilly') ? <img src={(selectedSession.series === 'cup' ? '/car-numbers/' : '/car-numbers-oreilly/') + (({'133':'33'})[String(d.car)] || d.car) + '.png'} alt={'#' + d.car} style={{ height: 28, verticalAlign: 'middle' }} onError={(e)=>{e.target.style.display='none'}} /> : <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.88rem', color: 'var(--text-muted)', fontWeight: 600 }}>{'#' + d.car}</span>)}
                         </td>
                         <td style={{ ...stickyTd(104, ri), minWidth: 160, fontWeight: 600, color: 'var(--text-primary)', borderRight: '1px solid var(--border)' }}>
                           {d.name}
