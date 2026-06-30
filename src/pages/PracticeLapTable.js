@@ -14,9 +14,9 @@ function fmtTime(sec) {
   return m > 0 ? `${m}:${s}` : sec.toFixed(3)
 }
 
-// Map a normalized value 0 (fastest) â 1 (slowest) to a heatmap color
+// Map a normalized value 0 (fastest) → 1 (slowest) to a heatmap color
 function heatColor(t) {
-  // Green (fastest) â yellow â red (slowest), inflection at t=0.25
+  // Green (fastest) → yellow → red (slowest), inflection at t=0.25
   let r, g, b
   if (t <= 0.25) {
     const f = t / 0.25
@@ -127,7 +127,7 @@ export default function PracticeLapTable({ isSubscriber }) {
       return aAvg - bAvg
     })
 
-    // Use 5thâ95th percentile for color scale so tight lap time ranges spread visually
+    // Use 5th–95th percentile for color scale so tight lap time ranges spread visually
     const allTimesSorted = rows.map(r => r.lap_time).sort((a, b) => a - b)
     const median = allTimesSorted[Math.floor(allTimesSorted.length / 2)]
     const validTimes = allTimesSorted.filter(t => t < median * 1.5)
@@ -164,11 +164,11 @@ export default function PracticeLapTable({ isSubscriber }) {
       <div className="page-header">
         <h1 className="page-title">Lap By Lap Data</h1>
         <p className="page-subtitle">
-          Full lap-by-lap breakdown â color coded fastest
+          Full lap-by-lap breakdown — color coded fastest
           <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: 2, background: 'hsl(120,90%,40%)', verticalAlign: 'middle', margin: '0 4px' }} />
           to slowest
           <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: 2, background: 'hsl(0,90%,40%)', verticalAlign: 'middle', margin: '0 4px' }} />
-          â click <strong>Avg Lap</strong> to sort
+          — click <strong>Avg Lap</strong> to sort
         </p>
       </div>
 
@@ -212,7 +212,7 @@ export default function PracticeLapTable({ isSubscriber }) {
                   borderColor: selectedSession?.key === s.key ? 'var(--accent)60' : 'var(--border)',
                 }}
               >
-                {s.track_name} {s.year} â S{s.session_number}
+                {s.track_name} {s.year} — S{s.session_number}
               </button>
             ))}
           </div>
@@ -220,7 +220,7 @@ export default function PracticeLapTable({ isSubscriber }) {
           {loading && (
             <div className="empty-state">
               <div className="spinner" style={{ margin: '0 auto 12px' }} />
-              <p>Loading lap dataâ¦</p>
+              <p>Loading lap data…</p>
             </div>
           )}
 
@@ -237,7 +237,7 @@ export default function PracticeLapTable({ isSubscriber }) {
                       style={{ ...th, textAlign: 'right', paddingRight: 12, borderRight: '1px solid var(--border)', cursor: 'pointer', userSelect: 'none', color: sortByAvg ? 'var(--accent)' : 'var(--text-secondary)' }}
                       title="Click to sort by Avg Lap"
                     >
-                      Avg Lap {sortByAvg ? (sortAscAvg ? 'â²' : 'â¼') : 'â'}
+                      Avg Lap {sortByAvg ? (sortAscAvg ? '▲' : '▼') : '⇅'}
                     </th>
                     {lapNumbers.map(n => (
                       <th key={n} style={{ ...th, textAlign: 'center', minWidth: 64 }}>{n}</th>
@@ -255,10 +255,10 @@ export default function PracticeLapTable({ isSubscriber }) {
                         <td style={stickyTd(0, ri)}>
                           {d.startPos != null ? (
                             <span style={{ fontFamily: 'var(--font-mono)', color: '#f59e0b', fontWeight: 600 }}>{d.startPos}</span>
-                          ) : 'â'}
+                          ) : '—'}
                         </td>
                         <td style={stickyTd(52, ri)}>
-                          {d.car && (selectedSession.series === 'cup' || selectedSession.series === 'oreilly') ? <img src={(selectedSession.series === 'cup' ? '/car-numbers/' : '/car-numbers-oreilly/') + (({'133':'33'})[String(d.car)] || d.car) + '.png'} alt={'#' + d.car} style={{ height: 28, verticalAlign: 'middle' }} onError={(e)=>{e.target.style.display='none'}} /> : <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.88rem', color: 'var(--text-muted)', fontWeight: 600 }}>{'#' + d.car}</span>)}
+                          {d.car && (selectedSession.series === 'cup' || selectedSession.series === 'oreilly' ? <img src={(selectedSession.series === 'cup' ? '/car-numbers/' : '/car-numbers-oreilly/') + (({'133':'33'})[String(d.car)] || d.car) + '.png'} alt={'#' + d.car} style={{ height: 28, verticalAlign: 'middle' }} onError={(e)=>{e.target.style.display='none'}} /> : <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.88rem', color: 'var(--text-muted)', fontWeight: 600 }}>{'#' + d.car}</span>)}
                         </td>
                         <td style={{ ...stickyTd(104, ri), minWidth: 160, fontWeight: 600, color: 'var(--text-primary)', borderRight: '1px solid var(--border)' }}>
                           {d.name}
@@ -269,7 +269,7 @@ export default function PracticeLapTable({ isSubscriber }) {
                         {lapNumbers.map(n => {
                           const t = d.lapTimes[n]
                           if (t == null) {
-                            return <td key={n} style={{ padding: '4px 0', textAlign: 'center', color: 'var(--text-muted)', opacity: 0.3 }}>â</td>
+                            return <td key={n} style={{ padding: '4px 0', textAlign: 'center', color: 'var(--text-muted)', opacity: 0.3 }}>—</td>
                           }
                           const norm = normalizeTime(t)
                           const { bg, text } = heatColor(norm)
