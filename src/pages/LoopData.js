@@ -248,7 +248,7 @@ style={{ accentColor: 'var(--accent)', cursor: 'pointer' }} />
 }
 
 // DriverCard modal - shows per-race stats for a selected driver with optional comparison
-function DriverCard({ cardDriver, compareDrivers, mainRows, compareRows, onClose, onSetCompare, compareHistories }) {
+function DriverCard({ cardDriver, compareDrivers, mainRows, compareRows, onClose, onSetCompare, compareHistories, series }) {
 const effectiveRows = compareRows || mainRows
 useEffect(function(){var _bg=document.createElement(String.fromCharCode(100,105,118));_bg.style.position=String.fromCharCode(102,105,120,101,100);_bg.style.inset=String.fromCharCode(48);_bg.style.zIndex=String.fromCharCode(57,57,57,55);_bg.style.background=String.fromCharCode(114,103,98,97,40,48,44,48,44,48,44,48,46,55,53,41);_bg.onclick=function(){onClose();};document.body.appendChild(_bg);return function(){if(_bg.parentNode)_bg.parentNode.removeChild(_bg);};},[onClose]);
 
@@ -311,7 +311,10 @@ position: 'relative',
 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
 <div>
 <div style={{ fontSize: '1.36rem', fontWeight: 700, color: 'var(--accent)' }}>
-{cardDriver.car_number && (
+{series === 'cup' && cardDriver.car_number && (
+<img src={'/car-numbers/' + cardDriver.car_number + '.png'} alt={'#' + cardDriver.car_number} style={{ height: 48, width: 'auto', objectFit: 'contain', marginRight: 8, verticalAlign: 'middle' }} onError={e => { e.target.style.display = 'none' }} />
+)}
+{series !== 'cup' && cardDriver.car_number && (
 <span style={{ marginRight: 8, fontSize: '1.06rem', color: 'var(--text-muted)' }}>#{cardDriver.car_number}</span>
 )}
 {cardDriver.driver}
@@ -931,6 +934,7 @@ if (action === 'add') setCompareDrivers(prev => prev.length < 4 && !prev.find(d 
 else setCompareDrivers(prev => prev.filter(d => d.driver !== driver.driver))
 }}
 compareHistories={compareHistories}
+series={series}
 />
 )}
 </>)
