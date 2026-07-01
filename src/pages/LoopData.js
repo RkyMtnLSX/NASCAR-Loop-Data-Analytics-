@@ -303,7 +303,7 @@ padding: '20px',
 onClick={e => e.stopPropagation()}
 style={{
 maxWidth: 1200, width: '100%', maxHeight: '90vh', overflowY: 'auto',
-background: 'var(--bg-card)', borderRadius: 12, padding: 24,
+background: 'var(--bg-elevated)', borderRadius: 12, padding: 24,
 position: 'relative',
 }}
 >
@@ -380,7 +380,7 @@ No data at this track.
 <th style={{
 ...cellBase, textAlign: 'left', fontWeight: 700, fontSize: '0.89rem',
 color: 'var(--text-secondary)', position: 'sticky', left: 0,
-background: 'var(--bg-card)', zIndex: 2, borderBottom: '2px solid var(--border)',
+background: 'var(--bg-elevated)', zIndex: 2, borderBottom: '2px solid var(--border)',
 }}>Stat</th>
 {raceCols.map(rc => (
 <th key={rc.key} style={{
@@ -399,7 +399,7 @@ return (
 <td style={{
 ...cellBase, textAlign: 'left', fontWeight: 600,
 color: 'var(--text-secondary)', position: 'sticky', left: 0,
-background: 'var(--bg-card)', zIndex: 1, fontSize: '0.89rem',
+background: 'var(--bg-elevated)', zIndex: 1, fontSize: '0.89rem',
 }}>
 {col.label}
 </td>
