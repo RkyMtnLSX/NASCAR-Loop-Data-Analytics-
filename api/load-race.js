@@ -1,4 +1,4 @@
-// api/load-race.js — Vercel serverless function
+// api/load-race.js â Vercel serverless function
 // Fetches a Racing Reference loop data page and inserts into Supabase
 
 const { createClient } = require('@supabase/supabase-js')
@@ -43,7 +43,7 @@ function parseDataRows(html, minCols = 17) {
   return rows
 }
 
-// Safe integer parse — returns null for blanks, dashes, NaN
+// Safe integer parse â returns null for blanks, dashes, NaN
 function toInt(s) {
   if (!s || s === '--' || s === '-' || s.trim() === '') return null
   const n = parseInt(s.replace(/[^0-9-]/g, ''), 10)
@@ -64,7 +64,7 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  const { year, raceNumber, series } = req.body || {}
+  const { year, raceNumber, series, raceDate } = req.body || {}
   if (!year || raceNumber == null || !series) {
     return res.status(400).json({ error: 'year, raceNumber, and series are required' })
   }
@@ -175,6 +175,7 @@ module.exports = async function handler(req, res) {
       year: parseInt(year),
       race_number: parseInt(raceNumber),
       series,
+      race_date: raceDate || null,
       winning_driver: winningDriver,
       total_laps: totalLaps || null,
       racing_reference_url: url,
