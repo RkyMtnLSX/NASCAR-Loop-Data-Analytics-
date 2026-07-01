@@ -179,7 +179,7 @@ module.exports = async function handler(req, res) {
       total_laps: totalLaps || null,
       racing_reference_url: url,
     })
-    .select('id')
+    .select('id, race_number')
     .single()
 
   if (raceErr) {
@@ -187,6 +187,7 @@ module.exports = async function handler(req, res) {
   }
 
   const raceId = raceRecord.id
+  const trackRaceNumber = raceRecord.race_number || 1
   const errorLog = []
   let inserted = 0
 
@@ -211,6 +212,7 @@ module.exports = async function handler(req, res) {
       series,
       year: parseInt(year),
       track_name: trackName,
+      race_number: trackRaceNumber,
       start_position:          toInt(row[1]),
       mid_race_position:       toInt(row[2]),
       finish_position:         finishPos,
