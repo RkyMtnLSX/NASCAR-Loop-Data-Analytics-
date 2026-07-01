@@ -161,7 +161,7 @@ return {
 driver,
 car_number: entry.car_number || null,
 organization: entry.organization || null,
-rawRaces: dRows,
+rawRaces: dRows.map(function(r) { var fin=parseInt(r.finish_position)||0; var st=parseInt(r.start_position)||0; var fl=parseFloat(r.fastest_laps)||0; var ll=parseFloat(r.laps_led)||0; return Object.assign({},r,{dk_pts:dkFinishPts(fin)+(st-fin)+(fl*0.45)+(ll*0.25)}) }),
 ...stats,
 ...yearFinishes,
 ...raceFinishes,
@@ -262,6 +262,7 @@ const CARD_COLS = [
 { key: 'laps_led', label: 'Laps Led', decimals: 0 },
 { key: 'pct_top15_laps', label: 'Top 15 %', decimals: 1 },
 { key: 'fastest_laps', label: 'Fastest Lap', decimals: 0 },
+{ key: 'dk_pts', label: 'DK Pts', decimals: 1 },
 ]
 
 const primaryRaces = (cardDriver.rawRaces || []).slice().sort((a, b) => parseInt(a.year) - parseInt(b.year))
@@ -275,7 +276,7 @@ const compareRacesMap = {}
 
 // All years from primary driver
 const seenRcKeys = {}
-const raceCols = primaryRaces.map(r => { const yr = parseInt(r.year); const tn = r.track_name || ''; const rn = r.race_number || 1; return { year: yr, track_name: tn, raceNum: rn, key: yr + '_' + tn + '_' + rn } }).filter(c => c.year && (seenRcKeys[c.key] ? false : (seenRcKeys[c.key] = true))).sort((a, b) => a.year !== b.year ? a.year - b.year : a.raceNum !== b.raceNum ? a.raceNum - b.raceNum : (a.track_name || '').localeCompare(b.track_name || ''))
+const raceCols = primaryRaces.map(r => { const yr = parseInt(r.year); const tn = r.track_name || ''; const rn = r._occ || 1; return { year: yr, track_name: tn, raceNum: rn, key: yr + '_' + tn + '_' + rn } }).filter(c => c.year && (seenRcKeys[c.key] ? false : (seenRcKeys[c.key] = true))).sort((a, b) => a.year !== b.year ? a.year - b.year : a.raceNum !== b.raceNum ? a.raceNum - b.raceNum : (a.track_name || '').localeCompare(b.track_name || ''))
 
 const otherDrivers = effectiveRows.filter(r => r.driver !== cardDriver.driver && !(compareDrivers||[]).find(cd=>cd.driver===r.driver)).map(r => r.driver).sort()
 
@@ -403,7 +404,7 @@ background: 'var(--bg-card)', zIndex: 1, fontSize: '0.89rem',
 {col.label}
 </td>
 {raceCols.map(rc => {
-const pRace = primaryRaces.find(r => parseInt(r.year) === rc.year && (r.track_name || '') === rc.track_name && (r.race_number || 1) === rc.raceNum)
+const pRace = primaryRaces.find(r => parseInt(r.year) === rc.year && (r.track_name || '') === rc.track_name && (r._occ || 1) === rc.raceNum)
 const pVal = pRace ? pRace[col.key] : null
 const finBg = undefined
 return (
@@ -416,7 +417,7 @@ verticalAlign: 'top',
 {fmtRaw(pVal, col.decimals)}
 </div>
 {(compareDrivers||[]).map((cd,ci) => {
-const cRace = (compareRacesMap[cd.driver]||[]).find(r => parseInt(r.year) === rc.year && (r.track_name||'') === rc.track_name && (r.race_number||1) === rc.raceNum)
+const cRace = (compareRacesMap[cd.driver]||[]).find(r => parseInt(r.year) === rc.year && (r.track_name||'') === rc.track_name && (r._occ||1) === rc.raceNum)
 const cVal = cRace ? cRace[col.key] : null
 return (<div key={cd.driver} style={{ color: COMPARE_COLORS[ci], fontSize: '0.85rem', marginTop: 2 }}>{fmtRaw(cVal, col.decimals)}</div>)
 })}
