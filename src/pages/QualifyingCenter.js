@@ -224,8 +224,25 @@ export default function QualifyingCenter({ isSubscriber }) {
         .from('tracks')
         .select('name')
         .eq('correlation_group_label', cfg.correlation_label)
-        .order('name')
-      const corrTrackNames = (trackRows || []).map(function(t) { return t.name })
+      const unsortedTracks = (trackRows || []).map(function(t) { return t.name })
+      const localCorrYear = cfg.correlation_year || new Date().getFullYear()
+      const { data: raceDateRows } = await supabase
+        .from('races')
+        .select('track_name, race_date')
+        .in('track_name', unsortedTracks)
+        .gte('race_date', localCorrYear + '-01-01')
+        .lte('race_date', localCorrYear + '-12-31')
+      const raceDateMap = {}
+      ;(raceDateRows || []).forEach(function(r) {
+        if (!raceDateMap[r.track_name] || r.race_date < raceDateMap[r.track_name]) {
+          raceDateMap[r.track_name] = r.race_date
+        }
+      })
+      const corrTrackNames = unsortedTracks.slice().sort(function(a, b) {
+        const da = raceDateMap[a] || '9999-12-31'
+        const db = raceDateMap[b] || '9999-12-31'
+        return da < db ? -1 : da > db ? 1 : a.localeCompare(b)
+      })
       setCorrTracks(corrTrackNames)
 
       const allTrackNames = Array.from(new Set([cfg.track_name].concat(corrTrackNames)))
