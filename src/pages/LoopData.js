@@ -149,7 +149,7 @@ if (fin && fin > 0) yearFinishes['y_' + yr + '_' + (r.race_number || 1)] = fin
 const raceFinishes = {}
 if (raceDefs) {
 raceDefs.forEach(rd => {
-const matchRow = dRows.find(r => parseInt(r.year) === rd.year && r.track_name === rd.track_name && parseInt(r.race_number || 1) === (rd.race_number || 1))
+const matchRow = dRows.find(r => parseInt(r.year) === rd.year && r.track_name === rd.track_name && (r._occ || 1) === (rd.race_number || 1))
 if (matchRow) {
 const fin = parseInt(matchRow.finish_position)
 if (fin > 0) raceFinishes[rd.key] = fin
@@ -730,13 +730,12 @@ setCorrNames(corrNameList)
 if (corrNameList.length) {
 const { data: cd, error: corrErr } = await supabase
 .from('loop_data')
-.select('driver_name, year, track_name, finish_position, start_position, avg_position, driver_rating, quality_passes, pass_diff, laps_led, pct_laps_led, pct_top15_laps, fastest_laps, stage1_finish, stage2_finish')
+.select('driver_name, year, track_name, race_id, finish_position, start_position, avg_position, driver_rating, quality_passes, pass_diff, laps_led, pct_laps_led, pct_top15_laps, fastest_laps, stage1_finish, stage2_finish')
 .in('track_name', corrNameList).eq('series', s)
 if (corrErr) throw corrErr
 if (cancelled) return
 
 const allCd = cd || []
-setAllCorrData(allCd)
 const yrs = [...new Set(allCd.map(r => parseInt(r.year)))].filter(Boolean).sort((a, b) => a - b)
 setCorrAvailableYears(yrs)
 const defaultYr = cfg.correlation_year
@@ -744,15 +743,31 @@ setCorrSelectedYears(yrs.includes(defaultYr) ? [defaultYr] : yrs.slice(-1))
 const corrTrackNames = [...new Set(allCd.map(r => r.track_name))]
 const { data: rdRows } = await supabase
   .from('races')
-  .select('track_name, race_date')
+  .select('id, track_name, race_date')
   .in('track_name', corrTrackNames)
+  .eq('series', s)
+const occMap = {}
 const rdMap = {}
+const racesByKey = {}
 ;(rdRows || []).forEach(function(r) {
   if (!r.race_date) return
   const yr = parseInt(r.race_date.substring(0, 4))
-  const k = r.track_name + '_' + yr
-  if (!rdMap[k] || r.race_date < rdMap[k]) rdMap[k] = r.race_date
+  const k = r.track_name + '|' + yr
+  if (!racesByKey[k]) racesByKey[k] = []
+  racesByKey[k].push(r)
 })
+Object.keys(racesByKey).forEach(function(k) {
+  const parts = k.split('|')
+  const tn = parts[0], yr = parseInt(parts[1])
+  const sorted = racesByKey[k].slice().sort(function(a, b) { return a.race_date < b.race_date ? -1 : a.race_date > b.race_date ? 1 : 0 })
+  sorted.forEach(function(r, i) {
+    const occ = i + 1
+    occMap[r.id] = occ
+    rdMap[tn + '_' + yr + '_' + occ] = r.race_date
+  })
+})
+const allCdTagged = allCd.map(function(r) { return Object.assign({}, r, { _occ: occMap[r.race_id] || 1 }) })
+setAllCorrData(allCdTagged)
 setCorrRaceDateMap(rdMap)
 }
 } catch (e) {
@@ -775,7 +790,7 @@ const seen = new Set()
 const yearRaces = allCorrData
   .filter(r => parseInt(r.year) === yr)
   .reduce(function(acc, r) {
-    const rn = parseInt(r.race_number) || 1
+    const rn = r._occ || 1
     const k = r.track_name + '|' + rn
     if (!seen.has(k)) { seen.add(k); acc.push({ track_name: r.track_name, race_number: rn }) }
     return acc
