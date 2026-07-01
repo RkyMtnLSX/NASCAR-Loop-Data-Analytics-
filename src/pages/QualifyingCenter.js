@@ -543,7 +543,7 @@ export default function QualifyingCenter({ isSubscriber }) {
               <thead>
                 <tr>
                   <th style={Object.assign({}, thStyle, { textAlign: 'center', width: 36 })}>#</th>
-                  <th onClick={function() { handleSort('name') }} style={Object.assign({}, thStyle, { textAlign: 'left', paddingLeft: 14, minWidth: 170, position: 'sticky', left: 0, zIndex: 2, cursor: 'pointer' })}>Driver{sortArrow('name')}</th>
+                  <th onClick={function() { handleSort('name') }} style={Object.assign({}, thStyle, { textAlign: 'left', paddingLeft: 14, minWidth: 170, position: 'sticky', left: 0, zIndex: 2, cursor: 'pointer', borderRight: '2px solid var(--border)', boxShadow: '4px 0 8px -2px rgba(0,0,0,0.6)' })}>Driver{sortArrow('name')}</th>
                   {hasDrawOrder && <th onClick={function() { handleSort('drawOrder') }} style={Object.assign({}, thStyle, { color: '#f59e0b', cursor: 'pointer', minWidth: 120 })}>Qualifying Order{sortArrow('drawOrder')}</th>}
                   <th onClick={function() { handleSort('trackAvg') }} style={Object.assign({}, thStyle, { minWidth: 72, color: 'var(--accent)', cursor: 'pointer' })}>
                     Avg{sortArrow('trackAvg')}<br /><span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>{trackAbbr(config.track_name)}</span>
@@ -570,7 +570,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                 </tr>
                 <tr>
                   <th style={thStyle} />
-                  <th style={Object.assign({}, thStyle, { textAlign: 'left', paddingLeft: 14, position: 'sticky', left: 0, zIndex: 2 })} />
+                  <th style={Object.assign({}, thStyle, { textAlign: 'left', paddingLeft: 14, position: 'sticky', left: 0, zIndex: 2, borderRight: '2px solid var(--border)', boxShadow: '4px 0 8px -2px rgba(0,0,0,0.6)' })} />
                   {hasDrawOrder && <th style={thStyle} />}
                   <th style={thStyle} />
                   {histCols.map(function(col, i) {
@@ -598,7 +598,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                       <td style={Object.assign({}, tdBase, {
                         textAlign: 'left', paddingLeft: 14, fontFamily: 'var(--font-sans)',
                         fontWeight: ri < 5 ? 600 : 400, color: 'var(--text-primary)',
-                        position: 'sticky', left: 0, background: rowBg, zIndex: 1,
+                        position: 'sticky', left: 0, background: rowBg, zIndex: 1, borderRight: '2px solid var(--border)', boxShadow: '4px 0 8px -2px rgba(0,0,0,0.6)',
                       })}>
                         {row.carNumber && (
                           <img src={'/car-numbers/' + row.carNumber + '.png'} alt={'#' + row.carNumber} style={{ height: 28, marginRight: 6, verticalAlign: 'middle' }} />
