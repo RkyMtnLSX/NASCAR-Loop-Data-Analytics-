@@ -149,7 +149,7 @@ if (fin && fin > 0) yearFinishes['y_' + yr + '_' + (r.race_number || 1)] = fin
 const raceFinishes = {}
 if (raceDefs) {
 raceDefs.forEach(rd => {
-const matchRow = dRows.find(r => parseInt(r.year) === rd.year && r.track_name === rd.track_name && (r._occ || 1) === (rd.race_number || 1))
+const matchRow = dRows.find(r => parseInt(r.year) === rd.year && r.track_name === rd.track_name && (r._occ || r.race_number || 1) === (rd.race_number || 1))
 if (matchRow) {
 const fin = parseInt(matchRow.finish_position)
 if (fin > 0) raceFinishes[rd.key] = fin
@@ -276,7 +276,7 @@ const compareRacesMap = {}
 
 // All years from primary driver
 const seenRcKeys = {}
-const raceCols = primaryRaces.map(r => { const yr = parseInt(r.year); const tn = r.track_name || ''; const rn = r._occ || 1; return { year: yr, track_name: tn, raceNum: rn, key: yr + '_' + tn + '_' + rn } }).filter(c => c.year && (seenRcKeys[c.key] ? false : (seenRcKeys[c.key] = true))).sort((a, b) => a.year !== b.year ? a.year - b.year : a.raceNum !== b.raceNum ? a.raceNum - b.raceNum : (a.track_name || '').localeCompare(b.track_name || ''))
+const raceCols = primaryRaces.map(r => { const yr = parseInt(r.year); const tn = r.track_name || ''; const rn = r._occ || r.race_number || 1; return { year: yr, track_name: tn, raceNum: rn, key: yr + '_' + tn + '_' + rn } }).filter(c => c.year && (seenRcKeys[c.key] ? false : (seenRcKeys[c.key] = true))).sort((a, b) => a.year !== b.year ? a.year - b.year : a.raceNum !== b.raceNum ? a.raceNum - b.raceNum : (a.track_name || '').localeCompare(b.track_name || ''))
 
 const otherDrivers = effectiveRows.filter(r => r.driver !== cardDriver.driver && !(compareDrivers||[]).find(cd=>cd.driver===r.driver)).map(r => r.driver).sort()
 
@@ -407,7 +407,7 @@ background: 'var(--bg-elevated)', zIndex: 1, fontSize: '0.89rem',
 {col.label}
 </td>
 {raceCols.map(rc => {
-const pRace = primaryRaces.find(r => parseInt(r.year) === rc.year && (r.track_name || '') === rc.track_name && (r._occ || 1) === rc.raceNum)
+const pRace = primaryRaces.find(r => parseInt(r.year) === rc.year && (r.track_name || '') === rc.track_name && (r._occ || r.race_number || 1) === rc.raceNum)
 const pVal = pRace ? pRace[col.key] : null
 const finBg = undefined
 return (
@@ -420,7 +420,7 @@ verticalAlign: 'top',
 {fmtRaw(pVal, col.decimals)}
 </div>
 {(compareDrivers||[]).map((cd,ci) => {
-const cRace = (compareRacesMap[cd.driver]||[]).find(r => parseInt(r.year) === rc.year && (r.track_name||'') === rc.track_name && (r._occ||1) === rc.raceNum)
+const cRace = (compareRacesMap[cd.driver]||[]).find(r => parseInt(r.year) === rc.year && (r.track_name||'') === rc.track_name && (r._occ||r.race_number||1) === rc.raceNum)
 const cVal = cRace ? cRace[col.key] : null
 return (<div key={cd.driver} style={{ color: COMPARE_COLORS[ci], fontSize: '0.85rem', marginTop: 2 }}>{fmtRaw(cVal, col.decimals)}</div>)
 })}
@@ -667,7 +667,7 @@ useEffect(() => {
       .then(({ data }) => ({ driver: cd.driver, data: data || [] }))
   )).then(results => {
     const m = {}
-    results.forEach(r => { m[r.driver] = r.data })
+    results.forEach(r => { m[r.driver] = r.data.map(function(row){ var fin=parseInt(row.finish_position)||0; var st=parseInt(row.start_position)||0; var fl=parseFloat(row.fastest_laps)||0; var ll=parseFloat(row.laps_led)||0; return Object.assign({},row,{dk_pts:dkFinishPts(fin)+(st-fin)+(fl*0.45)+(ll*0.25)}); }) })
     setCompareHistories(m)
   })
 }, [compareDrivers.map(d=>d.driver).join(','), cardDriver ? cardDriver.driver : null, series])
