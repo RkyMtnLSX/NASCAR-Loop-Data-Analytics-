@@ -71,8 +71,9 @@ const QUAL_FORMAT_LABELS = {
 
 function trackAbbr(trackName) {
   if (!trackName) return '?'
-  for (const [full, abbr] of Object.entries(TRACK_ABBR)) {
-    if (trackName.toLowerCase().includes(full.toLowerCase().split(' ')[0].toLowerCase())) return abbr
+  const entries = Object.entries(TRACK_ABBR).sort((a, b) => b[0].length - a[0].length)
+  for (const [full, abbr] of entries) {
+    if (trackName.toLowerCase().includes(full.toLowerCase())) return abbr
   }
   const words = trackName.split(' ').filter(w => w.length > 2)
   if (words.length >= 2) return words[0].substring(0, 3)
