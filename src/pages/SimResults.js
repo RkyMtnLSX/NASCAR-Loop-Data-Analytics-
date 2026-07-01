@@ -130,9 +130,9 @@ export default function SimResults() {
                   <td style={{ ...tdStyle, color: 'var(--text-muted)', width: 32 }}>{i + 1}</td>
                   <td style={tdStyle}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600 }}>
-                      {series === 'cup' && d.car_number ? (
+                      {(series === 'cup' || series === 'oreilly') && d.car_number ? (
                         <img
-                          src={`/car-numbers/${d.car_number}.png`}
+                          src={series === 'cup' ? `/car-numbers/${d.car_number}.png` : `/car-numbers-oreilly/${d.car_number}.png`}
                           alt={`#${d.car_number}`}
                           style={{ height: 28, width: 'auto', objectFit: 'contain' }}
                           onError={(e) => {
