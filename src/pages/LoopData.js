@@ -640,6 +640,7 @@ const [allCorrData, setAllCorrData] = useState([])
 const [corrAvailableYears, setCorrAvailableYears] = useState([])
 const [corrSelectedYears, setCorrSelectedYears] = useState([])
 const [corrNames, setCorrNames] = useState([])
+const [corrRaceDateMap, setCorrRaceDateMap] = useState({})
 const [hasEntryList, setHasEntryList] = useState(false)
 const [loading, setLoading] = useState(true)
 const [error, setError] = useState(null)
@@ -740,6 +741,19 @@ const yrs = [...new Set(allCd.map(r => parseInt(r.year)))].filter(Boolean).sort(
 setCorrAvailableYears(yrs)
 const defaultYr = cfg.correlation_year
 setCorrSelectedYears(yrs.includes(defaultYr) ? [defaultYr] : yrs.slice(-1))
+const corrTrackNames = [...new Set(allCd.map(r => r.track_name))]
+const { data: rdRows } = await supabase
+  .from('races')
+  .select('track_name, race_date')
+  .in('track_name', corrTrackNames)
+const rdMap = {}
+;(rdRows || []).forEach(function(r) {
+  if (!r.race_date) return
+  const yr = parseInt(r.race_date.substring(0, 4))
+  const k = r.track_name + '_' + yr
+  if (!rdMap[k] || r.race_date < rdMap[k]) rdMap[k] = r.race_date
+})
+setCorrRaceDateMap(rdMap)
 }
 } catch (e) {
 if (!cancelled) setError(e.message)
@@ -759,7 +773,11 @@ const corrRaceDefs = []
 corrSelectedYears.slice().sort((a, b) => a - b).forEach(yr => {
 const yearTracks = [...new Set(
 allCorrData.filter(r => parseInt(r.year) === yr).map(r => r.track_name)
-)].sort()
+)].sort(function(a, b) {
+  const da = corrRaceDateMap[a + '_' + yr] || '9999-12-31'
+  const db = corrRaceDateMap[b + '_' + yr] || '9999-12-31'
+  return da < db ? -1 : da > db ? 1 : a.localeCompare(b)
+})
 yearTracks.forEach(tn => {
 corrRaceDefs.push({
 key: 'rc_' + yr + '_' + sanitizeKey(tn),
