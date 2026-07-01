@@ -149,7 +149,7 @@ if (fin && fin > 0) yearFinishes['y_' + yr + '_' + (r.race_number || 1)] = fin
 const raceFinishes = {}
 if (raceDefs) {
 raceDefs.forEach(rd => {
-const matchRow = dRows.find(r => parseInt(r.year) === rd.year && r.track_name === rd.track_name)
+const matchRow = dRows.find(r => parseInt(r.year) === rd.year && r.track_name === rd.track_name && parseInt(r.race_number || 1) === (rd.race_number || 1))
 if (matchRow) {
 const fin = parseInt(matchRow.finish_position)
 if (fin > 0) raceFinishes[rd.key] = fin
@@ -771,21 +771,33 @@ const filteredCorrData = allCorrData.filter(r => corrSelectedYears.includes(pars
 
 const corrRaceDefs = []
 corrSelectedYears.slice().sort((a, b) => a - b).forEach(yr => {
-const yearTracks = [...new Set(
-allCorrData.filter(r => parseInt(r.year) === yr).map(r => r.track_name)
-)].sort(function(a, b) {
-  const da = corrRaceDateMap[a + '_' + yr] || '9999-12-31'
-  const db = corrRaceDateMap[b + '_' + yr] || '9999-12-31'
-  return da < db ? -1 : da > db ? 1 : a.localeCompare(b)
-})
-yearTracks.forEach(tn => {
-corrRaceDefs.push({
-key: 'rc_' + yr + '_' + sanitizeKey(tn),
-year: yr,
-track_name: tn,
-label: trackLabel(tn, yr),
-decimals: 0, isYear: true, minWidth: 52, lowerIsBetter: true,
-})
+const seen = new Set()
+const yearRaces = allCorrData
+  .filter(r => parseInt(r.year) === yr)
+  .reduce(function(acc, r) {
+    const rn = parseInt(r.race_number) || 1
+    const k = r.track_name + '|' + rn
+    if (!seen.has(k)) { seen.add(k); acc.push({ track_name: r.track_name, race_number: rn }) }
+    return acc
+  }, [])
+  .sort(function(a, b) {
+    const da = corrRaceDateMap[a.track_name + '_' + yr + '_' + a.race_number] || '9999-12-31'
+    const db = corrRaceDateMap[b.track_name + '_' + yr + '_' + b.race_number] || '9999-12-31'
+    return da < db ? -1 : da > db ? 1 : a.track_name.localeCompare(b.track_name)
+  })
+const trkCounts = {}
+yearRaces.forEach(function(x) { trkCounts[x.track_name] = (trkCounts[x.track_name] || 0) + 1 })
+yearRaces.forEach(function(x) {
+  const tn = x.track_name, rn = x.race_number
+  const suffix = trkCounts[tn] > 1 ? ' R' + rn : ''
+  corrRaceDefs.push({
+    key: 'rc_' + yr + '_' + sanitizeKey(tn) + '_r' + rn,
+    year: yr,
+    track_name: tn,
+    race_number: rn,
+    label: trackLabel(tn, yr) + suffix,
+    decimals: 0, isYear: true, minWidth: 52, lowerIsBetter: true,
+  })
 })
 })
 
