@@ -539,11 +539,11 @@ export default function QualifyingCenter({ isSubscriber }) {
             })}
           </div>
           <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid var(--border)', marginBottom: 28 }}>
-            <table style={{ borderCollapse: 'collapse', width: '100%', whiteSpace: 'nowrap' }}>
+            <table style={{ borderCollapse: 'separate', borderSpacing: 0, width: '100%', whiteSpace: 'nowrap' }}>
               <thead>
                 <tr>
                   <th style={Object.assign({}, thStyle, { textAlign: 'center', width: 36 })}>#</th>
-                  <th onClick={function() { handleSort('name') }} style={Object.assign({}, thStyle, { textAlign: 'left', paddingLeft: 14, minWidth: 170, position: 'sticky', left: 0, zIndex: 2, cursor: 'pointer', borderRight: '2px solid var(--border)', boxShadow: '4px 0 8px -2px rgba(0,0,0,0.6)' })}>Driver{sortArrow('name')}</th>
+                  <th onClick={function() { handleSort('name') }} style={Object.assign({}, thStyle, { textAlign: 'left', paddingLeft: 14, minWidth: 170, position: 'sticky', left: 0, zIndex: 2, cursor: 'pointer', background: 'var(--bg-surface)', borderRight: '2px solid var(--border)', boxShadow: '4px 0 8px -2px rgba(0,0,0,0.6)' })}>Driver{sortArrow('name')}</th>
                   {hasDrawOrder && <th onClick={function() { handleSort('drawOrder') }} style={Object.assign({}, thStyle, { color: '#f59e0b', cursor: 'pointer', minWidth: 120 })}>Qualifying Order{sortArrow('drawOrder')}</th>}
                   <th onClick={function() { handleSort('trackAvg') }} style={Object.assign({}, thStyle, { minWidth: 72, color: 'var(--accent)', cursor: 'pointer' })}>
                     Avg{sortArrow('trackAvg')}<br /><span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>{trackAbbr(config.track_name)}</span>
@@ -570,7 +570,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                 </tr>
                 <tr>
                   <th style={thStyle} />
-                  <th style={Object.assign({}, thStyle, { textAlign: 'left', paddingLeft: 14, position: 'sticky', left: 0, zIndex: 2, borderRight: '2px solid var(--border)', boxShadow: '4px 0 8px -2px rgba(0,0,0,0.6)' })} />
+                  <th style={Object.assign({}, thStyle, { textAlign: 'left', paddingLeft: 14, position: 'sticky', left: 0, zIndex: 2, background: 'var(--bg-surface)', borderRight: '2px solid var(--border)', boxShadow: '4px 0 8px -2px rgba(0,0,0,0.6)' })} />
                   {hasDrawOrder && <th style={thStyle} />}
                   <th style={thStyle} />
                   {histCols.map(function(col, i) {
@@ -591,7 +591,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                 {rows.map(function(row, ri) {
                   const avgColor = row.trackAvg ? heatColor(Math.round(row.trackAvg), totalDrivers) : null
                   const corrAvgColor = row.corrYearAvg ? heatColor(Math.round(row.corrYearAvg), totalDrivers) : null
-                  const rowBg = ri % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-elevated)'
+                  const rowBg = ri % 2 === 0 ? 'var(--bg-base)' : 'var(--bg-elevated)'
                   return (
                     <tr key={row.driver} style={{ background: rowBg }}>
                       <td style={Object.assign({}, tdBase, { color: 'var(--text-muted)', fontSize: '0.85rem' })}>{ri + 1}</td>
@@ -713,7 +713,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                         if (r.simMean == null) return null
                         const hc = heatColor(r.simExpected, totalDrivers)
                         return (
-                          <tr key={r.driver} style={{ background: ri % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-elevated)', borderBottom: '1px solid var(--border)' }}>
+                          <tr key={r.driver} style={{ background: ri % 2 === 0 ? 'var(--bg-base)' : 'var(--bg-elevated)', borderBottom: '1px solid var(--border)' }}>
                             <td style={Object.assign({}, tdBase, { color: 'var(--text-muted)', fontSize: '0.85rem' })}>{ri + 1}</td>
                             <td style={Object.assign({}, tdBase, { textAlign: 'left', paddingLeft: 14, fontFamily: 'var(--font-sans)', fontWeight: ri < 5 ? 600 : 400 })}>{r.driver}</td>
                             <td style={Object.assign({}, tdBase, { background: hc.bg, color: hc.text, fontWeight: 700 })}>P{r.simExpected}</td>
