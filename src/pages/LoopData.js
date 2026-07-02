@@ -927,7 +927,7 @@ Select at least one year to view correlated track data.
 cardDriver={cardDriver}
 compareDrivers={compareDrivers}
 mainRows={mainRows}
-compareRows={mainRows}
+compareRows={corrRows}
 onClose={() => { setCardDriver(null); setCompareDrivers([]) }}
 onSetCompare={(action, driver) => {
 if (action === 'add') setCompareDrivers(prev => prev.length < 4 && !prev.find(d => d.driver === driver.driver) ? [...prev, driver] : prev)
