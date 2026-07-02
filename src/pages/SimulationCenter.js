@@ -57,6 +57,19 @@ const DNF_PRESETS = [
   { label: 'High',   value: 0.25 },
 ]
 
+function gaussNoise() {
+  let u = 0, v = 0
+  while (u === 0) u = Math.random()
+  while (v === 0) v = Math.random()
+  return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v)
+}
+
+function dkFinishPts(pos) {
+  if (!pos || pos <= 0 || isNaN(pos)) return 0
+  const table = [0,45,42,41,40,39,38,37,36,35,34,32,31,30,29,28,27,26,25,24,23,21,20,19,18,17,16,15,14,13,12,10,9,8,7,6,5,4,3,2,1]
+  return pos <= 40 ? table[pos] : 0
+}
+
 function normalizeArr(values, lowerIsBetter = false) {
   const valid = values.filter(v => v != null && !isNaN(v))
   if (valid.length < 2) return values.map(v => (v == null ? null : 50))
@@ -68,6 +81,11 @@ function normalizeArr(values, lowerIsBetter = false) {
     const raw = (v - mn) / (mx - mn)
     return (lowerIsBetter ? 1 - raw : raw) * 100
   })
+}
+
+function normalizeName(s) {
+  if (!s) return ''
+  return s.replace(/([A-Za-z])\./g, '$1').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/gi, ' ').replace(/\s+/g, ' ').trim().toLowerCase()
 }
 
 function buildSpeedScores(drivers, weights) {
