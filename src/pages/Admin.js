@@ -924,7 +924,7 @@ function LoadQualifying() {
         const speed   = parseFloat(parts[speedIdx])
         if (speed < 50 || speed > 250) continue
 
-        // Find POS and CAR — skip any leading "Row" / "N:" tokens
+        // Find POS and CAR â skip any leading "Row" / "N:" tokens
         let si = 0
         while (si < parts.length && (parts[si] === 'Row' || /^\d+:$/.test(parts[si]) || /^Row\s*\d+:?$/.test(parts[si]))) si++
 
@@ -1138,7 +1138,7 @@ function parseSource(text) {
     if (!m) continue
     const draw = parseInt(m[1])
     if (isNaN(draw) || draw < 1 || draw > 70) continue
-    const name = m[3].trim()
+    const name = m[3].replace(/,\s*/g, ' ').replace(/\s+/g, ' ').trim()
     if (name.length < 4) continue
     rows.push({ draw_order: draw, driver_name: name })
   }
