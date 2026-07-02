@@ -659,7 +659,7 @@ useEffect(() => {
   if (!tracks.length || !compareDrivers.length) { setCompareHistories({}); return }
   Promise.all(compareDrivers.map(cd =>
     supabase.from('loop_data')
-      .select('year, race_number, track_name, finish_position, start_position, avg_position, driver_rating, quality_passes, pass_diff, laps_led, pct_laps_led, pct_top15_laps, fastest_laps, stage1_finish, stage2_finish')
+      .select('year, race_number, race_id, track_name, finish_position, start_position, avg_position, driver_rating, quality_passes, pass_diff, laps_led, pct_laps_led, pct_top15_laps, fastest_laps, stage1_finish, stage2_finish')
       .eq('driver_name', cd.driver)
       .in('track_name', tracks)
       .eq('series', series)
@@ -668,7 +668,7 @@ useEffect(() => {
   )).then(results => {
     const m = {}
     results.forEach(r => { m[r.driver] = r.data.map(function(row){ var fin=parseInt(row.finish_position)||0; var st=parseInt(row.start_position)||0; var fl=parseFloat(row.fastest_laps)||0; var ll=parseFloat(row.laps_led)||0; return Object.assign({},row,{dk_pts:dkFinishPts(fin)+(st-fin)+(fl*0.45)+(ll*0.25)}); }) })
-    setCompareHistories(m)
+    supabase.from('races').select('id, track_name, race_date').in('track_name', tracks).eq('series', series).then(function(rRes){var racesByKey={};(rRes.data||[]).forEach(function(r){var yr=r.race_date?new Date(r.race_date).getFullYear():null;var k=r.track_name+'|'+yr;if(!racesByKey[k])racesByKey[k]=[];racesByKey[k].push(r)});var occMap={};Object.keys(racesByKey).forEach(function(k){var sorted=racesByKey[k].slice().sort(function(a,b){return a.race_date<b.race_date?-1:1});sorted.forEach(function(r,i){occMap[r.id]=i+1})});Object.keys(m).forEach(function(driver){m[driver]=m[driver].map(function(row){return Object.assign({},row,{_occ:occMap[row.race_id]||1})})});setCompareHistories(m)})
   })
 }, [compareDrivers.map(d=>d.driver).join(','), cardDriver ? cardDriver.driver : null, series])
 
