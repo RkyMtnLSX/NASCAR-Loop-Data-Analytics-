@@ -56,8 +56,8 @@ export function parsePracticeExcel(file, series = 'cup') {
             const val = row[index]
             if (val !== undefined && val !== null && val !== '' && val !== '--') {
               const time = parseFloat(val)
-              // Accept 20-500s: covers short tracks (~28s) through road courses (~180s)
-              if (!isNaN(time) && time > 20 && time < 500) lapData[String(lapNum)] = time
+              // Accept 10-500s: covers short tracks (~28s) through road courses (~180s)
+              if (!isNaN(time) && time > 10 && time < 500) lapData[String(lapNum)] = time
             }
           }
           if (Object.keys(lapData).length > 0) drivers.push({ driver: driverName, carNumber, start: startPos, lapData })
