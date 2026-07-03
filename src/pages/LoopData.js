@@ -33,7 +33,7 @@ const TRACK_ABBR = {
 'Michigan International Speedway': 'MIS',
 'Darlington Raceway': 'DAR',
 'Auto Club Speedway': 'FON',
-'World Wide Technology Raceway': 'WWT',
+'Gateway': 'WWT',
 'Iowa Speedway': 'IOWA',
 'Lime Rock Park': 'LRP',
 'Mid-Ohio Sports Car Course': 'MID',
