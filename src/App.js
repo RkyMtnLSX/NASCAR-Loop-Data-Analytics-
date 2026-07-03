@@ -9,6 +9,7 @@ import LapComparison      from './pages/LapComparison'
 import PracticeLapTable   from './pages/PracticeLapTable'
 import LoopData           from './pages/LoopData'
 import LoopDataAudit      from './pages/LoopDataAudit'
+import PracticeAudit      from './pages/PracticeAudit'
 import FastestLap         from './pages/FastestLap'
 import QualifyingCenter   from './pages/QualifyingCenter'
 import SimulationCenter   from './pages/SimulationCenter'
@@ -132,6 +133,7 @@ export default function App() {
         <Route path="/practice-lap-table" element={<PracticeLapTable isSubscriber={isSubscriber} />} />
         <Route path="/loop-data"          element={<LoopData isSubscriber={isSubscriber} />} />
         <Route path="/loop-data-audit"    element={<LoopDataAudit />} />
+        <Route path="/practice-audit"    element={<PracticeAudit />} />
         <Route path="/fastest-laps"       element={<FastestLap />} />
         <Route path="/qualifying"         element={<QualifyingCenter isSubscriber={isSubscriber} />} />
         <Route path="/simulation-center"  element={isAdmin ? <SimulationCenter isSubscriber={isSubscriber} /> : <AdminGate />} />
