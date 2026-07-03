@@ -10,11 +10,11 @@ const SERIES_TABS = [
 ]
 
 const DEFAULT_WEIGHTS = {
-  corrHistory:  0.28,
-  longRunPace:  0.25,
-  shortRunPace: 0.15,
-  startPos:     0.20,
-  tireFalloff:  0.10,
+  corrHistory:  0.50,
+  longRunPace:  0.10,
+  shortRunPace: 0.00,
+  startPos:     0.33,
+  tireFalloff:  0.05,
   raceCraft:    0.02,
   trackHistory: 0.00,
 }
