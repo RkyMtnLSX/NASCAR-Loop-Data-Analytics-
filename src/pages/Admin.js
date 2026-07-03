@@ -1560,7 +1560,7 @@ export default function Admin() {
       let raceId = null
       const { data: existingRace } = await supabase
         .from('races').select('id')
-        .eq('track_name', trackName).eq('year', year).eq('series', series)
+        .eq('track_name', trackName).eq('year', year).eq('series', series).eq('race_number', practiceRaceNum)
         .single()
 
       if (existingRace) {
@@ -1568,7 +1568,7 @@ export default function Admin() {
       } else {
         const { data: newRace, error: raceError } = await supabase
           .from('races')
-          .insert({ race_name: `${trackName} ${year}`, series, year, track_name: trackName })
+          .insert({ race_name: `${trackName} ${year} R${practiceRaceNum}`, series, year, track_name: trackName, race_number: practiceRaceNum })
           .select('id').single()
         if (raceError) throw raceError
         raceId = newRace.id
