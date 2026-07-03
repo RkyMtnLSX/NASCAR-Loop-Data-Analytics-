@@ -1521,6 +1521,7 @@ export default function Admin() {
   const [trackName, setTrackName] = useState('')
   const [year, setYear] = useState(new Date().getFullYear())
   const [sessionNum, setSessionNum] = useState(1)
+  const [practiceRaceNum, setPracticeRaceNum] = useState(1)
   const [file, setFile] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [uploadStatus, setUploadStatus] = useState(null)
@@ -1575,7 +1576,7 @@ export default function Admin() {
 
       // Delete and re-insert practice session summaries
       await supabase.from('practice_sessions').delete()
-        .eq('race_id', raceId).eq('series', series).eq('session_number', sessionNum)
+        .eq('race_id', raceId).eq('series', series).eq('session_number', sessionNum).eq('race_number', practiceRaceNum)
 
       const rows = preview.graded.map(d => ({
         race_id: raceId,
@@ -1583,6 +1584,7 @@ export default function Admin() {
         series, year,
         track_name: trackName,
         session_number: sessionNum,
+        race_number: practiceRaceNum,
         qualifying_position: d.start,
         car_number: d.carNumber || null,
         practice_group: d.group || null,
@@ -1719,6 +1721,11 @@ export default function Admin() {
               <option value={1}>Session 1</option>
               <option value={2}>Session 2</option>
             </select>
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: 6 }}>Race #</label>
+            <input type="number" min="1" value={practiceRaceNum} onChange={e => setPracticeRaceNum(parseInt(e.target.value) || 1)}
+              style={{ width: '100%', padding: '8px 10px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', fontSize: '0.875rem', outline: 'none' }} />
           </div>
         </div>
 
