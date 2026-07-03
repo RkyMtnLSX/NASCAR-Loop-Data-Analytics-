@@ -45,11 +45,25 @@ function isRoadCourse(trackName) {
   return ROAD_COURSE_TRACKS.some(rc => t.includes(rc))
 }
 
-const CAUTION_PRESETS = [
-  { label: 'Low',    value: 4,  noise: 8  },
-  { label: 'Medium', value: 8,  noise: 13 },
-  { label: 'High',   value: 15, noise: 20 },
-]
+const CAUTION_PRESETS_BY_SERIES = {
+  cup: [
+    { label: 'Low',    value: 4,  noise: 14 },
+    { label: 'Medium', value: 8,  noise: 22 },
+    { label: 'High',   value: 15, noise: 34 },
+  ],
+  trucks: [
+    { label: 'Low',    value: 4,  noise: 15 },
+    { label: 'Medium', value: 8,  noise: 23 },
+    { label: 'High',   value: 15, noise: 35 },
+  ],
+  oreilly: [
+    { label: 'Low',    value: 4,  noise: 12 },
+    { label: 'Medium', value: 8,  noise: 18 },
+    { label: 'High',   value: 15, noise: 28 },
+  ],
+}
+const getCautionPresets = (sv) => CAUTION_PRESETS_BY_SERIES[sv] || CAUTION_PRESETS_BY_SERIES.cup
+const CAUTION_PRESETS = CAUTION_PRESETS_BY_SERIES.cup
 
 const DNF_PRESETS = [
   { label: 'Low',    value: 0.05 },
@@ -599,7 +613,7 @@ export default function SimulationCenter({ isSubscriber }) {
       <div className="tabs" style={{ marginBottom: 20 }}>
         {SERIES_TABS.map(t => (
           <button key={t.value} className={`tab ${series === t.value ? 'active' : ''}`}
-            onClick={() => setSeries(t.value)}>
+            onClick={() => { setSeries(t.value); setCautionPreset(getCautionPresets(t.value)[1]) }}>
             {t.label}
           </button>
         ))}
@@ -656,7 +670,7 @@ export default function SimulationCenter({ isSubscriber }) {
             <div style={{ padding: '12px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 8 }}>
               <div style={labelStyle}>Caution Rate</div>
               <div style={{ display: 'flex', gap: 6 }}>
-                {CAUTION_PRESETS.map(p => (
+                {getCautionPresets(series).map(p => (
                   <button key={p.label} onClick={() => setCautionPreset(p)} style={{
                     ...presetBtn, background: cautionPreset.value === p.value ? 'var(--accent)' : 'var(--bg-elevated)',
                     color: cautionPreset.value === p.value ? '#111' : 'var(--text-secondary)',
