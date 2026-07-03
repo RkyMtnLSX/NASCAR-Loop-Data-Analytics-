@@ -10,12 +10,12 @@ const SERIES_TABS = [
 ]
 
 const DEFAULT_WEIGHTS = {
-  corrHistory:  0.30,
+  corrHistory:  0.28,
   longRunPace:  0.25,
   shortRunPace: 0.15,
-  startPos:     0.15,
+  startPos:     0.20,
   tireFalloff:  0.10,
-  raceCraft:    0.05,
+  raceCraft:    0.02,
   trackHistory: 0.00,
 }
 
@@ -131,7 +131,7 @@ function buildSpeedScores(drivers, weights) {
     const fs = corrFinishScores[i]
     const hasR = d.corrAvgRating != null
     const hasF = d.corrAvgFinish != null
-    const blendedC = hasR && hasF ? rs * 0.9 + fs * 0.1
+    const blendedC = hasR && hasF ? rs
                    : hasR         ? rs
                    : hasF         ? fs
                    :                null
