@@ -212,11 +212,11 @@ export function gradePracticeSession(drivers) {
     valid.forEach((d, i) => sc.set(d, N > 1 ? 100 * (1 - i / (N - 1)) : 100))
     return sc
   }
-  const apS = rankScale('avgPace'), bsS = rankScale('bestStint')
+  const alS = rankScale('overallAvg'), blS = rankScale('bestLap')
   const scored = gradable.map(d => {
-    const ap = apS.has(d) ? apS.get(d) : 50
-    const bs = bsS.has(d) ? bsS.get(d) : 50
-    return { ...d, composite: Math.round((ap * 0.70 + bs * 0.30) * 10) / 10 }
+    const al = alS.has(d) ? alS.get(d) : 50
+    const bl = blS.has(d) ? blS.get(d) : 50
+    return { ...d, composite: Math.round((al * 0.50 + bl * 0.50) * 10) / 10 }
   })
   scored.sort((a, b) => b.composite - a.composite)
   const total = scored.length
