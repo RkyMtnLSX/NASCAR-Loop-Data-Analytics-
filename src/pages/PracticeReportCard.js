@@ -168,7 +168,8 @@ export default function PracticeReportCard({ isSubscriber }) {
                   <th className="th-tip" data-tip="Overall practice grade (percentile of the field), from Avg Pace 70% + Best Stint 30%.">Grade</th>
                   <th className="th-tip" data-tip="Composite 0-100 practice score used to rank the grade.">Score</th>
                   <th className="th-tip" data-tip="Total clean practice laps recorded.">Laps</th>
-                  <th className="th-tip" data-tip="Average of each run's average lap time - overall run speed. Lower is faster.">Avg Pace</th>
+                  <th className="th-tip" data-tip="Average of each run's average lap time - each run weighted equally, so one short outlier run can swing it. Lower is faster.">Avg Pace</th>
+                  <th className="th-tip" data-tip="Simple average of every clean lap - each lap weighted equally, so a short outlier run barely moves it. Lower is faster.">All Laps</th>
                   <th className="th-tip" data-tip="Fastest single run's average lap time - peak sustained pace. Lower is faster.">Best Stint</th>
                   <th className="th-tip" data-tip="Length-weighted pace over runs of 10+ laps - worn-tire, long-run speed.">Long Run</th>
                   <th className="th-tip" data-tip="Lap-time consistency within runs (std dev). Lower is more repeatable.">Consistency</th>
@@ -214,6 +215,7 @@ export default function PracticeReportCard({ isSubscriber }) {
                       </td>
                       <td style={{ fontFamily: 'var(--font-mono)' }}>{d.total_laps ?? '-'}</td>
                       <td style={{ fontFamily: 'var(--font-mono)' }}>{d.avg_pace?.toFixed(3) || '-'}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>{d.overall_avg?.toFixed(3) || '-'}</td>
                       <td style={{ fontFamily: 'var(--font-mono)' }}>{d.best_stint?.toFixed(3) || '-'}</td>
                       <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>{d.long_run?.toFixed(3) || '-'}</td>
                       <td style={{ fontFamily: 'var(--font-mono)' }}>{d.consistency?.toFixed(3) || '-'}</td>
