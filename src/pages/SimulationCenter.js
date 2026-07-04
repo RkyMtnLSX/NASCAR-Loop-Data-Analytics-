@@ -346,7 +346,7 @@ export default function SimulationCenter({ isSubscriber }) {
             .eq('race_year', cfg.race_year || new Date().getFullYear())
             .eq('track_name', cfg.track_name),
           supabase.from('qualifying_results')
-            .select('driver_name, final_position, lap_time')
+            .select('driver_name, qualifying_position, lap_time')
             .eq('series', s)
             .eq('track_name', cfg.track_name)
             .eq('year', cfg.race_year || new Date().getFullYear()),
@@ -459,7 +459,7 @@ export default function SimulationCenter({ isSubscriber }) {
               name,
               carNumber:     e.car_number   || null,
               organization:  e.organization || null,
-              startPos:      prac && prac.qualifying_position ? parseFloat(prac.qualifying_position) : (qual ? parseFloat(qual.final_position) || null : null),
+              startPos:      prac && prac.qualifying_position ? parseFloat(prac.qualifying_position) : (qual ? parseFloat(qual.qualifying_position) || null : null),
               qualTime:      qual ? parseFloat(qual.lap_time)       || null : null,
               lrpTime:       prac ? parseFloat(prac.overall_avg)    || null : null,
               srpTime:       prac ? parseFloat(prac.late_run_avg)   || null : null,
