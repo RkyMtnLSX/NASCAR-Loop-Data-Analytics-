@@ -10,13 +10,13 @@ const SERIES_TABS = [
 ]
 
 const DEFAULT_WEIGHTS = {
-  corrHistory:  0.40,
+  corrHistory:  0.35,
   longRunPace:  0.10,
   shortRunPace: 0.00,
   startPos:     0.33,
   tireFalloff:  0.05,
   raceCraft:    0.02,
-  trackHistory: 0.10,
+  trackHistory: 0.15,
 }
 
 // Road course-specific weights.
