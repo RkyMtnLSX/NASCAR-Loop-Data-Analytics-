@@ -459,7 +459,7 @@ export default function SimulationCenter({ isSubscriber }) {
               name,
               carNumber:     e.car_number   || null,
               organization:  e.organization || null,
-              startPos:      prac && prac.qualifying_position ? parseFloat(prac.qualifying_position) : (qual ? parseFloat(qual.qualifying_position) || null : null),
+              startPos:      qual && qual.qualifying_position ? parseFloat(qual.qualifying_position) : (prac && prac.qualifying_position ? parseFloat(prac.qualifying_position) : null),
               qualTime:      qual ? parseFloat(qual.lap_time)       || null : null,
               lrpTime:       prac ? parseFloat(prac.overall_avg)    || null : null,
               srpTime:       prac ? parseFloat(prac.late_run_avg)   || null : null,
