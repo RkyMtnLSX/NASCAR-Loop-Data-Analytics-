@@ -90,7 +90,7 @@ export default function PracticeReportCard({ isSubscriber }) {
     <div className="page">
       <div className="page-header">
         <h1 className="page-title">Practice Report Cards</h1>
-        <p className="page-subtitle">Stint-aware practice grades: average pace, best stint, long-run pace &amp; consistency</p>
+        <p className="page-subtitle">Grades weighted 50/50 on All Laps pace &amp; Best Lap speed</p>
       </div>
 
       {/* Series tabs */}
