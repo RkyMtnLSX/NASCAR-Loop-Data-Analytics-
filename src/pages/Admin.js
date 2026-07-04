@@ -1607,7 +1607,7 @@ export default function Admin() {
       try {
         await supabase.from('practice_laps').delete()
           .eq('series', series).eq('year', year)
-          .eq('track_name', trackName).eq('session_number', sessionNum)
+          .eq('track_name', trackName).eq('session_number', sessionNum).eq('race_number', practiceRaceNum)
 
         const lapRows = []
         for (const d of (preview.parsed.drivers || [])) {
@@ -1618,6 +1618,7 @@ export default function Admin() {
             if (isNaN(t) || t <= 0) continue
             lapRows.push({
               series, year, track_name: trackName, session_number: sessionNum,
+            race_number: practiceRaceNum,
               driver_name: d.driver,
               car_number: d.carNumber || null,
               starting_position: d.start || null,
