@@ -163,12 +163,12 @@ export default function PracticeReportCard({ isSubscriber }) {
                   <th>Grade</th>
                   <th>Score</th>
                   <th>Laps</th>
+                  <th>Avg Pace</th>
+                  <th>Best Stint</th>
                   <th>Long Run</th>
-                  <th>Short Run</th>
+                  <th>Falloff</th>
+                  <th>Consistency</th>
                   <th>Best Lap</th>
-                  <th>Stints</th>
-                  <th>Longest</th>
-                  <th>Tire Falloff</th>
                 </tr>
               </thead>
               <tbody>
@@ -210,16 +210,12 @@ export default function PracticeReportCard({ isSubscriber }) {
                         {d.practice_score?.toFixed(1) || 'Ã¢ÂÂ'}
                       </td>
                       <td style={{ fontFamily: 'var(--font-mono)' }}>{d.total_laps ?? 'Ã¢ÂÂ'}</td>
-                      <td style={{ fontFamily: 'var(--font-mono)' }}>{d.overall_avg?.toFixed(3) || 'Ã¢ÂÂ'}</td>
-                      <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>{d.late_run_avg?.toFixed(3) || 'Ã¢ÂÂ'}</td>
-                      <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent)' }}>
-                        {d.best_lap?.toFixed(3) || 'Ã¢ÂÂ'}
-                      </td>
-                      <td style={{ fontFamily: 'var(--font-mono)' }}>{d.num_stints ?? 'Ã¢ÂÂ'}</td>
-                      <td style={{ fontFamily: 'var(--font-mono)' }}>{d.longest_stint ?? 'Ã¢ÂÂ'}</td>
-                      <td style={{ fontSize: '0.89rem', color: falloff?.color }}>
-                        {falloff?.label || 'Ã¢ÂÂ'}
-                      </td>
+                      <td style={{ fontFamily: 'var(--font-mono)' }}>{d.avg_pace?.toFixed(3) || '-'}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)' }}>{d.best_stint?.toFixed(3) || '-'}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>{d.long_run?.toFixed(3) || '-'}</td>
+                      <td style={{ fontSize: '0.89rem', color: falloff?.color }}>{falloff?.label || '-'}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)' }}>{d.consistency?.toFixed(3) || '-'}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent)' }}>{d.best_lap?.toFixed(3) || '-'}</td>
                     </tr>
                   )
                 })}
