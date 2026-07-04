@@ -165,7 +165,7 @@ export default function PracticeReportCard({ isSubscriber }) {
                   <th className="left">Driver</th>
                   {hasGroup && <th style={{ width: 60 }}>Group</th>}
                   <th className="th-tip" data-tip="Starting position for this race.">Start</th>
-                  <th className="th-tip" data-tip="Overall practice grade (percentile of the field), from Avg Pace 70% + Best Stint 30%.">Grade</th>
+                  <th className="th-tip" data-tip="Overall practice grade (percentile of the field), from All Laps 50% + Best Lap 50%.">Grade</th>
                   <th className="th-tip" data-tip="Composite 0-100 practice score used to rank the grade.">Score</th>
                   <th className="th-tip" data-tip="Total clean practice laps recorded.">Laps</th>
                   <th className="th-tip" data-tip="Average of each run's average lap time - each run weighted equally, so one short outlier run can swing it. Lower is faster.">Avg Pace</th>
