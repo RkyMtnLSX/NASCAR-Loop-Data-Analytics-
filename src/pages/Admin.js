@@ -950,14 +950,14 @@ function LoadQualifying() {
 
       const carMap = {}
       if (entryList) {
-        for (const e of entryList) carMap[String(e.car_number).replace(/^0+/, '')] = e.driver_name
+        for (const e of entryList) carMap[String(e.car_number).trim()] = e.driver_name
       }
 
       const previewRows = parsed
         .map(p => ({
           rank:       p.pos,
           carNumber:  p.car,
-          driverName: carMap[String(p.car).replace(/^0+/, '')] || ('Car #' + p.car),
+          driverName: carMap[String(p.car).trim()] || ('Car #' + p.car),
           lapTime:    p.lapTime,
           speed:      p.speed,
         }))
