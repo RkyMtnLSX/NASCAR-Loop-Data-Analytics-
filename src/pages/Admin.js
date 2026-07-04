@@ -918,11 +918,11 @@ function LoadQualifying() {
             else if (timeIdx === -1) { timeIdx = i; break }
           }
         }
-        if (timeIdx < 0 || speedIdx < 0) continue
+        // time/speed optional: rain-out lineups have none (0.000)
 
-        const lapTime = parts[timeIdx]
-        const speed   = parseFloat(parts[speedIdx])
-        if (speed < 50 || speed > 250) continue
+        const lapTime = timeIdx >= 0 ? parts[timeIdx] : '0.000'
+        const speed   = speedIdx >= 0 ? parseFloat(parts[speedIdx]) : 0
+        if (speed !== 0 && (speed < 50 || speed > 250)) continue
 
         // Find POS and CAR â skip any leading "Row" / "N:" tokens
         let si = 0
