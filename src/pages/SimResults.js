@@ -178,42 +178,50 @@ export default function SimResults() {
         {(() => {
   var withMv = (sorted || []).filter(function (d) { return d && d.mv; });
   if (!withMv.length) return null;
-  var MK = { Win: { sf: 'win_pct', o: 'owin', ev: 'evwin', dv: 'dvwin' }, 'Top 3': { sf: 'top3_pct', o: 'ot3', ev: 'evt3', dv: 'dvt3' }, 'Top 5': { sf: 'top5_pct', o: 'ot5', ev: 'evt5', dv: 'dvt5' }, 'Top 10': { sf: 'top10_pct', o: 'ot10', ev: 'evt10', dv: 'dvt10' } };
-  var conf = MK[mvMkt] || MK.Win;
+  var MK = { Win: 'win', 'Top 3': 't3', 'Top 5': 't5', 'Top 10': 't10' };
+  var SF = { Win: 'win_pct', 'Top 3': 'top3_pct', 'Top 5': 'top5_pct', 'Top 10': 'top10_pct' };
+  var key = MK[mvMkt] || 'win';
+  var dec = function (a) { return a > 0 ? a / 100 + 1 : 100 / (-a) + 1; };
   var fairOdds = function (p) { if (p <= 0) return null; if (p >= 1) return -100000; return p >= 0.5 ? Math.round(-100 * p / (1 - p)) : Math.round(100 * (1 - p) / p); };
   var fo = function (a) { return a == null ? '-' : (a > 0 ? '+' + a : '' + a); };
-  var rows = withMv.map(function (d) { var p = (d[conf.sf] || 0) / 100; return { name: d.driver_name, price: d.mv[conf.o], mktPct: d.mv[conf.dv], modelPct: d[conf.sf] || 0, fair: fairOdds(p), ev: d.mv[conf.ev] }; }).filter(function (r) { return r.price != null; });
-  rows.sort(function (a, b) { return mvSort === 'edge' ? (b.ev - a.ev) : mvSort === 'model' ? (b.modelPct - a.modelPct) : (b.mktPct - a.mktPct); });
+  var rows = withMv.map(function (d) { var m = d.mv[key]; if (!m) return null; var p = (d[SF[mvMkt]] || 0) / 100; return { name: d.driver_name, dk: m.dk, fd: m.fd, hr: m.hr, best: m.best, bb: (m.bb || '').toUpperCase(), modelPct: d[SF[mvMkt]] || 0, fair: fairOdds(p), ev: m.ev, mev: m.mev }; }).filter(function (r) { return r && r.best != null; });
+  rows.sort(function (a, b) { return mvSort === 'best' ? (dec(b.best) - dec(a.best)) : mvSort === 'model' ? (b.modelPct - a.modelPct) : (b.ev - a.ev); });
   var odds = mvUnits === 'odds';
-  var thc = { padding: '7px 8px', color: '#8a8a8a', fontSize: 11, fontWeight: 500, borderBottom: '0.5px solid #333' };
+  var thc = { padding: '7px 6px', color: '#8a8a8a', fontSize: 11, fontWeight: 500, borderBottom: '0.5px solid #333' };
   var seg = function (cur, set, val, label) { return <button onClick={function () { set(val); }} style={{ padding: '5px 10px', fontSize: 12, border: 'none', background: cur === val ? '#262626' : 'transparent', color: cur === val ? '#fff' : '#9a9a9a', cursor: 'pointer' }}>{label}</button>; };
+  var oc = function (o, best) { return <span style={{ color: (o != null && o === best) ? '#3fb950' : '#9a9a9a', fontWeight: (o != null && o === best) ? 500 : 400 }}>{fo(o)}</span>; };
   return (
     <div style={{ marginTop: 28 }}>
-      <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>Market value - model vs DraftKings</div>
-      <div style={{ fontSize: 12, color: '#888', marginBottom: 10 }}>Fair is the model projection as an American price. Green edge = positive EV at DK's number.</div>
+      <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>Market value - best line across DK / FD / Hard Rock</div>
+      <div style={{ fontSize: 12, color: '#888', marginBottom: 10 }}>Edge = model EV at the best available price. The mkt tag means the best price also beats the no-vig consensus - model and market agree.</div>
       <div style={{ marginBottom: 10 }}>{['Win', 'Top 3', 'Top 5', 'Top 10'].map(function (k) { return <button key={k} onClick={function () { setMvMkt(k); }} style={{ padding: '6px 14px', borderRadius: 999, border: '0.5px solid ' + (mvMkt === k ? '#e8c766' : '#333'), background: mvMkt === k ? '#262626' : 'transparent', color: mvMkt === k ? '#f5c518' : '#9a9a9a', fontSize: 13, cursor: 'pointer', marginRight: 4 }}>{k}</button>; })}</div>
       <div style={{ display: 'flex', gap: 16, alignItems: 'center', fontSize: 12, color: '#888', marginBottom: 10 }}>
         <span>units <span style={{ border: '0.5px solid #333', borderRadius: 6, overflow: 'hidden', display: 'inline-flex' }}>{seg(mvUnits, setMvUnits, 'odds', 'Odds')}{seg(mvUnits, setMvUnits, 'pct', '%')}</span></span>
-        <span>sort <span style={{ border: '0.5px solid #333', borderRadius: 6, overflow: 'hidden', display: 'inline-flex' }}>{seg(mvSort, setMvSort, 'edge', 'Edge')}{seg(mvSort, setMvSort, 'model', 'Model')}{seg(mvSort, setMvSort, 'mkt', 'Favorite')}</span></span>
+        <span>sort <span style={{ border: '0.5px solid #333', borderRadius: 6, overflow: 'hidden', display: 'inline-flex' }}>{seg(mvSort, setMvSort, 'edge', 'Edge')}{seg(mvSort, setMvSort, 'best', 'Best')}{seg(mvSort, setMvSort, 'model', 'Model')}</span></span>
       </div>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, tableLayout: 'fixed' }}>
         <thead><tr>
-          <th style={{ ...thc, textAlign: 'left' }}>#</th>
+          <th style={{ ...thc, textAlign: 'left', width: 24 }}>#</th>
           <th style={{ ...thc, textAlign: 'left' }}>Driver</th>
-          <th style={{ ...thc, textAlign: 'right' }}>{odds ? 'DK price' : 'DK implied'}</th>
-          <th style={{ ...thc, textAlign: 'right' }}>{odds ? 'Fair (model)' : 'Model %'}</th>
+          <th style={{ ...thc, textAlign: 'right' }}>DK</th>
+          <th style={{ ...thc, textAlign: 'right' }}>FD</th>
+          <th style={{ ...thc, textAlign: 'right' }}>HR</th>
+          <th style={{ ...thc, textAlign: 'right' }}>Best</th>
+          <th style={{ ...thc, textAlign: 'right' }}>{odds ? 'Fair' : 'Model %'}</th>
           <th style={{ ...thc, textAlign: 'right' }}>Edge</th>
         </tr></thead>
         <tbody>
           {rows.map(function (r, i) {
-            var mkt = odds ? fo(r.price) : (r.mktPct != null ? r.mktPct.toFixed(1) + '%' : '-');
             var mod = odds ? fo(r.fair) : (r.modelPct.toFixed(1) + '%');
             return <tr key={i}>
-              <td style={{ padding: '7px 8px', textAlign: 'left', color: '#8a8a8a' }}>{i + 1}</td>
-              <td style={{ padding: '7px 8px', textAlign: 'left' }}>{r.name}</td>
-              <td style={{ padding: '7px 8px', textAlign: 'right' }}>{mkt}</td>
-              <td style={{ padding: '7px 8px', textAlign: 'right' }}>{mod}</td>
-              <td style={{ padding: '7px 8px', textAlign: 'right' }}>{r.ev > 0 ? <span style={{ background: '#123d24', color: '#3fb950', padding: '2px 7px', borderRadius: 999, fontWeight: 500 }}>+{Math.round(r.ev)}%</span> : <span style={{ color: '#8a8a8a' }}>{Math.round(r.ev)}%</span>}</td>
+              <td style={{ padding: '7px 6px', textAlign: 'left', color: '#8a8a8a' }}>{i + 1}</td>
+              <td style={{ padding: '7px 6px', textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.name}</td>
+              <td style={{ padding: '7px 6px', textAlign: 'right' }}>{oc(r.dk, r.best)}</td>
+              <td style={{ padding: '7px 6px', textAlign: 'right' }}>{oc(r.fd, r.best)}</td>
+              <td style={{ padding: '7px 6px', textAlign: 'right' }}>{oc(r.hr, r.best)}</td>
+              <td style={{ padding: '7px 6px', textAlign: 'right', color: '#3fb950', fontWeight: 500 }}>{fo(r.best)}<span style={{ fontSize: 9, color: '#8a8a8a', marginLeft: 2 }}>{r.bb}</span></td>
+              <td style={{ padding: '7px 6px', textAlign: 'right' }}>{mod}</td>
+              <td style={{ padding: '7px 6px', textAlign: 'right' }}>{r.ev > 0 ? <span style={{ background: '#123d24', color: '#3fb950', padding: '2px 6px', borderRadius: 999, fontWeight: 500 }}>+{r.ev}%</span> : <span style={{ color: '#8a8a8a' }}>{r.ev}%</span>}{(r.mev != null && r.mev > 0) ? <span style={{ fontSize: 9, color: '#3fb950', marginLeft: 3 }}>mkt</span> : null}</td>
             </tr>;
           })}
         </tbody>
