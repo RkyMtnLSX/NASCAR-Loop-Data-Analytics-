@@ -102,6 +102,30 @@ function normalizeName(s) {
   return s.replace(/([A-Za-z])\./g, '$1').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/gi, ' ').replace(/\s+/g, ' ').trim().toLowerCase()
 }
 
+function __marketValue(winTxt, t10Txt, drivers) {
+  try {
+    var norm = function (s) { return (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[.']/g, '').replace(/\b(jr|sr|ii|iii|iv)\b/g, '').replace(/\s+/g, ' ').trim(); };
+    var amer = function (l) { var m = l.trim().replace(/[\u2212\u2013\u2014]/g, '-'); return /^[+\-]\d{2,6}$/.test(m) ? parseInt(m, 10) : null; };
+    var parse = function (txt, n) { var out = {}, name = null, buf = []; var flush = function () { if (name && buf.length >= n) out[norm(name)] = buf.slice(0, n); name = null; buf = []; }; (txt || '').split('\n').forEach(function (raw) { var l = raw.trim(); if (!l) return; var o = amer(l); if (o !== null) { if (name) buf.push(o); } else if (/[a-zA-Z]{2,}/.test(l)) { flush(); name = l; } }); flush(); return out; };
+    var dec = function (a) { return a > 0 ? a / 100 + 1 : 100 / (-a) + 1; };
+    var o1 = parse(winTxt, 3), o2 = parse(t10Txt, 1);
+    var mkts = [{ k: 'win', t: 1, gi: 0, src: o1 }, { k: 't3', t: 3, gi: 1, src: o1 }, { k: 't5', t: 5, gi: 2, src: o1 }, { k: 't10', t: 10, gi: 0, src: o2 }];
+    var universe = {}; Object.keys(o1).forEach(function (k) { universe[k] = 1; }); Object.keys(o2).forEach(function (k) { universe[k] = 1; });
+    var dv = {}; mkts.forEach(function (m) { var sum = 0, imp = {}; Object.keys(universe).forEach(function (k) { var row = m.src[k]; if (!row) return; var a = row[m.gi]; if (a == null) return; var p = a > 0 ? 100 / (a + 100) : -a / (-a + 100); imp[k] = p; sum += p; }); dv[m.k] = {}; Object.keys(imp).forEach(function (k) { dv[m.k][k] = sum ? imp[k] / sum * m.t : null; }); });
+    var probOf = { win: 'winPct', t3: 'top3Pct', t5: 'top5Pct', t10: 'top10Pct' };
+    var res = {};
+    (drivers || []).forEach(function (d) {
+      var sk = norm(d.name); var ok = null;
+      if (universe[sk]) ok = sk; else { var keys = Object.keys(universe); for (var i = 0; i < keys.length; i++) { var k = keys[i]; if (k.length > sk.length && k.slice(-(sk.length + 1)) === ' ' + sk) { ok = k; break; } } }
+      if (!ok) return;
+      var obj = {};
+      mkts.forEach(function (m) { var row = m.src[ok]; if (!row) return; var a = row[m.gi]; if (a == null) return; var p = (d[probOf[m.k]] || 0) / 100; obj['o' + m.k] = a; obj['ev' + m.k] = +((p * dec(a) - 1) * 100).toFixed(0); obj['dv' + m.k] = dv[m.k][ok] != null ? +(dv[m.k][ok] * 100).toFixed(1) : null; });
+      if (Object.keys(obj).length) res[d.name] = obj;
+    });
+    return res;
+  } catch (e) { return {}; }
+}
+
 function __applyRainOut(w, on) {
   if (!on) return w;
   var freed = (w.startPos || 0) - 0.12;
@@ -319,6 +343,8 @@ export default function SimulationCenter({ isSubscriber }) {
   const [sortDir, setSortDir]               = useState('desc')
   const [showBreakdown, setShowBreakdown]   = useState(false)
   const [published,     setPublished]       = useState(false)
+  const [oddsWinTxt, setOddsWinTxt] = useState('')
+  const [oddsT10Txt, setOddsT10Txt] = useState('')
   const [authed,        setAuthed]          = useState(false)
   const [password,      setPassword]        = useState('')
   const [authError,     setAuthError]       = useState('')
@@ -527,6 +553,7 @@ export default function SimulationCenter({ isSubscriber }) {
 
   const publishResults = async () => {
     if (!simResults || !config) return
+    const __mv = __marketValue(oddsWinTxt, oddsT10Txt, simResults)
     const payload = {
       series,
       track_name: config.track_name,
@@ -545,7 +572,7 @@ export default function SimulationCenter({ isSubscriber }) {
         top10_pct:     +(d.top10Pct    || 0).toFixed(4),
         dnf_pct:       +(d.dnfPct      || 0).toFixed(4),
         laps_led:      +(d.projLapsLed || 0).toFixed(2),
-        avg_fast_laps: +(d.avgFastLaps || 0).toFixed(2),
+        avg_fast_laps: +(d.avgFastLaps || 0).toFixed(2), mv: (__mv[d.name] || null),
       }))
     }
     await supabase.from('sim_results').delete().eq('series', series)
@@ -763,7 +790,13 @@ export default function SimulationCenter({ isSubscriber }) {
               {running ? `Running ${numSims.toLocaleString()} simulations...` : `Run ${numSims.toLocaleString()} Simulations`}
             </button>
             {simResults && (
-              <button onClick={publishResults} style={{
+              <><div style={{ marginTop: 12 }}>
+  <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 4 }}>DK odds - Winner / Top 3 / Top 5 (paste)</div>
+  <textarea value={oddsWinTxt} onChange={e => setOddsWinTxt(e.target.value)} rows={3} style={{ width: '100%', fontFamily: 'monospace', fontSize: 11 }} />
+  <div style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '6px 0 4px' }}>DK odds - Top 10 (paste)</div>
+  <textarea value={oddsT10Txt} onChange={e => setOddsT10Txt(e.target.value)} rows={3} style={{ width: '100%', fontFamily: 'monospace', fontSize: 11 }} />
+</div>
+<button onClick={publishResults} style={{
                 padding: '10px 28px', background: published ? 'var(--bg-elevated)' : '#1a6b2e',
                 color: published ? 'var(--text-muted)' : '#e8f5e9',
                 border: 'none', borderRadius: 8, fontWeight: 700,
@@ -771,7 +804,7 @@ export default function SimulationCenter({ isSubscriber }) {
                 transition: 'background 0.15s',
               }}>
                 {published ? 'Published' : 'Publish Results'}
-              </button>
+              </button></>
             )}
 
             <select value={numSims} onChange={e => setNumSims(parseInt(e.target.value))}
