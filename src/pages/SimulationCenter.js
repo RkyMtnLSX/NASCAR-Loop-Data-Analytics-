@@ -102,6 +102,12 @@ function normalizeName(s) {
   return s.replace(/([A-Za-z])\./g, '$1').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/gi, ' ').replace(/\s+/g, ' ').trim().toLowerCase()
 }
 
+function __applyRainOut(w, on) {
+  if (!on) return w;
+  var freed = (w.startPos || 0) - 0.12;
+  return Object.assign({}, w, { startPos: 0.12, corrHistory: (w.corrHistory || 0) + freed * 0.5, longRunPace: (w.longRunPace || 0) + freed * 0.5 });
+}
+
 function buildSpeedScores(drivers, weights) {
   if (!drivers.length) return drivers
 
@@ -300,6 +306,7 @@ export default function SimulationCenter({ isSubscriber }) {
   const [config, setConfig]                 = useState(null)
   const [rawDrivers, setRawDrivers]         = useState([])
   const [weights, setWeights]               = useState(DEFAULT_WEIGHTS)
+  const [rainOut, setRainOut] = useState(false)
   const [cautionPreset, setCautionPreset]   = useState(CAUTION_PRESETS[1])
   const [dnfPreset, setDnfPreset]           = useState(DNF_PRESETS[1])
   const [numSims, setNumSims]               = useState(10000)
@@ -489,8 +496,7 @@ export default function SimulationCenter({ isSubscriber }) {
   }, [series])
 
   const driversWithScores = useMemo(
-    () => buildSpeedScores(rawDrivers, weights),
-    [rawDrivers, weights]
+    () => buildSpeedScores(rawDrivers, __applyRainOut(weights, rainOut)), [rawDrivers, weights, rainOut]
   )
 
   function handleLogin(e) {
@@ -715,7 +721,8 @@ export default function SimulationCenter({ isSubscriber }) {
                   </span>
                 )}
               </div>
-              <button
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginRight: 12, fontSize: 12, color: '#f5c518', cursor: 'pointer' }}><input type="checkbox" checked={rainOut} onChange={e => setRainOut(e.target.checked)} style={{ cursor: 'pointer' }} />Rain-out grid</label>
+            <button
                 onClick={() => setWeights(roadCourse ? ROAD_COURSE_WEIGHTS : DEFAULT_WEIGHTS)}
                 style={{ fontSize: '0.83rem', padding: '2px 8px', background: 'transparent', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--text-muted)', cursor: 'pointer' }}>
                 Reset {roadCourse ? 'Road Course' : 'Defaults'}
