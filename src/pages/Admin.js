@@ -1522,6 +1522,11 @@ export default function Admin() {
   const [year, setYear] = useState(new Date().getFullYear())
   const [sessionNum, setSessionNum] = useState(1)
   const [practiceRaceNum, setPracticeRaceNum] = useState(1)
+  const [trackList, setTrackList] = useState([])
+
+  useEffect(() => {
+    supabase.from('tracks').select('name').order('name').then(function (r) { setTrackList(r.data || []) })
+  }, [])
   const [file, setFile] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [uploadStatus, setUploadStatus] = useState(null)
@@ -1719,7 +1724,7 @@ export default function Admin() {
             <select value={trackName} onChange={e => setTrackName(e.target.value)}
               style={{ width: '100%', padding: '8px 10px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', fontSize: '0.875rem', outline: 'none' }}>
               <option value="">Select track...</option>
-              {[...tracks].sort((a, b) => a.name.localeCompare(b.name)).map(t => (
+              {[...trackList].sort((a, b) => a.name.localeCompare(b.name)).map(t => (
                 <option key={t.name} value={t.name}>{t.name}</option>
               ))}
             </select>
