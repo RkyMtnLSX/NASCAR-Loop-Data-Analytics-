@@ -47,9 +47,9 @@ function isRoadCourse(trackName) {
 
 const CAUTION_PRESETS_BY_SERIES = {
   cup: [
-    { label: 'Low',    value: 4,  noise: 9 },
-    { label: 'Medium', value: 8,  noise: 14 },
-    { label: 'High',   value: 15, noise: 22 },
+    { label: 'Low',    value: 4,  noise: 10 },
+    { label: 'Medium', value: 8,  noise: 16 },
+    { label: 'High',   value: 15, noise: 25 },
   ],
   trucks: [
     { label: 'Low',    value: 4,  noise: 15 },
