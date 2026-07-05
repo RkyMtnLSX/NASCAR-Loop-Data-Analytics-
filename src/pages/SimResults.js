@@ -8,12 +8,15 @@ const SERIES_TABS = [
 ]
 
 // Values stored as percentages (e.g. 60.9), not decimals
-const fmt    = (n, dec = 1) => n == null ? 'Ã¢ÂÂ' : (+n).toFixed(dec) + '%'
-const fmtDK  = (n)          => n == null ? 'Ã¢ÂÂ' : (+n).toFixed(2)
-const fmtNum = (n, dec = 1) => n == null ? 'Ã¢ÂÂ' : (+n).toFixed(dec)
+const fmt    = (n, dec = 1) => n == null ? '-' : (+n).toFixed(dec) + '%'
+const fmtDK  = (n)          => n == null ? '' : (+n).toFixed(2)
+const fmtNum = (n, dec = 1) => n == null ? '' : (+n).toFixed(dec)
 
 export default function SimResults() {
   const [series, setSeries]       = useState('cup')
+  const [mvMkt, setMvMkt] = useState('Win')
+  const [mvUnits, setMvUnits] = useState('odds')
+  const [mvSort, setMvSort] = useState('edge')
   const [data, setData]           = useState(null)
   const [loading, setLoading]     = useState(true)
   const [error, setError]         = useState(null)
@@ -96,7 +99,7 @@ export default function SimResults() {
         </div>
       )}
 
-      {loading && <div style={{ color: 'var(--text-muted)', padding: 40, textAlign: 'center' }}>LoadingÃ¢ÂÂ¦</div>}
+      {loading && <div style={{ color: 'var(--text-muted)', padding: 40, textAlign: 'center' }}>Loading</div>}
       {error   && <div style={{ color: 'var(--text-muted)', padding: 40, textAlign: 'center' }}>{error}</div>}
 
       {!loading && !error && sorted.length > 0 && (
@@ -112,7 +115,7 @@ export default function SimResults() {
                   onClick={() => setSortAsc(v => !v)}
                   title="Click to flip sort order"
                 >
-                  Proj Finish {sortAsc ? 'Ã¢ÂÂ²' : 'Ã¢ÂÂ¼'}
+                  Proj Finish {sortAsc ? '' : ''}
                 </th>
                 <th style={{ ...thStyle, textAlign: 'center' }}>Proj DK</th>
                 <th style={{ ...thStyle, textAlign: 'center' }}>Win%</th>
@@ -158,8 +161,8 @@ export default function SimResults() {
                       </div>
                     )}
                   </td>
-                  <td style={{ ...tdStyle, textAlign: 'center', color: 'var(--text-muted)' }}>{d.start_pos ?? 'Ã¢ÂÂ'}</td>
-                  <td style={{ ...tdStyle, textAlign: 'center' }}>{d.proj_finish != null ? (+d.proj_finish).toFixed(1) : 'Ã¢ÂÂ'}</td>
+                  <td style={{ ...tdStyle, textAlign: 'center', color: 'var(--text-muted)' }}>{d.start_pos ?? ''}</td>
+                  <td style={{ ...tdStyle, textAlign: 'center' }}>{d.proj_finish != null ? (+d.proj_finish).toFixed(1) : ''}</td>
                   <td style={{ ...tdStyle, textAlign: 'center', color: 'var(--accent)', fontWeight: 600 }}>{fmtDK(d.proj_dk)}</td>
                   <td style={{ ...pctStyle(d.win_pct, 5), textAlign: 'center' }}>{fmt(d.win_pct)}</td>
                   <td style={{ ...pctStyle(d.top3_pct, 10), textAlign: 'center' }}>{fmt(d.top3_pct)}</td>
@@ -173,33 +176,46 @@ export default function SimResults() {
             </tbody>
           </table>
         {(() => {
-  var bets = [];
-  (sorted || []).forEach(function (d) {
-    if (!d || !d.mv) return;
-    [['Win', 'evwin', 'owin'], ['Top 3', 'evt3', 'ot3'], ['Top 5', 'evt5', 'ot5'], ['Top 10', 'evt10', 'ot10']].forEach(function (m) {
-      var ev = d.mv[m[1]]; if (ev == null || ev <= 0) return;
-      bets.push({ name: d.driver_name, mk: m[0], ev: ev, price: d.mv[m[2]] });
-    });
-  });
-  bets.sort(function (a, b) { return b.ev - a.ev; });
-  if (!bets.length) return null;
+  var withMv = (sorted || []).filter(function (d) { return d && d.mv; });
+  if (!withMv.length) return null;
+  var MK = { Win: { sf: 'win_pct', o: 'owin', ev: 'evwin', dv: 'dvwin' }, 'Top 3': { sf: 'top3_pct', o: 'ot3', ev: 'evt3', dv: 'dvt3' }, 'Top 5': { sf: 'top5_pct', o: 'ot5', ev: 'evt5', dv: 'dvt5' }, 'Top 10': { sf: 'top10_pct', o: 'ot10', ev: 'evt10', dv: 'dvt10' } };
+  var conf = MK[mvMkt] || MK.Win;
+  var fairOdds = function (p) { if (p <= 0) return null; if (p >= 1) return -100000; return p >= 0.5 ? Math.round(-100 * p / (1 - p)) : Math.round(100 * (1 - p) / p); };
+  var fo = function (a) { return a == null ? '-' : (a > 0 ? '+' + a : '' + a); };
+  var rows = withMv.map(function (d) { var p = (d[conf.sf] || 0) / 100; return { name: d.driver_name, price: d.mv[conf.o], mktPct: d.mv[conf.dv], modelPct: d[conf.sf] || 0, fair: fairOdds(p), ev: d.mv[conf.ev] }; }).filter(function (r) { return r.price != null; });
+  rows.sort(function (a, b) { return mvSort === 'edge' ? (b.ev - a.ev) : mvSort === 'model' ? (b.modelPct - a.modelPct) : (b.mktPct - a.mktPct); });
+  var odds = mvUnits === 'odds';
+  var thc = { padding: '7px 8px', color: '#8a8a8a', fontSize: 11, fontWeight: 500, borderBottom: '0.5px solid #333' };
+  var seg = function (cur, set, val, label) { return <button onClick={function () { set(val); }} style={{ padding: '5px 10px', fontSize: 12, border: 'none', background: cur === val ? '#262626' : 'transparent', color: cur === val ? '#fff' : '#9a9a9a', cursor: 'pointer' }}>{label}</button>; };
   return (
-    <div style={{ marginTop: 24 }}>
-      <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Market Value - plus-EV plays vs DraftKings</div>
+    <div style={{ marginTop: 28 }}>
+      <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>Market value - model vs DraftKings</div>
+      <div style={{ fontSize: 12, color: '#888', marginBottom: 10 }}>Fair is the model projection as an American price. Green edge = positive EV at DK's number.</div>
+      <div style={{ marginBottom: 10 }}>{['Win', 'Top 3', 'Top 5', 'Top 10'].map(function (k) { return <button key={k} onClick={function () { setMvMkt(k); }} style={{ padding: '6px 14px', borderRadius: 999, border: '0.5px solid ' + (mvMkt === k ? '#e8c766' : '#333'), background: mvMkt === k ? '#262626' : 'transparent', color: mvMkt === k ? '#f5c518' : '#9a9a9a', fontSize: 13, cursor: 'pointer', marginRight: 4 }}>{k}</button>; })}</div>
+      <div style={{ display: 'flex', gap: 16, alignItems: 'center', fontSize: 12, color: '#888', marginBottom: 10 }}>
+        <span>units <span style={{ border: '0.5px solid #333', borderRadius: 6, overflow: 'hidden', display: 'inline-flex' }}>{seg(mvUnits, setMvUnits, 'odds', 'Odds')}{seg(mvUnits, setMvUnits, 'pct', '%')}</span></span>
+        <span>sort <span style={{ border: '0.5px solid #333', borderRadius: 6, overflow: 'hidden', display: 'inline-flex' }}>{seg(mvSort, setMvSort, 'edge', 'Edge')}{seg(mvSort, setMvSort, 'model', 'Model')}{seg(mvSort, setMvSort, 'mkt', 'Favorite')}</span></span>
+      </div>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
         <thead><tr>
-          <th style={{ textAlign: 'left', padding: 6, color: 'var(--text-muted)' }}>Bet</th>
-          <th style={{ textAlign: 'right', padding: 6, color: 'var(--text-muted)' }}>Price</th>
-          <th style={{ textAlign: 'right', padding: 6, color: 'var(--text-muted)' }}>Edge</th>
+          <th style={{ ...thc, textAlign: 'left' }}>#</th>
+          <th style={{ ...thc, textAlign: 'left' }}>Driver</th>
+          <th style={{ ...thc, textAlign: 'right' }}>{odds ? 'DK price' : 'DK implied'}</th>
+          <th style={{ ...thc, textAlign: 'right' }}>{odds ? 'Fair (model)' : 'Model %'}</th>
+          <th style={{ ...thc, textAlign: 'right' }}>Edge</th>
         </tr></thead>
         <tbody>
-          {bets.map(function (b, i) { return (
-            <tr key={i}>
-              <td style={{ padding: 6 }}>{b.name} <span style={{ color: 'var(--text-muted)' }}>{b.mk}</span></td>
-              <td style={{ padding: 6, textAlign: 'right' }}>{b.price > 0 ? '+' + b.price : b.price}</td>
-              <td style={{ padding: 6, textAlign: 'right', color: '#2f9e44', fontWeight: 600 }}>+{b.ev}%</td>
-            </tr>
-          ); })}
+          {rows.map(function (r, i) {
+            var mkt = odds ? fo(r.price) : (r.mktPct != null ? r.mktPct.toFixed(1) + '%' : '-');
+            var mod = odds ? fo(r.fair) : (r.modelPct.toFixed(1) + '%');
+            return <tr key={i}>
+              <td style={{ padding: '7px 8px', textAlign: 'left', color: '#8a8a8a' }}>{i + 1}</td>
+              <td style={{ padding: '7px 8px', textAlign: 'left' }}>{r.name}</td>
+              <td style={{ padding: '7px 8px', textAlign: 'right' }}>{mkt}</td>
+              <td style={{ padding: '7px 8px', textAlign: 'right' }}>{mod}</td>
+              <td style={{ padding: '7px 8px', textAlign: 'right' }}>{r.ev > 0 ? <span style={{ background: '#123d24', color: '#3fb950', padding: '2px 7px', borderRadius: 999, fontWeight: 500 }}>+{Math.round(r.ev)}%</span> : <span style={{ color: '#8a8a8a' }}>{Math.round(r.ev)}%</span>}</td>
+            </tr>;
+          })}
         </tbody>
       </table>
     </div>
