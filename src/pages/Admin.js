@@ -1716,8 +1716,13 @@ export default function Admin() {
           </div>
           <div>
             <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: 6 }}>Track Name</label>
-            <input type="text" placeholder="e.g. Pocono Raceway" value={trackName} onChange={e => setTrackName(e.target.value)}
-              style={{ width: '100%', padding: '8px 10px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', fontSize: '0.875rem', outline: 'none' }} />
+            <select value={trackName} onChange={e => setTrackName(e.target.value)}
+              style={{ width: '100%', padding: '8px 10px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', fontSize: '0.875rem', outline: 'none' }}>
+              <option value="">Select track...</option>
+              {[...tracks].sort((a, b) => a.name.localeCompare(b.name)).map(t => (
+                <option key={t.name} value={t.name}>{t.name}</option>
+              ))}
+            </select>
           </div>
           <div>
             <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: 6 }}>Year</label>
