@@ -102,25 +102,39 @@ function normalizeName(s) {
   return s.replace(/([A-Za-z])\./g, '$1').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/gi, ' ').replace(/\s+/g, ' ').trim().toLowerCase()
 }
 
-function __marketValue(winTxt, t10Txt, drivers) {
+function __marketValue(winTxt, t10Txt, fdTxt, hrTxt, drivers) {
   try {
     var norm = function (s) { return (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[.']/g, '').replace(/\b(jr|sr|ii|iii|iv)\b/g, '').replace(/\s+/g, ' ').trim(); };
     var amer = function (l) { var m = l.trim().replace(/[\u2212\u2013\u2014]/g, '-'); return /^[+\-]\d{2,6}$/.test(m) ? parseInt(m, 10) : null; };
-    var parse = function (txt, n) { var out = {}, name = null, buf = []; var flush = function () { if (name && buf.length >= n) out[norm(name)] = buf.slice(0, n); name = null; buf = []; }; (txt || '').split('\n').forEach(function (raw) { var l = raw.trim(); if (!l) return; var o = amer(l); if (o !== null) { if (name) buf.push(o); } else if (/[a-zA-Z]{2,}/.test(l)) { flush(); name = l; } }); flush(); return out; };
     var dec = function (a) { return a > 0 ? a / 100 + 1 : 100 / (-a) + 1; };
-    var o1 = parse(winTxt, 3), o2 = parse(t10Txt, 1);
-    var mkts = [{ k: 'win', t: 1, gi: 0, src: o1 }, { k: 't3', t: 3, gi: 1, src: o1 }, { k: 't5', t: 5, gi: 2, src: o1 }, { k: 't10', t: 10, gi: 0, src: o2 }];
-    var universe = {}; Object.keys(o1).forEach(function (k) { universe[k] = 1; }); Object.keys(o2).forEach(function (k) { universe[k] = 1; });
-    var dv = {}; mkts.forEach(function (m) { var sum = 0, imp = {}; Object.keys(universe).forEach(function (k) { var row = m.src[k]; if (!row) return; var a = row[m.gi]; if (a == null) return; var p = a > 0 ? 100 / (a + 100) : -a / (-a + 100); imp[k] = p; sum += p; }); dv[m.k] = {}; Object.keys(imp).forEach(function (k) { dv[m.k][k] = sum ? imp[k] / sum * m.t : null; }); });
-    var probOf = { win: 'winPct', t3: 'top3Pct', t5: 'top5Pct', t10: 'top10Pct' };
+    var impl = function (a) { return a > 0 ? 100 / (a + 100) : -a / (-a + 100); };
+    var parseDK = function (txt, n) { var out = {}, name = null, buf = []; var flush = function () { if (name && buf.length >= n) out[norm(name)] = buf.slice(0, n); name = null; buf = []; }; (txt || '').split('\n').forEach(function (raw) { var l = raw.trim(); if (!l) return; var o = amer(l); if (o !== null) { if (name) buf.push(o); } else if (/[a-zA-Z]{2,}/.test(l)) { flush(); name = l; } }); flush(); return out; };
+    var parseSect = function (txt, hdr) { var m = { win: {}, t3: {}, t5: {}, t10: {} }; var cur = null, name = null; (txt || '').split('\n').forEach(function (raw) { var l = raw.trim().replace(/^\*\s*/, ''); if (!l) return; for (var h = 0; h < hdr.length; h++) { if (hdr[h][0].test(l)) { cur = hdr[h][1]; name = null; return; } } if (/ford|toyota|chev|manufacturer|team of|group |chance|in-season| vs |show |MT$|betslip|matchup|special|future|single|parlay|about|career|privacy|terms|faq|responsible|house rule|setting|appearance|download|copyright|build:|server time|^eero|^winner$/i.test(l) && !/finish/i.test(l)) { name = null; return; } var o = amer(l); if (o !== null) { if (name && cur) m[cur][norm(name)] = o; name = null; } else if (/[a-zA-Z]{2,}/.test(l)) { name = l; } }); return m; };
+    var FDh = [[/race winner/i, 'win'], [/top 3 finish/i, 't3'], [/top 5 finish/i, 't5'], [/top 10 finish/i, 't10']];
+    var HRh = [[/^winner$/i, 'win'], [/top 3 race finish/i, 't3'], [/top 5 race finish/i, 't5'], [/top 10 race finish/i, 't10']];
+    var d1 = parseDK(winTxt, 3), d2 = parseDK(t10Txt, 1);
+    var dk = { win: {}, t3: {}, t5: {}, t10: {} };
+    Object.keys(d1).forEach(function (k) { dk.win[k] = d1[k][0]; dk.t3[k] = d1[k][1]; dk.t5[k] = d1[k][2]; });
+    Object.keys(d2).forEach(function (k) { dk.t10[k] = d2[k][0]; });
+    var books = { dk: dk, fd: parseSect(fdTxt, FDh), hr: parseSect(hrTxt, HRh) };
+    var MKS = [['win', 1, 'winPct'], ['t3', 3, 'top3Pct'], ['t5', 5, 'top5Pct'], ['t10', 10, 'top10Pct']];
     var res = {};
-    (drivers || []).forEach(function (d) {
-      var sk = norm(d.name); var ok = null;
-      if (universe[sk]) ok = sk; else { var keys = Object.keys(universe); for (var i = 0; i < keys.length; i++) { var k = keys[i]; if (k.length > sk.length && k.slice(-(sk.length + 1)) === ' ' + sk) { ok = k; break; } } }
-      if (!ok) return;
-      var obj = {};
-      mkts.forEach(function (m) { var row = m.src[ok]; if (!row) return; var a = row[m.gi]; if (a == null) return; var p = (d[probOf[m.k]] || 0) / 100; obj['o' + m.k] = a; obj['ev' + m.k] = +((p * dec(a) - 1) * 100).toFixed(0); obj['dv' + m.k] = dv[m.k][ok] != null ? +(dv[m.k][ok] * 100).toFixed(1) : null; });
-      if (Object.keys(obj).length) res[d.name] = obj;
+    MKS.forEach(function (mk) {
+      var key = mk[0], target = mk[1], pf = mk[2];
+      var uni = {}; Object.keys(books).forEach(function (bk) { Object.keys(books[bk][key]).forEach(function (k) { uni[k] = 1; }); });
+      var dvg = {}; Object.keys(books).forEach(function (bk) { var b = books[bk][key]; var s = 0, imp = {}; Object.keys(uni).forEach(function (k) { if (b[k] == null) return; var p = impl(b[k]); imp[k] = p; s += p; }); dvg[bk] = {}; Object.keys(imp).forEach(function (k) { dvg[bk][k] = s ? imp[k] / s * target : null; }); });
+      (drivers || []).forEach(function (d) {
+        var sk = norm(d.name);
+        var fk = function (src) { if (src[sk] != null) return sk; var keys = Object.keys(src); for (var i = 0; i < keys.length; i++) { var k = keys[i]; if (k.length > sk.length && k.slice(-(sk.length + 1)) === ' ' + sk) return k; } return null; };
+        var px = {}; Object.keys(books).forEach(function (bk) { var kk = fk(books[bk][key]); px[bk] = kk != null ? books[bk][key][kk] : null; });
+        if (px.dk == null && px.fd == null && px.hr == null) return;
+        var best = null, bb = ''; Object.keys(px).forEach(function (bk) { if (px[bk] != null && (best == null || dec(px[bk]) > dec(best))) { best = px[bk]; bb = bk; } });
+        var cons = []; Object.keys(books).forEach(function (bk) { var kk = fk(books[bk][key]); if (kk != null && dvg[bk][kk] != null) cons.push(dvg[bk][kk]); });
+        var consP = cons.length ? cons.reduce(function (a, b) { return a + b; }, 0) / cons.length : null;
+        var p = (d[pf] || 0) / 100;
+        res[d.name] = res[d.name] || {};
+        res[d.name][key] = { dk: px.dk, fd: px.fd, hr: px.hr, best: best, bb: bb, ev: +((p * dec(best) - 1) * 100).toFixed(0), mev: consP != null ? +((consP * dec(best) - 1) * 100).toFixed(0) : null };
+      });
     });
     return res;
   } catch (e) { return {}; }
@@ -347,6 +361,8 @@ export default function SimulationCenter({ isSubscriber }) {
   const [published,     setPublished]       = useState(false)
   const [oddsWinTxt, setOddsWinTxt] = useState('')
   const [oddsT10Txt, setOddsT10Txt] = useState('')
+  const [oddsFdTxt, setOddsFdTxt] = useState('')
+  const [oddsHrTxt, setOddsHrTxt] = useState('')
   const [authed,        setAuthed]          = useState(false)
   const [password,      setPassword]        = useState('')
   const [authError,     setAuthError]       = useState('')
@@ -557,7 +573,7 @@ export default function SimulationCenter({ isSubscriber }) {
 
   const publishResults = async () => {
     if (!simResults || !config) return
-    const __mv = __marketValue(oddsWinTxt, oddsT10Txt, simResults)
+    const __mv = __marketValue(oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt, simResults)
     const payload = {
       series,
       track_name: config.track_name,
@@ -798,7 +814,10 @@ export default function SimulationCenter({ isSubscriber }) {
   <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 4 }}>DK odds - Winner / Top 3 / Top 5 (paste)</div>
   <textarea value={oddsWinTxt} onChange={e => setOddsWinTxt(e.target.value)} rows={3} style={{ width: '100%', fontFamily: 'monospace', fontSize: 11 }} />
   <div style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '6px 0 4px' }}>DK odds - Top 10 (paste)</div>
-  <textarea value={oddsT10Txt} onChange={e => setOddsT10Txt(e.target.value)} rows={3} style={{ width: '100%', fontFamily: 'monospace', fontSize: 11 }} />
+  <textarea value={oddsT10Txt} onChange={e => setOddsT10Txt(e.target.value)} rows={3} style={{ width: '100%', fontFamily: 'monospace', fontSize: 11 }} /> <div style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '6px 0 4px' }}>FanDuel odds - full page (paste)</div>
+  <textarea value={oddsFdTxt} onChange={e => setOddsFdTxt(e.target.value)} rows={3} style={{ width: '100%', fontFamily: 'monospace', fontSize: 11 }} />
+  <div style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '6px 0 4px' }}>Hard Rock odds - full page (paste)</div>
+  <textarea value={oddsHrTxt} onChange={e => setOddsHrTxt(e.target.value)} rows={3} style={{ width: '100%', fontFamily: 'monospace', fontSize: 11 }} />
 </div>
 <button onClick={publishResults} style={{
                 padding: '10px 28px', background: published ? 'var(--bg-elevated)' : '#1a6b2e',
