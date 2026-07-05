@@ -295,22 +295,7 @@ function runRaceSim(drivers, simConfig) {
   }).sort((a, b) => b.projDK - a.projDK)
 }
 
-export default function amToImplied(o) { return o > 0 ? 100 / (o + 100) : (-o) / (-o + 100) }
-function parseOddsText(text) {
-  const out = []
-  const lines = (text || '').split('\n')
-  lines.forEach(function (line) {
-    const ms = line.match(/[+-]\d{2,5}/g)
-    if (!ms) return
-    const name = line.slice(0, line.indexOf(ms[0])).replace(/[|\t,]+/g, ' ').trim()
-    if (!name || name.length < 3) return
-    out.push({ name: name, odds: ms.map(function (x) { return parseInt(x, 10) }) })
-  })
-  return out
-}
-function normNm(str) { return (str || '').toLowerCase().replace(/[^a-z ]/g, '').replace(/\b(jr|sr|ii|iii|iv)\b/g, '').replace(/\s+/g, ' ').trim() }
-
-function SimulationCenter({ isSubscriber }) {
+export default function SimulationCenter({ isSubscriber }) {
   const [series, setSeries]                 = useState('cup')
   const [config, setConfig]                 = useState(null)
   const [rawDrivers, setRawDrivers]         = useState([])
@@ -330,9 +315,6 @@ function SimulationCenter({ isSubscriber }) {
   const [authed,        setAuthed]          = useState(false)
   const [password,      setPassword]        = useState('')
   const [authError,     setAuthError]       = useState('')
-  const [oddsText, setOddsText]             = useState('')
-  const [blendK, setBlendK]                 = useState(6)
-  const [valMarket, setValMarket]           = useState('win')
 
   useEffect(() => {
     let cancelled = false
@@ -619,27 +601,6 @@ function SimulationCenter({ isSubscriber }) {
     )
   }
 
-  const valRows = (function () {
-    if (!simResults || !oddsText.trim()) return null
-    const mIdx = { win: 0, top3: 1, top5: 2, top10: 3 }[valMarket]
-    const mField = { win: 'winPct', top3: 'top3Pct', top5: 'top5Pct', top10: 'top10Pct' }[valMarket]
-    const oddMap = {}
-    parseOddsText(oddsText).forEach(function (p) { if (p.odds[mIdx] != null) oddMap[normNm(p.name)] = amToImplied(p.odds[mIdx]) })
-    const matched = simResults.map(function (d) { return { d: d, imp: oddMap[normNm(d.name)] } }).filter(function (x) { return x.imp != null })
-    if (!matched.length) return null
-    const K = Math.max(1, Number(blendK) || 6)
-    const sumModel = matched.reduce(function (a, x) { return a + (x.d[mField] || 0) / 100 }, 0)
-    const sumImp = matched.reduce(function (a, x) { return a + x.imp }, 0)
-    const scale = sumImp > 0 ? sumModel / sumImp : 1
-    return matched.map(function (o) {
-      const model = (o.d[mField] || 0) / 100
-      const market = o.imp * scale
-      const conf = Math.min(1, (o.d.nCorrRaces || 0) / K)
-      return { name: o.d.name, model: model, market: market, blend: model * conf + market * (1 - conf), edge: model - market }
-    }).sort(function (a, b) { return b.edge - a.edge })
-  })()
-
-  
   return (
     <div className="page">
       <div className="page-header">
@@ -954,39 +915,6 @@ function SimulationCenter({ isSubscriber }) {
               </table>
             </div>
           )}
-
-          {simResults && (
-            <div style={{ marginTop: 24, border: '1px solid #333', borderRadius: 10, padding: 16 }}>
-              <h3 style={{ margin: '0 0 4px', fontSize: '1.1rem' }}>Market Value</h3>
-              <p style={{ margin: '0 0 10px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Paste sportsbook odds (one driver per line: name then American odds in column order Winner, Top 3, Top 5, Top 10). De-vigged, then blended toward the market by how much history the model has on each driver. Edge = model minus market.</p>
-              <textarea value={oddsText} onChange={e => setOddsText(e.target.value)} rows={4} placeholder="Justin Allgaier +285 -150 -275 +110" style={{ width: '100%', boxSizing: 'border-box', fontFamily: 'var(--font-mono)', fontSize: '0.8rem', padding: 8, background: '#111', color: '#eee', border: '1px solid #333', borderRadius: 6 }} />
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', margin: '10px 0', flexWrap: 'wrap' }}>
-                {[['win', 'Winner'], ['top3', 'Top 3'], ['top5', 'Top 5'], ['top10', 'Top 10']].map(m => (
-                  <button key={m[0]} onClick={() => setValMarket(m[0])} style={{ padding: '5px 12px', borderRadius: 6, cursor: 'pointer', border: '1px solid #333', background: valMarket === m[0] ? 'var(--accent)' : '#1a1a1a', color: valMarket === m[0] ? '#000' : '#ccc' }}>{m[1]}</button>
-                ))}
-                <span style={{ marginLeft: 'auto', color: 'var(--text-muted)', fontSize: '0.82rem' }}>Confidence K<input type="number" min={1} value={blendK} onChange={e => setBlendK(e.target.value)} style={{ width: 50, marginLeft: 6, background: '#111', color: '#eee', border: '1px solid #333', borderRadius: 4, padding: '2px 4px' }} /></span>
-              </div>
-              {valRows ? (
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
-                  <thead><tr style={{ color: 'var(--text-muted)', textAlign: 'right' }}><th style={{ textAlign: 'left' }}>Driver</th><th>Model</th><th>Market</th><th>Blend</th><th>Edge</th></tr></thead>
-                  <tbody>
-                    {valRows.map(r => (
-                      <tr key={r.name} style={{ borderTop: '1px solid #222' }}>
-                        <td style={{ textAlign: 'left', padding: '3px 6px 3px 0' }}>{r.name}</td>
-                        <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{(r.model * 100).toFixed(1)}%</td>
-                        <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{(r.market * 100).toFixed(1)}%</td>
-                        <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{(r.blend * 100).toFixed(1)}%</td>
-                        <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', color: r.edge > 0.01 ? '#3fb950' : (r.edge < -0.01 ? '#d9534f' : '#888') }}>{r.edge > 0 ? '+' : ''}{(r.edge * 100).toFixed(1)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Paste odds above and pick a market. Driver names match the sim automatically.</p>
-              )}
-            </div>
-          )}
-
 
           {!simResults && !running && (
             <div className="empty-state" style={{ marginTop: 8 }}>
