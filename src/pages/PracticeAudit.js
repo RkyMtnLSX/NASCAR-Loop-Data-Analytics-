@@ -44,8 +44,8 @@ export default function PracticeAudit() {
       sessionNum: g.sessionNum, drivers: g.drivers.size,
       uploaded: g.uploaded ? String(g.uploaded).slice(0, 10) : '--',
     }))
-    // most recently uploaded first, so you can see where you left off
-    result.sort((a, b) => (b.uploaded > a.uploaded ? 1 : b.uploaded < a.uploaded ? -1 : 0))
+    // sorted by year (newest first) then race number, so missing races are easy to spot
+    result.sort((a, b) => (b.year - a.year) || (a.raceNum - b.raceNum))
 
     setRows(result)
     setLoading(false)
