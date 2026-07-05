@@ -126,6 +126,8 @@ function __marketValue(winTxt, t10Txt, drivers) {
   } catch (e) { return {}; }
 }
 
+var __teamCutoff = { 'chase briscoe': 2025 };
+
 function __applyRainOut(w, on) {
   if (!on) return w;
   var freed = (w.startPos || 0) - 0.12;
@@ -429,7 +431,8 @@ export default function SimulationCenter({ isSubscriber }) {
           const name   = r.driver_name?.trim()
           const fin    = parseFloat(r.finish_position)
           const rating = parseFloat(r.driver_rating)
-          const yr     = parseInt(r.year) || 0
+          const yr     = parseInt(r.year) || 0;
+          if (__teamCutoff[normalizeName(r.driver_name).toLowerCase()] && yr < __teamCutoff[normalizeName(r.driver_name).toLowerCase()]) return;
           const qp     = parseFloat(r.pct_quality_passes)
           if (name && fin > 0) {
             const normN = normalizeName(name)
@@ -457,7 +460,8 @@ export default function SimulationCenter({ isSubscriber }) {
           const normN  = normalizeName(r.driver_name?.trim())
           const fin    = parseFloat(r.finish_position)
           const rating = parseFloat(r.driver_rating)
-          const yr     = parseInt(r.year) || 0
+          const yr     = parseInt(r.year) || 0;
+          if (__teamCutoff[normalizeName(r.driver_name).toLowerCase()] && yr < __teamCutoff[normalizeName(r.driver_name).toLowerCase()]) return;
           if (normN && fin > 0) {
             if (!trackByDriver[normN]) trackByDriver[normN] = []
             trackByDriver[normN].push({ fin, rating: isNaN(rating) ? null : rating, yr })
