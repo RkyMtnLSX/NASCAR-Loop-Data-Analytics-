@@ -172,7 +172,40 @@ export default function SimResults() {
               ))}
             </tbody>
           </table>
-        </div>
+        {(() => {
+  var bets = [];
+  (sorted || []).forEach(function (d) {
+    if (!d || !d.mv) return;
+    [['Win', 'evwin', 'owin'], ['Top 3', 'evt3', 'ot3'], ['Top 5', 'evt5', 'ot5'], ['Top 10', 'evt10', 'ot10']].forEach(function (m) {
+      var ev = d.mv[m[1]]; if (ev == null || ev <= 0) return;
+      bets.push({ name: d.driver_name, mk: m[0], ev: ev, price: d.mv[m[2]] });
+    });
+  });
+  bets.sort(function (a, b) { return b.ev - a.ev; });
+  if (!bets.length) return null;
+  return (
+    <div style={{ marginTop: 24 }}>
+      <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Market Value - plus-EV plays vs DraftKings</div>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+        <thead><tr>
+          <th style={{ textAlign: 'left', padding: 6, color: 'var(--text-muted)' }}>Bet</th>
+          <th style={{ textAlign: 'right', padding: 6, color: 'var(--text-muted)' }}>Price</th>
+          <th style={{ textAlign: 'right', padding: 6, color: 'var(--text-muted)' }}>Edge</th>
+        </tr></thead>
+        <tbody>
+          {bets.map(function (b, i) { return (
+            <tr key={i}>
+              <td style={{ padding: 6 }}>{b.name} <span style={{ color: 'var(--text-muted)' }}>{b.mk}</span></td>
+              <td style={{ padding: 6, textAlign: 'right' }}>{b.price > 0 ? '+' + b.price : b.price}</td>
+              <td style={{ padding: 6, textAlign: 'right', color: '#2f9e44', fontWeight: 600 }}>+{b.ev}%</td>
+            </tr>
+          ); })}
+        </tbody>
+      </table>
+    </div>
+  );
+})()}
+</div>
       )}
     </div>
   )
