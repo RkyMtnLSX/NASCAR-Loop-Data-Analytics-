@@ -438,7 +438,7 @@ export default function SimulationCenter({ isSubscriber }) {
     if (error) { setGradeMsg('Save error: ' + error.message); return }
     setGradeMsg('Saved to log.'); setGradePrev(null); setGradeTxt(''); loadGrades()
   }
-  useEffect(() => { if (authed) loadGrades() }, [authed])
+  useEffect(() => { if (!authed) return; supabase.from('sim_grades').select('*').order('graded_at', { ascending: false }).limit(50).then(({ data }) => setGradesLog(data || [])) }, [authed])
   const [password,      setPassword]        = useState('')
   const [authError,     setAuthError]       = useState('')
 
