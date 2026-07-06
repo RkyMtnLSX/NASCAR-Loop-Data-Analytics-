@@ -86,7 +86,7 @@ export default function GradeCenter() {
   const pill = v => ({ color: v >= 0 ? '#2e9e52' : '#dd3355', fontWeight: 700 })
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: '24px 20px' }}>
-      <h1 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: 4 }}>Grade Center</h1>
+      <h1 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: 4 }}>Sim Grader</h1>
       <div style={{ color: 'var(--text-muted)', marginBottom: 20 }}>Grade a published sim against the actual finish and log it.</div>
       <div style={{ display: 'flex', gap: 6, marginBottom: 16, borderBottom: '1px solid rgba(128,128,128,0.25)' }}>
         {SERIES_TABS.map(t => (
