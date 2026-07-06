@@ -363,6 +363,7 @@ export default function SimulationCenter({ isSubscriber }) {
   const [oddsT10Txt, setOddsT10Txt] = useState('')
   const [oddsFdTxt, setOddsFdTxt] = useState('')
   const [oddsHrTxt, setOddsHrTxt] = useState('')
+  const [raceNum, setRaceNum] = useState('')
   const [authed,        setAuthed]          = useState(false)
   const [password,      setPassword]        = useState('')
   const [authError,     setAuthError]       = useState('')
@@ -579,6 +580,7 @@ export default function SimulationCenter({ isSubscriber }) {
       track_name: config.track_name,
       race_name:  config.race_name || config.track_name,
       race_year:  config.race_year || new Date().getFullYear(),
+      race_number: raceNum ? parseInt(raceNum) : null,
       results: simResults.map(d => ({
         driver_name:  d.name,
         car_number:   d.carNumber,
@@ -819,6 +821,7 @@ export default function SimulationCenter({ isSubscriber }) {
   <div style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '6px 0 4px' }}>Hard Rock odds - full page (paste)</div>
   <textarea value={oddsHrTxt} onChange={e => setOddsHrTxt(e.target.value)} rows={3} style={{ width: '100%', fontFamily: 'monospace', fontSize: 11 }} />
 </div>
+<div style={{ marginBottom: 10 }}><label style={{ fontSize: '0.9rem', marginRight: 8, color: 'var(--text-muted)' }}>Race #</label><input type="number" value={raceNum} onChange={e => setRaceNum(e.target.value)} placeholder="e.g. 20" title="Season round number - carried to the Grade Center" style={{ width: 90, padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(128,128,128,0.35)', background: 'transparent', color: 'inherit', boxSizing: 'border-box' }} /></div>
 <button onClick={publishResults} style={{
                 padding: '10px 28px', background: published ? 'var(--bg-elevated)' : '#1a6b2e',
                 color: published ? 'var(--text-muted)' : '#e8f5e9',
