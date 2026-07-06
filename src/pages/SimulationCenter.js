@@ -341,7 +341,7 @@ function runRaceSim(drivers, simConfig) {
   }).sort((a, b) => b.projDK - a.projDK)
 }
 
-export default function SimulationCenter({ isSubscriber }) {
+export default function SimulationCenter({ isSubscriber, embedded }) {
   const [series, setSeries]                 = useState('cup')
   const [config, setConfig]                 = useState(null)
   const [rawDrivers, setRawDrivers]         = useState([])
@@ -634,7 +634,7 @@ export default function SimulationCenter({ isSubscriber }) {
   const hasCorr     = rawDrivers.some(d => d.corrAvgFinish != null)
   const hasRaceCraft = rawDrivers.some(d => d.raceCraftPct  != null)
 
-  if (!authed) {
+  if (!authed && !embedded) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
         <div className="card" style={{ width: '100%', maxWidth: 360 }}>
@@ -659,7 +659,7 @@ export default function SimulationCenter({ isSubscriber }) {
   return (
     <div className="page">
       <div className="page-header">
-        <h1 className="page-title">Simulation Center</h1>
+        <h1 className="page-title">Sim Admin</h1>
         <p className="page-subtitle">
           Monte Carlo race simulation &mdash; project finish positions &amp; DraftKings points
         </p>
