@@ -53,10 +53,11 @@ const SERIES_TABS = [{ id: 'cup', label: 'Cup Series' }, { id: 'oreilly', label:
 export default function GradeCenter() {
   const [series, setSeries] = useState('cup')
   const [gradeTxt, setGradeTxt] = useState('')
+  const [raceNum, setRaceNum] = useState('')
   const [prev, setPrev] = useState(null)
   const [msg, setMsg] = useState('')
   const [log, setLog] = useState([])
-  const loadLog = () => supabase.from('sim_grades').select('*').order('graded_at', { ascending: false }).limit(100).then(({ data }) => setLog(data || []))
+  const loadLog = () => supabase.from('sim_grades').select('*').order('race_year', { ascending: false }).order('race_number', { ascending: false, nullsFirst: false }).order('graded_at', { ascending: false }).limit(100).then(({ data }) => setLog(data || []))
   useEffect(() => { loadLog() }, [])
   const runGrade = async () => {
     setMsg('Grading...')
@@ -73,9 +74,13 @@ export default function GradeCenter() {
     if (!prev) return
     setMsg('Saving...')
     const actualArr = Object.keys(prev.parsed.actualMap).map(car => ({ car_number: car, finish: prev.parsed.actualMap[car] }))
-    const { error } = await supabase.from('sim_grades').insert({ sim_id: prev.simId, series: series, track_name: prev.track, race_year: prev.year, actual: actualArr, metrics: prev.metrics, ev_flags: prev.evFlags, roi: prev.roi, shade_on: false })
-    if (error) { setMsg('Save error: ' + error.message); return }
-    setMsg('Saved.'); setPrev(null); setGradeTxt(''); loadLog()
+    const rn = raceNum ? parseInt(raceNum) : null
+    const rowData = { sim_id: prev.simId, series: series, track_name: prev.track, race_year: prev.year, race_number: rn, actual: actualArr, metrics: prev.metrics, ev_flags: prev.evFlags, roi: prev.roi, shade_on: false }
+    let existing = []
+    if (rn != null) { const q = await supabase.from('sim_grades').select('id').eq('series', series).eq('race_year', prev.year).eq('race_number', rn); existing = q.data || [] }
+    const resp = existing.length ? await supabase.from('sim_grades').update(rowData).eq('id', existing[0].id) : await supabase.from('sim_grades').insert(rowData)
+    if (resp.error) { setMsg('Save error: ' + resp.error.message); return }
+    setMsg(existing.length ? 'Updated R' + rn + '.' : 'Saved.'); setPrev(null); setGradeTxt(''); loadLog()
   }
   const pill = v => ({ color: v >= 0 ? '#2e9e52' : '#dd3355', fontWeight: 700 })
   return (
@@ -91,14 +96,16 @@ export default function GradeCenter() {
         <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 8 }}>Grades the latest published {series.toUpperCase()} sim. Paste the finishing order, winner first (driver names or car numbers both work).</div>
         <textarea value={gradeTxt} onChange={e => setGradeTxt(e.target.value)} rows={8} placeholder={'1 Chase Briscoe\n2 Christopher Bell\n3 Denny Hamlin\n...'} style={{ width: '100%', fontFamily: 'monospace', fontSize: '0.85rem', padding: 10, borderRadius: 6, boxSizing: 'border-box' }} />
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 10, flexWrap: 'wrap' }}>
+          <input type="number" value={raceNum} onChange={e => setRaceNum(e.target.value)} placeholder="Race #" title="Season round number, e.g. 19" style={{ width: 90, padding: '9px 10px', borderRadius: 6, border: '1px solid rgba(128,128,128,0.35)', background: 'transparent', color: 'inherit', boxSizing: 'border-box' }} />
           <button onClick={runGrade} style={{ padding: '9px 20px', borderRadius: 6, border: 'none', background: '#2563eb', color: '#fff', fontWeight: 600, cursor: 'pointer' }}>Grade</button>
           {prev && <button onClick={saveGrade} style={{ padding: '9px 20px', borderRadius: 6, border: 'none', background: '#1f7a3d', color: '#fff', fontWeight: 600, cursor: 'pointer' }}>Save to log</button>}
           <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{msg}</span>
         </div>
+        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 6 }}>Race # = season round (Chicagoland Cup 2026 = 19). Re-grading the same race # updates its row instead of duplicating.</div>
       </div>
       {prev && (
         <div className="card" style={{ padding: 16, marginBottom: 20 }}>
-          <h3 style={{ fontWeight: 600, marginBottom: 10 }}>{prev.track} {prev.year} &mdash; preview</h3>
+          <h3 style={{ fontWeight: 600, marginBottom: 10 }}>{prev.track} {prev.year}{raceNum ? ' R' + raceNum : ''} &mdash; preview</h3>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18, marginBottom: 12, fontSize: '0.9rem' }}>
             <span>MAE <b>{prev.metrics.mae}</b></span>
             <span>Spearman <b>{prev.metrics.spearman_pf}</b></span>
@@ -157,11 +164,12 @@ export default function GradeCenter() {
         {log.length === 0 && <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No graded races yet.</div>}
         {log.length > 0 && (
           <table style={{ width: '100%', fontSize: '0.83rem', borderCollapse: 'collapse' }}>
-            <thead><tr style={{ textAlign: 'left', color: 'var(--text-muted)' }}><th style={{ padding: '4px 8px' }}>Race</th><th>MAE</th><th>Spear</th><th>WinBr</th><th>+EV</th><th>ex-win</th><th>win</th><th>cons</th></tr></thead>
+            <thead><tr style={{ textAlign: 'left', color: 'var(--text-muted)' }}><th style={{ padding: '4px 8px' }}>R#</th><th>Race</th><th>MAE</th><th>Spear</th><th>WinBr</th><th>+EV</th><th>ex-win</th><th>win</th><th>cons</th></tr></thead>
             <tbody>
               {log.map(g => (
                 <tr key={g.id} style={{ borderTop: '1px solid rgba(128,128,128,0.2)' }}>
-                  <td style={{ padding: '4px 8px' }}>{(g.track_name || '').replace(' Speedway', '')} {g.race_year} <span style={{ textTransform: 'uppercase', color: 'var(--text-muted)', fontSize: '0.7rem' }}>{g.series}</span></td>
+                  <td style={{ padding: '4px 8px', fontWeight: 600 }}>{g.race_number != null ? 'R' + g.race_number : '-'}</td>
+                  <td>{(g.track_name || '').replace(' Speedway', '')} {g.race_year} <span style={{ textTransform: 'uppercase', color: 'var(--text-muted)', fontSize: '0.7rem' }}>{g.series}</span></td>
                   <td>{g.metrics && g.metrics.mae}</td>
                   <td>{g.metrics && g.metrics.spearman_pf}</td>
                   <td>{g.metrics && g.metrics.win_brier}</td>
