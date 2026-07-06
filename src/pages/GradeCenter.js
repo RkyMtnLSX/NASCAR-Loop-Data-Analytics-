@@ -54,6 +54,7 @@ export default function GradeCenter() {
   const [series, setSeries] = useState('cup')
   const [gradeTxt, setGradeTxt] = useState('')
   const [raceNum, setRaceNum] = useState('')
+  const [gradeStage, setGradeStage] = useState('post')
   const [prev, setPrev] = useState(null)
   const [msg, setMsg] = useState('')
   const [log, setLog] = useState([])
@@ -61,7 +62,7 @@ export default function GradeCenter() {
   useEffect(() => { loadLog() }, [])
   const runGrade = async () => {
     setMsg('Grading...')
-    const { data } = await supabase.from('sim_results').select('*').eq('series', series).order('published_at', { ascending: false }).limit(1)
+    const { data } = await supabase.from('sim_results').select('*').eq('series', series).eq('stage', gradeStage).order('published_at', { ascending: false }).limit(1)
     const row = (data || [])[0]
     if (!row || !row.results) { setPrev(null); setMsg('No published sim found for ' + series + '.'); return }
     if (row.race_number != null) setRaceNum(String(row.race_number))
@@ -73,7 +74,7 @@ export default function GradeCenter() {
   }
   const gradeFromDB = async () => {
     setMsg('Loading finish from loop data...')
-    const { data } = await supabase.from('sim_results').select('*').eq('series', series).order('published_at', { ascending: false }).limit(1)
+    const { data } = await supabase.from('sim_results').select('*').eq('series', series).eq('stage', gradeStage).order('published_at', { ascending: false }).limit(1)
     const row = (data || [])[0]
     if (!row || !row.results) { setPrev(null); setMsg('No published sim found for ' + series + '.'); return }
     const res = await supabase.from('loop_data').select('driver_name, finish_position, race_number').eq('series', series).eq('track_name', row.track_name).eq('year', row.race_year)
@@ -97,9 +98,9 @@ export default function GradeCenter() {
     setMsg('Saving...')
     const actualArr = Object.keys(prev.parsed.actualMap).map(car => ({ car_number: car, finish: prev.parsed.actualMap[car] }))
     const rn = raceNum ? parseInt(raceNum) : null
-    const rowData = { sim_id: prev.simId, series: series, track_name: prev.track, race_year: prev.year, race_number: rn, actual: actualArr, metrics: prev.metrics, ev_flags: prev.evFlags, roi: prev.roi, shade_on: false }
+    const rowData = { sim_id: prev.simId, series: series, track_name: prev.track, race_year: prev.year, race_number: rn, actual: actualArr, metrics: prev.metrics, ev_flags: prev.evFlags, roi: prev.roi, shade_on: false, stage: gradeStage }
     let existing = []
-    if (rn != null) { const q = await supabase.from('sim_grades').select('id').eq('series', series).eq('race_year', prev.year).eq('race_number', rn); existing = q.data || [] }
+    if (rn != null) { const q = await supabase.from('sim_grades').select('id').eq('series', series).eq('race_year', prev.year).eq('race_number', rn).eq('stage', gradeStage); existing = q.data || [] }
     const resp = existing.length ? await supabase.from('sim_grades').update(rowData).eq('id', existing[0].id) : await supabase.from('sim_grades').insert(rowData)
     if (resp.error) { setMsg('Save error: ' + resp.error.message); return }
     setMsg(existing.length ? 'Updated R' + rn + '.' : 'Saved.'); setPrev(null); setGradeTxt(''); loadLog()
@@ -118,6 +119,9 @@ export default function GradeCenter() {
         <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 8 }}>Grades the latest published {series.toUpperCase()} sim. Paste the finishing order, winner first (driver names or car numbers both work).</div>
         <textarea value={gradeTxt} onChange={e => setGradeTxt(e.target.value)} rows={8} placeholder={'1 Chase Briscoe\n2 Christopher Bell\n3 Denny Hamlin\n...'} style={{ width: '100%', fontFamily: 'monospace', fontSize: '0.85rem', padding: 10, borderRadius: 6, boxSizing: 'border-box' }} />
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 10, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Stage:</span>
+          <button onClick={() => setGradeStage('pre')} style={{ padding: '8px 12px', borderRadius: 6, border: 'none', cursor: 'pointer', background: gradeStage === 'pre' ? '#e8b923' : 'rgba(128,128,128,0.2)', color: gradeStage === 'pre' ? '#000' : 'inherit', fontWeight: 600 }}>Pre</button>
+          <button onClick={() => setGradeStage('post')} style={{ padding: '8px 12px', borderRadius: 6, border: 'none', cursor: 'pointer', background: gradeStage === 'post' ? '#e8b923' : 'rgba(128,128,128,0.2)', color: gradeStage === 'post' ? '#000' : 'inherit', fontWeight: 600 }}>Post</button>
           <input type="number" value={raceNum} onChange={e => setRaceNum(e.target.value)} placeholder="Race #" title="Season round number, e.g. 19" style={{ width: 90, padding: '9px 10px', borderRadius: 6, border: '1px solid rgba(128,128,128,0.35)', background: 'transparent', color: 'inherit', boxSizing: 'border-box' }} />
           <button onClick={runGrade} style={{ padding: '9px 20px', borderRadius: 6, border: 'none', background: '#2563eb', color: '#fff', fontWeight: 600, cursor: 'pointer' }}>Grade</button>
           <button onClick={gradeFromDB} style={{ padding: '9px 20px', borderRadius: 6, border: '1px solid #2563eb', background: 'transparent', color: '#2563eb', fontWeight: 600, cursor: 'pointer' }}>Import from loop data</button>
@@ -187,11 +191,11 @@ export default function GradeCenter() {
         {log.length === 0 && <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No graded races yet.</div>}
         {log.length > 0 && (
           <table style={{ width: '100%', fontSize: '0.83rem', borderCollapse: 'collapse' }}>
-            <thead><tr style={{ textAlign: 'left', color: 'var(--text-muted)' }}><th style={{ padding: '4px 8px' }}>R#</th><th>Race</th><th>MAE</th><th>Spear</th><th>WinBr</th><th>+EV</th><th>ex-win</th><th>win</th><th>cons</th></tr></thead>
+            <thead><tr style={{ textAlign: 'left', color: 'var(--text-muted)' }}><th style={{ padding: '4px 8px' }}>R#</th><th>Stage</th><th>Race</th><th>MAE</th><th>Spear</th><th>WinBr</th><th>+EV</th><th>ex-win</th><th>win</th><th>cons</th></tr></thead>
             <tbody>
               {log.map(g => (
                 <tr key={g.id} style={{ borderTop: '1px solid rgba(128,128,128,0.2)' }}>
-                  <td style={{ padding: '4px 8px', fontWeight: 600 }}>{g.race_number != null ? 'R' + g.race_number : '-'}</td>
+                  <td style={{ padding: '4px 8px', fontWeight: 600 }}>{g.race_number != null ? 'R' + g.race_number : '-'}</td><td style={{ textTransform: 'uppercase', fontSize: '0.72rem', color: 'var(--text-muted)' }}>{g.stage || 'post'}</td>
                   <td>{(g.track_name || '').replace(' Speedway', '')} {g.race_year} <span style={{ textTransform: 'uppercase', color: 'var(--text-muted)', fontSize: '0.7rem' }}>{g.series}</span></td>
                   <td>{g.metrics && g.metrics.mae}</td>
                   <td>{g.metrics && g.metrics.spearman_pf}</td>
