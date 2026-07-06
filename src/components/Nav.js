@@ -14,8 +14,6 @@ const LOOP_LINKS = [
 
 const SIM_LINKS = [
   { path: '/sim-results',       label: 'Sim Results' },
-  { path: '/simulation-center', label: 'Sim Center' },
-  { path: '/grade-center', label: 'Grade Center' },
 ]
 
 export default function Nav({ isAdmin, onAdminClick }) {
