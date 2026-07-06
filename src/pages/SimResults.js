@@ -117,6 +117,8 @@ export default function SimResults() {
                 >
                   Proj Finish {sortAsc ? '' : ''}
                 </th>
+                <th style={{ ...thStyle, textAlign: 'center' }}>Median</th>
+                <th style={{ ...thStyle, textAlign: 'center' }}>Ceiling</th>
                 <th style={{ ...thStyle, textAlign: 'center' }}>Proj DK</th>
                 <th style={{ ...thStyle, textAlign: 'center' }}>Win%</th>
                 <th style={{ ...thStyle, textAlign: 'center' }}>Top 3%</th>
@@ -163,6 +165,8 @@ export default function SimResults() {
                   </td>
                   <td style={{ ...tdStyle, textAlign: 'center', color: 'var(--text-muted)' }}>{d.start_pos ?? ''}</td>
                   <td style={{ ...tdStyle, textAlign: 'center' }}>{d.proj_finish != null ? (+d.proj_finish).toFixed(1) : ''}</td>
+                  <td style={{ ...tdStyle, textAlign: 'center' }}>{d.finish_p50 != null ? (+d.finish_p50).toFixed(1) : '-'}</td>
+                  <td style={{ ...tdStyle, textAlign: 'center' }}>{d.finish_p25 != null ? (+d.finish_p25).toFixed(1) : '-'}</td>
                   <td style={{ ...tdStyle, textAlign: 'center', color: 'var(--accent)', fontWeight: 600 }}>{fmtDK(d.proj_dk)}</td>
                   <td style={{ ...pctStyle(d.win_pct, 5), textAlign: 'center' }}>{fmt(d.win_pct)}</td>
                   <td style={{ ...pctStyle(d.top3_pct, 10), textAlign: 'center' }}>{fmt(d.top3_pct)}</td>
