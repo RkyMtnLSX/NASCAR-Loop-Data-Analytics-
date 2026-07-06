@@ -142,53 +142,6 @@ function __marketValue(winTxt, t10Txt, fdTxt, hrTxt, drivers) {
 
 var __teamCutoff = { 'chase briscoe': 2025 };
 
-function __parseFinish(txt, board) {
-  const norm = s => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\b(jr|sr|iii|ii|iv)\b/g, '').replace(/\s+/g, ' ').trim()
-  const byFull = {}, byCar = {}, lastCount = {}, byLast = {}
-  board.forEach(d => {
-    const full = norm(d.driver_name)
-    byFull[full] = d
-    byCar[String(d.car_number)] = d
-    const last = full.split(' ').slice(-1)[0]
-    lastCount[last] = (lastCount[last] || 0) + 1
-    byLast[last] = d
-  })
-  const lines = txt.split('\n').map(l => l.trim()).filter(Boolean)
-  const actualMap = {}, matched = [], unmatched = []
-  let pos = 0
-  lines.forEach(line => {
-    const nl = norm(line)
-    let d = null
-    for (const f in byFull) { if (f && nl.indexOf(f) >= 0) { d = byFull[f]; break } }
-    if (!d) { const toks = nl.split(' '); for (const t of toks) { if (lastCount[t] === 1) { d = byLast[t]; break } } }
-    if (!d) { const cars = line.match(/\b\d{1,2}\b/g) || []; for (const cc of cars) { if (byCar[cc]) { d = byCar[cc]; break } } }
-    if (d) { if (!actualMap[String(d.car_number)]) { pos++; actualMap[String(d.car_number)] = pos; matched.push(d.driver_name) } }
-    else unmatched.push(line.slice(0, 40))
-  })
-  return { actualMap, matched, unmatched }
-}
-
-function __gradeRace(board, actualMap) {
-  const dec = a => a > 0 ? a / 100 + 1 : 100 / Math.abs(a) + 1
-  const Ncut = { win: 1, t3: 3, t5: 5, t10: 10 }
-  const rows = board.map(d => ({ name: d.driver_name, car: String(d.car_number), pf: d.proj_finish, win: d.win_pct, t3: d.top3_pct, t5: d.top5_pct, t10: d.top10_pct, mv: d.mv, act: actualMap[String(d.car_number)] })).filter(d => d.act != null)
-  const n = rows.length
-  const spearman = (a, b) => { const rk = x => { const idx = x.map((v, i) => [v, i]).sort((p, q) => p[0] - q[0]); const r = Array(x.length); idx.forEach((p, i) => r[p[1]] = i + 1); return r }; const ra = rk(a), rb = rk(b); let d2 = 0; for (let i = 0; i < a.length; i++) d2 += (ra[i] - rb[i]) * (ra[i] - rb[i]); return +(1 - 6 * d2 / (a.length * (a.length * a.length - 1))).toFixed(3) }
-  const act = rows.map(r => r.act)
-  const mae = +(rows.reduce((s, r) => s + Math.abs(r.pf - r.act), 0) / n).toFixed(2)
-  const ind = N => rows.map(r => r.act <= N ? 1 : 0)
-  const brier = (probs, ii) => +(probs.reduce((s, p, i) => s + (p / 100 - ii[i]) * (p / 100 - ii[i]), 0) / n).toFixed(4)
-  const metrics = { n: n, mae: mae, spearman_pf: spearman(rows.map(r => r.pf), act), win_brier: brier(rows.map(r => r.win), ind(1)), top3_brier: brier(rows.map(r => r.t3), ind(3)), top5_brier: brier(rows.map(r => r.t5), ind(5)), top10_brier: brier(rows.map(r => r.t10), ind(10)) }
-  const prec = (key, N) => rows.slice().sort((a, b) => b[key] - a[key]).slice(0, N).filter(d => d.act <= N).length
-  metrics.prec = { win: prec('win', 1), t3: prec('t3', 3), t5: prec('t5', 5), t10: prec('t10', 10) }
-  const evFlags = []
-  rows.forEach(r => { if (!r.mv) return; ['win', 't3', 't5', 't10'].forEach(mk => { const m = r.mv[mk]; if (!m || m.ev == null || m.ev <= 0) return; evFlags.push({ driver: r.name, market: mk, price: m.best, book: (m.bb || '').toUpperCase(), ev: m.ev, mev: m.mev, hit: r.act <= Ncut[mk] }) }) })
-  const roiOf = fl => { if (!fl.length) return { bets: 0, profit: 0, roi: 0 }; const ret = fl.reduce((s, f) => s + (f.hit ? dec(f.price) : 0), 0); return { bets: fl.length, profit: +(ret - fl.length).toFixed(2), roi: +(((ret - fl.length) / fl.length) * 100).toFixed(1) } }
-  const roi = { all: roiOf(evFlags), win: roiOf(evFlags.filter(f => f.market === 'win')), exwin: roiOf(evFlags.filter(f => f.market !== 'win')), consensus: roiOf(evFlags.filter(f => f.mev > 0)) }
-  return { metrics: metrics, evFlags: evFlags, roi: roi }
-}
-
-
 function __applyRainOut(w, on) {
   if (!on) return w;
   var freed = (w.startPos || 0) - 0.12;
@@ -411,34 +364,6 @@ export default function SimulationCenter({ isSubscriber }) {
   const [oddsFdTxt, setOddsFdTxt] = useState('')
   const [oddsHrTxt, setOddsHrTxt] = useState('')
   const [authed,        setAuthed]          = useState(false)
-  const [gradeTxt, setGradeTxt] = useState('')
-  const [gradePrev, setGradePrev] = useState(null)
-  const [gradeMsg, setGradeMsg] = useState('')
-  const [gradesLog, setGradesLog] = useState([])
-  const loadGrades = async () => {
-    const { data } = await supabase.from('sim_grades').select('*').order('graded_at', { ascending: false }).limit(50)
-    setGradesLog(data || [])
-  }
-  const runGrade = async () => {
-    setGradeMsg('Grading...')
-    const { data } = await supabase.from('sim_results').select('*').eq('series', series).order('published_at', { ascending: false }).limit(1)
-    const row = (data || [])[0]
-    if (!row || !row.results) { setGradePrev(null); setGradeMsg('No published sim found for ' + series + '.'); return }
-    const parsed = __parseFinish(gradeTxt, row.results)
-    if (Object.keys(parsed.actualMap).length < 3) { setGradePrev(null); setGradeMsg('Could not read the finishing order - paste one driver per line, winner first.'); return }
-    const g = __gradeRace(row.results, parsed.actualMap)
-    setGradePrev({ metrics: g.metrics, evFlags: g.evFlags, roi: g.roi, parsed: parsed, simId: row.id, track: row.track_name, year: row.race_year })
-    setGradeMsg(parsed.matched.length + ' matched' + (parsed.unmatched.length ? ', ' + parsed.unmatched.length + ' line(s) skipped' : '') + '.')
-  }
-  const saveGrade = async () => {
-    if (!gradePrev) return
-    setGradeMsg('Saving...')
-    const actualArr = Object.keys(gradePrev.parsed.actualMap).map(car => ({ car_number: car, finish: gradePrev.parsed.actualMap[car] }))
-    const { error } = await supabase.from('sim_grades').insert({ sim_id: gradePrev.simId, series: series, track_name: gradePrev.track, race_year: gradePrev.year, actual: actualArr, metrics: gradePrev.metrics, ev_flags: gradePrev.evFlags, roi: gradePrev.roi, shade_on: false })
-    if (error) { setGradeMsg('Save error: ' + error.message); return }
-    setGradeMsg('Saved to log.'); setGradePrev(null); setGradeTxt(''); loadGrades()
-  }
-  useEffect(() => { if (!authed) return; supabase.from('sim_grades').select('*').order('graded_at', { ascending: false }).limit(50).then(({ data }) => setGradesLog(data || [])) }, [authed])
   const [password,      setPassword]        = useState('')
   const [authError,     setAuthError]       = useState('')
 
@@ -904,52 +829,6 @@ export default function SimulationCenter({ isSubscriber }) {
                 {published ? 'Published' : 'Publish Results'}
               </button></>
             )}
-            <div className="card" style={{ marginTop: 18, padding: 16 }}>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 600, marginBottom: 4 }}>Grade Race <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 400 }}>admin - logs the published sim vs actual finish</span></h3>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 8 }}>Grades the latest published {series.toUpperCase()} sim. Paste the finishing order, winner first (driver names or car numbers both work).</div>
-              <textarea value={gradeTxt} onChange={e => setGradeTxt(e.target.value)} rows={6} placeholder={'1 Chase Briscoe\n2 Christopher Bell\n3 Denny Hamlin\n...'} style={{ width: '100%', fontFamily: 'monospace', fontSize: '0.82rem', padding: 8, borderRadius: 6, boxSizing: 'border-box' }} />
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
-                <button onClick={runGrade} style={{ padding: '8px 18px', borderRadius: 6, border: 'none', background: '#2563eb', color: '#fff', fontWeight: 600, cursor: 'pointer' }}>Grade</button>
-                {gradePrev && <button onClick={saveGrade} style={{ padding: '8px 18px', borderRadius: 6, border: 'none', background: '#1f7a3d', color: '#fff', fontWeight: 600, cursor: 'pointer' }}>Save to log</button>}
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{gradeMsg}</span>
-              </div>
-              {gradePrev && (
-                <div style={{ marginTop: 12, fontSize: '0.85rem' }}>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 8 }}>
-                    <span>MAE <b>{gradePrev.metrics.mae}</b></span>
-                    <span>Spearman <b>{gradePrev.metrics.spearman_pf}</b></span>
-                    <span>Win Brier <b>{gradePrev.metrics.win_brier}</b></span>
-                    <span>Top5 <b>{gradePrev.metrics.prec.t5}/5</b></span>
-                    <span>Top10 <b>{gradePrev.metrics.prec.t10}/10</b></span>
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14 }}>
-                    <span>+EV {gradePrev.roi.all.bets} bets <b style={{ color: gradePrev.roi.all.roi >= 0 ? '#2e9e52' : '#dd3355' }}>{gradePrev.roi.all.roi}%</b></span>
-                    <span>ex-win <b style={{ color: gradePrev.roi.exwin.roi >= 0 ? '#2e9e52' : '#dd3355' }}>{gradePrev.roi.exwin.roi}%</b></span>
-                    <span>win-only <b style={{ color: gradePrev.roi.win.roi >= 0 ? '#2e9e52' : '#dd3355' }}>{gradePrev.roi.win.roi}%</b></span>
-                    <span>consensus <b style={{ color: gradePrev.roi.consensus.roi >= 0 ? '#2e9e52' : '#dd3355' }}>{gradePrev.roi.consensus.roi}%</b></span>
-                  </div>
-                </div>
-              )}
-              {gradesLog.length > 0 && (
-                <div style={{ marginTop: 16 }}>
-                  <div style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: 6 }}>Season log ({gradesLog.length})</div>
-                  <table style={{ width: '100%', fontSize: '0.78rem', borderCollapse: 'collapse' }}>
-                    <thead><tr style={{ textAlign: 'left', color: 'var(--text-muted)' }}><th style={{ padding: '3px 8px' }}>Race</th><th>MAE</th><th>WinBr</th><th>+EV</th><th>ex-win</th></tr></thead>
-                    <tbody>
-                      {gradesLog.map(g => (
-                        <tr key={g.id} style={{ borderTop: '1px solid rgba(128,128,128,0.25)' }}>
-                          <td style={{ padding: '3px 8px' }}>{(g.track_name || '').replace(' Speedway', '')} {g.race_year}</td>
-                          <td>{g.metrics && g.metrics.mae}</td>
-                          <td>{g.metrics && g.metrics.win_brier}</td>
-                          <td style={{ color: g.roi && g.roi.all && g.roi.all.roi >= 0 ? '#2e9e52' : '#dd3355' }}>{g.roi && g.roi.all && g.roi.all.roi}%</td>
-                          <td style={{ color: g.roi && g.roi.exwin && g.roi.exwin.roi >= 0 ? '#2e9e52' : '#dd3355' }}>{g.roi && g.roi.exwin && g.roi.exwin.roi}%</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
 
             <select value={numSims} onChange={e => setNumSims(parseInt(e.target.value))}
               style={{ padding: '9px 10px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text-primary)', fontSize: '0.94rem', cursor: 'pointer' }}>
