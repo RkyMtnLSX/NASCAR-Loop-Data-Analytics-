@@ -39,6 +39,16 @@ const ROAD_COURSE_TRACKS = [
   'coronado', 'mexico',
 ]
 
+const SUPERSPEEDWAY_WEIGHTS = {   // Daytona / Talladega / Atlanta - pack racing (no practice; start near-noise)
+  corrHistory:  0.50,  // superspeedway-group avg rating - main pack-racing skill signal
+  longRunPace:  0.00,  // practice useless at pack tracks (and absent)
+  shortRunPace: 0.00,
+  startPos:     0.15,  // pack racing negates qualifying; kept low
+  tireFalloff:  0.00,
+  raceCraft:    0.05,  // drafting passes, minor
+  trackHistory: 0.30,  // drafting instinct is persistent + track-specific
+}
+
 function isRoadCourse(trackName) {
   if (!trackName) return false
   const t = trackName.toLowerCase()
@@ -64,6 +74,11 @@ const CAUTION_PRESETS_BY_SERIES = {
 }
 const getCautionPresets = (sv) => CAUTION_PRESETS_BY_SERIES[sv] || CAUTION_PRESETS_BY_SERIES.cup
 const CAUTION_PRESETS = CAUTION_PRESETS_BY_SERIES.cup
+
+function isSuperspeedway(trackName) {
+  const t = (trackName || '').toLowerCase()
+  return t.indexOf('daytona') >= 0 || t.indexOf('talladega') >= 0 || t.indexOf('atlanta') >= 0
+}
 
 const DNF_PRESETS = [
   { label: 'Low',    value: 0.05 },
@@ -387,7 +402,8 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
         setConfig(cfg)
 
         // Auto-apply track-type weights
-        setWeights(isRoadCourse(cfg.track_name) ? ROAD_COURSE_WEIGHTS : DEFAULT_WEIGHTS)
+        setWeights(isSuperspeedway(cfg.track_name) ? SUPERSPEEDWAY_WEIGHTS : isRoadCourse(cfg.track_name) ? ROAD_COURSE_WEIGHTS : DEFAULT_WEIGHTS)
+        setDnfPreset(isSuperspeedway(cfg.track_name) ? DNF_PRESETS[2] : DNF_PRESETS[1])
 
         const [
           { data: entries },
