@@ -77,7 +77,7 @@ const CAUTION_PRESETS = CAUTION_PRESETS_BY_SERIES.cup
 
 function isSuperspeedway(trackName) {
   const t = (trackName || '').toLowerCase()
-  return t.indexOf('daytona') >= 0 || t.indexOf('talladega') >= 0 || t.indexOf('atlanta') >= 0
+  return t.indexOf('daytona') >= 0 || t.indexOf('talladega') >= 0 || t.indexOf('atlanta') >= 0 || t.indexOf('echopark') >= 0
 }
 
 const DNF_PRESETS = [
