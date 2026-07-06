@@ -76,11 +76,11 @@ export default function GradeCenter() {
     const { data } = await supabase.from('sim_results').select('*').eq('series', series).order('published_at', { ascending: false }).limit(1)
     const row = (data || [])[0]
     if (!row || !row.results) { setPrev(null); setMsg('No published sim found for ' + series + '.'); return }
-    let query = supabase.from('loop_data').select('driver_name, finish_position').eq('series', series).eq('track_name', row.track_name).eq('year', row.race_year)
-    if (row.race_number != null) query = query.eq('race_number', row.race_number)
-    const res = await query
-    const laps = res.data || []
-    if (!laps.length) { setPrev(null); setMsg('No loop data loaded yet for ' + row.track_name + ' ' + row.race_year + '. Upload it in Admin, or paste the finish above.'); return }
+    const res = await supabase.from('loop_data').select('driver_name, finish_position, race_number').eq('series', series).eq('track_name', row.track_name).eq('year', row.race_year)
+    let laps = res.data || []
+    if (!laps.length) { setPrev(null); setMsg('No loop data found for ' + row.track_name + ' ' + row.race_year + ' (' + series + '). Load it in Admin, or paste the finish above.'); return }
+    const rns = Array.from(new Set(laps.map(l => l.race_number)))
+    if (rns.length > 1) { if (row.race_number != null && rns.indexOf(row.race_number) >= 0) { laps = laps.filter(l => l.race_number === row.race_number) } else { setPrev(null); setMsg('Two races found for this track/year (R' + rns.join(', R') + '). Set the sim Race # to match one, then re-import.'); return } }
     const nrm = s => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/g, ' ').split(' ').filter(Boolean).join(' ')
     const byName = {}
     row.results.forEach(d => { byName[nrm(d.driver_name)] = String(d.car_number) })
