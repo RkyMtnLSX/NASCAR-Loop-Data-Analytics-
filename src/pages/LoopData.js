@@ -149,7 +149,7 @@ if (fin && fin > 0) yearFinishes['y_' + yr + '_' + (r.race_number || 1)] = fin
 const raceFinishes = {}
 if (raceDefs) {
 raceDefs.forEach(rd => {
-const matchRow = dRows.find(r => parseInt(r.year) === rd.year && r.track_name === rd.track_name && (r._occ || r.race_number || 1) === (rd.race_number || 1))
+const matchRow = dRows.find(r => parseInt(r.year) === rd.year && r.track_name === rd.track_name && (rd.race_number == null || (r._occ || r.race_number || 1) === (rd.race_number || 1)))
 if (matchRow) {
 const fin = parseInt(matchRow.finish_position)
 if (fin > 0) raceFinishes[rd.key] = fin
