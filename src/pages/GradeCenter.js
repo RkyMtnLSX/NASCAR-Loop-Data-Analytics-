@@ -71,6 +71,27 @@ export default function GradeCenter() {
     setPrev({ metrics: g.metrics, evFlags: g.evFlags, roi: g.roi, detail: g.detail, parsed: parsed, simId: row.id, track: row.track_name, year: row.race_year })
     setMsg(parsed.matched.length + ' matched' + (parsed.unmatched.length ? ', ' + parsed.unmatched.length + ' skipped' : '') + '.')
   }
+  const gradeFromDB = async () => {
+    setMsg('Loading finish from loop data...')
+    const { data } = await supabase.from('sim_results').select('*').eq('series', series).order('published_at', { ascending: false }).limit(1)
+    const row = (data || [])[0]
+    if (!row || !row.results) { setPrev(null); setMsg('No published sim found for ' + series + '.'); return }
+    let query = supabase.from('loop_data').select('driver_name, finish_position').eq('series', series).eq('track_name', row.track_name).eq('year', row.race_year)
+    if (row.race_number != null) query = query.eq('race_number', row.race_number)
+    const res = await query
+    const laps = res.data || []
+    if (!laps.length) { setPrev(null); setMsg('No loop data loaded yet for ' + row.track_name + ' ' + row.race_year + '. Upload it in Admin, or paste the finish above.'); return }
+    const nrm = s => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/g, ' ').split(' ').filter(Boolean).join(' ')
+    const byName = {}
+    row.results.forEach(d => { byName[nrm(d.driver_name)] = String(d.car_number) })
+    const actualMap = {}
+    laps.forEach(l => { const car = byName[nrm(l.driver_name)]; if (car && l.finish_position != null) actualMap[car] = l.finish_position })
+    if (Object.keys(actualMap).length < 3) { setPrev(null); setMsg('Could not match loop-data drivers to the published sim.'); return }
+    const g = __gradeRace(row.results, actualMap)
+    if (row.race_number != null) setRaceNum(String(row.race_number))
+    setPrev({ metrics: g.metrics, evFlags: g.evFlags, roi: g.roi, detail: g.detail, parsed: { actualMap: actualMap }, simId: row.id, track: row.track_name, year: row.race_year })
+    setMsg('Imported ' + Object.keys(actualMap).length + ' finishes from loop data.')
+  }
   const saveGrade = async () => {
     if (!prev) return
     setMsg('Saving...')
@@ -99,6 +120,7 @@ export default function GradeCenter() {
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 10, flexWrap: 'wrap' }}>
           <input type="number" value={raceNum} onChange={e => setRaceNum(e.target.value)} placeholder="Race #" title="Season round number, e.g. 19" style={{ width: 90, padding: '9px 10px', borderRadius: 6, border: '1px solid rgba(128,128,128,0.35)', background: 'transparent', color: 'inherit', boxSizing: 'border-box' }} />
           <button onClick={runGrade} style={{ padding: '9px 20px', borderRadius: 6, border: 'none', background: '#2563eb', color: '#fff', fontWeight: 600, cursor: 'pointer' }}>Grade</button>
+          <button onClick={gradeFromDB} style={{ padding: '9px 20px', borderRadius: 6, border: '1px solid #2563eb', background: 'transparent', color: '#2563eb', fontWeight: 600, cursor: 'pointer' }}>Import from loop data</button>
           {prev && <button onClick={saveGrade} style={{ padding: '9px 20px', borderRadius: 6, border: 'none', background: '#1f7a3d', color: '#fff', fontWeight: 600, cursor: 'pointer' }}>Save to log</button>}
           <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{msg}</span>
         </div>
