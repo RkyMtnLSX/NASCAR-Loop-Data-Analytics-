@@ -841,7 +841,7 @@ const yearCols = (() => {
   }))
   if (!pairs.length) return [...config.track_years].sort((a,b)=>a-b).map(yr => ({ key: 'y_' + yr + '_1', label: String(yr), decimals: 0, isYear: true, minWidth: 52, lowerIsBetter: true }))
   pairs.sort((a, b) => a.yr !== b.yr ? a.yr - b.yr : a.rn - b.rn)
-  return pairs.map(({ yr, rn }) => ({ key: 'y_' + yr + '_' + rn, label: rn > 1 ? String(yr) + ' R2' : String(yr), decimals: 0, isYear: true, minWidth: 52, lowerIsBetter: true }))
+  return pairs.map(({ yr, rn }) => ({ key: 'y_' + yr + '_' + rn, label: trackLabel((config && config.track_name) || '', yr) + (pairs.filter(function (p) { return p.yr === yr; }).length > 1 ? ' R' + (pairs.filter(function (p) { return p.yr === yr; }).sort(function (a, b) { return a.rn - b.rn; }).findIndex(function (p) { return p.rn === rn; }) + 1) : ''), decimals: 0, isYear: true, minWidth: 52, lowerIsBetter: true }))
 })()
 
 const handleCorrYearToggle = (yr) => {
