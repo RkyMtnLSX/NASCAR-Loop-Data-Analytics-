@@ -365,6 +365,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
   const [oddsHrTxt, setOddsHrTxt] = useState('')
   const [shadeLambda, setShadeLambda] = useState(0.5)
   const [showShade, setShowShade] = useState(false)
+  const [simStage, setSimStage] = useState('post')
   const [raceNumMap, setRaceNumMap] = useState({})
   const [authed,        setAuthed]          = useState(false)
   const [password,      setPassword]        = useState('')
@@ -583,6 +584,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
       race_name:  config.race_name || config.track_name,
       race_year:  config.race_year || new Date().getFullYear(),
       race_number: raceNumMap[series] ? parseInt(raceNumMap[series]) : null,
+      stage: simStage,
       results: simResults.map(d => ({
         driver_name:  d.name,
         car_number:   d.carNumber,
@@ -602,7 +604,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
         avg_fast_laps: +(d.avgFastLaps || 0).toFixed(2), mv: (__mv[d.name] || null),
       }))
     }
-    await supabase.from('sim_results').delete().eq('series', series)
+    await supabase.from('sim_results').delete().eq('series', series).eq('stage', simStage)
     const { error } = await supabase.from('sim_results').insert(payload)
     if (!error) setPublished(true)
     else alert('Publish failed: ' + error.message)
@@ -847,6 +849,12 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
   <textarea value={oddsHrTxt} onChange={e => setOddsHrTxt(e.target.value)} rows={3} style={{ width: '100%', fontFamily: 'monospace', fontSize: 11 }} />
 </div>
 <div style={{ marginBottom: 10 }}><label style={{ fontSize: '0.9rem', marginRight: 8, color: 'var(--text-muted)' }}>Race #</label><input type="number" value={raceNumMap[series] || ''} onChange={e => setRaceNumMap(m => ({ ...m, [series]: e.target.value }))} placeholder="e.g. 20" title="Season round number - carried to the Grade Center" style={{ width: 90, padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(128,128,128,0.35)', background: 'transparent', color: 'inherit', boxSizing: 'border-box' }} /></div>
+<div style={{ marginBottom: 10, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+  <span style={{ color: 'var(--text-muted)' }}>Sim stage:</span>
+  <button onClick={() => setSimStage('pre')} style={{ padding: '6px 12px', borderRadius: 6, border: 'none', cursor: 'pointer', background: simStage === 'pre' ? '#e8b923' : 'rgba(128,128,128,0.2)', color: simStage === 'pre' ? '#000' : 'inherit', fontWeight: 600 }}>Pre</button>
+  <button onClick={() => setSimStage('post')} style={{ padding: '6px 12px', borderRadius: 6, border: 'none', cursor: 'pointer', background: simStage === 'post' ? '#e8b923' : 'rgba(128,128,128,0.2)', color: simStage === 'post' ? '#000' : 'inherit', fontWeight: 600 }}>Post</button>
+  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>(before / after practice + qualifying) - stored separately, won't overwrite the other stage</span>
+</div>
 <button onClick={publishResults} style={{
                 padding: '10px 28px', background: published ? 'var(--bg-elevated)' : '#1a6b2e',
                 color: published ? 'var(--text-muted)' : '#e8f5e9',
