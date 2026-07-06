@@ -13,6 +13,7 @@ import PracticeAudit      from './pages/PracticeAudit'
 import FastestLap         from './pages/FastestLap'
 import QualifyingCenter   from './pages/QualifyingCenter'
 import SimulationCenter   from './pages/SimulationCenter'
+import GradeCenter        from './pages/GradeCenter'
 import SimResults         from './pages/SimResults'
 import Admin              from './pages/Admin'
 
@@ -137,6 +138,7 @@ export default function App() {
         <Route path="/fastest-laps"       element={<FastestLap />} />
         <Route path="/qualifying"         element={<QualifyingCenter isSubscriber={isSubscriber} />} />
         <Route path="/simulation-center"  element={isAdmin ? <SimulationCenter isSubscriber={isSubscriber} /> : <AdminGate />} />
+        <Route path="/grade-center"     element={isAdmin ? <GradeCenter /> : <AdminGate />} />
         <Route path="/sim-results"        element={<SimResults />} />
         <Route path="/subscribe"          element={<Subscribe />} />
         <Route path="/admin"              element={isAdmin ? <Admin /> : <AdminGate />} />
