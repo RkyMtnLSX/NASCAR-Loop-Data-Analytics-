@@ -390,7 +390,7 @@ background: 'var(--bg-elevated)', zIndex: 2, borderBottom: '2px solid var(--bord
 ...cellBase, fontWeight: 700, fontSize: '0.89rem',
 color: 'var(--text-secondary)', borderBottom: '2px solid var(--border)',
 }}>
-{trackLabel(rc.track_name, rc.year)}{raceCols.filter(function (x) { return x.track_name === rc.track_name && x.year === rc.year }).length > 1 ? ' R' + rc.raceNum : ''}
+{trackLabel(rc.track_name, rc.year)}{(function () { var st = raceCols.filter(function (x) { return x.track_name === rc.track_name && x.year === rc.year }); return st.length > 1 ? ' R' + (st.slice().sort(function (a, b) { return (a.raceNum || 0) - (b.raceNum || 0) }).indexOf(rc) + 1) : ''; })()}
 </th>
 ))}
 </tr>
