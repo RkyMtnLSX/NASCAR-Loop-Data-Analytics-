@@ -64,6 +64,7 @@ export default function GradeCenter() {
     const { data } = await supabase.from('sim_results').select('*').eq('series', series).order('published_at', { ascending: false }).limit(1)
     const row = (data || [])[0]
     if (!row || !row.results) { setPrev(null); setMsg('No published sim found for ' + series + '.'); return }
+    if (row.race_number != null) setRaceNum(String(row.race_number))
     const parsed = __parseFinish(gradeTxt, row.results)
     if (Object.keys(parsed.actualMap).length < 3) { setPrev(null); setMsg('Could not read the finishing order - paste one driver per line, winner first.'); return }
     const g = __gradeRace(row.results, parsed.actualMap)
