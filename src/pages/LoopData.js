@@ -390,7 +390,7 @@ background: 'var(--bg-elevated)', zIndex: 2, borderBottom: '2px solid var(--bord
 ...cellBase, fontWeight: 700, fontSize: '0.89rem',
 color: 'var(--text-secondary)', borderBottom: '2px solid var(--border)',
 }}>
-{trackLabel(rc.track_name, rc.year)}{rc.raceNum > 1 ? ' R2' : ''}
+{trackLabel(rc.track_name, rc.year)}{raceCols.filter(function (x) { return x.track_name === rc.track_name && x.year === rc.year }).length > 1 ? ' R' + rc.raceNum : ''}
 </th>
 ))}
 </tr>
