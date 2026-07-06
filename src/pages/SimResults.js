@@ -203,9 +203,9 @@ export default function SimResults() {
         <thead><tr>
           <th style={{ ...thc, textAlign: 'left', width: 24 }}>#</th>
           <th style={{ ...thc, textAlign: 'left' }}>Driver</th>
-          <th style={{ ...thc, textAlign: 'right' }}><img src="/book-dk.png" alt="DK" style={{ height: 24, verticalAlign: 'middle' }} /></th>
-          <th style={{ ...thc, textAlign: 'right' }}><img src="/book-fd.png" alt="FD" style={{ height: 24, verticalAlign: 'middle' }} /></th>
-          <th style={{ ...thc, textAlign: 'right' }}><img src="/book-hr.png" alt="HR" style={{ height: 24, verticalAlign: 'middle' }} /></th>
+          <th style={{ ...thc, textAlign: 'right' }}><img src="/book-dk.png" alt="DK" style={{ height: 34, verticalAlign: 'middle' }} /></th>
+          <th style={{ ...thc, textAlign: 'right' }}><img src="/book-fd.png" alt="FD" style={{ height: 34, verticalAlign: 'middle' }} /></th>
+          <th style={{ ...thc, textAlign: 'right' }}><img src="/book-hr.png" alt="HR" style={{ height: 34, verticalAlign: 'middle' }} /></th>
           <th style={{ ...thc, textAlign: 'right' }}>Best</th>
           <th style={{ ...thc, textAlign: 'right' }}>{odds ? 'Fair' : 'Model %'}</th>
           <th style={{ ...thc, textAlign: 'right' }}>Edge</th>
@@ -219,7 +219,7 @@ export default function SimResults() {
               <td style={{ padding: '7px 6px', textAlign: 'right' }}>{oc(r.dk, r.best)}</td>
               <td style={{ padding: '7px 6px', textAlign: 'right' }}>{oc(r.fd, r.best)}</td>
               <td style={{ padding: '7px 6px', textAlign: 'right' }}>{oc(r.hr, r.best)}</td>
-              <td style={{ padding: '7px 6px', textAlign: 'right', color: '#3fb950', fontWeight: 500 }}>{fo(r.best)}<img src={'/book-' + r.bb.toLowerCase() + '.png'} alt={r.bb} style={{ height: 20, verticalAlign: 'middle', marginLeft: 3 }} /></td>
+              <td style={{ padding: '7px 6px', textAlign: 'right', color: '#3fb950', fontWeight: 500 }}>{fo(r.best)}<img src={'/book-' + r.bb.toLowerCase() + '.png'} alt={r.bb} style={{ height: 28, verticalAlign: 'middle', marginLeft: 3 }} /></td>
               <td style={{ padding: '7px 6px', textAlign: 'right' }}>{mod}</td>
               <td style={{ padding: '7px 6px', textAlign: 'right' }}>{r.ev > 0 ? <span style={{ background: '#123d24', color: '#3fb950', padding: '2px 6px', borderRadius: 999, fontWeight: 500 }}>+{r.ev}%</span> : <span style={{ color: '#8a8a8a' }}>{r.ev}%</span>}{(r.mev != null && r.mev > 0) ? <span style={{ fontSize: 9, color: '#3fb950', marginLeft: 3 }}>mkt</span> : null}</td>
             </tr>;
