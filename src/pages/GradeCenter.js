@@ -69,7 +69,7 @@ export default function GradeCenter() {
     const parsed = __parseFinish(gradeTxt, row.results)
     if (Object.keys(parsed.actualMap).length < 3) { setPrev(null); setMsg('Could not read the finishing order - paste one driver per line, winner first.'); return }
     const g = __gradeRace(row.results, parsed.actualMap)
-    setPrev({ metrics: g.metrics, evFlags: g.evFlags, roi: g.roi, detail: g.detail, parsed: parsed, simId: row.id, track: row.track_name, year: row.race_year })
+    setPrev({ metrics: g.metrics, evFlags: g.evFlags, roi: g.roi, detail: g.detail, parsed: parsed, simId: row.id, track: row.track_name, year: row.race_year, config: row.config })
     setMsg(parsed.matched.length + ' matched' + (parsed.unmatched.length ? ', ' + parsed.unmatched.length + ' skipped' : '') + '.')
   }
   const gradeFromDB = async () => {
@@ -90,7 +90,7 @@ export default function GradeCenter() {
     if (Object.keys(actualMap).length < 3) { setPrev(null); setMsg('Could not match loop-data drivers to the published sim.'); return }
     const g = __gradeRace(row.results, actualMap)
     if (row.race_number != null) setRaceNum(String(row.race_number))
-    setPrev({ metrics: g.metrics, evFlags: g.evFlags, roi: g.roi, detail: g.detail, parsed: { actualMap: actualMap }, simId: row.id, track: row.track_name, year: row.race_year })
+    setPrev({ metrics: g.metrics, evFlags: g.evFlags, roi: g.roi, detail: g.detail, parsed: { actualMap: actualMap }, simId: row.id, track: row.track_name, year: row.race_year, config: row.config })
     setMsg('Imported ' + Object.keys(actualMap).length + ' finishes from loop data.')
   }
   const saveGrade = async () => {
@@ -98,7 +98,7 @@ export default function GradeCenter() {
     setMsg('Saving...')
     const actualArr = Object.keys(prev.parsed.actualMap).map(car => ({ car_number: car, finish: prev.parsed.actualMap[car] }))
     const rn = raceNum ? parseInt(raceNum) : null
-    const rowData = { sim_id: prev.simId, series: series, track_name: prev.track, race_year: prev.year, race_number: rn, actual: actualArr, metrics: prev.metrics, ev_flags: prev.evFlags, roi: prev.roi, shade_on: false, stage: gradeStage }
+    const rowData = { sim_id: prev.simId, series: series, track_name: prev.track, race_year: prev.year, race_number: rn, actual: actualArr, metrics: prev.metrics, ev_flags: prev.evFlags, roi: prev.roi, shade_on: false, stage: gradeStage, config: prev.config }
     let existing = []
     if (rn != null) { const q = await supabase.from('sim_grades').select('id').eq('series', series).eq('race_year', prev.year).eq('race_number', rn).eq('stage', gradeStage); existing = q.data || [] }
     const resp = existing.length ? await supabase.from('sim_grades').update(rowData).eq('id', existing[0].id) : await supabase.from('sim_grades').insert(rowData)
@@ -106,6 +106,8 @@ export default function GradeCenter() {
     setMsg(existing.length ? 'Updated R' + rn + '.' : 'Saved.'); setPrev(null); setGradeTxt(''); loadLog()
   }
   const pill = v => ({ color: v >= 0 ? '#2e9e52' : '#dd3355', fontWeight: 700 })
+  const cfgSummary = c => { if (!c) return '-'; const w = c.weights || {}; const prac = (w.longRunPace || 0) + (w.shortRunPace || 0); return 'corr ' + (w.corrHistory != null ? w.corrHistory : '?') + ' / start ' + (w.startPos != null ? w.startPos : '?') + ' / track ' + (w.trackHistory != null ? w.trackHistory : '?') + ' / prac ' + prac + '  |  DNF ' + ((c.dnf && c.dnf.label) || '?') + ' / Caution ' + ((c.caution && c.caution.label) || '?') + (c.rainOut ? '  |  Rain-out grid' : ''); }
+  const cfgShort = c => { if (!c) return '-'; const w = c.weights || {}; let reg = 'Oval'; if ((w.raceCraft || 0) >= 0.2) reg = 'Road'; else if ((w.startPos || 0) <= 0.15 && (w.corrHistory || 0) >= 0.45) reg = 'SuperS'; return reg + ' / ' + ((c.dnf && c.dnf.label) || '?') + (c.rainOut ? ' / RO' : ''); }
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: '24px 20px' }}>
       <h1 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: 4 }}>Sim Grader</h1>
@@ -133,6 +135,7 @@ export default function GradeCenter() {
       {prev && (
         <div className="card" style={{ padding: 16, marginBottom: 20 }}>
           <h3 style={{ fontWeight: 600, marginBottom: 10 }}>{prev.track} {prev.year}{raceNum ? ' R' + raceNum : ''} &mdash; preview</h3>
+          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 10 }}>Config: {cfgSummary(prev.config)}</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18, marginBottom: 12, fontSize: '0.9rem' }}>
             <span>MAE <b>{prev.metrics.mae}</b></span>
             <span>Spearman <b>{prev.metrics.spearman_pf}</b></span>
@@ -191,11 +194,11 @@ export default function GradeCenter() {
         {log.length === 0 && <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No graded races yet.</div>}
         {log.length > 0 && (
           <table style={{ width: '100%', fontSize: '0.83rem', borderCollapse: 'collapse' }}>
-            <thead><tr style={{ textAlign: 'left', color: 'var(--text-muted)' }}><th style={{ padding: '4px 8px' }}>R#</th><th>Stage</th><th>Race</th><th>MAE</th><th>Spear</th><th>WinBr</th><th>+EV</th><th>ex-win</th><th>win</th><th>cons</th></tr></thead>
+            <thead><tr style={{ textAlign: 'left', color: 'var(--text-muted)' }}><th style={{ padding: '4px 8px' }}>R#</th><th>Stage</th><th>Config</th><th>Race</th><th>MAE</th><th>Spear</th><th>WinBr</th><th>+EV</th><th>ex-win</th><th>win</th><th>cons</th></tr></thead>
             <tbody>
               {log.map(g => (
                 <tr key={g.id} style={{ borderTop: '1px solid rgba(128,128,128,0.2)' }}>
-                  <td style={{ padding: '4px 8px', fontWeight: 600 }}>{g.race_number != null ? 'R' + g.race_number : '-'}</td><td style={{ textTransform: 'uppercase', fontSize: '0.72rem', color: 'var(--text-muted)' }}>{g.stage || 'post'}</td>
+                  <td style={{ padding: '4px 8px', fontWeight: 600 }}>{g.race_number != null ? 'R' + g.race_number : '-'}</td><td style={{ textTransform: 'uppercase', fontSize: '0.72rem', color: 'var(--text-muted)' }}>{g.stage || 'post'}</td><td style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{cfgShort(g.config)}</td>
                   <td>{(g.track_name || '').replace(' Speedway', '')} {g.race_year} <span style={{ textTransform: 'uppercase', color: 'var(--text-muted)', fontSize: '0.7rem' }}>{g.series}</span></td>
                   <td>{g.metrics && g.metrics.mae}</td>
                   <td>{g.metrics && g.metrics.spearman_pf}</td>
