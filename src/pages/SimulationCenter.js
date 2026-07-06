@@ -363,6 +363,8 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
   const [oddsT10Txt, setOddsT10Txt] = useState('')
   const [oddsFdTxt, setOddsFdTxt] = useState('')
   const [oddsHrTxt, setOddsHrTxt] = useState('')
+  const [shadeLambda, setShadeLambda] = useState(0.5)
+  const [showShade, setShowShade] = useState(false)
   const [raceNumMap, setRaceNumMap] = useState({})
   const [authed,        setAuthed]          = useState(false)
   const [password,      setPassword]        = useState('')
@@ -615,6 +617,26 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
       return sortDir === 'desc' ? bv - av : av - bv
     })
   }, [simResults, sortKey, sortDir])
+  const shadeRows = useMemo(() => {
+    if (!simResults || !oddsWinTxt) return null
+    const mvMap = __marketValue(oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt, simResults)
+    const dec = a => a > 0 ? a / 100 + 1 : 100 / Math.abs(a) + 1
+    const T = 18
+    const out = []
+    simResults.forEach(d => {
+      const mm = mvMap[d.name] && mvMap[d.name].win
+      if (!mm || mm.best == null || mm.mev == null) return
+      const pRaw = d.winPct
+      const cons = (mm.mev / 100 + 1) / dec(mm.best) * 100
+      let pSh = pRaw
+      if (pRaw > T && pRaw > cons) pSh = pRaw - shadeLambda * (pRaw - cons)
+      const evRaw = +((pRaw / 100 * dec(mm.best) - 1) * 100).toFixed(1)
+      const evSh = +((pSh / 100 * dec(mm.best) - 1) * 100).toFixed(1)
+      if (pRaw > T || evRaw > 0) out.push({ name: d.name, best: mm.best, book: (mm.bb || '').toUpperCase(), pRaw: +pRaw.toFixed(1), cons: +cons.toFixed(1), pSh: +pSh.toFixed(1), evRaw: evRaw, evSh: evSh, killed: evRaw > 0 && evSh <= 0 })
+    })
+    out.sort((a, b) => b.pRaw - a.pRaw)
+    return out
+  }, [simResults, oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt, shadeLambda])
 
   const handleSort = (key) => {
     const defaultsAsc = ['projFinish', 'startPos', 'finishP50']
@@ -834,6 +856,46 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
               }}>
                 {published ? 'Published' : 'Publish Results'}
               </button></>
+            )}
+            {simResults && (
+              <div className="card" style={{ padding: 16, marginTop: 4, marginBottom: 18 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, fontSize: '0.95rem', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={showShade} onChange={e => setShowShade(e.target.checked)} /> Win-market shade
+                  </label>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>admin only - not published, win market only</span>
+                </div>
+                {showShade && (
+                  <div style={{ marginTop: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.85rem' }}>Strength (lambda) toward market: <b>{shadeLambda.toFixed(2)}</b></span>
+                      <input type="range" min={0} max={1} step={0.05} value={shadeLambda} onChange={e => setShadeLambda(parseFloat(e.target.value))} style={{ flex: '1 1 200px' }} />
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>0 = raw model, 1 = pinned to market. Favorites above 18% only.</span>
+                    </div>
+                    {!shadeRows && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Paste win-market odds above to compute the shade.</div>}
+                    {shadeRows && shadeRows.length === 0 && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>No favorites above 18% and no win +EV flags.</div>}
+                    {shadeRows && shadeRows.length > 0 && (
+                      <table style={{ width: '100%', fontSize: '0.82rem', borderCollapse: 'collapse' }}>
+                        <thead><tr style={{ textAlign: 'left', color: 'var(--text-muted)' }}><th style={{ padding: '4px 8px' }}>Driver</th><th>Best</th><th>Model%</th><th>Market%</th><th>Shaded%</th><th>EV raw</th><th>EV shaded</th><th></th></tr></thead>
+                        <tbody>
+                          {shadeRows.map(s => (
+                            <tr key={s.name} style={{ borderTop: '1px solid rgba(128,128,128,0.2)' }}>
+                              <td style={{ padding: '4px 8px' }}>{s.name}</td>
+                              <td>{s.best > 0 ? '+' : ''}{s.best} {s.book}</td>
+                              <td>{s.pRaw}%</td>
+                              <td style={{ color: 'var(--text-muted)' }}>{s.cons}%</td>
+                              <td><b>{s.pSh}%</b></td>
+                              <td style={{ color: s.evRaw >= 0 ? '#2e9e52' : '#dd3355' }}>{s.evRaw > 0 ? '+' : ''}{s.evRaw}</td>
+                              <td style={{ color: s.evSh >= 0 ? '#2e9e52' : '#dd3355', fontWeight: 700 }}>{s.evSh > 0 ? '+' : ''}{s.evSh}</td>
+                              <td>{s.killed ? <span style={{ color: '#dd3355', fontWeight: 700, fontSize: '0.72rem' }}>edge removed</span> : (s.evSh > 0 ? <span style={{ color: '#2e9e52', fontSize: '0.72rem' }}>survives</span> : '')}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
 
             <select value={numSims} onChange={e => setNumSims(parseInt(e.target.value))}
