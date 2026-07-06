@@ -90,7 +90,7 @@ export default function GradeCenter() {
       <div style={{ color: 'var(--text-muted)', marginBottom: 20 }}>Grade a published sim against the actual finish and log it.</div>
       <div style={{ display: 'flex', gap: 6, marginBottom: 16, borderBottom: '1px solid rgba(128,128,128,0.25)' }}>
         {SERIES_TABS.map(t => (
-          <button key={t.id} onClick={() => setSeries(t.id)} style={{ padding: '8px 14px', border: 'none', background: 'none', borderBottom: series === t.id ? '2px solid #e8b923' : '2px solid transparent', color: series === t.id ? '#e8b923' : 'var(--text-muted)', fontWeight: 600, cursor: 'pointer' }}>{t.label}</button>
+          <button key={t.id} onClick={() => { setSeries(t.id); setRaceNum(''); setPrev(null) }} style={{ padding: '8px 14px', border: 'none', background: 'none', borderBottom: series === t.id ? '2px solid #e8b923' : '2px solid transparent', color: series === t.id ? '#e8b923' : 'var(--text-muted)', fontWeight: 600, cursor: 'pointer' }}>{t.label}</button>
         ))}
       </div>
       <div className="card" style={{ padding: 16, marginBottom: 20 }}>
