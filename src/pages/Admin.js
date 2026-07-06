@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { parsePracticeExcel } from '../lib/excelParser'
 import { gradePracticeSession } from '../lib/practiceGrader'
+import SimulationCenter from './SimulationCenter'
+import GradeCenter from './GradeCenter'
 
 const ADMIN_PASSWORD = process.env.REACT_APP_ADMIN_PASSWORD
 
@@ -1516,6 +1518,7 @@ export default function Admin() {
   const [authed, setAuthed] = useState(false)
   const [password, setPassword] = useState('')
   const [authError, setAuthError] = useState('')
+  const [adminTab, setAdminTab] = useState('admin')
 
   const [series, setSeries] = useState('cup')
   const [trackName, setTrackName] = useState('')
@@ -1680,8 +1683,18 @@ export default function Admin() {
     )
   }
 
+  const __tabBar = (
+    <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid rgba(128,128,128,0.25)', marginBottom: 16 }}>
+      {[['admin', 'Admin'], ['sim', 'Sim Admin'], ['grader', 'Sim Grader']].map(t => (
+        <button key={t[0]} onClick={() => setAdminTab(t[0])} style={{ padding: '8px 16px', border: 'none', background: 'none', borderBottom: adminTab === t[0] ? '2px solid #e8b923' : '2px solid transparent', color: adminTab === t[0] ? '#e8b923' : 'var(--text-muted)', fontWeight: 600, cursor: 'pointer', fontSize: '0.95rem' }}>{t[1]}</button>
+      ))}
+    </div>
+  )
+  if (adminTab === 'sim') return (<div><div className="page" style={{ maxWidth: 960, paddingBottom: 0 }}>{__tabBar}</div><SimulationCenter isSubscriber={true} embedded={true} /></div>)
+  if (adminTab === 'grader') return (<div><div className="page" style={{ maxWidth: 960, paddingBottom: 0 }}>{__tabBar}</div><GradeCenter /></div>)
   return (
     <div className="page" style={{ maxWidth: 960 }}>
+      {__tabBar}
       <div className="page-header">
         <h1 className="page-title">Admin</h1>
         <p className="page-subtitle">Upload practice data &amp; configure featured weekends</p>
