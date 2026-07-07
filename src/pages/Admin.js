@@ -1536,6 +1536,50 @@ function SimFormulaPanel() {
   )
 }
 
+function TrackDbPanel() {
+  const [rows, setRows] = useState([])
+  useEffect(() => {
+    supabase.from('tracks').select('name, track_type, correlation_group, correlation_group_label').then(({ data }) => {
+      const d = (data || []).slice().sort((a, b) => {
+        const ga = a.correlation_group == null ? 999 : a.correlation_group
+        const gb = b.correlation_group == null ? 999 : b.correlation_group
+        return ga - gb || (a.name || '').localeCompare(b.name || '')
+      })
+      setRows(d)
+    })
+  }, [])
+  const cell = { padding: '4px 10px', fontSize: '0.78125rem', borderBottom: '1px solid var(--border)' }
+  const hd = { ...cell, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: '0.68rem' }
+  const unassigned = rows.filter(t => t.correlation_group == null).length
+  return (
+    <div className="card" style={{ marginBottom: 20 }}>
+      <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 4 }}>Track Database ({rows.length})</h2>
+      <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 16 }}>
+        All tracks and their correlation group. Rows in red have no group and won't share history with any track.
+        {unassigned > 0 ? ' (' + unassigned + ' unassigned)' : ''}
+      </p>
+      <table style={{ borderCollapse: 'collapse', width: '100%', tableLayout: 'fixed' }}>
+        <thead><tr>
+          <th style={hd}>Track</th>
+          <th style={{ ...hd, width: 130 }}>Type</th>
+          <th style={{ ...hd, width: 70, textAlign: 'center' }}>Group</th>
+          <th style={{ ...hd, width: 160 }}>Label</th>
+        </tr></thead>
+        <tbody>
+        {rows.map(tr => (
+          <tr key={tr.name} style={tr.correlation_group == null ? { background: 'rgba(239,68,68,0.1)' } : null}>
+            <td style={{ ...cell, fontWeight: 600 }}>{tr.name}</td>
+            <td style={{ ...cell, color: 'var(--text-secondary)' }}>{tr.track_type || '-'}</td>
+            <td style={{ ...cell, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{tr.correlation_group == null ? '\u2014' : tr.correlation_group}</td>
+            <td style={{ ...cell, color: 'var(--text-muted)' }}>{tr.correlation_group_label || '-'}</td>
+          </tr>
+        ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 export default function Admin() {
   const [authed, setAuthed] = useState(false)
   const [password, setPassword] = useState('')
@@ -1730,6 +1774,7 @@ export default function Admin() {
       <LoadQualifyingOrder />
       <LoadFastestLaps />
       <SimFormulaPanel />
+      <TrackDbPanel />
       <div className="card" style={{ marginBottom: 20 }}>
         <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 8 }}>Data Audit</h2>
         <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 12 }}>
