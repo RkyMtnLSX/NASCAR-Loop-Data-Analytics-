@@ -1516,13 +1516,13 @@ function SimFormulaPanel() {
       </div>
 
       <div style={label}>Factor Definitions</div>
-      <table style={tbl}>
+      <table style={{ ...tbl, tableLayout: 'fixed' }}>
         <thead><tr><th style={{ ...hd, width: 130 }}>Factor</th><th style={hd}>Source &amp; Logic</th></tr></thead>
         <tbody>
           {factors.map(([f, desc]) => (
             <tr key={f}>
               <td style={{ ...cell, fontWeight: 600, whiteSpace: 'nowrap', verticalAlign: 'top' }}>{f}</td>
-              <td style={{ ...cell, color: 'var(--text-muted)', lineHeight: 1.5 }}>{desc}</td>
+              <td style={{ ...cell, color: 'var(--text-muted)', lineHeight: 1.5, overflowWrap: 'anywhere', wordBreak: 'break-word' }}>{desc}</td>
             </tr>
           ))}
         </tbody>
