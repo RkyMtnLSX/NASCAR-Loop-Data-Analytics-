@@ -1019,7 +1019,7 @@ function LoadQualifying() {
         qualifying_speed:   d.speed || null,
         lap_time:           d.lapTime || null,
       }))
-      const { error } = await supabase.from('qualifying_results').upsert(rows, { onConflict: 'series,year,track_name,driver_name' })
+      const { error } = await supabase.from('qualifying_results').upsert(rows, { onConflict: 'series,year,track_name,race_number,driver_name' })
       if (error) throw error
       const pole = preview[0]
       setStatus({ type: 'success', msg: 'Loaded ' + rows.length + ' drivers for ' + trackName + ' ' + year + '. Pole: ' + pole.driverName + ' (' + (pole.speed || pole.lapTime) + ')' })
@@ -1171,6 +1171,7 @@ function LoadQualifyingOrder() {
   const [series, setSeries] = useState('cup')
   const [year, setYear] = useState(new Date().getFullYear())
   const [trackName, setTrackName] = useState('')
+  const [raceNumber, setRaceNumber] = useState('')
   const [file, setFile] = useState(null)
   const [preview, setPreview] = useState(null)
   const [rawText, setRawText] = useState(null)
@@ -1224,12 +1225,13 @@ function LoadQualifyingOrder() {
         series,
         year: parseInt(year),
         track_name: trackName,
+        race_number: parseInt(raceNumber) || 0,
         driver_name: r.driver_name,
         draw_order: r.draw_order,
       }))
       const { error } = await supabase
         .from('qualifying_results')
-        .upsert(records, { onConflict: 'series,year,track_name,driver_name' })
+        .upsert(records, { onConflict: 'series,year,track_name,race_number,driver_name' })
       if (error) throw error
       setStatus({ type: 'success', msg: `Saved draw order for ${records.length} drivers.` })
       setFile(null)
@@ -1252,6 +1254,7 @@ function LoadQualifyingOrder() {
         </select>
         <input type="number" placeholder="Year" value={year} onChange={e => setYear(e.target.value)}
           style={{ width: 80, fontSize: '0.875rem' }} />
+        <input type="number" placeholder="Race #" value={raceNumber} onChange={e => setRaceNumber(e.target.value)} style={{ width: 80, fontSize: '0.875rem' }} />
         <select value={trackName} onChange={e => setTrackName(e.target.value)} style={{ minWidth: 220, fontSize: '0.875rem' }}><option value="">-- select track --</option>{tracks.map(t => <option key={t} value={t}>{t}</option>)}</select>
       </div>
       <div style={{ marginBottom: 10 }}>
