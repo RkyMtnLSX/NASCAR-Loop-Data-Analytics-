@@ -420,7 +420,7 @@ verticalAlign: 'top',
 {fmtRaw(pVal, col.decimals)}
 </div>
 {(compareDrivers||[]).map((cd,ci) => {
-const cRace = (compareRacesMap[cd.driver]||[]).find(r => parseInt(r.year) === rc.year && (r.track_name||'') === rc.track_name && (r._occ||r.race_number||1) === rc.raceNum)
+const cRace = (function(){var __l=(compareRacesMap[cd.driver]||[]);return __l.find(r => parseInt(r.year) === rc.year && (r.track_name||'') === rc.track_name && (r._occ||r.race_number||1) === rc.raceNum) || __l.find(r => parseInt(r.year) === rc.year && (r.track_name||'') === rc.track_name);})()
 const cVal = cRace ? cRace[col.key] : null
 return (<div key={cd.driver} style={{ color: COMPARE_COLORS[ci], fontSize: '0.85rem', marginTop: 2 }}>{fmtRaw(cVal, col.decimals)}</div>)
 })}
