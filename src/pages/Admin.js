@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { parsePracticeExcel } from '../lib/excelParser'
 import { gradePracticeSession } from '../lib/practiceGrader'
-import SimulationCenter, { DEFAULT_WEIGHTS, ROAD_COURSE_WEIGHTS, SUPERSPEEDWAY_WEIGHTS } from './SimulationCenter'
+import SimulationCenter, { DEFAULT_WEIGHTS, ROAD_COURSE_WEIGHTS, SUPERSPEEDWAY_WEIGHTS, TRUCK_ROAD_WEIGHTS } from './SimulationCenter'
 import GradeCenter from './GradeCenter'
 
 const ADMIN_PASSWORD = process.env.REACT_APP_ADMIN_PASSWORD
@@ -1440,6 +1440,7 @@ function SimFormulaPanel() {
   const ovalW = __pctRows(DEFAULT_WEIGHTS)
   const rcW = __pctRows(ROAD_COURSE_WEIGHTS)
   const ssW = __pctRows(SUPERSPEEDWAY_WEIGHTS)
+  const trW = __pctRows(TRUCK_ROAD_WEIGHTS)
   const factors = [
     ['Corr. History',  'driver_rating at correlated tracks (same correlation group), year-weighted. 100% rating - avg_finish is used only as a fallback when a driver has no rating. Confidence = min(1, nRaces / 4); thin history shrinks toward 50 (neutral).'],
     ['Long Run Pace',  'overall_avg from practice_sessions - all clean laps across all stints, any lap over 8% slower than session median dropped. Lower is better.'],
@@ -1481,7 +1482,7 @@ function SimFormulaPanel() {
           </table>
         </div>
         <div style={{ flex: 1, minWidth: 180 }}>
-          <div style={label}>Road Course Weights</div>
+          <div style={label}>Road: Cup / O\u2019Reilly</div>
           <table style={tbl}>
             <thead><tr><th style={hd}>Factor</th><th style={{ ...hd, textAlign: 'right' }}>Weight</th></tr></thead>
             <tbody>
@@ -1497,6 +1498,17 @@ function SimFormulaPanel() {
             <thead><tr><th style={hd}>Factor</th><th style={{ ...hd, textAlign: 'right' }}>Weight</th></tr></thead>
             <tbody>
             {ssW.map(([f, w]) => (
+              <tr key={f}><td style={cell}>{f}</td><td style={{ ...cell, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{w}</td></tr>
+            ))}
+            </tbody>
+          </table>
+        </div>
+        <div style={{ flex: 1, minWidth: 180 }}>
+          <div style={label}>Road: Trucks</div>
+          <table style={tbl}>
+            <thead><tr><th style={hd}>Factor</th><th style={{ ...hd, textAlign: 'right' }}>Weight</th></tr></thead>
+            <tbody>
+            {trW.map(([f, w]) => (
               <tr key={f}><td style={cell}>{f}</td><td style={{ ...cell, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{w}</td></tr>
             ))}
             </tbody>
