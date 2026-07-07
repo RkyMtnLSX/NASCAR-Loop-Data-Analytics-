@@ -634,6 +634,9 @@ function LoadNewRace() {
   const [status, setStatus]     = useState(null)
   const [loading, setLoading]   = useState(false)
   const [raceDate, setRaceDate]   = useState('')
+  const [selTrack, setSelTrack] = useState('')
+  const [tracks, setTracks] = useState([])
+  useEffect(() => { supabase.from('tracks').select('name').order('name').then(({ data }) => setTracks((data || []).map(t => t.name))) }, [])
 
   const NAME_MAP = {
     'John H. Nemechek':      'John Hunter Nemechek',
@@ -687,7 +690,7 @@ function LoadNewRace() {
     setLoading(true)
     setStatus(null)
     try {
-      const { trackName, expectedLaps, rows } = parseLoopData(pasteText)
+      const { trackName: parsedTrack, expectedLaps, rows } = parseLoopData(pasteText); const trackName = selTrack || parsedTrack
       if (rows.length === 0) return setStatus({ error: 'No driver rows found. Make sure you copied the full page (Ctrl+A, Ctrl+C).' })
       const seriesCodeMap = { cup: 'W', oreilly: 'B', xfinity: 'B', trucks: 'C', truck: 'C' }
       const racingRefId = year + '-' + String(raceNum).padStart(2,'0') + '-' + (seriesCodeMap[series] || 'W')
@@ -758,6 +761,13 @@ function LoadNewRace() {
             <option value="cup">Cup Series</option>
             <option value="oreilly">O'Reilly Series</option>
             <option value="trucks">Truck Series</option>
+          </select>
+        </div>
+        <div>
+          <label style={labelStyle}>Track</label>
+          <select value={selTrack} onChange={e => setSelTrack(e.target.value)} style={{ ...inputStyle, width: 200 }}>
+            <option value="">-- select track --</option>
+            {tracks.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
         </div>
         <div>
@@ -1283,6 +1293,8 @@ function LoadFastestLaps() {
   const [parsed, setParsed]       = useState(null)
   const [loading, setLoading]     = useState(false)
   const [status, setStatus]       = useState(null)
+  const [tracks, setTracks] = useState([])
+  useEffect(() => { supabase.from('tracks').select('name').order('name').then(({ data }) => setTracks((data || []).map(t => t.name))) }, [])
 
   // Lap Raptor Lap Performance columns (use ?report=lap_performance tab):
   // Driver  Car  Make  Start  Finish  Status  ARP  FL#  FL_Time(s)  P50_Time  P95_Time  FL_Speed(mph)  P50_Speed  P95_Speed
@@ -1376,7 +1388,7 @@ function LoadFastestLaps() {
         </div>
         <div>
           <label style={labelStyle}>Track Name</label>
-          <input value={trackName} onChange={e => setTrackName(e.target.value)} style={{ ...inputStyle, width: 260 }} placeholder="Sonoma Raceway (1.99 miles)" />
+          <select value={trackName} onChange={e => setTrackName(e.target.value)} style={{ ...inputStyle, width: 260 }}><option value="">-- select track --</option>{tracks.map(t => <option key={t} value={t}>{t}</option>)}</select>
         </div>
       </div>
 
