@@ -9,7 +9,7 @@ const SERIES_TABS = [
   { value: 'trucks',  label: 'Truck Series' },
 ]
 
-const DEFAULT_WEIGHTS = {
+export const DEFAULT_WEIGHTS = {
   corrHistory:  0.35,
   longRunPace:  0.15,
   shortRunPace: 0.00,
@@ -23,7 +23,7 @@ const DEFAULT_WEIGHTS = {
 // startPos reduced -- observed overpenalization of strong road course cars with poor qualifying
 // (Hemric P32->2nd, Grala P16->3rd at San Diego 2026). raceCraft (quality pass %) added:
 // captures meaningful passing in traffic, correlates with road/street course survival.
-const ROAD_COURSE_WEIGHTS = {
+export const ROAD_COURSE_WEIGHTS = {
   corrHistory:  0.35,  // strong signal, track-type history reliable
   longRunPace:  0.15,  // fewer laps at road courses, still useful
   shortRunPace: 0.05,  // near-redundant with LRP when stints are short
@@ -39,7 +39,7 @@ const ROAD_COURSE_TRACKS = [
   'coronado', 'mexico',
 ]
 
-const SUPERSPEEDWAY_WEIGHTS = {   // Daytona / Talladega / Atlanta - pack racing (no practice; start near-noise)
+export const SUPERSPEEDWAY_WEIGHTS = {   // Daytona / Talladega / Atlanta - pack racing (no practice; start near-noise)
   corrHistory:  0.50,  // superspeedway-group avg rating - main pack-racing skill signal
   longRunPace:  0.00,  // practice useless at pack tracks (and absent)
   shortRunPace: 0.00,
