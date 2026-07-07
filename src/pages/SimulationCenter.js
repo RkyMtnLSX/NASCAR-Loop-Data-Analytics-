@@ -36,7 +36,7 @@ export const ROAD_COURSE_WEIGHTS = {
 const ROAD_COURSE_TRACKS = [
   'sonoma', 'watkins glen', 'cota', 'circuit of the americas',
   'road america', 'roval', 'indianapolis road', 'portland', 'chicago street',
-  'coronado', 'mexico',
+  'coronado', 'mexico', 'lime rock',
 ]
 
 export const SUPERSPEEDWAY_WEIGHTS = {   // Daytona / Talladega / Atlanta - pack racing (no practice; start near-noise)
