@@ -839,6 +839,8 @@ function LoadQualifying() {
   const [year, setYear]             = useState(new Date().getFullYear())
   const [raceNumber, setRaceNumber] = useState('')
   const [trackName, setTrackName]   = useState('')
+  const [tracks, setTracks] = useState([])
+  useEffect(() => { supabase.from('tracks').select('name').order('name').then(({ data }) => setTracks((data || []).map(t => t.name))) }, [])
   const [pastedText, setPastedText] = useState('')
   const [preview, setPreview]       = useState(null)
   const [loading, setLoading]       = useState(false)
@@ -1050,7 +1052,7 @@ function LoadQualifying() {
         </div>
         <div>
           <label style={{ color: '#aaa', fontSize: 12 }}>Track Name (exact)</label>
-          <input type="text" value={trackName} onChange={e => setTrackName(e.target.value)} style={inputStyle} placeholder="Sonoma Raceway" />
+          <select value={trackName} onChange={e => setTrackName(e.target.value)} style={inputStyle}><option value="">-- select track --</option>{tracks.map(t => <option key={t} value={t}>{t}</option>)}</select>
         </div>
       </div>
 
@@ -1168,6 +1170,8 @@ function LoadQualifyingOrder() {
   const [rawText, setRawText] = useState(null)
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState(null)
+  const [tracks, setTracks] = useState([])
+  useEffect(() => { supabase.from('tracks').select('name').order('name').then(({ data }) => setTracks((data || []).map(t => t.name))) }, [])
 
   async function handleFileChange(e) {
     const f = e.target.files[0]
@@ -1242,8 +1246,7 @@ function LoadQualifyingOrder() {
         </select>
         <input type="number" placeholder="Year" value={year} onChange={e => setYear(e.target.value)}
           style={{ width: 80, fontSize: '0.875rem' }} />
-        <input type="text" placeholder="Track name (exact)" value={trackName} onChange={e => setTrackName(e.target.value)}
-          style={{ minWidth: 220, fontSize: '0.875rem' }} />
+        <select value={trackName} onChange={e => setTrackName(e.target.value)} style={{ minWidth: 220, fontSize: '0.875rem' }}><option value="">-- select track --</option>{tracks.map(t => <option key={t} value={t}>{t}</option>)}</select>
       </div>
       <div style={{ marginBottom: 10 }}>
         <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
