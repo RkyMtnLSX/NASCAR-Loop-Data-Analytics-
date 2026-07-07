@@ -654,7 +654,7 @@ const [compareDrivers, setCompareDrivers] = useState([])
 const [compareHistories, setCompareHistories] = useState({})
 useEffect(() => {
   if (!cardDriver || !cardDriver.rawRaces || !cardDriver.rawRaces[0]) { setCompareHistories({}); return }
-  const tracks = [...new Set((cardDriver.rawRaces||[]).map(r=>r.track_name).filter(Boolean))]
+  const tracks = [...new Set([...(cardDriver.rawRaces||[]).map(r=>r.track_name), (config && config.track_name)].filter(Boolean))]
   const tn = tracks[0] || (config && config.track_name)
   if (!tracks.length || !compareDrivers.length) { setCompareHistories({}); return }
   Promise.all(compareDrivers.map(cd =>
