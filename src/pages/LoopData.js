@@ -497,8 +497,14 @@ const av = (a[sortKey] || '').toString()
 const bv = (b[sortKey] || '').toString()
 return sortDir === 'desc' ? bv.localeCompare(av) : av.localeCompare(bv)
 }
-const av = parseFloat(a[sortKey]) || 0
-const bv = parseFloat(b[sortKey]) || 0
+const aR = a[sortKey], bR = b[sortKey]
+const aNull = aR == null || aR === '' || isNaN(parseFloat(aR))
+const bNull = bR == null || bR === '' || isNaN(parseFloat(bR))
+if (aNull && bNull) return 0
+if (aNull) return 1
+if (bNull) return -1
+const av = parseFloat(aR)
+const bv = parseFloat(bR)
 return sortDir === 'desc' ? bv - av : av - bv
 })
 
