@@ -49,6 +49,16 @@ export const SUPERSPEEDWAY_WEIGHTS = {   // Daytona / Talladega / Atlanta - pack
   trackHistory: 0.30,  // drafting instinct is persistent + track-specific
 }
 
+export const TRUCK_ROAD_WEIGHTS = {   // Trucks road courses (2026-07-07, 9-race sweep): startPos leans higher than Cup, raceCraft 0
+  corrHistory:  0.55,
+  longRunPace:  0.15,
+  shortRunPace: 0.05,
+  startPos:     0.20,  // sweep monotonic 10->25; trucks reward qualifying/start more than Cup road ringers
+  tireFalloff:  0.05,
+  raceCraft:    0.00,
+  trackHistory: 0.00,
+}
+
 function isRoadCourse(trackName) {
   if (!trackName) return false
   const t = trackName.toLowerCase()
@@ -402,7 +412,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
         setConfig(cfg)
 
         // Auto-apply track-type weights
-        setWeights(isSuperspeedway(cfg.track_name) ? SUPERSPEEDWAY_WEIGHTS : isRoadCourse(cfg.track_name) ? ROAD_COURSE_WEIGHTS : DEFAULT_WEIGHTS)
+        setWeights(isSuperspeedway(cfg.track_name) ? SUPERSPEEDWAY_WEIGHTS : isRoadCourse(cfg.track_name) ? (s === 'trucks' ? TRUCK_ROAD_WEIGHTS : ROAD_COURSE_WEIGHTS) : DEFAULT_WEIGHTS)
         setDnfPreset(isSuperspeedway(cfg.track_name) ? DNF_PRESETS[2] : DNF_PRESETS[1])
 
         const [
