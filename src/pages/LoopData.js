@@ -161,6 +161,7 @@ return {
 driver,
 car_number: entry.car_number || null,
 organization: entry.organization || null,
+        manufacturer: entry.manufacturer || null,
 rawRaces: dRows.map(function(r) { var fin=parseInt(r.finish_position)||0; var st=parseInt(r.start_position)||0; var fl=parseFloat(r.fastest_laps)||0; var ll=parseFloat(r.laps_led)||0; return Object.assign({},r,{dk_pts:dkFinishPts(fin)+(st-fin)+(fl*0.45)+(ll*0.25)}) }),
 ...stats,
 ...yearFinishes,
@@ -320,7 +321,7 @@ position: 'relative',
 {cardDriver.driver}
 </div>
 {cardDriver.organization && (
-<div style={{ fontSize: '0.89rem', color: 'var(--text-muted)', marginTop: 2 }}>{cardDriver.organization}</div>
+<div style={{ fontSize: '0.89rem', color: 'var(--text-muted)', marginTop: 2 }}>{cardDriver.organization}{cardDriver.manufacturer ? ' \u00b7 ' + cardDriver.manufacturer : ''}</div>
 )}
 </div>
 <button
@@ -591,7 +592,7 @@ onClick={() => onDriverClick && onDriverClick(row)}
 {row.driver}
 </span>
 </div>
-{row.organization && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 1 }}>{row.organization}</div>}
+{row.organization && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 1 }}>{row.organization}{row.manufacturer ? ' \u00b7 ' + row.manufacturer : ''}</div>}
 </div>
 </div>
 </td>
@@ -699,7 +700,7 @@ setConfig(cfg)
 
 const { data: entryData } = await supabase
 .from('entry_list')
-.select('driver_name, car_number, organization')
+.select('driver_name, car_number, organization, manufacturer')
 .eq('series', s)
 .eq('race_year', cfg.correlation_year)
 .eq('track_name', cfg.track_name)
