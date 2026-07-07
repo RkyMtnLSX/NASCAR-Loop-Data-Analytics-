@@ -24,12 +24,12 @@ export const DEFAULT_WEIGHTS = {
 // (Hemric P32->2nd, Grala P16->3rd at San Diego 2026). raceCraft (quality pass %) added:
 // captures meaningful passing in traffic, correlates with road/street course survival.
 export const ROAD_COURSE_WEIGHTS = {
-  corrHistory:  0.35,  // strong signal, track-type history reliable
+  corrHistory:  0.60,  // race craft 0.25 folded here 2026-07-07 (Cup + 8-race truck road sweep: raceCraft redundant w/ rating)
   longRunPace:  0.15,  // fewer laps at road courses, still useful
   shortRunPace: 0.05,  // near-redundant with LRP when stints are short
   startPos:     0.15,  // backed by r=0.416 correlation across 682 obs
   tireFalloff:  0.05,  // can't measure properly without long stints
-  raceCraft:    0.25,  // actual race data, most meaningful at road courses
+  raceCraft:    0.00,  // CUT 2026-07-07: ~0.81 corr with driver_rating; monotonic sweep, never wins a market
   trackHistory: 0.00,
 }
 
