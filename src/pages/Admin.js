@@ -198,6 +198,8 @@ const SERIES_OPTS = [
   { value: 'trucks', label: 'Truck Series' },
 ]
 
+function normMfr(t){ var s=(t||'').toString().toLowerCase(); if(/chevrolet|chevy|\bchv\b|camaro|silverado/.test(s)) return 'Chevrolet'; if(/toyota|camry|tundra|\btyt\b|\btoy\b/.test(s)) return 'Toyota'; if(/\bford\b|mustang|f-?150|\bfd\b/.test(s)) return 'Ford'; if(/\bram\b|dodge/.test(s)) return 'Ram'; return ''; }
+
 function EntryListManager() {
   const [series, setSeries] = React.useState('cup')
   const [cfg, setCfg] = React.useState(null)
@@ -205,6 +207,7 @@ function EntryListManager() {
   const [newCar, setNewCar] = React.useState('')
   const [newDriver, setNewDriver] = React.useState('')
   const [newOrg, setNewOrg] = React.useState('')
+  const [newMfr, setNewMfr] = React.useState('')
   const [bulkText, setBulkText] = React.useState('')
   const [showBulk, setShowBulk] = React.useState(false)
   const [pdfParsing, setPdfParsing] = React.useState(false)
@@ -263,7 +266,7 @@ function EntryListManager() {
           }
           if (drv && /[A-Z]/.test(drv) && drv.length > 3 && !/^\d/.test(drv)) {
             const carNum = (+s >= 101 && +s <= 199) ? String(+s - 100) : s
-            rows.push(carNum + ',' + drv + ',' + org)
+            var mfr = ''; for (var mk = i + 2; mk < ne.length && mk <= i + 6; mk++) { if (/^\d{1,3}$/.test((ne[mk] || '').trim())) break; var mm = normMfr(ne[mk]); if (mm) { mfr = mm; break; } } rows.push(carNum + ',' + drv + ',' + org + ',' + mfr)
           }
         }
       }
@@ -322,9 +325,10 @@ function EntryListManager() {
       car_number: newCar.trim() || null,
       driver_name: newDriver.trim(),
       organization: newOrg.trim() || null,
+        manufacturer: normMfr(newMfr) || null,
     })
     if (error) { showStatus('Error: ' + error.message, true); return }
-    setNewCar(''); setNewDriver(''); setNewOrg('')
+    setNewCar(''); setNewDriver(''); setNewOrg(''); setNewMfr('')
     await loadEntries(series, cfg)
     showStatus('Added ' + newDriver.trim())
   }
@@ -354,6 +358,7 @@ function EntryListManager() {
           car_number: parts[0] || null,
           driver_name: parts[1],
           organization: parts[2] || null,
+          manufacturer: normMfr(parts[3]) || null,
         })
       }
     }
@@ -403,7 +408,8 @@ function EntryListManager() {
         <input placeholder="Organization" value={newOrg} onChange={e => setNewOrg(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && addEntry()}
           style={{ ...inp, flex: 1, minWidth: 160 }} />
-        <button onClick={addEntry} style={btn({})}>+ Add</button>
+        <select value={newMfr} onChange={e => setNewMfr(e.target.value)} style={{ ...inp, width: 120 }}><option value="">Mfr</option><option value="Chevrolet">Chevrolet</option><option value="Ford">Ford</option><option value="Toyota">Toyota</option><option value="Ram">Ram</option></select>
+            <button onClick={addEntry} style={btn({})}>+ Add</button>
       </div>
 
       <div style={{ marginBottom: 16, padding: '12px 14px', background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 8 }}>
@@ -443,7 +449,7 @@ function EntryListManager() {
             </p>
             <textarea value={bulkText} onChange={e => setBulkText(e.target.value)}
               rows={8}
-              placeholder={"12, Ryan Blaney, Team Penske\n5, Kyle Larson, Hendrick Motorsports"}
+              placeholder={"12, Ryan Blaney, Team Penske, Ford\n5, Kyle Larson, Hendrick Motorsports, Chevrolet"}
               style={{ width: '100%', fontFamily: 'monospace', fontSize: '0.8rem',
                 padding: '8px', borderRadius: 6, border: '1px solid var(--border)',
                 background: 'var(--bg-elevated)', color: 'var(--text-primary)',
@@ -470,7 +476,7 @@ function EntryListManager() {
           <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: '0.8125rem' }}>
             <thead>
               <tr style={{ background: 'var(--bg-elevated)' }}>
-                {['#','Driver','Organization',''].map((h, i) => (
+                {['#','Driver','Organization','Mfr',''].map((h, i) => (
                   <th key={i} style={{ padding: '8px 12px', textAlign: 'left',
                     color: 'var(--text-secondary)', fontWeight: 600,
                     borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>{h}</th>
@@ -482,7 +488,7 @@ function EntryListManager() {
                 <tr key={e.id} style={{ background: i % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-elevated)' }}>
                   <td style={{ padding: '6px 12px', fontFamily: 'monospace', color: 'var(--text-muted)', width: 50 }}>{e.car_number || ''}</td>
                   <td style={{ padding: '6px 12px' }}>{e.driver_name}</td>
-                  <td style={{ padding: '6px 12px', color: 'var(--text-secondary)' }}>{e.organization || ''}</td>
+                  <td style={{ padding: '6px 12px', color: 'var(--text-secondary)' }}>{e.organization || ''}</td><td style={{ padding: '6px 12px', color: 'var(--text-secondary)' }}>{e.manufacturer || '-'}</td>
                   <td style={{ padding: '6px 4px', width: 32 }}>
                     <button onClick={() => deleteEntry(e.id)}
                       style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.9rem', padding: '2px 6px' }}></button>
