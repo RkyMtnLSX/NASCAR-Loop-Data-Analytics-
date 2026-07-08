@@ -289,3 +289,6 @@ tr:hover td { background: var(--bg-hover); }
 
 /* Native select dropdown options: dark popup + light text (fixes invisible options) */
 select option { background-color: #181b22; color: #e6e6e6; }
+
+/* Bare selects/inputs get the dark theme (styled ones override inline) */
+select, input:not([type="file"]):not([type="checkbox"]):not([type="radio"]) { background-color: #1a1a24; color: #e6e6e6; border: 1px solid var(--border, #333); border-radius: 4px; }
