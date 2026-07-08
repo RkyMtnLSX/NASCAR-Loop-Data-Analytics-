@@ -18,6 +18,8 @@ function shortTrackName(track) {
   return (track || '').split('(')[0].replace(/International/g, '').replace(/Superspeedway/g, '').replace(/Speedway/g, '').replace(/Raceway/g, '').replace(/Motor/g, '').split(' ').filter(Boolean).join(' ')
 }
 
+function normName(n) { return (n || '').toLowerCase().normalize('NFD').replace(/[^a-z ]/g, '').replace(/ +/g, ' ').trim() }
+
 function rankColor(rank) {
   if (rank === 1) return 'rgba(255,215,0,0.55)'
   if (rank === 2) return 'rgba(192,192,192,0.5)'
@@ -143,6 +145,8 @@ export default function GreenFlagSpeed() {
   const [view, setView] = useState('heat')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [entrySet, setEntrySet] = useState(null)
+  const [entryOnly, setEntryOnly] = useState(true)
 
   useEffect(() => {
     supabase.from('tracks').select('name, track_type').then(({ data }) => {
@@ -151,6 +155,20 @@ export default function GreenFlagSpeed() {
       setTypeMap(m)
     })
   }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      const { data: fw } = await supabase.from('featured_weekend').select('track_name, correlation_year').eq('series', series).maybeSingle()
+      if (cancelled) return
+      if (!fw || !fw.track_name) { setEntrySet(null); return }
+      const { data: el } = await supabase.from('entry_list').select('driver_name').eq('series', series).eq('race_year', fw.correlation_year).eq('track_name', fw.track_name)
+      if (cancelled) return
+      if (el && el.length) setEntrySet(new Set(el.map(e => normName(e.driver_name))))
+      else setEntrySet(null)
+    })()
+    return () => { cancelled = true }
+  }, [series])
 
   useEffect(() => { loadData() }, [series, year]) // eslint-disable-line
 
@@ -179,7 +197,8 @@ export default function GreenFlagSpeed() {
     if (s.includes('daytona') || s.includes('talladega')) return 'Superspeedway'
     return 'Other'
   }
-  const filtered = trackType === 'All' ? allRows : allRows.filter(r => typeOf(r.track) === trackType)
+  const byType = trackType === 'All' ? allRows : allRows.filter(r => typeOf(r.track) === trackType)
+  const filtered = (entryOnly && entrySet) ? byType.filter(r => entrySet.has(normName(r.driver))) : byType
   const raceSeen = new Set(); const raceOpts = []
   filtered.forEach(r => { const k = r.race_name + '|' + r.race_date; if (!raceSeen.has(k)) { raceSeen.add(k); raceOpts.push({ k, label: r.race_name + ' (' + (r.race_date || r.report_date) + ')' }) } })
   const raceRows = selectedRace ? filtered.filter(r => (r.race_name + '|' + r.race_date) === selectedRace) : []
@@ -198,6 +217,7 @@ export default function GreenFlagSpeed() {
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
         {TRACK_TYPES.map(t => <span key={t} onClick={() => setTrackType(t)} style={pillStyle(trackType === t)}>{t}</span>)}
         <span style={{ flex: 1 }} />
+        {entrySet && <span onClick={() => setEntryOnly(!entryOnly)} style={pillStyle(entryOnly)} title="Show only drivers on this weekend's entry list">Racing this week</span>}
         <span onClick={() => setView('heat')} style={pillStyle(view === 'heat')}>Heat Map</span>
         <span onClick={() => setView('race')} style={pillStyle(view === 'race')}>By Race</span>
       </div>
