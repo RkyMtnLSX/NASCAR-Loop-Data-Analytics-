@@ -1679,6 +1679,122 @@ function CrossoverBorrowPanel() {
   )
 }
 
+
+function LoadGreenFlagSpeed() {
+  const [series, setSeries] = useState('cup')
+  const [year, setYear] = useState(new Date().getFullYear().toString())
+  const [raceNum, setRaceNum] = useState('')
+  const [raceDate, setRaceDate] = useState('')
+  const [raceName, setRaceName] = useState('')
+  const [selTrack, setSelTrack] = useState('')
+  const [tracks, setTracks] = useState([])
+  const [parsed, setParsed] = useState(null)
+  const [status, setStatus] = useState(null)
+  const [loading, setLoading] = useState(false)
+  useEffect(() => { supabase.from('tracks').select('name').order('name').then(({ data }) => setTracks((data || []).map(t => t.name))) }, [])
+
+  async function parsePdf(file) {
+    setParsed(null); setStatus({ msg: 'Loading pdf.js...' })
+    try {
+      if (!window.pdfjsLib) {
+        await new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'; s.onload = res; s.onerror = rej; document.head.appendChild(s) })
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+      }
+      const buf = await file.arrayBuffer()
+      const pdf = await window.pdfjsLib.getDocument({ data: buf }).promise
+      let tc = null
+      for (let p = 1; p <= pdf.numPages; p++) {
+        const page = await pdf.getPage(p)
+        const c = await page.getTextContent()
+        const head = c.items.map(i => i.str).join(' ').slice(0, 40)
+        if (head.indexOf('Green Flag Speed') === 0) { tc = c; break }
+      }
+      if (!tc) { setStatus({ error: 'No Green Flag Speed page found in this PDF (expected around page 10).' }); return }
+      const byY = {}
+      tc.items.forEach(it => { const s = (it.str || '').trim(); if (!s) return; const y = Math.round(it.transform[5]); (byY[y] = byY[y] || []).push({ s: s, x: it.transform[4] }) })
+      const ys = Object.keys(byY).map(Number).sort((a, b) => b - a)
+      const lineText = ys.map(y => byY[y].slice().sort((a, b) => a.x - b.x).map(o => o.s).join(' '))
+      const track = (lineText[1] || '').trim()
+      const rname = (lineText[2] || '').trim()
+      let rdate = null
+      lineText.slice(0, 6).forEach(ln => { ln.split(' ').forEach(tok => { const p = tok.split('/'); if (p.length === 3 && p.every(x => x !== '' && !isNaN(parseInt(x)))) { rdate = p[2].padStart(4, '0') + '-' + p[0].padStart(2, '0') + '-' + p[1].padStart(2, '0') } }) })
+      let teamX = 200
+      ys.forEach(y => { byY[y].forEach(o => { if (o.s === 'Team') teamX = o.x }) })
+      const rows = []
+      ys.forEach(y => {
+        const items = byY[y].slice().sort((a, b) => a.x - b.x)
+        if (items.length < 5) return
+        if (isNaN(parseInt(items[0].s)) || String(parseInt(items[0].s)) !== items[0].s) return
+        const last = items[items.length - 1].s
+        if (last.indexOf('.') < 0 || isNaN(parseFloat(last)) || parseFloat(last) < 40) return
+        const rank = parseInt(items[0].s)
+        const car = items[1].s
+        const gfs = parseFloat(last)
+        const finTok = items[items.length - 2].s
+        const finish = (!isNaN(parseInt(finTok)) && String(parseInt(finTok)) === finTok) ? parseInt(finTok) : null
+        const mid = items.slice(2, items.length - 2)
+        const driver = mid.filter(o => o.x < teamX - 15).map(o => o.s).join(' ').trim()
+        const team = mid.filter(o => o.x >= teamX - 15).map(o => o.s).join(' ').trim()
+        if (driver) rows.push({ rank: rank, car: car, driver: driver, team: team, finish: finish, gfs: gfs })
+      })
+      if (!rows.length) { setStatus({ error: 'Found the Green Flag Speed page but parsed no driver rows.' }); return }
+      setParsed({ track: track, race_name: rname, report_date: rdate, rows: rows })
+      if (rname) setRaceName(rname)
+      const matchTrack = tracks.find(tn => tn === track)
+      if (matchTrack) setSelTrack(matchTrack)
+      setStatus({ msg: 'Parsed ' + rows.length + ' drivers from ' + (track || 'the PDF') + '. Review and Load.' })
+    } catch (e) { setStatus({ error: 'PDF error: ' + (e.message || e) }) }
+  }
+
+  async function load() {
+    if (!selTrack) return setStatus({ error: 'Select a track.' })
+    if (!raceNum) return setStatus({ error: 'Enter a race number.' })
+    if (!raceDate) return setStatus({ error: 'Enter a race date.' })
+    if (!parsed || !parsed.rows.length) return setStatus({ error: 'Upload and parse a PDF first.' })
+    setLoading(true); setStatus({ msg: 'Loading...' })
+    try {
+      const { data: existing } = await supabase.from('green_flag_speed').select('id').eq('series', series).eq('year', parseInt(year)).eq('race_number', parseInt(raceNum)).limit(1)
+      if (existing && existing.length) { setStatus({ error: 'Already loaded: ' + selTrack + ' ' + year + ' race ' + raceNum + '. Delete those rows first to reload.' }); setLoading(false); return }
+      const lapsByFin = {}; let maxLaps = 0
+      const { data: ld } = await supabase.from('loop_data').select('finish_position, laps_completed').eq('series', series).eq('year', parseInt(year)).eq('race_number', parseInt(raceNum))
+      if (ld && ld.length) { ld.forEach(r => { lapsByFin[r.finish_position] = r.laps_completed; if ((r.laps_completed || 0) > maxLaps) maxLaps = r.laps_completed }) }
+      const insertRows = parsed.rows.map(r => {
+        const laps = lapsByFin[r.finish]
+        const shortRun = (maxLaps > 0 && laps != null) ? (laps < 0.40 * maxLaps) : false
+        return { series: series, year: parseInt(year), track: selTrack, race_name: raceName || parsed.race_name || null, report_date: parsed.report_date || null, race_number: parseInt(raceNum), race_date: raceDate, gfs_rank: r.rank, car: String(r.car), driver: r.driver, team: r.team || null, finish_pos: r.finish, green_flag_speed: r.gfs, laps_completed: (laps != null ? laps : null), short_run: shortRun, gfs_rank_valid: null }
+      })
+      const valid = insertRows.filter(r => !r.short_run).slice().sort((a, b) => b.green_flag_speed - a.green_flag_speed)
+      valid.forEach((r, i) => { r.gfs_rank_valid = i + 1 })
+      const { error } = await supabase.from('green_flag_speed').insert(insertRows)
+      if (error) { setStatus({ error: 'Insert error: ' + error.message }); setLoading(false); return }
+      setStatus({ msg: 'Loaded ' + insertRows.length + ' drivers for ' + selTrack + ' ' + year + (maxLaps > 0 ? ' (short-run flags set from loop_data)' : ' (load loop data first to get short-run flags)') })
+      setParsed(null)
+    } catch (e) { setStatus({ error: 'Error: ' + (e.message || e) }) }
+    setLoading(false)
+  }
+
+  const fld = { display: 'flex', flexDirection: 'column', gap: 3 }
+  const lab = { fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase' }
+  const inp = { padding: '6px 8px', fontSize: '0.8125rem', background: 'var(--bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 4 }
+  return (
+    <div className="card" style={{ marginBottom: 20 }}>
+      <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 4 }}>Load Green Flag Speed</h2>
+      <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 14 }}>Upload the loop-data PDF; the Green Flag Speed page (usually page 10) is parsed automatically. Same fields and dedup as Load New Race. Load the race's loop data first so short-run flags compute.</p>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 12 }}>
+        <div style={fld}><label style={lab}>Series</label><select style={{ ...inp, width: 110 }} value={series} onChange={e => setSeries(e.target.value)}><option value="cup">cup</option><option value="oreilly">oreilly</option><option value="trucks">trucks</option></select></div>
+        <div style={fld}><label style={lab}>Track</label><select style={{ ...inp, width: 230 }} value={selTrack} onChange={e => setSelTrack(e.target.value)}><option value="">Select track...</option>{tracks.map(tn => <option key={tn} value={tn}>{tn}</option>)}</select></div>
+        <div style={fld}><label style={lab}>Year</label><input style={{ ...inp, width: 70 }} value={year} onChange={e => setYear(e.target.value)} /></div>
+        <div style={fld}><label style={lab}>Race #</label><input style={{ ...inp, width: 60 }} value={raceNum} onChange={e => setRaceNum(e.target.value)} /></div>
+        <div style={fld}><label style={lab}>Race date</label><input type="date" style={{ ...inp, width: 150 }} value={raceDate} onChange={e => setRaceDate(e.target.value)} /></div>
+      </div>
+      <input type="file" accept="application/pdf" onChange={e => { const f = e.target.files[0]; if (f) parsePdf(f) }} style={{ fontSize: '0.8rem', marginBottom: 10 }} />
+      {parsed && <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 10 }}>Parsed <b>{parsed.rows.length}</b> drivers &middot; {parsed.track || '(track?)'} &middot; {parsed.race_name || '(race?)'} &middot; {parsed.report_date || '(no date)'} &middot; top: {parsed.rows.slice(0, 3).map(r => r.driver + ' ' + r.gfs).join(', ')}</div>}
+      <button onClick={load} disabled={loading} style={{ padding: '8px 18px', cursor: 'pointer', borderRadius: 4, border: '1px solid var(--border)', background: 'var(--text)', color: 'var(--bg)', fontWeight: 600, fontSize: '0.82rem' }}>{loading ? 'Loading...' : 'Load Green Flag Speed'}</button>
+      {status && <div style={{ marginTop: 10, fontSize: '0.8rem', color: status.error ? '#ef4444' : 'var(--text-secondary)' }}>{status.error || status.msg}</div>}
+    </div>
+  )
+}
+
 export default function Admin() {
   const [authed, setAuthed] = useState(false)
   const [password, setPassword] = useState('')
@@ -1872,6 +1988,7 @@ export default function Admin() {
       <LoadQualifying />
       <LoadQualifyingOrder />
       <LoadFastestLaps />
+      <LoadGreenFlagSpeed />
       <SimFormulaPanel />
       <TrackDbPanel />
       <CrossoverBorrowPanel />
