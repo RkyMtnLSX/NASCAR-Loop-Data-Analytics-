@@ -40,13 +40,28 @@ const ROAD_COURSE_TRACKS = [
 ]
 
 export const SUPERSPEEDWAY_WEIGHTS = {   // Daytona / Talladega / Atlanta - pack racing (no practice; start near-noise)
-  corrHistory:  0.50,  // superspeedway-group avg rating - main pack-racing skill signal
+  corrHistory:  0.55,  // SS-group avg rating - main pack skill signal (+0.05 from cut raceCraft)
   longRunPace:  0.00,  // practice useless at pack tracks (and absent)
   shortRunPace: 0.00,
   startPos:     0.15,  // pack racing negates qualifying; kept low
   tireFalloff:  0.00,
-  raceCraft:    0.05,  // drafting passes, minor
+  raceCraft:    0.00,  // CUT 2026-07-08: zero SS effect in leak-free backtest (identical Spearman)
   trackHistory: 0.30,  // drafting instinct is persistent + track-specific
+}
+
+// O'Reilly superspeedways: adds a win-conversion signal (win=1.0, top5=0.35, year-weighted).
+// Rewards pack-race CLOSERS (Austin Hill: 9/20 SS wins, 4 Atlanta wins) over steady-but-winless
+// drivers whose avg driver_rating is inflated by consistency. Leak-free O'Reilly SS backtest:
+// winner-market hit rate 16% -> 42% vs rating-only; matches FanDuel Hill +260 / Love +500.
+export const ONEILLY_SUPERSPEEDWAY_WEIGHTS = {
+  corrHistory:   0.45,
+  longRunPace:   0.00,
+  shortRunPace:  0.00,
+  startPos:      0.15,
+  tireFalloff:   0.00,
+  raceCraft:     0.00,
+  trackHistory:  0.20,
+  winConversion: 0.20,
 }
 
 export const TRUCK_ROAD_WEIGHTS = {   // Trucks road courses (2026-07-07, 9-race sweep): startPos leans higher than Cup, raceCraft 0
@@ -184,7 +199,8 @@ function buildSpeedScores(drivers, weights) {
   const fallScores       = normalizeArr(drivers.map(d => d.trendSlope),     true)  // lower falloff = better
   const raceCraftScores  = normalizeArr(drivers.map(d => d.raceCraftPct),    false) // higher pct = better
   const trackRatingScores = normalizeArr(drivers.map(d => d.trackAvgRating), false) // higher = better
-  const trackFinishScores = normalizeArr(drivers.map(d => d.trackAvgFinish), true)  // lower = better
+  const trackFinishScores = normalizeArr(drivers.map(d => d.trackAvgFinish), true)
+  const winConvScores     = normalizeArr(drivers.map(d => d.corrWinConv),    false)  // lower = better
 
   const wTotal = Object.values(weights).reduce((a, b) => a + b, 0) || 1
   const w = {
@@ -195,6 +211,7 @@ function buildSpeedScores(drivers, weights) {
     tireFalloff:  weights.tireFalloff  / wTotal,
     raceCraft:    (weights.raceCraft    || 0) / wTotal,
     trackHistory: (weights.trackHistory || 0) / wTotal,
+    winConversion:(weights.winConversion || 0) / wTotal,
   }
 
   return drivers.map((d, i) => {
@@ -225,6 +242,7 @@ function buildSpeedScores(drivers, weights) {
     const sp  = startScores[i] ?? 50
     const fl  = fallScores[i]  ?? 50
     const rc  = raceCraftScores[i] ?? 50
+    const wc  = winConvScores[i]   ?? 50
 
     const speedScore =
       c   * w.corrHistory  +
@@ -233,7 +251,8 @@ function buildSpeedScores(drivers, weights) {
       sp  * w.startPos     +
       fl  * w.tireFalloff +
     rc  * w.raceCraft  +
-      t   * w.trackHistory
+      t   * w.trackHistory +
+      wc  * w.winConversion
 
     return {
       ...d,
@@ -245,6 +264,7 @@ function buildSpeedScores(drivers, weights) {
         sp:   Math.round(sp),
         fall: Math.round(fl),
         rc:   Math.round(rc),
+        win:  Math.round(wc),
         track: Math.round(t),
       },
     }
@@ -412,7 +432,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
         setConfig(cfg)
 
         // Auto-apply track-type weights
-        setWeights(isSuperspeedway(cfg.track_name) ? SUPERSPEEDWAY_WEIGHTS : isRoadCourse(cfg.track_name) ? (s === 'trucks' ? TRUCK_ROAD_WEIGHTS : ROAD_COURSE_WEIGHTS) : DEFAULT_WEIGHTS)
+        setWeights(isSuperspeedway(cfg.track_name) ? (s === 'oreilly' ? ONEILLY_SUPERSPEEDWAY_WEIGHTS : SUPERSPEEDWAY_WEIGHTS) : isRoadCourse(cfg.track_name) ? (s === 'trucks' ? TRUCK_ROAD_WEIGHTS : ROAD_COURSE_WEIGHTS) : DEFAULT_WEIGHTS)
         try {
           const __cr = await supabase.from('races').select('total_cautions').eq('series', s).eq('track_name', cfg.track_name).not('total_cautions', 'is', null)
           const __cs = ((__cr && __cr.data) || []).map(function (x) { return x.total_cautions }).filter(function (v) { return v != null })
@@ -508,6 +528,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
             const baseRows = rows.filter(r => r.sr === s || r.sr === 'cup')
             const wsum = arr => arr.reduce((a, r) => a + yrWt(r.yr), 0)
             const avgFin = baseRows.length ? baseRows.reduce((a, r) => a + r.fin * yrWt(r.yr), 0) / wsum(baseRows) : null
+            const winConv = baseRows.length ? baseRows.reduce((a, r) => a + (r.fin === 1 ? 1 : r.fin <= 5 ? 0.35 : 0) * yrWt(r.yr), 0) / wsum(baseRows) : null
             const rRows = baseRows.filter(r => r.rating !== null)
             let avgRating = rRows.length > 0 ? rRows.reduce((a, r) => a + r.rating * yrWt(r.yr), 0) / wsum(rRows) : null
             const bw = __borrowMap[name]
@@ -520,7 +541,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
             }
             const qpRows = baseRows.filter(r => r.qp !== null)
             const avgQP = qpRows.length > 0 ? qpRows.reduce((a, r) => a + r.qp * yrWt(r.yr), 0) / wsum(qpRows) : null
-            return [name, { avg: avgFin, avgRating, avgQP, n: baseRows.length }]
+            return [name, { avg: avgFin, avgRating, avgQP, winConv, n: baseRows.length }]
           })
         )
 
@@ -574,7 +595,8 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
               corrAvgFinish: corrAvgMap.get(normalizeName(name))?.avg       ?? null,
               corrAvgRating: corrAvgMap.get(normalizeName(name))?.avgRating ?? null,
               raceCraftPct:  corrAvgMap.get(normalizeName(name))?.avgQP     ?? null,
-              nCorrRaces:    corrAvgMap.get(normalizeName(name))?.n         ?? 0,
+              corrWinConv:   corrAvgMap.get(normalizeName(name))?.winConv   ?? null,
+            nCorrRaces:    corrAvgMap.get(normalizeName(name))?.n         ?? 0,
               trackAvgFinish: trackAvgMap.get(normalizeName(name))?.avg       ?? null,
               trackAvgRating: trackAvgMap.get(normalizeName(name))?.avgRating ?? null,
               nTrackRaces:    trackAvgMap.get(normalizeName(name))?.n         ?? 0,
@@ -856,7 +878,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
               </div>
               <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginRight: 12, fontSize: 12, color: '#f5c518', cursor: 'pointer' }}><input type="checkbox" checked={rainOut} onChange={e => setRainOut(e.target.checked)} style={{ cursor: 'pointer' }} />Rain-out grid</label>
             <button
-                onClick={() => setWeights(isSuperspeedway(config.track_name) ? SUPERSPEEDWAY_WEIGHTS : roadCourse ? (series === 'trucks' ? TRUCK_ROAD_WEIGHTS : ROAD_COURSE_WEIGHTS) : DEFAULT_WEIGHTS)}
+                onClick={() => setWeights(isSuperspeedway(config.track_name) ? (series === 'oreilly' ? ONEILLY_SUPERSPEEDWAY_WEIGHTS : SUPERSPEEDWAY_WEIGHTS) : roadCourse ? (series === 'trucks' ? TRUCK_ROAD_WEIGHTS : ROAD_COURSE_WEIGHTS) : DEFAULT_WEIGHTS)}
                 style={{ fontSize: '0.83rem', padding: '2px 8px', background: 'transparent', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--text-muted)', cursor: 'pointer' }}>
                 Reset {roadCourse ? 'Road Course' : 'Defaults'}
               </button>
