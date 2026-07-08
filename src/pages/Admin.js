@@ -1044,15 +1044,15 @@ function LoadQualifying() {
   }
 
   const tabStyle   = (active) => ({ padding: '6px 14px', marginRight: 6, cursor: 'pointer', borderRadius: 4, border: '1px solid #555', background: active ? '#3b82f6' : '#2a2a2a', color: '#fff', fontWeight: active ? 700 : 400 })
-  const inputStyle = { width: '100%', padding: 8, background: '#1a1a1a', color: '#eee', border: '1px solid #444', borderRadius: 4 }
+  const inputStyle = { width: '100%', padding: 8, background: 'var(--bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 4 }
 
   return (
-    <div style={{ background: '#1e1e1e', border: '1px solid #333', borderRadius: 8, padding: 20, marginBottom: 20 }}>
-      <h3 style={{ color: '#f59e0b', marginBottom: 16 }}>Load Qualifying Results</h3>
+    <div className="card" style={{ marginBottom: 20 }}>
+      <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 12 }}>Load Qualifying Results</h2>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 2fr', gap: 10, marginBottom: 12 }}>
         <div>
-          <label style={{ color: '#aaa', fontSize: 12 }}>Series</label>
+          <label style={{ color: 'var(--text-secondary)', fontSize: 12 }}>Series</label>
           <select value={series} onChange={e => setSeries(e.target.value)} style={inputStyle}>
             <option value="cup">Cup</option>
             <option value="oreilly">O'Reilly</option>
@@ -1060,15 +1060,15 @@ function LoadQualifying() {
           </select>
         </div>
         <div>
-          <label style={{ color: '#aaa', fontSize: 12 }}>Year</label>
+          <label style={{ color: 'var(--text-secondary)', fontSize: 12 }}>Year</label>
           <input type="number" value={year} onChange={e => setYear(e.target.value)} style={inputStyle} />
         </div>
         <div>
-          <label style={{ color: '#aaa', fontSize: 12 }}>Race #</label>
+          <label style={{ color: 'var(--text-secondary)', fontSize: 12 }}>Race #</label>
           <input type="number" value={raceNumber} onChange={e => setRaceNumber(e.target.value)} style={inputStyle} placeholder="e.g. 17" />
         </div>
         <div>
-          <label style={{ color: '#aaa', fontSize: 12 }}>Track Name (exact)</label>
+          <label style={{ color: 'var(--text-secondary)', fontSize: 12 }}>Track Name (exact)</label>
           <select value={trackName} onChange={e => setTrackName(e.target.value)} style={inputStyle}><option value="">-- select track --</option>{tracks.map(t => <option key={t} value={t}>{t}</option>)}</select>
         </div>
       </div>
@@ -1114,7 +1114,7 @@ function LoadQualifying() {
 
       {preview && preview.length > 0 && (
         <div style={{ marginBottom: 12 }}>
-          <p style={{ color: '#aaa', fontSize: 13, marginBottom: 6 }}>{preview.length} drivers parsed. Review before loading:</p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginBottom: 6 }}>{preview.length} drivers parsed. Review before loading:</p>
           <div style={{ maxHeight: 300, overflowY: 'auto', background: '#111', borderRadius: 4, padding: 8 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
               <thead>
