@@ -53,7 +53,7 @@ function RaceTable({ rows, raceName, track }) {
           <tbody>
             {rows.map((r,i) => {
               const rank = parseInt(r.rank)||i+1
-              const rowBg = MEDAL_BG[rank]||(i%2===0?'var(--bg-card)':'var(--bg-elevated)')
+              const rowBg = MEDAL_BG[rank]||(i%2===0?'rgb(10,10,15)':'#1a1a24')
               return (
                 <tr key={i} style={{background:rowBg}}>
                   <td style={stickyCell(rowBg)}>
@@ -96,7 +96,7 @@ function SeasonSummaryTable({ rows }) {
         </tr></thead>
         <tbody>
           {raceRows.map((r,i) => {
-            const bg=i%2===0?'var(--bg-card)':'var(--bg-elevated)'
+            const bg=i%2===0?'rgb(10,10,15)':'#1a1a24'
             return (
               <tr key={i} style={{background:bg}}>
                 <td style={{...stickyCell(bg),maxWidth:280,overflow:'hidden',textOverflow:'ellipsis'}}>{r.race_name}</td>
@@ -157,7 +157,7 @@ function HeatMapView({ rows, year, trackType }) {
           </thead>
           <tbody>
             {drivers.map((d,i)=>{
-              const rowBg=i%2===0?'var(--bg-card)':'var(--bg-elevated)'
+              const rowBg=i%2===0?'rgb(10,10,15)':'#1a1a24'
               const isTop=d.avg<=5&&d.count>=2
               return (
                 <tr key={d.driver}>
