@@ -21,12 +21,16 @@ function shortTrackName(track) {
 function normName(n) { return (n || '').toLowerCase().normalize('NFD').replace(/[^a-z ]/g, '').replace(/ +/g, ' ').trim() }
 
 function rankColor(rank) {
-  if (rank === 1) return 'rgba(255,215,0,0.55)'
-  if (rank === 2) return 'rgba(192,192,192,0.5)'
-  if (rank === 3) return 'rgba(205,127,50,0.5)'
-  if (rank <= 10) return 'rgba(46,204,113,' + (0.30 - (rank - 4) * 0.035).toFixed(3) + ')'
-  if (rank <= 20) return 'rgba(46,204,113,0.05)'
-  return null
+  if (!rank || isNaN(rank)) return null
+  const r = parseInt(rank)
+  if (r === 1) return 'rgba(255,215,0,0.55)'
+  if (r === 2) return 'rgba(192,192,192,0.5)'
+  if (r === 3) return 'rgba(205,127,50,0.5)'
+  if (r <= 6) return `rgba(46,204,113,${0.55-(r-4)*0.05})`
+  if (r <= 12) return `rgba(46,204,113,${0.35-(r-7)*0.03})`
+  if (r <= 20) return `rgba(241,196,15,${0.45-(r-13)*0.03})`
+  if (r <= 28) return `rgba(230,126,34,${0.45-(r-21)*0.025})`
+  return 'rgba(231,76,60,0.42)'
 }
 
 function HeatMapView({ rows, byYear }) {
@@ -57,7 +61,7 @@ function HeatMapView({ rows, byYear }) {
     return { driver, rankMap, avg, count: valid.length }
   }).sort((a, b) => a.avg - b.avg)
   const hasMulti = finalLabels.length > 1
-  const LEGEND = [{ label: '1st', color: 'rgba(255,215,0,0.55)' }, { label: '2nd', color: 'rgba(192,192,192,0.5)' }, { label: '3rd', color: 'rgba(205,127,50,0.5)' }, { label: '4-10', color: 'rgba(46,204,113,0.25)' }]
+  const LEGEND = [{ label: '1st', color: 'rgba(255,215,0,0.55)' }, { label: '2nd', color: 'rgba(192,192,192,0.5)' }, { label: '3rd', color: 'rgba(205,127,50,0.5)' }, { label: '4-12', color: 'rgba(46,204,113,0.4)' }, { label: '13-20', color: 'rgba(241,196,15,0.4)' }, { label: '21+', color: 'rgba(230,126,34,0.4)' }]
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
@@ -83,7 +87,7 @@ function HeatMapView({ rows, byYear }) {
           </thead>
           <tbody>
             {drivers.map((d, i) => {
-              const rowBg = i % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-elevated)'
+              const rowBg = i % 2 === 0 ? 'rgb(10, 10, 15)' : '#1a1a24'
               const isTop = d.avg <= 5 && d.count >= 2
               return (
                 <tr key={d.driver}>
