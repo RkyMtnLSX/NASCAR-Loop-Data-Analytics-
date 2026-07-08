@@ -670,7 +670,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
     })
   }, [simResults, sortKey, sortDir])
   const shadeRows = useMemo(() => {
-    if (!simResults || !oddsWinTxt) return null
+    if (!simResults || (!oddsWinTxt && !oddsT10Txt && !oddsFdTxt && !oddsHrTxt)) return null
     const mvMap = __marketValue(oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt, simResults)
     const dec = a => a > 0 ? a / 100 + 1 : 100 / Math.abs(a) + 1
     const T = 18
