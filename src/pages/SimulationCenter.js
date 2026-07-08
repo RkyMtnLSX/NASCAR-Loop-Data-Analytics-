@@ -413,7 +413,17 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
 
         // Auto-apply track-type weights
         setWeights(isSuperspeedway(cfg.track_name) ? SUPERSPEEDWAY_WEIGHTS : isRoadCourse(cfg.track_name) ? (s === 'trucks' ? TRUCK_ROAD_WEIGHTS : ROAD_COURSE_WEIGHTS) : DEFAULT_WEIGHTS)
-        setDnfPreset(isSuperspeedway(cfg.track_name) ? DNF_PRESETS[2] : DNF_PRESETS[1])
+        try {
+          const __cr = await supabase.from('races').select('total_cautions').eq('series', s).eq('track_name', cfg.track_name).not('total_cautions', 'is', null)
+          const __cs = ((__cr && __cr.data) || []).map(function (x) { return x.total_cautions }).filter(function (v) { return v != null })
+          const __ci = __cs.length ? (function () { var a = __cs.reduce(function (p, q) { return p + q }, 0) / __cs.length; return a < 6 ? 0 : a < 11.5 ? 1 : 2 })() : 1
+          setCautionPreset(getCautionPresets(s)[__ci])
+          const __dl = await supabase.from('loop_data').select('race_id, laps_completed').eq('series', s).eq('track_name', cfg.track_name)
+          const __by = {}; (((__dl && __dl.data) || [])).forEach(function (r2) { (__by[r2.race_id] = __by[r2.race_id] || []).push(parseInt(r2.laps_completed) || 0) })
+          const __dnfs = Object.keys(__by).map(function (k) { var laps = __by[k]; var mx = Math.max.apply(null, laps.concat([1])); return laps.filter(function (l) { return l < 0.9 * mx }).length / laps.length })
+          const __di = __dnfs.length ? (function () { var a = __dnfs.reduce(function (p, q) { return p + q }, 0) / __dnfs.length; return a < 0.10 ? 0 : a < 0.20 ? 1 : 2 })() : (isSuperspeedway(cfg.track_name) ? 2 : 1)
+          setDnfPreset(DNF_PRESETS[__di])
+        } catch (e) { setDnfPreset(isSuperspeedway(cfg.track_name) ? DNF_PRESETS[2] : DNF_PRESETS[1]) }
 
         const [
           { data: entries },
