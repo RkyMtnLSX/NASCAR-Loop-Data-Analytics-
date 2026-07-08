@@ -286,3 +286,6 @@ tr:hover td { background: var(--bg-hover); }
 .text-muted { color: var(--text-muted); }
 .text-secondary { color: var(--text-secondary); }
 .text-accent { color: var(--accent); }
+
+/* Native select dropdown options: dark popup + light text (fixes invisible options) */
+select option { background-color: #181b22; color: #e6e6e6; }
