@@ -687,7 +687,12 @@ function LoadNewRace() {
         laps_completed: parseInt(m[18]), driver_rating: parseFloat(m[19]),
       })
     }
-    return { trackName, expectedLaps, rows }
+    const __cautM = text.match(/Cautions:\s*(\d+)\s+for\s+(\d+)/i)
+  const __leadM = text.match(/Lead changes:\s*(\d+)/i)
+  const __spdM = text.match(/Average speed:\s*([\d.]+)/i)
+  const __gfpM = text.match(/Green flag passes:\s*([\d,]+)/i)
+  const __movM = text.match(/Margin of victory:\s*([\d.]+)/i)
+  return { trackName, expectedLaps, rows, totalCautions: __cautM ? parseInt(__cautM[1]) : null, totalCautionLaps: __cautM ? parseInt(__cautM[2]) : null, leadChanges: __leadM ? parseInt(__leadM[1]) : null, avgSpeed: __spdM ? parseFloat(__spdM[1]) : null, greenFlagPasses: __gfpM ? parseInt(__gfpM[1].replace(/,/g, '')) : null, marginOfVictory: __movM ? parseFloat(__movM[1]) : null }
   }
 
   async function handleLoad() {
@@ -696,7 +701,7 @@ function LoadNewRace() {
     setLoading(true)
     setStatus(null)
     try {
-      const { trackName: parsedTrack, expectedLaps, rows } = parseLoopData(pasteText); const trackName = selTrack || parsedTrack
+      const { trackName: parsedTrack, expectedLaps, rows, totalCautions, totalCautionLaps, leadChanges, avgSpeed, greenFlagPasses, marginOfVictory } = parseLoopData(pasteText); const trackName = selTrack || parsedTrack
       if (rows.length === 0) return setStatus({ error: 'No driver rows found. Make sure you copied the full page (Ctrl+A, Ctrl+C).' })
       const seriesCodeMap = { cup: 'W', oreilly: 'B', xfinity: 'B', trucks: 'C', truck: 'C' }
       const racingRefId = year + '-' + String(raceNum).padStart(2,'0') + '-' + (seriesCodeMap[series] || 'W')
@@ -713,6 +718,12 @@ function LoadNewRace() {
         series,
         winning_driver: winner,
         total_laps: totalLaps || null,
+        total_cautions: totalCautions,
+        total_caution_laps: totalCautionLaps,
+        lead_changes: leadChanges,
+        avg_speed: avgSpeed,
+        green_flag_passes: greenFlagPasses,
+        margin_of_victory: marginOfVictory,
         racing_reference_url: 'https://www.racing-reference.info/loopdata/' + year + '-' + String(raceNum).padStart(2,'0') + '/' + (seriesCodeMap[series] || 'W'),
         race_date: raceDate || null,
       }).select('id').single()
