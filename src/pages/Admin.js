@@ -1966,7 +1966,7 @@ export default function Admin() {
 
   const __tabBar = (
     <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid rgba(128,128,128,0.25)', marginBottom: 16 }}>
-      {[['admin', 'Admin'], ['sim', 'Sim Admin'], ['grader', 'Sim Grader']].map(t => (
+      {[['admin', 'Admin'], ['sim', 'Sim Admin'], ['grader', 'Sim Grader'], ['load', 'Load Data']].map(t => (
         <button key={t[0]} onClick={() => setAdminTab(t[0])} style={{ padding: '8px 16px', border: 'none', background: 'none', borderBottom: adminTab === t[0] ? '2px solid #e8b923' : '2px solid transparent', color: adminTab === t[0] ? '#e8b923' : 'var(--text-muted)', fontWeight: 600, cursor: 'pointer', fontSize: '0.95rem' }}>{t[1]}</button>
       ))}
     </div>
@@ -1977,18 +1977,14 @@ export default function Admin() {
     <div className="page" style={{ maxWidth: 960 }}>
       {__tabBar}
       <div className="page-header">
-        <h1 className="page-title">Admin</h1>
+        <h1 className="page-title">{adminTab === 'load' ? 'Load Data' : 'Admin'}</h1>
         <p className="page-subtitle">Upload practice data &amp; configure featured weekends</p>
       </div>
 
+      {adminTab === 'admin' && (<>
       <WeekendConfig />
       <QualSimConfig />
       <EntryListManager />
-      <LoadNewRace />
-      <LoadQualifying />
-      <LoadQualifyingOrder />
-      <LoadFastestLaps />
-      <LoadGreenFlagSpeed />
       <SimFormulaPanel />
       <TrackDbPanel />
       <CrossoverBorrowPanel />
@@ -2006,6 +2002,8 @@ export default function Admin() {
         </a>
       </div>
 
+      </>)}
+      {adminTab === 'load' && (<>
       <div className="card" style={{ marginBottom: 20 }}>
         <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 20 }}>Upload Practice Session</h2>
 
@@ -2097,6 +2095,12 @@ export default function Admin() {
           </div>
         )}
       </div>
+      <LoadQualifying />
+      <LoadQualifyingOrder />
+      <LoadNewRace />
+      <LoadFastestLaps />
+      <LoadGreenFlagSpeed />
+      </>)}
     </div>
   )
 }
