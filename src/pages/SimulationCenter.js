@@ -453,13 +453,19 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
         ])
 
         const corrNames = (corrTracks || []).map(t => t.name)
+        let __borrowMap = {}
+        try {
+          const { data: __brws } = await supabase.from('crossover_borrows').select('driver_name, source_series, blend_weight, active').eq('series', s).eq('active', true)
+          ;(__brws || []).forEach(b => { __borrowMap[normalizeName((b.driver_name || '').trim())] = { src: b.source_series, w: Math.max(0, Math.min(1, parseFloat(b.blend_weight))) } })
+        } catch (e) {}
+        const __borrowSeries = [...new Set(Object.values(__borrowMap).map(b => b.src))]
         let loopRows = []
         if (corrNames.length) {
           const { data: ld } = await supabase
             .from('loop_data')
-            .select('driver_name, finish_position, laps_led, fastest_laps, driver_rating, pct_quality_passes, year')
+            .select('driver_name, finish_position, laps_led, fastest_laps, driver_rating, pct_quality_passes, year, series')
             .in('track_name', corrNames)
-            .in('series', [...new Set([s, 'cup'])])
+            .in('series', [...new Set([s, 'cup', ...__borrowSeries])])
           loopRows = ld || []
         }
 
@@ -493,21 +499,28 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
           if (name && fin > 0) {
             const normN = normalizeName(name)
             if (!loopByDriver[normN]) loopByDriver[normN] = []
-            loopByDriver[normN].push({ fin, rating: isNaN(rating) ? null : rating, qp: isNaN(qp) ? null : qp, yr })
+            loopByDriver[normN].push({ sr: r.series, fin, rating: isNaN(rating) ? null : rating, qp: isNaN(qp) ? null : qp, yr })
           }
         })
         const corrAvgMap = new Map(
           Object.entries(loopByDriver).map(([name, rows]) => {
             const yrWt = yr => yr >= 2026 ? 2.0 : yr === 2025 ? 1.3 : yr === 2024 ? 0.9 : yr === 2023 ? 0.6 : 0.4
-            const totalWt = rows.reduce((s, r) => s + yrWt(r.yr), 0)
-            const avgFin = rows.reduce((s, r) => s + r.fin * yrWt(r.yr), 0) / totalWt
-            const rRows  = rows.filter(r => r.rating != null)
-            const rTotalWt = rRows.reduce((s, r) => s + yrWt(r.yr), 0)
-            const avgRating = rRows.length > 0 ? rRows.reduce((s, r) => s + r.rating * yrWt(r.yr), 0) / rTotalWt : null
-            const qpRows    = rows.filter(r => r.qp != null)
-          const qpTotalWt = qpRows.reduce((s, r) => s + yrWt(r.yr), 0)
-          const avgQP     = qpRows.length > 0 ? qpRows.reduce((s, r) => s + r.qp * yrWt(r.yr), 0) / qpTotalWt : null
-          return [name, { avg: avgFin, avgRating, avgQP, n: rows.length }]
+            const baseRows = rows.filter(r => r.sr === s || r.sr === 'cup')
+            const wsum = arr => arr.reduce((a, r) => a + yrWt(r.yr), 0)
+            const avgFin = baseRows.length ? baseRows.reduce((a, r) => a + r.fin * yrWt(r.yr), 0) / wsum(baseRows) : null
+            const rRows = baseRows.filter(r => r.rating !== null)
+            let avgRating = rRows.length > 0 ? rRows.reduce((a, r) => a + r.rating * yrWt(r.yr), 0) / wsum(rRows) : null
+            const bw = __borrowMap[name]
+            if (bw) {
+              const srcRows = rows.filter(r => r.sr === bw.src && r.rating !== null)
+              if (srcRows.length) {
+                const srcRating = srcRows.reduce((a, r) => a + r.rating * yrWt(r.yr), 0) / wsum(srcRows)
+                avgRating = (avgRating == null) ? srcRating : (1 - bw.w) * avgRating + bw.w * srcRating
+              }
+            }
+            const qpRows = baseRows.filter(r => r.qp !== null)
+            const avgQP = qpRows.length > 0 ? qpRows.reduce((a, r) => a + r.qp * yrWt(r.yr), 0) / wsum(qpRows) : null
+            return [name, { avg: avgFin, avgRating, avgQP, n: baseRows.length }]
           })
         )
 
