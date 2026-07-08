@@ -224,35 +224,31 @@ export default function GreenFlagSpeed() {
       <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
         {SERIES.map(s => <span key={s.v} onClick={() => setSeries(s.v)} style={pillStyle(series === s.v)}>{s.label}</span>)}
       </div>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-        {YEARS.map(y => <span key={y} onClick={() => setYear(y)} style={pillStyle(year === y)}>{y}</span>)}
-      </div>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-        {groupTabs.map(t => <span key={t} onClick={() => setTrackType(t)} style={pillStyle(trackType === t)}>{t}</span>)}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+        <span onClick={() => setView('heat')} style={pillStyle(view === 'heat')}>Heat Map</span>
+        <span onClick={() => setView('track')} style={pillStyle(view === 'track')}>By Track</span>
         <span style={{ flex: 1 }} />
         {entrySet && <span onClick={() => setEntryOnly(!entryOnly)} style={pillStyle(entryOnly)} title="Show only drivers on this weekend's entry list">Racing this week</span>}
-        <span onClick={() => setView('heat')} style={pillStyle(view === 'heat')}>Heat Map</span>
-        <span onClick={() => setView('race')} style={pillStyle(view === 'race')}>By Race</span>
-        <span onClick={() => setView('track')} style={pillStyle(view === 'track')}>By Track</span>
       </div>
+      {view === 'heat' && (
+        <div>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+            {YEARS.map(y => <span key={y} onClick={() => setYear(y)} style={pillStyle(year === y)}>{y}</span>)}
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+            {groupTabs.map(t => <span key={t} onClick={() => setTrackType(t)} style={pillStyle(trackType === t)}>{t}</span>)}
+          </div>
+        </div>
+      )}
 
       {loading && <div style={{ color: 'var(--text-muted)', padding: 30, textAlign: 'center' }}>Loading{'…'}</div>}
       {error && !loading && <div style={{ color: 'var(--text-muted)', padding: 30, textAlign: 'center' }}>{error}</div>}
       {!loading && !error && view === 'heat' && <HeatMapView rows={filtered} />}
-      {!loading && !error && view === 'race' && (
-        <div>
-          <select value={selectedRace} onChange={e => setSelectedRace(e.target.value)} style={{ padding: '8px 10px', marginBottom: 16, background: 'var(--bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 6, minWidth: 320 }}>
-            <option value="">Select a race{'…'}</option>
-            {raceOpts.map(o => <option key={o.k} value={o.k}>{o.label}</option>)}
-          </select>
-          <RaceTable rows={raceRows} />
-        </div>
-      )}
       {!loading && !error && view === 'track' && (
         <div>
           <select value={selectedTrack} onChange={e => setSelectedTrack(e.target.value)} style={{ padding: '8px 10px', marginBottom: 16, background: 'var(--bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 6, minWidth: 320 }}>
-            <option value="">Select a track{'…'}</option>
-            {trackOpts.map(t => <option key={t} value={t}>{t}</option>)}
+            <option value="" style={{ backgroundColor: '#181b22', color: '#e6e6e6' }}>Select a track{'…'}</option>
+            {trackOpts.map(t => <option key={t} value={t} style={{ backgroundColor: '#181b22', color: '#e6e6e6' }}>{t}</option>)}
           </select>
           {selectedTrack ? <HeatMapView rows={trackRows} byYear={true} /> : <div style={{ color: 'var(--text-muted)', padding: 20 }}>Pick a track to see its green-flag-speed history across the Next Gen era.</div>}
         </div>
