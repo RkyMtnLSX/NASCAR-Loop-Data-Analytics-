@@ -5,6 +5,7 @@ const YEARS = ['2022', '2023', '2024', '2025', '2026']
 const SERIES = [{ v: 'cup', label: 'Cup' }, { v: 'oreilly', label: "O'Reilly" }, { v: 'trucks', label: 'Trucks' }]
 const TRACK_TYPES = ['All', 'Short Track', 'Superspeedway', 'Intermediate', 'Road Course', 'Other']
 const MEDAL = { 1: '🥇', 2: '🥈', 3: '🥉' }
+const TYPE_NORM = { intermediate: 'Intermediate', superspeedway: 'Superspeedway', short_track: 'Short Track', road_course: 'Road Course', oval: 'Intermediate' }
 
 const sectionHead = { fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }
 const stickyHead = { position: 'sticky', left: 0, zIndex: 3, background: 'var(--bg-elevated)', textAlign: 'left', padding: '10px 16px', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)', borderRight: '1px solid var(--border)' }
@@ -146,7 +147,7 @@ export default function GreenFlagSpeed() {
   useEffect(() => {
     supabase.from('tracks').select('name, track_type').then(({ data }) => {
       const m = {}
-      ;(data || []).forEach(t => { m[t.name] = t.track_type })
+      ;(data || []).forEach(t => { m[t.name] = TYPE_NORM[t.track_type] || 'Other' })
       setTypeMap(m)
     })
   }, [])
@@ -170,7 +171,14 @@ export default function GreenFlagSpeed() {
     setLoading(false)
   }
 
-  const typeOf = (track) => typeMap[track] || 'Other'
+  const typeOf = (track) => {
+    if (typeMap[track]) return typeMap[track]
+    const s = (track || '').toLowerCase()
+    if (s.includes('road course') || s.includes('street') || s.includes('circuit') || s.includes('sonoma') || s.includes('watkins') || s.includes('road america') || s.includes('mid-ohio') || s.includes('lime rock') || s.includes('portland') || s.includes('roval')) return 'Road Course'
+    if (s.includes('dirt') || s.includes('coliseum') || s.includes('bowman gray') || s.includes('wilkesboro') || s.includes('bristol') || s.includes('martinsville') || s.includes('richmond') || s.includes('iowa') || s.includes('milwaukee') || s.includes('knoxville')) return 'Short Track'
+    if (s.includes('daytona') || s.includes('talladega')) return 'Superspeedway'
+    return 'Other'
+  }
   const filtered = trackType === 'All' ? allRows : allRows.filter(r => typeOf(r.track) === trackType)
   const raceSeen = new Set(); const raceOpts = []
   filtered.forEach(r => { const k = r.race_name + '|' + r.race_date; if (!raceSeen.has(k)) { raceSeen.add(k); raceOpts.push({ k, label: r.race_name + ' (' + (r.race_date || r.report_date) + ')' }) } })
