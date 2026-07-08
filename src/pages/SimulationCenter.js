@@ -826,7 +826,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
               </div>
               <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginRight: 12, fontSize: 12, color: '#f5c518', cursor: 'pointer' }}><input type="checkbox" checked={rainOut} onChange={e => setRainOut(e.target.checked)} style={{ cursor: 'pointer' }} />Rain-out grid</label>
             <button
-                onClick={() => setWeights(roadCourse ? ROAD_COURSE_WEIGHTS : DEFAULT_WEIGHTS)}
+                onClick={() => setWeights(isSuperspeedway(config.track_name) ? SUPERSPEEDWAY_WEIGHTS : roadCourse ? (series === 'trucks' ? TRUCK_ROAD_WEIGHTS : ROAD_COURSE_WEIGHTS) : DEFAULT_WEIGHTS)}
                 style={{ fontSize: '0.83rem', padding: '2px 8px', background: 'transparent', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--text-muted)', cursor: 'pointer' }}>
                 Reset {roadCourse ? 'Road Course' : 'Defaults'}
               </button>
