@@ -29,16 +29,22 @@ function rankColor(rank) {
   return null
 }
 
-function HeatMapView({ rows }) {
+function HeatMapView({ rows, byYear }) {
   if (!rows.length) return <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', padding: '24px 0' }}>No data available.</div>
   const raceSeen = new Set()
   const races = []
-  rows.forEach(r => { const key = r.race_name + '|' + r.race_date; if (!raceSeen.has(key)) { raceSeen.add(key); races.push({ name: r.race_name, date: r.race_date, track: r.track, key }) } })
+  rows.forEach(r => { const key = r.race_name + '|' + r.race_date; if (!raceSeen.has(key)) { raceSeen.add(key); races.push({ name: r.race_name, date: r.race_date, track: r.track, year: r.year || String(r.race_date || '').slice(0, 4), key }) } })
   races.sort((a, b) => (a.date < b.date ? -1 : 1))
   const trackTotal = {}
   races.forEach(r => { const s = shortTrackName(r.track); trackTotal[s] = (trackTotal[s] || 0) + 1 })
   const trackIdx = {}
-  const finalLabels = races.map(r => { const s = shortTrackName(r.track); trackIdx[s] = (trackIdx[s] || 0) + 1; return { ...r, label: trackTotal[s] > 1 ? s + ' ' + trackIdx[s] : s } })
+  const yrTotal = {}
+  races.forEach(r => { const y = String(r.year); yrTotal[y] = (yrTotal[y] || 0) + 1 })
+  const yrIdx = {}
+  const finalLabels = races.map(r => {
+    if (byYear) { const y = String(r.year); yrIdx[y] = (yrIdx[y] || 0) + 1; return { ...r, label: yrTotal[y] > 1 ? y + ' (' + yrIdx[y] + ')' : y } }
+    const s = shortTrackName(r.track); trackIdx[s] = (trackIdx[s] || 0) + 1; return { ...r, label: trackTotal[s] > 1 ? s + ' ' + trackIdx[s] : s }
+  })
   const driverMap = new Map()
   rows.forEach(r => {
     const key = r.race_name + '|' + r.race_date
@@ -147,6 +153,7 @@ export default function GreenFlagSpeed() {
   const [error, setError] = useState(null)
   const [entrySet, setEntrySet] = useState(null)
   const [entryOnly, setEntryOnly] = useState(true)
+  const [selectedTrack, setSelectedTrack] = useState('')
 
   useEffect(() => {
     supabase.from('tracks').select('name, correlation_group_label').then(({ data }) => {
@@ -170,14 +177,14 @@ export default function GreenFlagSpeed() {
     return () => { cancelled = true }
   }, [series])
 
-  useEffect(() => { loadData() }, [series, year]) // eslint-disable-line
+  useEffect(() => { loadData() }, [series]) // eslint-disable-line
 
   async function loadData() {
     setLoading(true); setError(null); setSelectedRace('')
     try {
       let all = []; let from = 0
       while (true) {
-        const { data, error: e } = await supabase.from('green_flag_speed').select('*').eq('series', series).eq('year', parseInt(year)).order('race_date').order('gfs_rank').range(from, from + 999)
+        const { data, error: e } = await supabase.from('green_flag_speed').select('*').eq('series', series).order('race_date').order('gfs_rank').range(from, from + 999)
         if (e) throw e
         all = all.concat(data || [])
         if (!data || data.length < 1000) break
@@ -198,12 +205,16 @@ export default function GreenFlagSpeed() {
     if (s.includes('daytona') || s.includes('talladega')) return 'Superspeedway'
     return 'Other'
   }
-  const byType = trackType === 'All' ? allRows : allRows.filter(r => typeOf(r.track) === trackType)
+  const yearRows = allRows.filter(r => String(r.year) === String(year))
+  const byType = trackType === 'All' ? yearRows : yearRows.filter(r => typeOf(r.track) === trackType)
   const filtered = (entryOnly && entrySet) ? byType.filter(r => entrySet.has(normName(r.driver))) : byType
   const raceSeen = new Set(); const raceOpts = []
   filtered.forEach(r => { const k = r.race_name + '|' + r.race_date; if (!raceSeen.has(k)) { raceSeen.add(k); raceOpts.push({ k, label: r.race_name + ' (' + (r.race_date || r.report_date) + ')' }) } })
   const raceRows = selectedRace ? filtered.filter(r => (r.race_name + '|' + r.race_date) === selectedRace) : []
   const groupTabs = ['All', ...[...new Set(allRows.map(r => typeOf(r.track)))].filter(x => x && x !== 'All').sort()]
+  const trackOpts = [...new Set(allRows.map(r => r.track))].filter(Boolean).sort()
+  const trackRows0 = selectedTrack ? allRows.filter(r => r.track === selectedTrack) : []
+  const trackRows = (entryOnly && entrySet) ? trackRows0.filter(r => entrySet.has(normName(r.driver))) : trackRows0
 
   return (
     <div className="page" style={{ maxWidth: 1400, padding: '28px 24px' }}>
@@ -222,6 +233,7 @@ export default function GreenFlagSpeed() {
         {entrySet && <span onClick={() => setEntryOnly(!entryOnly)} style={pillStyle(entryOnly)} title="Show only drivers on this weekend's entry list">Racing this week</span>}
         <span onClick={() => setView('heat')} style={pillStyle(view === 'heat')}>Heat Map</span>
         <span onClick={() => setView('race')} style={pillStyle(view === 'race')}>By Race</span>
+        <span onClick={() => setView('track')} style={pillStyle(view === 'track')}>By Track</span>
       </div>
 
       {loading && <div style={{ color: 'var(--text-muted)', padding: 30, textAlign: 'center' }}>Loading{'…'}</div>}
@@ -234,6 +246,15 @@ export default function GreenFlagSpeed() {
             {raceOpts.map(o => <option key={o.k} value={o.k}>{o.label}</option>)}
           </select>
           <RaceTable rows={raceRows} />
+        </div>
+      )}
+      {!loading && !error && view === 'track' && (
+        <div>
+          <select value={selectedTrack} onChange={e => setSelectedTrack(e.target.value)} style={{ padding: '8px 10px', marginBottom: 16, background: 'var(--bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 6, minWidth: 320 }}>
+            <option value="">Select a track{'…'}</option>
+            {trackOpts.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+          {selectedTrack ? <HeatMapView rows={trackRows} byYear={true} /> : <div style={{ color: 'var(--text-muted)', padding: 20 }}>Pick a track to see its green-flag-speed history across the Next Gen era.</div>}
         </div>
       )}
     </div>
