@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 const SERIES_TABS = [
   { value: 'cup',     label: 'Cup Series' },
   { value: 'oreilly', label: "O'Reilly Series" },
-  { value: 'truck',   label: 'Truck Series' },
+  { value: 'trucks',   label: 'Truck Series' },
 ]
 
 // Values stored as percentages (e.g. 60.9), not decimals
