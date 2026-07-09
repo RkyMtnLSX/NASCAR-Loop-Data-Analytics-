@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { __marketValue } from './SimulationCenter'
 
 const SERIES_TABS = [
   { value: 'cup',     label: 'Cup Series' },
@@ -106,89 +105,6 @@ function MarketTables({ results }) {
     </div>
   )
 }
-function __impl(a){ if(a==null||isNaN(a))return null; return a>0 ? 100/(a+100) : (-a)/((-a)+100); }
-function __amFmt(a){ if(a==null)return '-'; return a>0?'+'+a:''+a; }
-const __CLV_MKTS=[['win','Win','win_pct'],['t3','Top 3','top3_pct'],['t5','Top 5','top5_pct'],['t10','Top 10','top10_pct']];
-function ClvPanel({ data, results }) {
-  const [win,setWin]=useState(''); const [t10,setT10]=useState(''); const [fd,setFd]=useState(''); const [hr,setHr]=useState('');
-  const [rows,setRows]=useState(null); const [msg,setMsg]=useState(''); const [season,setSeason]=useState(null);
-  const meta = data || {};
-  function loadSeason(){
-    supabase.from('clv_log').select('clv').then(({ data:d })=>{
-      if(!d){ setSeason(null); return; }
-      const n=d.length, pos=d.filter(x=>x.clv>0).length, avg=n?d.reduce((a,b)=>a+(+b.clv||0),0)/n:0;
-      setSeason({ n, pos, avg });
-    });
-  }
-  useEffect(()=>{ loadSeason() },[]);
-  function compute(){
-    const mapped=(results||[]).map(d=>({ name:d.driver_name, winPct:d.win_pct, top3Pct:d.top3_pct, top5Pct:d.top5_pct, top10Pct:d.top10_pct }));
-    const closeMv=__marketValue(win,t10,fd,hr,mapped);
-    const out=[];
-    (results||[]).forEach(d=>{
-      const bet=d.mv||{};
-      __CLV_MKTS.forEach(([mk,lbl,pf])=>{
-        const b=bet[mk]; if(!b||b.best==null||b.ev==null||b.ev<=0)return;
-        const cm=closeMv[d.driver_name]&&closeMv[d.driver_name][mk];
-        const closeOdds=cm?cm.best:null;
-        const bi=__impl(b.best), ci=__impl(closeOdds);
-        const clv=(bi!=null&&ci!=null)?(ci-bi)*100:null;
-        out.push({ driver:d.driver_name, market:lbl, mk, simProb:d[pf], betOdds:b.best, closeOdds, clv, ev:b.ev });
-      });
-    });
-    out.sort((a,b)=>((b.clv==null?-999:b.clv)-(a.clv==null?-999:a.clv)));
-    setRows(out);
-    const graded=out.filter(x=>x.clv!=null);
-    setMsg(graded.length?('Computed '+graded.length+' bets. Positive CLV '+graded.filter(x=>x.clv>0).length+'/'+graded.length):'No closing lines matched the flagged bets.');
-  }
-  async function logSeason(){
-    if(!rows)return; const graded=rows.filter(x=>x.clv!=null);
-    if(!graded.length){ setMsg('Nothing to log.'); return; }
-    await supabase.from('clv_log').delete().eq('series',meta.series).eq('race_year',meta.race_year).eq('race_number',meta.race_number);
-    const ins=graded.map(x=>({ series:meta.series, race_year:meta.race_year, race_number:meta.race_number, track_name:meta.track_name, driver_name:x.driver, market:x.mk, sim_prob:x.simProb, bet_odds:x.betOdds, close_odds:x.closeOdds, bet_implied:__impl(x.betOdds), close_implied:__impl(x.closeOdds), clv:x.clv, edge_at_bet:x.ev }));
-    const { error }=await supabase.from('clv_log').insert(ins);
-    setMsg(error?('Log error: '+error.message):('Logged '+ins.length+' bets to season CLV.'));
-    loadSeason();
-  }
-  const ta={ width:'100%', minHeight:52, fontSize:12, background:'var(--bg-surface)', color:'var(--text)', border:'1px solid var(--border)', borderRadius:6, padding:6 };
-  const th={ padding:'6px 10px', fontSize:'0.72rem', color:'var(--text-secondary)', textAlign:'right', borderBottom:'1px solid var(--border)' };
-  const td={ padding:'6px 10px', fontSize:'0.85rem', textAlign:'right', borderBottom:'1px solid var(--border)' };
-  return (
-    <div style={{ maxWidth:780 }}>
-      <div style={{ fontSize:'0.85rem', color:'var(--text-muted)', marginBottom:10 }}>Paste the closing odds (right before the race). CLV diffs them against the bet-time odds saved when this sim was published, for every bet the sim flagged +EV. Positive = the line moved your way. No re-run needed.</div>
-      {season ? <div style={{ fontSize:'0.8rem', marginBottom:12, color:'var(--text-secondary)' }}>Season CLV: <b>{season.n}</b> logged bets, <b style={{ color: (season.n && season.pos/season.n>=0.5)?'#22c55e':'var(--text)' }}>{season.n?Math.round(100*season.pos/season.n):0}%</b> positive, avg <b>{season.avg>=0?'+':''}{season.avg.toFixed(1)} pts</b></div> : null}
-      <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginBottom:8 }}>
-        <div style={{ flex:1, minWidth:210 }}><div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:3 }}>DK - Winner / Top 3 / Top 5</div><textarea style={ta} value={win} onChange={e=>setWin(e.target.value)} /></div>
-        <div style={{ flex:1, minWidth:210 }}><div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:3 }}>DK - Top 10</div><textarea style={ta} value={t10} onChange={e=>setT10(e.target.value)} /></div>
-        <div style={{ flex:1, minWidth:210 }}><div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:3 }}>FanDuel</div><textarea style={ta} value={fd} onChange={e=>setFd(e.target.value)} /></div>
-        <div style={{ flex:1, minWidth:210 }}><div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:3 }}>Hard Rock</div><textarea style={ta} value={hr} onChange={e=>setHr(e.target.value)} /></div>
-      </div>
-      <div style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap' }}>
-        <button onClick={compute} style={{ padding:'7px 14px', borderRadius:6, border:'none', background:'var(--accent)', color:'#111', fontWeight:600, cursor:'pointer' }}>Compute CLV</button>
-        {rows ? <button onClick={logSeason} style={{ padding:'7px 14px', borderRadius:6, border:'1px solid var(--border)', background:'transparent', color:'var(--text)', cursor:'pointer' }}>Log to season CLV</button> : null}
-        <span style={{ fontSize:'0.8rem', color:'var(--text-muted)' }}>{msg}</span>
-      </div>
-      {rows && rows.length ? (
-        <table style={{ width:'100%', borderCollapse:'collapse', marginTop:12 }}>
-          <thead><tr><th style={{ ...th, textAlign:'left' }}>Driver</th><th style={{ ...th, textAlign:'left' }}>Market</th><th style={th}>Sim %</th><th style={th}>Bet line</th><th style={th}>Close line</th><th style={th}>CLV</th></tr></thead>
-          <tbody>
-            {rows.map((r,i)=>(
-              <tr key={i}>
-                <td style={{ ...td, textAlign:'left' }}>{r.driver}</td>
-                <td style={{ ...td, textAlign:'left' }}>{r.market}</td>
-                <td style={td}>{r.simProb!=null?(+r.simProb).toFixed(1)+'%':'-'}</td>
-                <td style={td}>{__amFmt(r.betOdds)}</td>
-                <td style={td}>{__amFmt(r.closeOdds)}</td>
-                <td style={{ ...td, fontWeight:600, color: r.clv==null?'var(--text-muted)':(r.clv>0?'#22c55e':'#ef4444') }}>{r.clv==null?'-':(r.clv>0?'+':'')+r.clv.toFixed(1)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : null}
-    </div>
-  );
-}
-
 export default function SimResults() {
   const [series, setSeries]       = useState('cup')
   const [mvMkt, setMvMkt] = useState('Win')
@@ -286,7 +202,7 @@ export default function SimResults() {
         <>
           <CompareTray sel={sel} config={data && data.config} onToggle={togSel} onClear={() => setSel([])} />
           <div style={{ display: 'flex', gap: 6, margin: '2px 0 14px', flexWrap: 'wrap' }}>
-            {[['proj', 'Projections'], ['mv', 'Market Value'], ['markets', 'Mfr & Team'], ['clv', 'CLV']].map((ct) => (
+            {[['proj', 'Projections'], ['mv', 'Market Value'], ['markets', 'Mfr & Team']].map((ct) => (
               <button key={ct[0]} onClick={() => setTab(ct[0])} style={{ padding: '7px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', background: tab === ct[0] ? 'var(--accent)' : 'var(--bg-surface)', color: tab === ct[0] ? '#111' : 'var(--text-secondary)' }}>{ct[1]}</button>
             ))}
           </div>
@@ -428,7 +344,6 @@ export default function SimResults() {
             </div>
           )}
           {tab === 'markets' && <MarketTables results={results} />}
-          {tab === 'clv' && <ClvPanel data={data} results={results} />}
         </>
       )}
     </div>
