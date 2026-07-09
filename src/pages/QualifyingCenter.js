@@ -80,8 +80,8 @@ function trackAbbr(trackName) {
   return trackName.substring(0, 4)
 }
 
-function eventLabel(trackName, year) {
-  return trackAbbr(trackName) + " '" + String(year).slice(2)
+function eventLabel(trackName, year, rnOrder) {
+  return trackAbbr(trackName) + " '" + String(year).slice(2) + (rnOrder ? ' R' + rnOrder : '')
 }
 
 function heatColor(pos, totalDrivers) {
@@ -248,7 +248,7 @@ export default function QualifyingCenter({ isSubscriber }) {
       const allTrackNames = Array.from(new Set([cfg.track_name].concat(corrTrackNames)))
       const { data: rows, error: rowErr } = await supabase
         .from('qualifying_results')
-        .select('driver_name, car_number, track_name, year, qualifying_position, qualifying_speed, draw_order')
+        .select('driver_name, car_number, track_name, year, qualifying_position, qualifying_speed, draw_order, race_number')
         .eq('series', 'cup')
         .in('track_name', allTrackNames)
         .order('qualifying_position')
@@ -299,30 +299,38 @@ export default function QualifyingCenter({ isSubscriber }) {
   const fmt = qualFormat(config.track_name, config.correlation_label)
 
   // Only show columns where qualifying data actually exists
-  const trackYearCombosWithData = new Set(qualData.map(function(r) { return r.track_name + '_' + r.year }))
+  const racesByTY = {}
+  qualData.forEach(function(r) { const k = r.track_name + '_' + r.year; const rn = r.race_number == null ? 0 : r.race_number; if (!racesByTY[k]) racesByTY[k] = []; if (racesByTY[k].indexOf(rn) < 0) racesByTY[k].push(rn) })
+  Object.keys(racesByTY).forEach(function(k) { racesByTY[k].sort(function(a, b) { return a - b }) })
+  const racesFor = function(tk, yr) { return racesByTY[tk + '_' + yr] || [] }
+  const trackYearCombosWithData = new Set(Object.keys(racesByTY))
 
   const histCols = trackYears
     .filter(function(yr) { return trackYearCombosWithData.has(config.track_name + '_' + yr) })
-    .map(function(yr) {
-      return { key: 'hist_' + yr, label: eventLabel(config.track_name, yr), trackName: config.track_name, year: yr }
+    .flatMap(function(yr) {
+      const rns = racesFor(config.track_name, yr)
+      return rns.map(function(rn, i) {
+        return { key: 'hist_' + yr + '_' + rn, pk: config.track_name + '_' + yr + '_' + rn, label: eventLabel(config.track_name, yr, rns.length > 1 ? i + 1 : 0), trackName: config.track_name, year: yr, rn: rn }
+      })
     })
 
   const corrCols = corrTracks
     .filter(function(t) { return t !== config.track_name })
     .flatMap(function(t) {
-      const yrs = show2025 ? [2025, corrYear] : [corrYear]
-      return yrs.map(function(yr) {
-        return { key: 'corr_' + t + '_' + yr, label: eventLabel(t, yr), trackName: t, year: yr }
+      const yrs = Array.from(new Set(show2025 ? [2025, corrYear] : [corrYear]))
+      return yrs.flatMap(function(yr) {
+        const rns = racesFor(t, yr)
+        return rns.map(function(rn, i) {
+          return { key: 'corr_' + t + '_' + yr + '_' + rn, pk: t + '_' + yr + '_' + rn, label: eventLabel(t, yr, rns.length > 1 ? i + 1 : 0), trackName: t, year: yr, rn: rn }
+        })
       })
     })
-    .filter(function(col) { return trackYearCombosWithData.has(col.trackName + '_' + col.year) })
 
-  const featuredCurrYear = (!trackYears.includes(corrYear) && trackYearCombosWithData.has(config.track_name + '_' + corrYear)) ? [{
-    key: 'feat_curr_' + corrYear,
-    label: eventLabel(config.track_name, corrYear),
-    trackName: config.track_name,
-    year: corrYear,
-  }] : []
+  const featuredCurrYear = (!trackYears.includes(corrYear) && trackYearCombosWithData.has(config.track_name + '_' + corrYear))
+    ? racesFor(config.track_name, corrYear).map(function(rn, i, arr) {
+        return { key: 'feat_curr_' + corrYear + '_' + rn, pk: config.track_name + '_' + corrYear + '_' + rn, label: eventLabel(config.track_name, corrYear, arr.length > 1 ? i + 1 : 0), trackName: config.track_name, year: corrYear, rn: rn }
+      })
+    : []
 
   const allCols = histCols.concat(featuredCurrYear).concat(corrCols)
 
@@ -332,8 +340,9 @@ export default function QualifyingCenter({ isSubscriber }) {
     if (!driverMap[normKey]) {
       driverMap[normKey] = { driver: row.driver_name, carNumber: row.car_number, positions: {}, speeds: {} }
     }
-    driverMap[normKey].positions[row.track_name + '_' + row.year] = row.qualifying_position
-    if (row.qualifying_speed != null) driverMap[normKey].speeds[row.track_name + '_' + row.year] = row.qualifying_speed
+    const __rn = row.race_number == null ? 0 : row.race_number
+    driverMap[normKey].positions[row.track_name + '_' + row.year + '_' + __rn] = row.qualifying_position
+    if (row.qualifying_speed !== null) driverMap[normKey].speeds[row.track_name + '_' + row.year + '_' + __rn] = row.qualifying_speed
   }
 
   const drawOrderMap = {}
@@ -348,14 +357,14 @@ export default function QualifyingCenter({ isSubscriber }) {
 
   for (const d of Object.values(driverMap)) {
     const histPositions = trackYears
-      .map(function(yr) { return d.positions[config.track_name + '_' + yr] })
+      .flatMap(function(yr) { return racesFor(config.track_name, yr).map(function(rn) { return d.positions[config.track_name + '_' + yr + '_' + rn] }) })
       .filter(function(p) { return p != null })
     d.trackAvg = histPositions.length > 0
       ? histPositions.reduce(function(a, b) { return a + b }, 0) / histPositions.length
       : null
 
     const corrYearPositions = corrCols
-      .map(function(col) { return d.positions[col.trackName + '_' + col.year] })
+      .map(function(col) { return d.positions[col.pk] })
       .filter(function(p) { return p != null })
     d.corrYearAvg = corrYearPositions.length > 0
       ? corrYearPositions.reduce(function(a, b) { return a + b }, 0) / corrYearPositions.length
@@ -367,11 +376,15 @@ export default function QualifyingCenter({ isSubscriber }) {
       const yrWeight = { 2022: 1, 2023: 1, 2024: 2, 2025: 4, 2026: 5 }
       for (const yr of simCorrYears) {
         const reps = yrWeight[yr] || 1
-        const fp = d.positions[config.track_name + '_' + yr]
-        if (fp != null) { for (let ri = 0; ri < reps; ri++) d.historicalPositions.push(fp); d.rawCount++ }
-        for (const ct of corrTracks.filter(function(t) { return t !== config.track_name })) {
-          const cp = d.positions[ct + '_' + yr]
-          if (cp != null) { for (let ri = 0; ri < reps; ri++) d.historicalPositions.push(cp); d.rawCount++ }
+        racesFor(config.track_name, yr).forEach(function(rn) {
+          const fp = d.positions[config.track_name + '_' + yr + '_' + rn]
+          if (fp != null) { for (let ri = 0; ri < reps; ri++) d.historicalPositions.push(fp); d.rawCount++ }
+        })
+        for (const ct of corrTracks.filter(function(tt) { return tt !== config.track_name })) {
+          racesFor(ct, yr).forEach(function(rn) {
+            const cp = d.positions[ct + '_' + yr + '_' + rn]
+            if (cp != null) { for (let ri = 0; ri < reps; ri++) d.historicalPositions.push(cp); d.rawCount++ }
+          })
         }
       }
     } else {
@@ -576,7 +589,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                     </th>
                   )}
                   {featuredCurrYear.map(function(col) {
-                    var pk = col.trackName + '_' + col.year
+                    var pk = col.pk
                     return <th key={col.key} onClick={function() { handleSort(pk) }} style={Object.assign({}, thStyle, { borderLeft: '2px solid rgba(99,102,241,0.5)', color: 'var(--accent)', cursor: 'pointer' })}>{col.label}{sortArrow(pk)}</th>
                   })}
                   {corrCols.length > 0 && (
@@ -591,7 +604,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                   {hasDrawOrder && <th style={thStyle} />}
                   <th style={thStyle} />
                   {histCols.map(function(col, i) {
-                    var pk = col.trackName + '_' + col.year
+                    var pk = col.pk
                     return <th key={col.key} onClick={function() { handleSort(pk) }} style={Object.assign({}, thStyle, i === 0 ? { borderLeft: '2px solid rgba(99,102,241,0.3)' } : {}, { cursor: 'pointer' })}>{col.label}{sortArrow(pk)}</th>
                   })}
                   {showCorrAvgCol && <th style={Object.assign({}, thStyle, { borderLeft: '2px solid rgba(99,102,241,0.5)' })} />}
@@ -599,7 +612,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                     return <th key={col.key} style={Object.assign({}, thStyle, { borderLeft: '2px solid rgba(99,102,241,0.5)' })}>{col.label}</th>
                   })}
                   {corrCols.map(function(col, i) {
-                    var pk = col.trackName + '_' + col.year
+                    var pk = col.pk
                     return <th key={col.key} onClick={function() { handleSort(pk) }} style={Object.assign({}, thStyle, i === 0 ? { borderLeft: '2px solid var(--border)' } : {}, { cursor: 'pointer' })}>{col.label}{sortArrow(pk)}</th>
                   })}
                 </tr>
@@ -636,7 +649,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                         {row.trackAvg != null ? row.trackAvg.toFixed(1) : '-'}
                       </td>
                       {histCols.map(function(col, i) {
-                        const pos = row.positions[col.trackName + '_' + col.year]
+                        const pos = row.positions[col.pk]
                         const spd = row.speeds ? row.speeds[col.trackName + '_' + col.year] : null
                         const hc = heatColor(pos, totalDrivers)
                         const tip = pos != null ? ('P' + pos + (spd != null ? ' · ' + formatQualSpeed(spd, col.trackName) : '')) : undefined
@@ -657,7 +670,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                         </td>
                       )}
                       {featuredCurrYear.map(function(col) {
-                        const pos = row.positions[col.trackName + '_' + col.year]
+                        const pos = row.positions[col.pk]
                         const spd = row.speeds ? row.speeds[col.trackName + '_' + col.year] : null
                         const hc = heatColor(pos, totalDrivers)
                         const tip = pos != null ? ('P' + pos + (spd != null ? ' · ' + formatQualSpeed(spd, col.trackName) : '')) : undefined
@@ -668,7 +681,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                         )
                       })}
                       {corrCols.map(function(col, i) {
-                        const pos = row.positions[col.trackName + '_' + col.year]
+                        const pos = row.positions[col.pk]
                         const spd = row.speeds ? row.speeds[col.trackName + '_' + col.year] : null
                         const hc = heatColor(pos, totalDrivers)
                         const tip = pos != null ? ('P' + pos + (spd != null ? ' · ' + formatQualSpeed(spd, col.trackName) : '')) : undefined
