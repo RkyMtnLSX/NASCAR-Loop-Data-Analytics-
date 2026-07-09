@@ -202,3 +202,15 @@ export const supabase = createClient(
 - `fastest_laps` has 2022-2025 historical data; 2026 races loaded manually via Admin as they occur
 - The `series` field throughout uses values: `'cup'`, `'oreilly'`, `'trucks'`
 - All years arrays in `featured_weekend.correlation_years` are Postgres integer arrays
+
+
+---
+
+## Where the full docs live (added 2026-07-09)
+
+The COMPLETE handoff doc (`pitboard.md`) and the full backtest archive (`BACKTEST_LOG.md`)
+are now IN THIS REPO at the root, synced from the local PitBoard Handoff folder on
+2026-07-09. If you are a model session working via the GitHub API: fetch those two files
+before touching model logic or re-testing anything. They supersede the summaries in this
+file. Local folder and repo copies are kept in sync manually; the repo copies were
+hash-verified identical at sync time.
