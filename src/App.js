@@ -10,6 +10,7 @@ import PracticeLapTable   from './pages/PracticeLapTable'
 import LoopData           from './pages/LoopData'
 import LoopDataAudit      from './pages/LoopDataAudit'
 import PracticeAudit      from './pages/PracticeAudit'
+import QualifyingAudit    from './pages/QualifyingAudit'
 import FastestLap         from './pages/FastestLap'
 import GreenFlagSpeed     from './pages/GreenFlagSpeed'
 import QualifyingCenter   from './pages/QualifyingCenter'
@@ -136,6 +137,7 @@ export default function App() {
         <Route path="/loop-data"          element={<LoopData isSubscriber={isSubscriber} />} />
         <Route path="/loop-data-audit"    element={<LoopDataAudit />} />
         <Route path="/practice-audit"    element={<PracticeAudit />} />
+        <Route path="/qualifying-audit"  element={<QualifyingAudit />} />
         <Route path="/fastest-laps"       element={<FastestLap />} />
             <Route path="/green-flag-speed"   element={<GreenFlagSpeed />} />
         <Route path="/qualifying"         element={<QualifyingCenter isSubscriber={isSubscriber} />} />
