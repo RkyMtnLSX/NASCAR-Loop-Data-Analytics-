@@ -165,7 +165,25 @@ function __marketValue(winTxt, t10Txt, fdTxt, hrTxt, drivers) {
       var dvg = {}; Object.keys(books).forEach(function (bk) { var b = books[bk][key]; var s = 0, imp = {}; Object.keys(uni).forEach(function (k) { if (b[k] == null) return; var p = impl(b[k]); imp[k] = p; s += p; }); dvg[bk] = {}; Object.keys(imp).forEach(function (k) { dvg[bk][k] = s ? imp[k] / s * target : null; }); });
       (drivers || []).forEach(function (d) {
         var sk = norm(d.name);
-        var fk = function (src) { if (src[sk] != null) return sk; var keys = Object.keys(src); for (var i = 0; i < keys.length; i++) { var k = keys[i]; if (k.length > sk.length && k.slice(-(sk.length + 1)) === ' ' + sk) return k; } return null; };
+        var fk = function (src) {
+          if (src[sk] != null) return sk;
+          var keys = Object.keys(src), i, k;
+          for (i = 0; i < keys.length; i++) { k = keys[i]; if (k.length > sk.length && k.slice(-(sk.length + 1)) === ' ' + sk) return k; }
+          for (i = 0; i < keys.length; i++) { k = keys[i]; if (sk.length > k.length && sk.slice(-(k.length + 1)) === ' ' + k) return k; }
+          var sp = sk.split(' ');
+          if (sp.length >= 2) {
+            var sLast = sp[sp.length - 1], sFirst = sp[0], cand = null, cnt = 0;
+            for (i = 0; i < keys.length; i++) {
+              var kp = keys[i].split(' '); if (kp.length < 2) continue;
+              if (kp[kp.length - 1] !== sLast) continue;
+              var kFirst = kp[0], p = 0;
+              while (p < sFirst.length && p < kFirst.length && sFirst.charAt(p) === kFirst.charAt(p)) p++;
+              if (p >= 3) { cand = keys[i]; cnt++; }
+            }
+            if (cnt === 1) return cand;
+          }
+          return null;
+        };
         var px = {}; Object.keys(books).forEach(function (bk) { var kk = fk(books[bk][key]); px[bk] = kk != null ? books[bk][key][kk] : null; });
         if (px.dk == null && px.fd == null && px.hr == null) return;
         var best = null, bb = ''; Object.keys(px).forEach(function (bk) { if (px[bk] != null && (best == null || dec(px[bk]) > dec(best))) { best = px[bk]; bb = bk; } });
