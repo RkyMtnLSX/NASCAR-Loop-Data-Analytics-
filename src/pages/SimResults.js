@@ -12,6 +12,116 @@ const fmt    = (n, dec = 1) => n == null ? '-' : (+n).toFixed(dec) + '%'
 const fmtDK  = (n)          => n == null ? '' : (+n).toFixed(2)
 const fmtNum = (n, dec = 1) => n == null ? '' : (+n).toFixed(dec)
 
+function fmvAmerican(p) {
+  if (!p || p <= 0) return '--'
+  if (p >= 0.999) return '-99999'
+  return p >= 0.5 ? String(Math.round(-100 * p / (1 - p))) : '+' + Math.round(100 * (1 - p) / p)
+}
+function __decodeMtx(cfg) {
+  if (!cfg || !cfg.simMatrix || !cfg.simMatrixN || !cfg.simOrder) return null
+  try {
+    const bin = atob(cfg.simMatrix)
+    const arr = new Uint8Array(bin.length)
+    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i)
+    return { mtx: arr, simN: cfg.simMatrixN, order: cfg.simOrder, nD: cfg.simOrder.length }
+  } catch (e) { return null }
+}
+const __srTh = { padding: '6px 10px', fontSize: '0.72rem', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)', textTransform: 'uppercase', letterSpacing: '0.04em' }
+const __srTd = { padding: '6px 10px', fontSize: '0.85rem', borderBottom: '1px solid var(--border)' }
+const __srBtn = { padding: '7px 14px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-surface, #1a1a24)', color: 'var(--text)', fontWeight: 600, fontSize: '0.82rem', cursor: 'pointer' }
+function SrTable({ data, col1 }) {
+  if (!data || !data.length) return null
+  const hasFin = data[0].avgFin !== undefined
+  return (
+    <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 8 }}>
+      <thead><tr>
+        <th style={{ ...__srTh, textAlign: 'left' }}>{col1}</th>
+        {hasFin ? <th style={{ ...__srTh, textAlign: 'right' }}>Avg Finish</th> : null}
+        <th style={{ ...__srTh, textAlign: 'right' }}>Win %</th>
+        <th style={{ ...__srTh, textAlign: 'right' }}>FMV</th>
+      </tr></thead>
+      <tbody>
+        {data.map((r, i) => (
+          <tr key={i}>
+            <td style={__srTd}>{r.name}</td>
+            {hasFin ? <td style={{ ...__srTd, textAlign: 'right' }}>{r.avgFin.toFixed(1)}</td> : null}
+            <td style={{ ...__srTd, textAlign: 'right' }}>{r.winPct.toFixed(1)}%</td>
+            <td style={{ ...__srTd, textAlign: 'right', color: 'var(--accent, #22c55e)', fontWeight: 600 }}>{r.fmv}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
+}
+function SimBettingMarkets({ results, config }) {
+  const [gA, setGA] = useState([])
+  const [gB, setGB] = useState([])
+  const [resA, setResA] = useState(null)
+  const [resB, setResB] = useState(null)
+  const rows = results || []
+  const M = __decodeMtx(config)
+  function toggle(name, which) {
+    const cur = which === 'A' ? gA : gB
+    const set = which === 'A' ? setGA : setGB
+    if (cur.indexOf(name) >= 0) set(cur.filter(x => x !== name))
+    else set(cur.concat([name]))
+  }
+  function analyze(names) {
+    if (!M || names.length < 2) return null
+    const cols = names.map(nm => M.order.indexOf(nm)).filter(c => c >= 0)
+    if (cols.length < 2) return null
+    const wins = cols.map(() => 0), finSum = cols.map(() => 0)
+    for (let s = 0; s < M.simN; s++) {
+      let best = 1e9, bi = 0
+      for (let g = 0; g < cols.length; g++) {
+        const pos = M.mtx[s * M.nD + cols[g]]
+        finSum[g] += pos
+        if (pos < best) { best = pos; bi = g }
+      }
+      wins[bi]++
+    }
+    return cols.map((c, g) => ({ name: M.order[c], avgFin: finSum[g] / M.simN, winPct: 100 * wins[g] / M.simN, fmv: fmvAmerican(wins[g] / M.simN) })).sort((a, b) => b.winPct - a.winPct)
+  }
+  function aggBy(key) {
+    const m = {}
+    rows.forEach(r => { const g = ((r[key] || 'Unknown') + '').trim() || 'Unknown'; m[g] = (m[g] || 0) + (r.win_pct || 0) })
+    return Object.entries(m).map(([k, v]) => ({ name: k, winPct: v, fmv: fmvAmerican(v / 100) })).sort((a, b) => b.winPct - a.winPct)
+  }
+  const byMfr = aggBy('manufacturer')
+  const byTeam = aggBy('organization')
+  const chip = (active) => ({ cursor: 'pointer', padding: '1px 8px', borderRadius: 4, fontSize: '0.7rem', fontWeight: 700, marginLeft: 5, border: '1px solid var(--border)', background: active ? 'var(--accent, #22c55e)' : 'transparent', color: active ? '#08120b' : 'var(--text-secondary)' })
+  return (
+    <div className="card" style={{ marginTop: 20 }}>
+      <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 4 }}>H2H / Group Betting</h2>
+      <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 10 }}>Tag 2 drivers for a head-to-head, or 3+ for a group bet, into Group A or B, then Analyze. Win % is the chance that driver finishes best of the group; FMV is the fair no-vig American price.</div>
+      {!M ? <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 8 }}>Re-run and publish this sim to enable head-to-head / group analysis (per-sim data not stored on this older board).</div> : null}
+      <div style={{ fontWeight: 700, fontSize: '0.8rem', marginBottom: 4 }}>Group A: <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>{gA.length ? gA.join(', ') : 'none'}</span></div>
+      <div style={{ fontWeight: 700, fontSize: '0.8rem', marginBottom: 8 }}>Group B: <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>{gB.length ? gB.join(', ') : 'none'}</span></div>
+      <div style={{ maxHeight: 190, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 6, padding: 6, margin: '4px 0 10px' }}>
+        {rows.map((r, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 4px' }}>
+            <span style={{ fontSize: '0.82rem' }}>{r.driver_name}</span>
+            <span>
+              <span style={chip(gA.indexOf(r.driver_name) >= 0)} onClick={() => toggle(r.driver_name, 'A')}>A</span>
+              <span style={chip(gB.indexOf(r.driver_name) >= 0)} onClick={() => toggle(r.driver_name, 'B')}>B</span>
+            </span>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: 'flex', gap: 10 }}>
+        <button style={{ ...__srBtn, opacity: gA.length < 2 ? 0.5 : 1 }} onClick={() => setResA(analyze(gA))} disabled={gA.length < 2}>Analyze A Matchup</button>
+        <button style={{ ...__srBtn, opacity: gB.length < 2 ? 0.5 : 1 }} onClick={() => setResB(analyze(gB))} disabled={gB.length < 2}>Analyze B Matchup</button>
+      </div>
+      <SrTable data={resA} col1="Group A" />
+      <SrTable data={resB} col1="Group B" />
+      <h2 style={{ fontSize: '1rem', fontWeight: 700, margin: '22px 0 4px' }}>Winning Manufacturer</h2>
+      <SrTable data={byMfr} col1="Manufacturer" />
+      <h2 style={{ fontSize: '1rem', fontWeight: 700, margin: '22px 0 4px' }}>Winning Team</h2>
+      <SrTable data={byTeam} col1="Team" />
+    </div>
+  )
+}
+
 export default function SimResults() {
   const [series, setSeries]       = useState('cup')
   const [mvMkt, setMvMkt] = useState('Win')
@@ -235,6 +345,8 @@ export default function SimResults() {
 })()}
 </div>
       )}
+
+      {results.length > 0 && <SimBettingMarkets results={results} config={data && data.config} />}
     </div>
   )
 }
