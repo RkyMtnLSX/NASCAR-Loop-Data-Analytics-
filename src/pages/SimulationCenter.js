@@ -656,6 +656,19 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
   const publishResults = async () => {
     if (!simResults || !config) return
     const __mv = __marketValue(oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt, simResults)
+    let __mtxB64 = null, __mtxN = 0, __mtxOrder = null
+    if (simResults.posMatrix && simResults.simN) {
+      const __nD = simResults.length
+      const __cap = Math.min(simResults.simN, 4000)
+      __mtxOrder = new Array(__nD)
+      simResults.forEach(d => { if (d.simIdx != null) __mtxOrder[d.simIdx] = d.name })
+      const __packed = new Uint8Array(__cap * __nD)
+      for (let __s = 0; __s < __cap * __nD; __s++) __packed[__s] = simResults.posMatrix[__s]
+      let __bin = ''
+      for (let __i = 0; __i < __packed.length; __i += 8192) __bin += String.fromCharCode.apply(null, __packed.subarray(__i, __i + 8192))
+      __mtxB64 = btoa(__bin)
+      __mtxN = __cap
+    }
     const payload = {
       series,
       track_name: config.track_name,
@@ -663,7 +676,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
       race_year:  config.race_year || new Date().getFullYear(),
       race_number: raceNumMap[series] ? parseInt(raceNumMap[series]) : null,
       stage: simStage,
-      config: { weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps },
+      config: { weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
       results: simResults.map(d => ({
         driver_name:  d.name,
         car_number:   d.carNumber,
@@ -680,7 +693,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
         top10_pct:     +(d.top10Pct    || 0).toFixed(4),
         dnf_pct:       +(d.dnfPct      || 0).toFixed(4),
         laps_led:      +(d.projLapsLed || 0).toFixed(2),
-        avg_fast_laps: +(d.avgFastLaps || 0).toFixed(2), mv: (__mv[d.name] || null),
+        avg_fast_laps: +(d.avgFastLaps || 0).toFixed(2), manufacturer: d.manufacturer || null, mv: (__mv[d.name] || null),
       }))
     }
     await supabase.from('sim_results').delete().eq('series', series).eq('stage', simStage)
