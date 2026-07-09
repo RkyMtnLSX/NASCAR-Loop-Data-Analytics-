@@ -277,7 +277,7 @@ const compareRacesMap = {}
 
 // All years from primary driver
 const seenRcKeys = {}
-const raceCols = primaryRaces.map(r => { const yr = parseInt(r.year); const tn = r.track_name || ''; const rn = r._occ || r.race_number || 1; return { year: yr, track_name: tn, raceNum: rn, key: yr + '_' + tn + '_' + rn } }).filter(c => c.year && (seenRcKeys[c.key] ? false : (seenRcKeys[c.key] = true))).sort((a, b) => a.year !== b.year ? a.year - b.year : a.raceNum !== b.raceNum ? a.raceNum - b.raceNum : (a.track_name || '').localeCompare(b.track_name || ''))
+const raceCols = primaryRaces.map(r => { const yr = parseInt(r.year); const tn = r.track_name || ''; const rn = r._occ || r.race_number || 1; const occIdx = primaryRaces.filter(x => parseInt(x.year) === yr && (x.track_name || '') === tn && (parseInt(x.race_number) || 0) < (parseInt(r.race_number) || 0)).length; return { year: yr, track_name: tn, raceNum: rn, realRn: (r.race_number == null ? null : parseInt(r.race_number)), occIdx: occIdx, key: yr + '_' + tn + '_' + rn } }).filter(c => c.year && (seenRcKeys[c.key] ? false : (seenRcKeys[c.key] = true))).sort((a, b) => a.year !== b.year ? a.year - b.year : a.raceNum !== b.raceNum ? a.raceNum - b.raceNum : (a.track_name || '').localeCompare(b.track_name || ''))
 
 const otherDrivers = effectiveRows.filter(r => r.driver !== cardDriver.driver && !(compareDrivers||[]).find(cd=>cd.driver===r.driver)).map(r => r.driver).sort()
 
@@ -421,7 +421,7 @@ verticalAlign: 'top',
 {fmtRaw(pVal, col.decimals)}
 </div>
 {(compareDrivers||[]).map((cd,ci) => {
-const cRace = (function(){var __l=(compareRacesMap[cd.driver]||[]);return __l.find(r => parseInt(r.year) === rc.year && (r.track_name||'') === rc.track_name && (r._occ||r.race_number||1) === rc.raceNum) || __l.find(r => parseInt(r.year) === rc.year && (r.track_name||'') === rc.track_name);})()
+const cRace = (function(){ var __l = (compareRacesMap[cd.driver] || []).filter(function(r){ return parseInt(r.year) === rc.year && (r.track_name || '') === rc.track_name; }); if (__l.length === 0) return null; var __haveRn = __l.some(function(r){ return r.race_number != null; }); if (rc.realRn != null && __haveRn) { return __l.find(function(r){ return r.race_number != null && parseInt(r.race_number) === rc.realRn; }) || null; } if (__l.length === 1) return __l[0]; var __s = __l.slice().sort(function(a,b){ return (parseInt(a.race_number)||0) - (parseInt(b.race_number)||0); }); return __s[rc.occIdx] || null; })()
 const cVal = cRace ? cRace[col.key] : null
 return (<div key={cd.driver} style={{ color: COMPARE_COLORS[ci], fontSize: '0.85rem', marginTop: 2 }}>{fmtRaw(cVal, col.decimals)}</div>)
 })}
