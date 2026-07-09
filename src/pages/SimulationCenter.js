@@ -552,7 +552,11 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
             const baseRows = rows.filter(r => r.sr === s || r.sr === 'cup')
             const wsum = arr => arr.reduce((a, r) => a + yrWt(r.yr), 0)
             const avgFin = baseRows.length ? baseRows.reduce((a, r) => a + r.fin * yrWt(r.yr), 0) / wsum(baseRows) : null
-            const winConv = baseRows.length ? baseRows.reduce((a, r) => a + (r.fin === 1 ? 1 : r.fin <= 5 ? 0.35 : 0) * yrWt(r.yr), 0) / wsum(baseRows) : null
+            // winConv: WINS-ONLY + small-sample shrinkage (2026-07-09). Attribution backtest: the top5
+            // credit added nothing (signal is 100 pct Hill); shrink conf min(1,n/5) toward the ~1/38 base
+            // rate kills small-sample inflation (Day 0.45->0.21, Crews 0.35->0.02). Winner-hit 42 pct kept.
+            const winConvConf = Math.min(1, baseRows.length / 5)
+            const winConv = baseRows.length ? (winConvConf * (baseRows.reduce((a, r) => a + (r.fin === 1 ? 1 : 0) * yrWt(r.yr), 0) / wsum(baseRows)) + (1 - winConvConf) * 0.026) : null
             const rRows = baseRows.filter(r => r.rating !== null)
             let avgRating = rRows.length > 0 ? rRows.reduce((a, r) => a + r.rating * yrWt(r.yr), 0) / wsum(rRows) : null
             const bw = __borrowMap[name]
