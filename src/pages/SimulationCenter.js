@@ -698,7 +698,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
       results: simResults.map(d => ({
         driver_name:  d.name,
         car_number:   d.carNumber,
-        organization: d.org,
+        organization: d.organization,
         start_pos:    d.startPos,
         proj_finish:  d.projFinish,
         finish_p25:   +(d.finishP25 || 0).toFixed(1),
