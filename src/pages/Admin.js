@@ -864,6 +864,7 @@ function LoadQualifying() {
   const [status, setStatus]         = useState(null)
   const [inputMode, setInputMode]   = useState('pdf')
   const [pdfParsing, setPdfParsing] = useState(false)
+  const [lineupSource, setLineupSource] = useState('qualifying')
 
   function getRacingRefUrl() {
     if (!year || !raceNumber) return null
@@ -1034,6 +1035,7 @@ function LoadQualifying() {
         driver_name:        d.driverName,
         car_number:         d.carNumber || null,
         qualifying_position: d.rank,
+        lineup_source: lineupSource,
         qualifying_speed:   d.speed || null,
         lap_time:           d.lapTime || null,
       }))
@@ -1077,6 +1079,10 @@ function LoadQualifying() {
         <div>
           <label style={{ color: 'var(--text-secondary)', fontSize: 12 }}>Track Name (exact)</label>
           <select value={trackName} onChange={e => setTrackName(e.target.value)} style={inputStyle}><option value="">-- select track --</option>{tracks.map(t => <option key={t} value={t}>{t}</option>)}</select>
+        </div>
+        <div>
+          <label style={{ color: 'var(--text-secondary)', fontSize: 12 }}>Lineup source</label>
+          <select value={lineupSource} onChange={e => setLineupSource(e.target.value)} style={inputStyle}><option value="qualifying">Qualifying (on-track)</option><option value="metric">Metric / owner points</option><option value="rain">Rain (no qualifying)</option><option value="practice">Practice-set</option></select>
         </div>
       </div>
 
