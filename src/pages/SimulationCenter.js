@@ -410,6 +410,82 @@ function runRaceSim(drivers, simConfig) {
   return __rows
 }
 
+function CrossoverBorrowPanel() {
+  const [rows, setRows] = useState([])
+  const [driver, setDriver] = useState('')
+  const [series, setSeries] = useState('trucks')
+  const [sourceSeries, setSourceSeries] = useState('oreilly')
+  const [weight, setWeight] = useState('0.5')
+  const [note, setNote] = useState('')
+  const [msg, setMsg] = useState('')
+  const load = () => {
+    supabase.from('crossover_borrows').select('*').then(({ data }) => {
+      const d = (data || []).slice().sort((a, b) => (a.series || '').localeCompare(b.series || '') || (a.driver_name || '').localeCompare(b.driver_name || ''))
+      setRows(d)
+    })
+  }
+  useEffect(() => { load() }, [])
+  const cell = { padding: '4px 10px', fontSize: '0.78125rem', borderBottom: '1px solid var(--border)' }
+  const hd = { ...cell, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: '0.68rem' }
+  const inp = { padding: '6px 8px', fontSize: '0.8125rem', background: 'var(--bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 4 }
+  const addBorrow = async () => {
+    const nm = driver.trim()
+    if (!nm) { setMsg('Enter a driver name'); return }
+    if (series === sourceSeries) { setMsg('Source series must differ from sim series'); return }
+    const w = Math.max(0, Math.min(1, parseFloat(weight) || 0.5))
+    const { error } = await supabase.from('crossover_borrows').upsert({ series, driver_name: nm, source_series: sourceSeries, blend_weight: w, active: true, note: note.trim() || null }, { onConflict: 'series,driver_name' })
+    if (error) { setMsg('Error: ' + error.message); return }
+    setMsg('Saved ' + nm + ' (' + series + ' from ' + sourceSeries + ' @ ' + Math.round(w * 100) + '%)')
+    setDriver(''); setNote(''); load()
+  }
+  const toggle = async (r) => { await supabase.from('crossover_borrows').update({ active: !r.active }).eq('id', r.id); load() }
+  const remove = async (r) => { await supabase.from('crossover_borrows').delete().eq('id', r.id); load() }
+  const fcol = { display: 'flex', flexDirection: 'column', gap: 3 }
+  const lab = { fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase' }
+  return (
+    <div className="card" style={{ marginBottom: 20 }}>
+      <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 4 }}>Crossover Borrows ({rows.length})</h2>
+      <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 16 }}>
+        Borrow a driver's road-course rating from another series when same-series history is thin or unrepresentative (mechanical DNFs, equipment change). Applied automatically when the matching series config loads in the Sim Center.
+      </p>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'flex-end', marginBottom: 14 }}>
+        <div style={fcol}><label style={lab}>Driver</label><input style={{ ...inp, width: 170 }} value={driver} onChange={e => setDriver(e.target.value)} placeholder='Parker Kligerman' /></div>
+        <div style={fcol}><label style={lab}>Sim series</label><select style={{ ...inp, width: 100 }} value={series} onChange={e => setSeries(e.target.value)}><option value='cup'>cup</option><option value='oreilly'>oreilly</option><option value='trucks'>trucks</option></select></div>
+        <div style={fcol}><label style={lab}>Borrow from</label><select style={{ ...inp, width: 100 }} value={sourceSeries} onChange={e => setSourceSeries(e.target.value)}><option value='cup'>cup</option><option value='oreilly'>oreilly</option><option value='trucks'>trucks</option></select></div>
+        <div style={fcol}><label style={lab}>Weight 0-1</label><input style={{ ...inp, width: 64 }} value={weight} onChange={e => setWeight(e.target.value)} placeholder='0.5' /></div>
+        <div style={{ ...fcol, flex: 1, minWidth: 120 }}><label style={lab}>Note</label><input style={{ ...inp, width: '100%' }} value={note} onChange={e => setNote(e.target.value)} placeholder='Spire upgrade; mech DNFs' /></div>
+        <button onClick={addBorrow} style={{ padding: '7px 16px', cursor: 'pointer', borderRadius: 4, border: '1px solid var(--border)', background: 'var(--text)', color: 'var(--bg)', fontWeight: 600, fontSize: '0.8rem' }}>Save</button>
+      </div>
+      {msg ? <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: 10 }}>{msg}</p> : null}
+      <table style={{ borderCollapse: 'collapse', width: '100%', tableLayout: 'fixed' }}>
+        <thead><tr>
+          <th style={hd}>Driver</th>
+          <th style={{ ...hd, width: 80 }}>Series</th>
+          <th style={{ ...hd, width: 90 }}>Borrow</th>
+          <th style={{ ...hd, width: 70, textAlign: 'center' }}>Weight</th>
+          <th style={{ ...hd, width: 150 }}>Note</th>
+          <th style={{ ...hd, width: 66, textAlign: 'center' }}>Active</th>
+          <th style={{ ...hd, width: 50, textAlign: 'center' }}></th>
+        </tr></thead>
+        <tbody>
+        {rows.map(r => (
+          <tr key={r.id} style={r.active ? null : { opacity: 0.45 }}>
+            <td style={{ ...cell, fontWeight: 600 }}>{r.driver_name}</td>
+            <td style={cell}>{r.series}</td>
+            <td style={{ ...cell, color: 'var(--text-secondary)' }}>{r.source_series}</td>
+            <td style={{ ...cell, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{Math.round((r.blend_weight || 0) * 100)}%</td>
+            <td style={{ ...cell, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.note || '-'}</td>
+            <td style={{ ...cell, textAlign: 'center' }}><button onClick={() => toggle(r)} style={{ cursor: 'pointer', padding: '2px 8px', fontSize: '0.7rem', borderRadius: 4, border: '1px solid var(--border)', background: r.active ? 'rgba(34,197,94,0.15)' : 'transparent', color: r.active ? '#22c55e' : 'var(--text-muted)' }}>{r.active ? 'ON' : 'OFF'}</button></td>
+            <td style={{ ...cell, textAlign: 'center' }}><button onClick={() => remove(r)} style={{ cursor: 'pointer', padding: '2px 6px', fontSize: '0.7rem', borderRadius: 4, border: '1px solid var(--border)', background: 'transparent', color: '#ef4444' }}>{'\u00d7'}</button></td>
+          </tr>
+        ))}
+        {rows.length === 0 ? <tr><td colSpan={7} style={{ ...cell, color: 'var(--text-muted)', textAlign: 'center' }}>No borrows configured.</td></tr> : null}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 export default function SimulationCenter({ isSubscriber, embedded }) {
   const [series, setSeries]                 = useState('cup')
   const [config, setConfig]                 = useState(null)
@@ -434,6 +510,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
   const [oddsHrTxt, setOddsHrTxt] = useState('')
   const [shadeLambda, setShadeLambda] = useState(0.5)
   const [showShade, setShowShade] = useState(false)
+  const [showBorrows, setShowBorrows] = useState(false)
   const [simStage, setSimStage] = useState('post')
   const [raceNumMap, setRaceNumMap] = useState({})
   const [authed,        setAuthed]          = useState(false)
@@ -948,6 +1025,11 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
               ))}
             </div>
           </div>
+
+          <div style={{ marginBottom: 14 }}>
+            <button onClick={() => setShowBorrows(v => !v)} style={{ padding: '6px 12px', background: 'transparent', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text-secondary)', fontSize: '0.8rem', cursor: 'pointer' }}>{showBorrows ? 'Hide' : 'Show'} Crossover Borrows (admin)</button>
+          </div>
+          {showBorrows && <CrossoverBorrowPanel />}
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
             <button onClick={handleRun} disabled={running || !rawDrivers.length} style={{
