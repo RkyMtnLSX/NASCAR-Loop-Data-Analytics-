@@ -874,21 +874,28 @@ function LoadQualifying() {
 
   function parseText(text) {
     const drivers = []
+    const mfrs = ['Toyota','Chevrolet','Chevy','Ford','Dodge']
     for (const line of text.split('\n')) {
       const parts = line.trim().split(/\s+/)
-      if (parts.length < 6) continue
+      if (parts.length < 4) continue
       const rank = parseInt(parts[0])
       if (isNaN(rank) || rank < 1 || rank > 60) continue
-      const carNumber = parts[1]
-      if (!/^\d{1,3}[A-Z]?$/.test(carNumber)) continue
-      const speed = parseFloat(parts[parts.length - 1])
-      if (isNaN(speed) || speed < 50) continue
-      // driver name: tokens 2..n-1, strip manufacturer from end
-      const mid = parts.slice(2, parts.length - 1)
-      const mfrs = ['Toyota','Chevrolet','Ford']
-      while (mid.length > 0 && mfrs.includes(mid[mid.length - 1])) mid.pop()
-      // first 2 tokens = driver name
-      const driverName = mid.slice(0, 2).join(' ').replace(/[#(i)]/g, '').trim()
+      let mfrIdx = -1
+      for (let i = 2; i < parts.length; i++) { if (mfrs.indexOf(parts[i]) >= 0) { mfrIdx = i; break } }
+      let carNumber = null, driverName = '', speed = null
+      if (mfrIdx >= 3) {
+        carNumber = parts[mfrIdx - 1]
+        driverName = parts.slice(1, mfrIdx - 1).join(' ')
+        if (mfrIdx < parts.length - 1) { const sp = parseFloat(parts[parts.length - 1]); if (!isNaN(sp) && sp >= 50) speed = sp }
+      } else if (/^\d{1,3}[A-Z]?$/.test(parts[1])) {
+        carNumber = parts[1]
+        const mid = parts.slice(2)
+        while (mid.length > 0 && (mfrs.indexOf(mid[mid.length - 1]) >= 0 || !isNaN(parseFloat(mid[mid.length - 1])))) mid.pop()
+        driverName = mid.join(' ')
+        const sp = parseFloat(parts[parts.length - 1]); if (!isNaN(sp) && sp >= 50) speed = sp
+      } else { continue }
+      driverName = driverName.replace(/\(i\)/gi, '').replace(/[#()*]/g, '').trim()
+      if (!carNumber || !/^\d{1,3}[A-Z]?$/.test(carNumber) || !driverName) continue
       drivers.push({ rank, carNumber, driverName, speed })
     }
     return drivers
