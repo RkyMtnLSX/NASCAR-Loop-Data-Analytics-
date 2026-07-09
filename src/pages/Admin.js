@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { parsePracticeExcel } from '../lib/excelParser'
 import { gradePracticeSession } from '../lib/practiceGrader'
-import SimulationCenter, { DEFAULT_WEIGHTS, ROAD_COURSE_WEIGHTS, SUPERSPEEDWAY_WEIGHTS, TRUCK_ROAD_WEIGHTS } from './SimulationCenter'
+import SimulationCenter, { DEFAULT_WEIGHTS, ROAD_COURSE_WEIGHTS, SUPERSPEEDWAY_WEIGHTS, TRUCK_ROAD_WEIGHTS, ONEILLY_SUPERSPEEDWAY_WEIGHTS } from './SimulationCenter'
 import GradeCenter from './GradeCenter'
 
 const ADMIN_PASSWORD = process.env.REACT_APP_ADMIN_PASSWORD
@@ -1453,20 +1453,21 @@ function LoadFastestLaps() {
 
 
 function SimFormulaPanel() {
-  const __WROWS = [['corrHistory','Corr. History'],['longRunPace','Long Run Pace'],['shortRunPace','Short Run Pace'],['startPos','Start Position'],['tireFalloff','Tire Falloff'],['raceCraft','Race Craft'],['trackHistory','Track History']]
+  const __WROWS = [['corrHistory','Corr. History'],['longRunPace','Long Run Pace'],['shortRunPace','Short Run Pace'],['startPos','Start Position'],['tireFalloff','Tire Falloff'],['trackHistory','Track History'],['winConversion','Win Conversion']]
   const __pctRows = w => __WROWS.map(([k, lab]) => [lab, Math.round((w[k] || 0) * 100) + '%'])
   const ovalW = __pctRows(DEFAULT_WEIGHTS)
   const rcW = __pctRows(ROAD_COURSE_WEIGHTS)
   const ssW = __pctRows(SUPERSPEEDWAY_WEIGHTS)
   const trW = __pctRows(TRUCK_ROAD_WEIGHTS)
+  const oreSSW = __pctRows(ONEILLY_SUPERSPEEDWAY_WEIGHTS)
   const factors = [
     ['Corr. History',  'driver_rating at correlated tracks (same correlation group), year-weighted. 100% rating - avg_finish is used only as a fallback when a driver has no rating. Confidence = min(1, nRaces / 4); thin history shrinks toward 50 (neutral).'],
     ['Long Run Pace',  'overall_avg from practice_sessions - all clean laps across all stints, any lap over 8% slower than session median dropped. Lower is better.'],
     ['Short Run Pace', 'late_run_avg from practice_sessions - short-stint laps, mock-qual stints excluded. Lower is better.'],
     ['Start Position', 'qualifying_position from qualifying_results (falls back to practice_sessions qualifying_position if quali is not loaded). Lower is better.'],
     ['Tire Falloff',   'trend_slope from practice_sessions - lap-time slope vs lap number in longest stint (min 10 laps, else neutral 50). Lower is better.'],
-    ['Race Craft',     'Avg quality pass % (pct_quality_passes) from loop_data at correlated tracks, same year weights as Corr. History. Higher is better.'],
     ['Track History',  'driver_rating + avg_finish at this specific track only, same year weights. 90% rating / 10% finish blend, confidence = min(1, nTrackRaces / 4). Now active on ovals (15%); 0% on road and superspeedway.'],
+    ['Win Conversion',  'Oreilly superspeedways only: year-weighted win rate (wins-only, small-sample shrunk). Rewards proven pack-race closers over steady-but-winless drivers.'],
   ]
   const yearW = [
     ['2026', '2.0x'],
@@ -1516,6 +1517,17 @@ function SimFormulaPanel() {
             <thead><tr><th style={hd}>Factor</th><th style={{ ...hd, textAlign: 'right' }}>Weight</th></tr></thead>
             <tbody>
             {ssW.map(([f, w]) => (
+              <tr key={f}><td style={cell}>{f}</td><td style={{ ...cell, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{w}</td></tr>
+            ))}
+            </tbody>
+          </table>
+        </div>
+        <div style={{ flex: 1, minWidth: 180 }}>
+          <div style={label}>Superspeedway: O'Reilly</div>
+          <table style={tbl}>
+            <thead><tr><th style={hd}>Factor</th><th style={{ ...hd, textAlign: 'right' }}>Weight</th></tr></thead>
+            <tbody>
+            {oreSSW.map(([f, w]) => (
               <tr key={f}><td style={cell}>{f}</td><td style={{ ...cell, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{w}</td></tr>
             ))}
             </tbody>
