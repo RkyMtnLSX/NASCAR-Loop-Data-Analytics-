@@ -410,10 +410,10 @@ function runRaceSim(drivers, simConfig) {
   return __rows
 }
 
-function CrossoverBorrowPanel() {
+function CrossoverBorrowPanel({ series }) {
   const [rows, setRows] = useState([])
   const [driver, setDriver] = useState('')
-  const [series, setSeries] = useState('trucks')
+  const [drivers, setDrivers] = useState([])
   const [sourceSeries, setSourceSeries] = useState('oreilly')
   const [weight, setWeight] = useState('0.5')
   const [note, setNote] = useState('')
@@ -425,6 +425,7 @@ function CrossoverBorrowPanel() {
     })
   }
   useEffect(() => { load() }, [])
+  useEffect(() => { setDriver(''); supabase.from('entry_list').select('driver_name').eq('series', series).then(({ data }) => { setDrivers([...new Set((data || []).map(d => (d.driver_name || '').trim()).filter(Boolean))].sort()) }) }, [series])
   const cell = { padding: '4px 10px', fontSize: '0.78125rem', borderBottom: '1px solid var(--border)' }
   const hd = { ...cell, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: '0.68rem' }
   const inp = { padding: '6px 8px', fontSize: '0.8125rem', background: 'var(--bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 4 }
@@ -449,8 +450,8 @@ function CrossoverBorrowPanel() {
         Borrow a driver's road-course rating from another series when same-series history is thin or unrepresentative (mechanical DNFs, equipment change). Applied automatically when the matching series config loads in the Sim Center.
       </p>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'flex-end', marginBottom: 14 }}>
-        <div style={fcol}><label style={lab}>Driver</label><input style={{ ...inp, width: 170 }} value={driver} onChange={e => setDriver(e.target.value)} placeholder='Parker Kligerman' /></div>
-        <div style={fcol}><label style={lab}>Sim series</label><select style={{ ...inp, width: 100 }} value={series} onChange={e => setSeries(e.target.value)}><option value='cup'>cup</option><option value='oreilly'>oreilly</option><option value='trucks'>trucks</option></select></div>
+        <div style={fcol}><label style={lab}>Driver</label><select style={{ ...inp, width: 190 }} value={driver} onChange={e => setDriver(e.target.value)}><option value=''>{drivers.length ? 'Select driver...' : 'No entry list loaded'}</option>{drivers.map(d => <option key={d} value={d}>{d}</option>)}</select></div>
+        <div style={fcol}><label style={lab}>For series</label><div style={{ ...inp, width: 90, textTransform: 'capitalize', opacity: 0.85 }}>{series}</div></div>
         <div style={fcol}><label style={lab}>Borrow from</label><select style={{ ...inp, width: 100 }} value={sourceSeries} onChange={e => setSourceSeries(e.target.value)}><option value='cup'>cup</option><option value='oreilly'>oreilly</option><option value='trucks'>trucks</option></select></div>
         <div style={fcol}><label style={lab}>Weight 0-1</label><input style={{ ...inp, width: 64 }} value={weight} onChange={e => setWeight(e.target.value)} placeholder='0.5' /></div>
         <div style={{ ...fcol, flex: 1, minWidth: 120 }}><label style={lab}>Note</label><input style={{ ...inp, width: '100%' }} value={note} onChange={e => setNote(e.target.value)} placeholder='Spire upgrade; mech DNFs' /></div>
@@ -1029,7 +1030,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
           <div style={{ marginBottom: 14 }}>
             <button onClick={() => setShowBorrows(v => !v)} style={{ padding: '6px 12px', background: 'transparent', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text-secondary)', fontSize: '0.8rem', cursor: 'pointer' }}>{showBorrows ? 'Hide' : 'Show'} Crossover Borrows (admin)</button>
           </div>
-          {showBorrows && <CrossoverBorrowPanel />}
+          {showBorrows && <CrossoverBorrowPanel series={series} />}
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
             <button onClick={handleRun} disabled={running || !rawDrivers.length} style={{
