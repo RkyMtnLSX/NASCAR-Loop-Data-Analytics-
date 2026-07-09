@@ -906,3 +906,7 @@ variant whose failure mode is proven-absent: the top5 credit's only demonstrated
 small-sample inflation, and "hasn't won a race" scoring ~zero on a WIN-conversion signal is the
 defensible semantics. Caruth verdict unchanged: his fix is a crossover_borrows row (truck SS
 fin 2/4/9), not this weight.
+SHIPPED 2026-07-09: variant D live in SimulationCenter.js (commit d48cab96, bundle
+main.5673d1fd.js, round-trip verified). winConv is now wins-only, shrunk conf min(1,n/5) toward
+0.026. PENDING: re-run + republish the O'Reilly Atlanta board (published board predates this);
+optional Caruth crossover_borrows row.
