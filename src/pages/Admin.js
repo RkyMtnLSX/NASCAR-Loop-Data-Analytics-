@@ -1919,6 +1919,9 @@ export default function Admin() {
       <EntryListManager />
       <SimFormulaPanel />
       <TrackDbPanel />
+
+      </>)}
+      {adminTab === 'load' && (<>
       <div className="card" style={{ marginBottom: 20 }}>
         <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 8 }}>Data Audit</h2>
         <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 12 }}>
@@ -1931,10 +1934,11 @@ export default function Admin() {
         <a href="/practice-audit" style={{ color: '#f59e0b', fontSize: '0.875rem', textDecoration: 'none' }}>
           Open Practice Session Audit
         </a>
+        <br />
+        <a href="/qualifying-audit" style={{ color: '#f59e0b', fontSize: '0.875rem', textDecoration: 'none' }}>
+          Open Qualifying Data Audit
+        </a>
       </div>
-
-      </>)}
-      {adminTab === 'load' && (<>
       <div className="card" style={{ marginBottom: 20 }}>
         <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 20 }}>Upload Practice Session</h2>
 
