@@ -1046,6 +1046,15 @@ pct-equipment share) and ride-change rows (modal car pool -> current car pool). 
 remaining: loop-loader car_number stamping on new race loads (RR results pages carry the
 car column; loader parses those pages already).
 
+STAGE 3 SHIPPED (2026-07-09, commit 4e1d7209, bundle main.9ca65ae6.js): per-driver equipment
+INFLUENCE OVERRIDES. Every affected row in the Equipment-prior panel has an "infl" input
+(0-150 pct, default 100) + a reset-overrides button in the header. Scale multiplies eqConf in
+the thin fill (0 pct -> fill collapses to neutral 50) and multiplies the ride-change delta
+directly. Session-only state (eqOverrides in the component, applied in the driversWithScores
+useMemo via d.equipScale) -- intentionally NOT persisted, same philosophy as weight nudges:
+operator judgment per weekend, model stays the model. NOTE: overrides only affect drivers the
+prior touches -- an established driver in their usual ride (Honeycutt) has nothing to scale.
+
 POST-SHIP AUDIT + TWO REFINEMENTS TESTED AND REJECTED (2026-07-09, first live board):
 First equipment-prior truck board (Lime Rock). User flagged: Eckes dumped to P17 (correct
 mechanism -- ride-change delta vs his #19 championship truck, #91 pool 60.1 dragged by Jack
