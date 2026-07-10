@@ -224,6 +224,13 @@ function buildSpeedScores(drivers, weights) {
   const trackFinishScores = normalizeArr(drivers.map(d => d.trackAvgFinish), true)
   const winConvScores     = normalizeArr(drivers.map(d => d.corrWinConv),    false)  // lower = better
 
+  // EQUIPMENT PRIOR (task 118): map equipment ratings onto the SAME min-max axis as corrAvgRating
+  const __crVals = drivers.map(d => d.corrAvgRating).filter(v => v != null && !isNaN(v))
+  const __crMn = Math.min.apply(null, __crVals), __crMx = Math.max.apply(null, __crVals)
+  const __eqScale = (__crVals.length >= 2 && __crMx > __crMn)
+    ? (v => (v == null || isNaN(v)) ? null : Math.max(0, Math.min(100, (v - __crMn) / (__crMx - __crMn) * 100)))
+    : null
+
   const wTotal = Object.values(weights).reduce((a, b) => a + b, 0) || 1
   const w = {
     corrHistory:  weights.corrHistory  / wTotal,
@@ -247,7 +254,18 @@ function buildSpeedScores(drivers, weights) {
                    :                null
     const rawC = blendedC ?? 50
     const conf = d.nCorrRaces > 0 ? Math.min(1, d.nCorrRaces / 4) : (blendedC != null ? 1 : 0)
-    const c    = rawC * conf + 50 * (1 - conf)
+    // EQUIPMENT PRIOR (task 118): thin-history fill toward EQUIPMENT instead of neutral 50;
+    // quarter-strength ride-change delta for established drivers. All guards degrade to the
+    // pre-118 value (rawC*conf + 50*(1-conf)) when car data is absent.
+    const __eqS = __eqScale ? __eqScale(d.equipRating) : null
+    const __eqM = __eqScale ? __eqScale(d.modalEquipRating) : null
+    const __eqConf = d.nEquipRaces > 0 ? Math.min(1, d.nEquipRaces / 4) : 0
+    const __eqFill = __eqS != null ? __eqS * __eqConf + 50 * (1 - __eqConf) : 50
+    let c = rawC * conf + __eqFill * (1 - conf)
+    if (conf >= 1 && __eqS != null && __eqM != null && d.modalCar && d.carNumber && String(d.carNumber).trim() !== d.modalCar) {
+      const __dConf = Math.min(1, Math.min(d.nEquipRaces, d.nModalEquip) / 4)
+      c = Math.max(0, Math.min(100, c + 0.25 * __dConf * (__eqS - __eqM)))
+    }
     const trs = trackRatingScores[i]
     const tfs = trackFinishScores[i]
     const hasTR = d.trackAvgRating != null
@@ -591,7 +609,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
         if (corrNames.length) {
           const { data: ld } = await supabase
             .from('loop_data')
-            .select('driver_name, finish_position, laps_led, fastest_laps, driver_rating, pct_quality_passes, year, series')
+            .select('driver_name, finish_position, laps_led, fastest_laps, driver_rating, pct_quality_passes, year, series, car_number')
             .in('track_name', corrNames)
             .in('series', [...new Set([s, 'cup', ...__borrowSeries])])
           loopRows = ld || []
@@ -627,7 +645,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
           if (name && fin > 0) {
             const normN = normalizeName(name)
             if (!loopByDriver[normN]) loopByDriver[normN] = []
-            loopByDriver[normN].push({ sr: r.series, fin, rating: isNaN(rating) ? null : rating, qp: isNaN(qp) ? null : qp, yr })
+            loopByDriver[normN].push({ sr: r.series, fin, rating: isNaN(rating) ? null : rating, qp: isNaN(qp) ? null : qp, yr, car: (r.car_number || '').trim() || null })
           }
         })
         const corrAvgMap = new Map(
@@ -653,7 +671,34 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
             }
             const qpRows = baseRows.filter(r => r.qp !== null)
             const avgQP = qpRows.length > 0 ? qpRows.reduce((a, r) => a + r.qp * yrWt(r.yr), 0) / wsum(qpRows) : null
-            return [name, { avg: avgFin, avgRating, avgQP, winConv, n: baseRows.length }]
+            // equipment prior (task 118): driver's modal (most frequent) in-series car
+            const carCnt = {}
+            baseRows.forEach(r => { if (r.sr === s && r.car) carCnt[r.car] = (carCnt[r.car] || 0) + 1 })
+            let modalCar = null, modalCarN = 0
+            Object.keys(carCnt).forEach(cn => { if (carCnt[cn] > modalCarN) { modalCar = cn; modalCarN = carCnt[cn] } })
+            return [name, { avg: avgFin, avgRating, avgQP, winConv, n: baseRows.length, modalCar }]
+          })
+        )
+
+        // EQUIPMENT PRIOR (task 118, 2026-07-09): pooled rating BY CAR NUMBER, same-series only.
+        // Backtest: thin-driver corr(input,finish) 0.433 -> 0.518 (test split +0.117); ride-change
+        // delta k 0.25 validated on 1689 obs. Key = loop_data.car_number (RR-verified backfill,
+        // 99.9 pct coverage). NULL cars simply skip -- degrades to the old neutral behavior.
+        const loopByCar = {}
+        loopRows.forEach(r => {
+          const car = (r.car_number || '').trim()
+          const rating = parseFloat(r.driver_rating)
+          const yr = parseInt(r.year) || 0
+          if (!car || r.series !== s || isNaN(rating)) return
+          if (!loopByCar[car]) loopByCar[car] = []
+          loopByCar[car].push({ rating, yr })
+        })
+        const carAvgMap = new Map(
+          Object.entries(loopByCar).map(([car, rows]) => {
+            const yrWt = yr => yr >= 2026 ? 2.0 : yr === 2025 ? 1.3 : yr === 2024 ? 0.9 : yr === 2023 ? 0.6 : 0.4
+            const wsumC = rows.reduce((a, r) => a + yrWt(r.yr), 0)
+            const avgRating = rows.length ? rows.reduce((a, r) => a + r.rating * yrWt(r.yr), 0) / wsumC : null
+            return [car, { avgRating, n: rows.length }]
           })
         )
 
@@ -709,6 +754,11 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
               corrAvgRating: corrAvgMap.get(normalizeName(name))?.avgRating ?? null,
               raceCraftPct:  corrAvgMap.get(normalizeName(name))?.avgQP     ?? null,
               corrWinConv:   corrAvgMap.get(normalizeName(name))?.winConv   ?? null,
+              equipRating:   e.car_number ? (carAvgMap.get(String(e.car_number).trim())?.avgRating ?? null) : null,
+              nEquipRaces:   e.car_number ? (carAvgMap.get(String(e.car_number).trim())?.n ?? 0) : 0,
+              modalCar:      corrAvgMap.get(normalizeName(name))?.modalCar ?? null,
+              modalEquipRating: carAvgMap.get(corrAvgMap.get(normalizeName(name))?.modalCar ?? '')?.avgRating ?? null,
+              nModalEquip:   carAvgMap.get(corrAvgMap.get(normalizeName(name))?.modalCar ?? '')?.n ?? 0,
             nCorrRaces:    corrAvgMap.get(normalizeName(name))?.n         ?? 0,
               trackAvgFinish: trackAvgMap.get(normalizeName(name))?.avg       ?? null,
               trackAvgRating: trackAvgMap.get(normalizeName(name))?.avgRating ?? null,
