@@ -975,3 +975,47 @@ prove too tight/loose as the sim_grades value log accumulates.
 ROOT CAUSE STILL OPEN: truck noise re-tune (task #115) -- Medium 23 is reduced-model era and
 inflates every backmarker tail. Guard treats the symptom safely; re-tune when truck practice
 backfill is deep enough.
+
+### EQUIPMENT/CAR PRIOR -> VALIDATED, implementation pending (2026-07-09, new task #118)
+Direction hunt ("what signal are we missing"). The loop-data driver-strength family is saturated,
+but EQUIPMENT IDENTITY is orthogonal information the model never sees -- and it targets the
+documented failure class: no-history drivers currently shrink to neutral 50 (Reaume/Tyrrell
+identical lines, Day, Caruth, the Elliott crossover case).
+KEY DISCOVERY: green_flag_speed.team is SPONSOR-of-the-week (Wallace shows 20 "teams") -- useless.
+But green_flag_speed.car is the stable equipment key (Wallace 23/45; Caruth's ride history reads
+cleanly). Car number maps 95.5 pct of ALL loop rows (13,459, all 3 series) via the race-date join.
+So the GFS table earns its keep after all -- as a driver->car map, not a pace signal.
+METHOD: per-series car histories (pooled prior driver_rating BY CAR, any driver, same correlation
+group, year-weighted, leak-free). BLEND: replace the neutral fallback -- corr input becomes
+  conf_d*driverPooled + (1-conf_d)*(conf_e*carPooled + (1-conf_e)*50),  conf min(1, n/4).
+Established drivers (conf_d 1) are byte-identical; only thin-history drivers change.
+RESULTS (2023+ non-SS races, train 22-24 / test 25-26):
+- Full-race paired Spearman: cup +0.000/-0.002 (veteran fields, prior rarely activates);
+  oreilly +0.012/+0.000; trucks +0.004/+0.011. Small and mostly positive -- thin drivers are a
+  minority of each field.
+- THIN-DRIVER SUBSET (nD<4, the target, 2303 obs): corr(input, finish) 0.433 -> 0.518.
+  OUT-OF-SAMPLE STRONGER THAN IN-SAMPLE: train 0.441 -> 0.507, TEST 0.423 -> 0.540 (+0.117).
+  Every series improves: cup 0.206 -> 0.376 (crossovers/subs in known equipment -- biggest
+  relative gain), oreilly 0.442 -> 0.532, trucks 0.408 -> 0.488.
+VERDICT: the first genuinely new signal since the saturation analysis -- it works because it
+covers drivers who don't HAVE a rating yet, not by out-predicting rating. SHIP RECOMMENDATION
+(task #118): in SimulationCenter's corr pipeline, fetch green_flag_speed (series + group tracks)
+alongside loopRows, build the car map by (normalized driver, race date), pool car ratings like
+corrAvgMap, blend per the formula when nCorrRaces < 4; current-race car numbers from
+entry_list.car_number. ~40-60 line change in the data-load effect -- implement in a fresh
+code-focused session, verify on the Reaume/Tyrrell lines (they should differentiate by ride).
+Also subsumes the manual crossover_borrows for most cases (keep borrows for cross-SERIES).
+
+### PRACTICE-EDGE AT SCALE (#114) -> CLOSED, sleepers are real but ALREADY PRICED (2026-07-09)
+The queued re-run, now on the full sample: 40 cup oval practice races, 1403 driver-obs,
+production-shape composite (corr .36 / practice .15 / start .34 / track .15).
+- SLEEPER EFFECT CONFIRMED REAL: started outside top-10 + practiced top-5 (n 117) gained avg
+  +5.1 places vs -0.5 for everyone else. The +5.9 from the 11-race sample was no fluke.
+- BUT: proper PARTIAL correlation of edge vs model residual (controlling corr/start/practice,
+  both sides residualized) = -0.0003. Absolute zero. The raw corr(edge, residual) of +0.13 is
+  the same mechanical artifact as the GFS -0.41 (edge is BUILT from two model inputs; never
+  trust raw-residual correlations for input-derived signals).
+INTERPRETATION: the model already prices sleepers -- practice pace and startPos are both inputs,
+so "fast in practice + deep in the grid" already projects forward. There is no residual sleeper
+alpha to add. VERDICT: task #114 CLOSED, practice lever fully exhausted (input choice, weight,
+definition, edge term -- all settled). Do not revisit without a structurally new practice metric.
