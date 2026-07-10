@@ -159,8 +159,7 @@ export default function PracticeReportCard({ isSubscriber }) {
             `}</style>
             {visibleRows.length > 0 && visibleRows[0].tire_sets != null && (
               <div style={{ margin: '4px 0 10px', padding: '8px 12px', fontSize: '0.8rem', color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px' }}>
-                Practice tire allocation: <strong>{visibleRows[0].tire_sets} set{visibleRows[0].tire_sets > 1 ? 's' : ''}</strong>
-                {visibleRows[0].tire_sets > 1 ? ' \u2014 fresh-rubber columns (Best Lap / Best Stint) are apples-to-apples this week' : ' \u2014 later runs are scuffs; Avg Pace normalizes run composition'}
+                Practice Tire Allocation: <strong>{visibleRows[0].tire_sets} set{visibleRows[0].tire_sets > 1 ? 's' : ''}</strong>
               </div>
             )}
             <table>
@@ -221,8 +220,7 @@ export default function PracticeReportCard({ isSubscriber }) {
                       </td>
                       <td style={{ fontFamily: 'var(--font-mono)' }}>{(() => { let n = null; try { n = JSON.parse(d.notes || 'null') } catch (e) { n = null }
                         const gl = n && n.gl != null ? n.gl : null
-                        const fr = n && n.fr != null ? n.fr : null
-                        return <span>{gl != null ? gl + '/' : ''}{d.total_laps ?? '-'}{fr != null && fr > 1 ? <span title="Estimated fresh-tire runs: run 1 plus any later run whose best lap beats all prior laps by 0.05s+. Display hint only - not part of the grade." style={{ color: 'var(--text-muted)', fontSize: '0.85em', cursor: 'help' }}> ~{fr}fr</span> : null}</span> })()}</td>
+                        return <span>{gl != null ? gl + '/' : ''}{d.total_laps ?? '-'}</span> })()}</td>
                       <td style={{ fontFamily: 'var(--font-mono)' }}>{d.avg_pace?.toFixed(3) || '-'}</td>
                       <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>{d.overall_avg?.toFixed(3) || '-'}</td>
                       <td style={{ fontFamily: 'var(--font-mono)' }}>{d.best_stint?.toFixed(3) || '-'}</td>
