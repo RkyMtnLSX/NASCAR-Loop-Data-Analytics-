@@ -1025,6 +1025,19 @@ k*delta applied. Established unchanged drivers never render. Numbers must expose
 the operator can audit any driver's input at a glance. Current-weekend car numbers come from
 entry_list (user loads it pre-weekend) -- panel needs a "load entry list" empty state.
 
+STAGE 1 SHIPPED (2026-07-09, commit b24d7beb, bundle main.52d386eb.js, Babel-verified +
+round-trip byte-identical): equipment prior LIVE in SimulationCenter. Implementation: corr
+history query now selects car_number; loopByCar/carAvgMap pools rating BY CAR (same-series
+only, same year weights); corrAvgMap entries carry the driver's modal in-series car; driver
+objects get equipRating/nEquipRaces (current car via entry_list.car_number) +
+modalEquipRating/nModalEquip; buildSpeedScores scales equipment ratings onto the corrAvgRating
+min-max axis (__eqScale) and the shrink line becomes: c = rawC*conf + eqFill*(1-conf), where
+eqFill = eqScore*eqConf + 50*(1-eqConf); plus for conf>=1 drivers whose current car differs
+from modal car: c += 0.25 * min(1, min(nEquip,nModalEquip)/4) * (eqCurScore - eqModalScore),
+clamped 0-100. GUARDS: no car data anywhere -> eqFill 50 -> byte-identical to pre-118. DQ-race
+patch applied first (99.93 pct car coverage, 10 permanent NULLs). STAGE 2 PENDING: the admin
+Equipment-prior panel (UI spec above) incl. "load entry list" empty state.
+
 CAR-NUMBER BACKFILL, FINAL METHOD (2026-07-09, user precision requirement): user correctly
 rejected join-trust and proposed Racing Reference as source of record -- RIGHT CALL. RR
 race-results URLs are CONSTRUCTIBLE from (year, race_number, series letter W/B/C) via
