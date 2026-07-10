@@ -1046,6 +1046,33 @@ pct-equipment share) and ride-change rows (modal car pool -> current car pool). 
 remaining: loop-loader car_number stamping on new race loads (RR results pages carry the
 car column; loader parses those pages already).
 
+### GRADE FORMULA v3 SHIPPED -- avgPace50/bl50 + letter-aligned scores (2026-07-10)
+User's stickers/scuffs question reopened the grade-formula grid and found A HOLE IN THE
+2026-07-04 SELECTION: avgPace was only ever tested paired with bestStint (0.246, lost); the
+avgPace + BestLap pairing was NEVER RUN. Backtests (41 cup oval races 2024-26, rank-scaled
+composite vs finish, train 2024 / test 2025-26):
+- FULL SAMPLE: avgPace50/bl50 = 0.326 (train .330 / test .325) vs incumbent allLaps50/bl50 =
+  0.310 (train .326 / test .304). Consistent both splits, +0.021 out-of-sample.
+- Mechanism = the user's stickers/scuffs insight: avgPace weights each RUN's clean mean equally,
+  so a long scuffs run cannot drown the stickers run the way lap-weighted All Laps allows.
+  Direct check on true 1-set sessions: run1(stickers) alone 0.241 > later(scuffs) alone 0.206.
+- 8 PCT MEDIAN CUT CONFIRMED: threshold sweep 4/6/8/10/12 pct -> 0.302/.309/.310/.310/.310.
+  Plateau 6-12; only tightening hurts. No change.
+- Explicit 2-bucket run-balanced variant (avg of stickers-pace and scuffs-pace): 0.304 -- NOT
+  better than avgPace; rejected.
+SHIPPED (practiceGrader.js commit 50e90bfb / verified sha 201ef278 -- NOTE: GitHub contents API
+served a STALE read on the round-trip check; cache-bust with ?t= before declaring mismatch):
+grade v3 = rankScale(avgPace)*.5 + rankScale(bestLap)*.5 (falls back to overallAvg when avgPace
+missing). LETTER-ALIGNED SCORES (user request): displayed score now lives in the letter's
+academic band (A+ 97-100, A 93-96.9, ... F 40-59.9), positioned by percentile within band;
+rank 1 is ALWAYS A+/100 (no more B- at 62.2). Raw composite still orders the field. Grades
+recompute ON RE-UPLOAD only, per standing rule. SIM INPUT UNCHANGED (overall_avg -- the
+2026-07-04 calibration A/B still governs; grade and sim lanes diverge by design).
+ALSO SHIPPED (PracticeReportCard commit 1cc826ff): graded-laps/total in the Laps column +
+~fresh-runs hint (both via grader notes JSON, no schema change; heuristic labeled DISPLAY HINT
+ONLY), tire-allocation badge from practice_sessions.tire_sets with fresh-rubber comparability
+note, low-conf chip for missing long runs, updated tooltips/subtitle.
+
 ### CONDITIONED TEST ON TRUE LABELS -> the interaction DISSOLVES; #119 closed-pending-data (2026-07-10)
 The definitive rerun with operator-verified tire_sets labels. VERDICT: the earlier "multi-set
 sessions favor filt103/best5" finding was AN ARTIFACT OF DETECTOR MISLABELS -- its "multi"
