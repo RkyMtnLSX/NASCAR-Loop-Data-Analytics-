@@ -910,3 +910,27 @@ SHIPPED 2026-07-09: variant D live in SimulationCenter.js (commit d48cab96, bund
 main.5673d1fd.js, round-trip verified). winConv is now wins-only, shrunk conf min(1,n/5) toward
 0.026. PENDING: re-run + republish the O'Reilly Atlanta board (published board predates this);
 optional Caruth crossover_borrows row.
+
+### TRUCK ROAD PRACTICE WEIGHT -> 0.25 VALIDATED (2026-07-09, first data on this weight)
+User uploaded the 5 truck road practice sessions (2025 Lime Rock R15 / Watkins R17 / Roval R22,
+2026 St. Pete R3 / Watkins R8 -- all full fields with overall_avg; 2026 Watkins has no stored
+qualifying_position, grid taken from loop_data.start_position). The TRUCK_ROAD_WEIGHTS practice
+0.25 had been set NEUTRAL/untuned pending exactly this data.
+HARNESS: leak-free truck road corr history (prior road races, year-weighted, nCorr/4 shrink) +
+startPos + practice (overall_avg per-race percentile, lower better), corr:start held at 55:20
+ratio of the non-practice remainder, practice weight swept 0 to 0.40. 5 races, 10+ matched
+drivers each (20-32).
+RESULTS:
+- PRACTICE IS THE STRONGEST TRUCK ROAD SIGNAL: alone Spearman 0.551 (per race 0.84 Lime Rock /
+  0.30 Watkins25 / 0.46 Roval / 0.72 St.Pete / 0.44 Watkins26) vs 0.476 for corr+start composite.
+  Consistent with thin truck road history making practice relatively more informative.
+- SWEEP (avg Spearman): 0 -> .476, .10 -> .488, .15 -> .494, .20 -> .501, .25 -> .510,
+  .30 -> .514, .40 -> .514. Monotonic to a plateau at 0.30+.
+- PRECISION: p5/p10 IDENTICAL at .25/.30/.40 (0.440/0.560), worse at .15 (0.400/0.540).
+VERDICT: KEEP practice 0.25 -- it sits on the plateau; 0.30 gains +0.004 Spearman and zero
+top-N on 5 races (noise). Re-sweep when the truck road sample doubles. The provisional weight
+is no longer provisional.
+ALSO SHIPPED (commit a13ec713): Sim Admin formula panel label renamed 'Long Run Pace' ->
+'Practice Pace (All Laps)' -- the metric was always overall_avg (ALL clean laps within 8 pct of
+median), not a long-run-only figure; the old name was flagged misleading back in the 2026-07-03
+definition test. Weight KEY (longRunPace) unchanged -- display label only, no logic touched.
