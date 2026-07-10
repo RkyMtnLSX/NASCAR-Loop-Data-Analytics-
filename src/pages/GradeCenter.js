@@ -123,7 +123,7 @@ function ClvPanel({ series, stage }) {
       ) : <div style={{ fontSize:'0.82rem', color:'var(--text-muted)' }}>{msg}</div>}
       {rows && rows.length ? (
         <table style={{ width:'100%', borderCollapse:'collapse', marginTop:12 }}>
-          <thead><tr><th style={{ ...th, textAlign:'left' }}>Driver</th><th style={{ ...th, textAlign:'left' }}>Market</th><th style={th}>Sim %</th><th style={th}>Bet line</th><th style={th}>Close line</th><th style={th}>CLV</th></tr></thead>
+          <thead><tr><th style={{ ...th, textAlign:'left' }}>Driver</th><th style={{ ...th, textAlign:'left' }}>Market</th><th style={th}>Sim %</th><th style={th}>Bet line</th><th style={th}>Close line</th><th style={{ ...th, cursor: 'help' }} title="Closing Line Value in points - how much the closing implied % beat your bet-time price. Positive = the line moved your way">CLV</th></tr></thead>
           <tbody>
             {rows.map((r,i)=>(
               <tr key={i}>
@@ -143,7 +143,7 @@ function ClvPanel({ series, stage }) {
           <div style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: 8 }}>CLV history ({hist.length})</div>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead><tr><th style={{ ...th, textAlign: 'left' }}>Race</th><th style={{ ...th, textAlign: 'left' }}>Driver</th><th style={{ ...th, textAlign: 'left' }}>Mkt</th><th style={th}>Sim %</th><th style={th}>Bet</th><th style={th}>Close</th><th style={th}>CLV</th></tr></thead>
+              <thead><tr><th style={{ ...th, textAlign: 'left' }}>Race</th><th style={{ ...th, textAlign: 'left' }}>Driver</th><th style={{ ...th, textAlign: 'left', cursor: 'help' }} title="Market - Win / Top 3 / Top 5 / Top 10">Mkt</th><th style={th}>Sim %</th><th style={th}>Bet</th><th style={th}>Close</th><th style={{ ...th, cursor: 'help' }} title="Closing Line Value in points - how much the closing implied % beat your bet-time price. Positive = the line moved your way">CLV</th></tr></thead>
               <tbody>
                 {hist.map((r, i) => (
                   <tr key={i}>
@@ -309,7 +309,7 @@ export default function GradeCenter() {
         {log.length === 0 && <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No graded races yet.</div>}
         {log.length > 0 && (
           <table style={{ width: '100%', fontSize: '0.83rem', borderCollapse: 'collapse' }}>
-            <thead><tr style={{ textAlign: 'left', color: 'var(--text-muted)' }}><th style={{ padding: '4px 8px' }}>R#</th><th>Stage</th><th>Config</th><th>Race</th><th>MAE</th><th>Spear</th><th>WinBr</th><th>+EV</th><th>ex-win</th><th>win</th><th>cons</th></tr></thead>
+            <thead><tr style={{ textAlign: 'left', color: 'var(--text-muted)' }}><th style={{ padding: '4px 8px' }}>R#</th><th title="Sim stage - pre = before practice/qualifying, post = after" style={{ cursor: 'help' }}>Stage</th><th title="Weight config used for this sim" style={{ cursor: 'help' }}>Config</th><th>Race</th><th title="Mean Absolute Error - average positions off between projected and actual finish (lower is better)" style={{ cursor: 'help' }}>MAE</th><th title="Spearman rank correlation of projected vs actual finish, -1 to 1 (higher = closer order)" style={{ cursor: 'help' }}>Spear</th><th title="Win Brier score - calibration of the win probabilities vs the actual result (lower is better)" style={{ cursor: 'help' }}>WinBr</th><th title="Flat-bet ROI% on every bet the sim flagged +EV that race (1 unit each, at the best book price)" style={{ cursor: 'help' }}>+EV</th><th title="ROI% excluding the win market (Top 3/5/10 bets only) - a cleaner read on edge, since the win market overshoots" style={{ cursor: 'help' }}>ex-win</th><th title="ROI% on win-market +EV bets only - the overshoot-prone bucket" style={{ cursor: 'help' }}>win</th><th title="Consensus ROI% - only bets that were +EV against the de-vigged market price (higher conviction)" style={{ cursor: 'help' }}>cons</th></tr></thead>
             <tbody>
               {log.map(g => (
                 <tr key={g.id} style={{ borderTop: '1px solid rgba(128,128,128,0.2)' }}>
