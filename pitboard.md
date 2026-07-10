@@ -307,7 +307,9 @@ Every current weight was tuned this way and validated out-of-sample on 29 (2025+
   corr 0.60 / longRun 0.15 / shortRun 0.05 / startPos 0.15 / tireFalloff 0.05 / raceCraft
   **0** / trackHistory 0. Trucks (`TRUCK_ROAD_WEIGHTS`, new export): corr 0.55 / startPos
   **0.20** / (same practice 0.25) / raceCraft 0 / trackHistory 0 — selected when
-  `s === 'trucks'` in the config-load effect. **raceCraft CUT to 0 on all road courses**
+  `s === 'trucks'` in the config-load effect. Truck road practice 0.25 VALIDATED 2026-07-09
+  on the first 5 uploaded sessions (plateau 0.25-0.40, practice is the strongest truck road
+  signal — Archive C). **raceCraft CUT to 0 on all road courses**
   (was 0.25): ~0.81 corr with driver_rating, monotonic sweeps in Cup + Trucks, never wins a
   market (see BACKTEST_LOG). Trucks lean startPos HIGHER than Cup (9-race road sweep,
   monotonic 0.10->0.25) — OPPOSITE of Cup, where startPos was cut for road ringers. NOTE:
@@ -319,7 +321,10 @@ Every current weight was tuned this way and validated out-of-sample on 29 (2025+
     raceCraft **0** (was 0.05 — cut; identical Spearman with/without, folded into corr).
   - `ONEILLY_SUPERSPEEDWAY_WEIGHTS` (new export, used when `isSuperspeedway && s==='oreilly'`):
     corr 0.45 / trackHistory 0.20 / startPos 0.15 / **winConversion 0.20** / raceCraft 0.
-    winConversion = year-weighted (win=1.0, top5=0.35) pooled over the SS group; new
+    winConversion = year-weighted, pooled over the SS group, WINS-ONLY + `min(1,n/5)` shrinkage
+    toward the ~1/38 base (refined by Fable 2026-07-09: attribution backtest showed the top5
+    credit added nothing — the signal is 100% Austin Hill — so wins-only is the honest form; see
+    BACKTEST_LOG "WIN-CONVERSION CROSS-SERIES TEST"). New
     `corrWinConv` field + `winConvScores` in buildSpeedScores. Fixes the Hill/Love inversion
     (avg driver_rating rated Love above Hill despite Hill's 9/20 SS wins vs Love's 2/15);
     lifts leak-free WINNER-market hit rate 16%→42%. Live O'Reilly Atlanta: Hill 23.1% > Love
@@ -365,6 +370,32 @@ practice+qualifying); rain-out grid toggle; superspeedway auto-weights.
   `d.org` (undefined) instead of `d.organization`. (c) market-value name match got a nickname
   fallback (same last name + first-name common prefix ≥3, only when unambiguous) so FanDuel
   "Nicholas Sanchez" maps to sim "Nick Sanchez".
+
+### CLV tool + qualifying data hardening (2026-07-09)
+- **CLV (Closing Line Value) tool** — lives in **GradeCenter** (admin, NOT the public board). Reuses
+  the exact `__marketValue` parser exported from SimulationCenter. Workflow: run the pre sim (stored
+  in `sim_results` stage='pre') → at/near race time click "Load latest pre sim" for the series → paste
+  the *current* odds → it computes CLV = (closeImplied − betImplied)×100 per +EV-flagged bet and logs
+  to `clv_log` (delete-by-race then insert). Has a season summary + a **CLV history table**. Positive
+  CLV = the line moved toward our bet (early-edge signal that doesn't need the bet to settle). All
+  metric abbreviations in GradeCenter now have hover tooltips (+EV / ex-win / win / cons / MAE / etc.).
+- **Qualifying backfill** — 25 incomplete Cup R1 sessions re-pulled from racing-reference's AJAX
+  endpoint (`race-results?rType=getqualify&series=W&raceId={year}-{PADDED2}`, race # zero-padded to 2
+  digits) and re-inserted; the audit now shows 0 flagged. **Daytona 500 rule**: qualifying = single-car
+  TIME TRIALS (speed order, ~42 cars), NOT the Duel-set grid — the Duel grid lives in
+  `loop_data.start_position` and would contaminate true qualifying speed, so it is kept OUT of
+  `qualifying_results`.
+- **Provenance flag** — Load Qualifying now writes `qualifying_results.lineup_source`
+  (qualifying / metric / rain / practice) so rain-out, metric-set, and practice-fallback lineups are
+  distinguishable from real time-trial sessions.
+- **Qualifying Data Audit page** (`/qualifying-audit`, linked from the Load Data tab) — driver count
+  per session per series, flags <30 in red. Data-audit card moved to the top of the Load Data tab.
+- **Stage-length inputs** — SimulationCenter now has Stage 1 / Stage 2 lap fields next to Race Length;
+  stored in the published `config` (`stage1Laps` / `stage2Laps`). DATA CAPTURE ONLY — no sim module
+  reads them yet (they seed the future caution/pit layer).
+- **Practice uploader confirmed** — sets the sim's fallback starting lineup ONLY
+  (`practice_sessions.qualifying_position`); it NEVER writes `qualifying_results`, so a practice PDF can
+  seed the grid without polluting stored qualifying data.
 
 ### Correlation groups — sim pools by `correlation_group_label` (NOT the number!)
 SimulationCenter line 452: `.eq('correlation_group_label', cfg.correlation_label)`. The group
@@ -475,7 +506,9 @@ the SIM longRunPace input), **`avg_pace`** (mean of per-run avgs = the GRADE inp
 `id`, `series`, `year`, `race_number`, `track_name`, `racing_reference_id`, `driver_name`,
 `car_number`, **`qualifying_position`** (the startPos input), `qualifying_order`,
 `draw_order`, `qualifying_group` (draw-order sim), `qualifying_speed`, `qualifying_time`,
-`lap_time`, `metric_score`, `created_at`.
+`lap_time`, `metric_score`, **`lineup_source`** (provenance: qualifying / metric / rain / practice —
+added 2026-07-09; distinguishes real time-trial sessions from rain-out/metric/practice-fallback
+lineups), `created_at`.
 Unique key `qualifying_results_driver_unique` = `(series, year, track_name, race_number,
 driver_name)` — `race_number` added 2026-07-06 (was missing, which silently clobbered
 double-header tracks). BOTH loaders' upsert `onConflict` include `race_number`, and Load
@@ -516,7 +549,9 @@ auto-parsed from the entry-list PDF's "Veh Mfg" column), `created_at`.
 `id`, `series`, `track_name`, `race_name`, `race_year`, `race_number`, `results` (jsonb —
 per-driver array: projFinish, win/top3/5/10 %, finish_p25/50/75, start_pos, and the full
 `mv` odds object per market), **`config`** (jsonb — settings snapshot: weights, caution, dnf,
-rainOut, numSims, totalLaps; added 2026-07-07 via `ALTER TABLE sim_results ADD COLUMN config
+rainOut, numSims, totalLaps, `stage1Laps` / `stage2Laps` (stage lengths, captured 2026-07-09 —
+data-only, no sim module consumes them yet), plus the packed `simMatrix`/`simMatrixN`/`simOrder`;
+added 2026-07-07 via `ALTER TABLE sim_results ADD COLUMN config
 jsonb`. Publish payload has always sent this — if publish errors "Could not find the 'config'
 column … in the schema cache", the column is missing; run that ALTER), **`stage`**
 ('pre'/'post'), `published_at`.
@@ -558,6 +593,13 @@ track_type column). PENDING: a "Load Green Flag Speed" admin panel for weekly PD
 for each active borrow matching the sim series, the driver's `source_series` road rating is
 blended into their corrAvgRating. See §10 gotcha.
 
+### `clv_log` — Closing Line Value log (added 2026-07-09)
+`id`, `series`, `race_year`, `race_number`, `track_name`, `driver_name`, `market` (win/t3/t5/t10),
+`bet_price`, `close_price`, `bet_implied`, `close_implied`, **`clv`** ((close_implied − bet_implied)
+×100), `stage`, `created_at`. Written by the **CLV tool in GradeCenter** (admin) via delete-by-race
+then insert (REST PATCH is RLS-blocked, so it re-inserts). One row per +EV-flagged bet from the
+loaded pre sim. Powers the season CLV summary + history table. DDL run by user 2026-07-09.
+
 ---
 
 ## 10. Known Gotchas
@@ -584,6 +626,13 @@ proved the first two were the wrong code path (the compare has TWO separate matc
 driver-stats function AND DriverCard; a fix to one doesn't touch the other). When a lookup silently returns
 blank, verify the data first, then find the EXACT render path that pulls the value (row[col.key] via the
 DriverCard raceCols match), rather than fixing a look-alike matcher elsewhere.
+
+UPDATE (2026-07-09): fix #3's year+track fallback itself caused an **R1/R2 duplication** bug on
+double-header tracks — year+track is ambiguous when a track runs twice a year, so both races pulled the
+same value. Re-fixed across all three series: `raceCols` now carries `realRn` + `occIdx`, and the
+DriverCard compare match keys on the actual `race_number` first (with a positional `occIdx` fallback for
+same-track/same-year occurrences); the destructive bare year+track fallback was removed. Net rule:
+match on race_number, then occurrence index — never collapse to bare year+track.
 
 ### Chrome extension content filter
 The browser JS tool (`mcp__claude-in-chrome__javascript_tool`) blocks results containing these strings:
