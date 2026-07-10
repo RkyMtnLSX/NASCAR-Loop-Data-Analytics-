@@ -299,7 +299,8 @@ export default function SimResults() {
   var dec = function (a) { return a > 0 ? a / 100 + 1 : 100 / (-a) + 1; };
   var fairOdds = function (p) { if (p <= 0) return null; if (p >= 1) return -100000; return p >= 0.5 ? Math.round(-100 * p / (1 - p)) : Math.round(100 * (1 - p) / p); };
   var fo = function (a) { return a == null ? '-' : (a > 0 ? '+' + a : '' + a); };
-  var rows = withMv.map(function (d) { var m = d.mv[key]; if (!m) return null; var p = (d[SF[mvMkt]] || 0) / 100; return { name: d.driver_name, dk: m.dk, fd: m.fd, hr: m.hr, best: m.best, bb: (m.bb || '').toUpperCase(), modelPct: d[SF[mvMkt]] || 0, fair: fairOdds(p), ev: m.ev, mev: m.mev }; }).filter(function (r) { return r && r.best != null; });
+  var MINP = { win: 2, t3: 5, t5: 8, t10: 12, win_pct: 2, top3_pct: 5, top5_pct: 8, top10_pct: 12 }; // tail guard 2026-07-09 (see SimulationCenter __marketValue)
+  var rows = withMv.map(function (d) { var m = d.mv[key]; if (!m) return null; var p = (d[SF[mvMkt]] || 0) / 100; return { name: d.driver_name, dk: m.dk, fd: m.fd, hr: m.hr, best: m.best, bb: (m.bb || '').toUpperCase(), modelPct: d[SF[mvMkt]] || 0, fair: fairOdds(p), ev: m.ev, mev: m.mev }; }).filter(function (r) { return r && r.best != null && r.modelPct >= (MINP[key] != null ? MINP[key] : 0); });
   rows.sort(function (a, b) { return mvSort === 'best' ? (dec(b.best) - dec(a.best)) : mvSort === 'model' ? (b.modelPct - a.modelPct) : (b.ev - a.ev); });
   if (mvQual) { rows = rows.filter(function (r) { return r.ev > 0 && r.mev > 0 && r.ev >= mvMinEdge && !(r.best < 0 && r.best < mvMaxFav); }); }
   var odds = mvUnits === 'odds';
