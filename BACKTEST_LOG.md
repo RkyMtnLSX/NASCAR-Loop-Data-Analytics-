@@ -1071,6 +1071,12 @@ filt103's anchor-to-best is the avg_pace hazard profile). Detector should ship t
 grader/report card NOW (display + stored per-session allocation) so labeled data accrues.
 ALSO FLAGGED: practice_laps track_name drift persists (three Vegas spellings, Homestead-MIami
 typo) even though practice_sessions was normalized -- normalize before any laps-based joins.
+DONE 2026-07-10 (SQL run by user, REST-verified): 4 drift names fixed (Homestead-MIami 1177,
+Las Vegas Motorspeedway 1036, Las Vegas Speedway 962 -> Las Vegas Motor Speedway, Nashville
+Speedway 1447 -> Nashville Superspeedway); zero orphans remain, 25 distinct names all
+canonical. Vegas 3754 / Nashville 2270 / Homestead 2254 laps now unified. NOTE: the earlier
+fresh-set detector run computed Vegas allocation on FRAGMENTED sessions -- re-run the detector
+after this fix before trusting Vegas session labels.
 
 ### EXTERNAL PRACTICE-METRIC PROPOSAL vs INCUMBENT -> archive holds; ONE watch item (2026-07-10)
 User brought a Fable-extension Excel analysis of Chicagoland practice recommending: base pace =
