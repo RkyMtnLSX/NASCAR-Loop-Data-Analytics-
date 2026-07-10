@@ -1038,6 +1038,36 @@ clamped 0-100. GUARDS: no car data anywhere -> eqFill 50 -> byte-identical to pr
 patch applied first (99.93 pct car coverage, 10 permanent NULLs). STAGE 2 PENDING: the admin
 Equipment-prior panel (UI spec above) incl. "load entry list" empty state.
 
+STAGE 2 SHIPPED (2026-07-09, commit f851e3cb, bundle main.c66a70de.js, Babel-verified):
+Equipment-prior panel live in Sim Admin, below the weights row (next to Rain-out/Reset).
+Renders ONLY affected drivers from rawDrivers: thin-history rows (own pool + n, car pool + n,
+pct-equipment share) and ride-change rows (modal car pool -> current car pool). Empty states:
+"load the entry list" when no roster car numbers; "no drivers affected" otherwise. #118
+remaining: loop-loader car_number stamping on new race loads (RR results pages carry the
+car column; loader parses those pages already).
+
+POST-SHIP AUDIT + TWO REFINEMENTS TESTED AND REJECTED (2026-07-09, first live board):
+First equipment-prior truck board (Lime Rock). User flagged: Eckes dumped to P17 (correct
+mechanism -- ride-change delta vs his #19 championship truck, #91 pool 60.1 dragged by Jack
+Wood 2024-25 AND Eckes' own weak 2026 road form rt 72/59/77); Annunziata P5 looked hot (n1
+road race, conf 0.25, so 75 pct of his input is the TRICON #1 pool of 98.4 built by ROAD
+RINGERS Grala/Hawksworth/Crews); Honeycutt untouched by design (n7 own road races, conf 1,
+modal car IS the #11 -- his own record in Heim's truck is the evidence: rt 100-116, good not
+Heim); Kligerman has borrow (60 pct oreilly) + ride delta STACKING -- watch for over-adjust.
+REFINEMENT 1 -- DE-MEANED car pools (rating minus each contributing driver's own norm, the
+track-affinity trick): REJECTED DECISIVELY. Thin fill test corr 0.542 raw -> 0.378 de-meaned
+(BELOW the neutral baseline 0.417); ride delta 0.531 -> 0.525. WHY: seat ASSIGNMENT is signal
+-- teams consistently staff a given car (TRICON's road truck gets road-capable drivers), so
+the raw pool predicts the next occupant partly via hiring policy. De-meaning strips selection
+signal and keeps a noisy equipment residual. "Contamination" is doing predictive work.
+REFINEMENT 2 -- car pools EXCLUDING the driver's own rows (kill the Eckes double-count):
+ALSO worse. Thin 0.545 -> 0.539 test, ride 0.546 -> 0.533. Own recent races in the car are the
+freshest evidence; removing them costs more than the double-count distorts.
+VERDICT: shipped RAW implementation confirmed against both principled challengers. Individual
+eye-test discomfort (Eckes/Annunziata) is the price of the aggregate gain -- arbitrate vs
+market odds and the sim_grades log, not by weight surgery. Operator levers for case-by-case
+disagreement: crossover_borrows, and visibility via the stage-2 panel.
+
 CAR-NUMBER BACKFILL, FINAL METHOD (2026-07-09, user precision requirement): user correctly
 rejected join-trust and proposed Racing Reference as source of record -- RIGHT CALL. RR
 race-results URLs are CONSTRUCTIBLE from (year, race_number, series letter W/B/C) via
