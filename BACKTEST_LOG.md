@@ -950,3 +950,28 @@ OPEN: Cup/O'Reilly ROAD_COURSE_WEIGHTS still carry the 15/5/5 split -- same stru
 needs its own check on cup/oreilly road practice sessions before consolidating (do NOT assume
 the truck result transfers; test first). Also fixed pitboard.md section 7 ROAD_COURSE_WEIGHTS
 block, which was stale (still showed pre-2026-07-07 corr 0.35 / raceCraft 0.25).
+
+### MARKET-VALUE TAIL GUARD -> SHIPPED (2026-07-09, the Reaume case)
+Lime Rock truck board flagged Josh Reaume +12000 top-3 as +57 pct edge. User (correctly): "he
+will never finish there." DIAGNOSIS from the published board: Reaume and Mini Tyrrell have
+IDENTICAL model lines (top3 1.3 / win 0.2 / projFin 20.3) -- both are no-history drivers on the
+fully-shrunk neutral composite. The 1.3 pct top-3 is pure MC tail: under truck caution noise
+(Medium 23, STILL the reduced-model tuning -- task #115) a P20-projected car lucks into a podium
+~1 in 80 sims. DK's +12000 implies 0.83 pct; model 1.30 vs market 0.83 is a HALF-POINT absolute
+difference -- far below the sim's tail resolution -- but longshot decimal odds amplify it to
+"+57 pct EV". The whole scrub tier (Garcia/Queen 1.1) sits within noise of each other. The
+model has no opinion about Reaume; the edge is arithmetic on noise.
+FIX SHIPPED (two layers):
+1. __marketValue tail guard (SimulationCenter commit 5b3e477e): ev is NULL when model prob is
+   below MINP = win 2 / top3 5 / top5 8 / top10 12 pct. Downstream flag logic (ev > 0) is
+   null-safe, so sub-floor drivers can never be flagged +EV at publish time.
+2. Display-time floor (SimResults commit 6539783e): the public Market Value table filters rows
+   below the same floor via stored modelPct -- this retroactively cleans ALREADY-PUBLISHED
+   boards (the live Lime Rock board fixes itself on deploy, no republish needed).
+THRESHOLD RATIONALE: the value engine's validation (Chicagoland 11/11 ex-win, +88 pct ROI) was
+earned entirely on real-contender flags; the tail was never validated. Floors chosen at ~the
+probability where the sim's calibration evidence ends. Adjustable in one place (MINP) if they
+prove too tight/loose as the sim_grades value log accumulates.
+ROOT CAUSE STILL OPEN: truck noise re-tune (task #115) -- Medium 23 is reduced-model era and
+inflates every backmarker tail. Guard treats the symptom safely; re-tune when truck practice
+backfill is deep enough.
