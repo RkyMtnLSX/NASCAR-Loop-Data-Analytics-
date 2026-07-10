@@ -358,6 +358,10 @@ residual test — re-run when the full 2025 backfill lands (task #114; sleepers 
 Win-market favorite shade (output-only diagnostic, addresses WIN-market overconfidence
 ONLY — top-N is well-calibrated); pre/post sim stage (measures marginal value of
 practice+qualifying); rain-out grid toggle; superspeedway auto-weights.
+Market-value TAIL GUARD (2026-07-09, Archive C "Reaume case"): no +EV flag and no Market Value
+row when model prob is below MINP (win 2 / top3 5 / top5 8 / top10 12 pct) — MC tail noise at
+longshot odds is not value. Enforced at publish (__marketValue) AND display (SimResults, which
+retro-cleans already-published boards). Root cause open: truck noise re-tune (task #115).
 
 ### Betting markets & SimResults layout (2026-07-09)
 - **Per-sim finish matrix**: `runRaceSim` now returns `__rows` with `.posMatrix` (Int16,
