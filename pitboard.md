@@ -206,13 +206,23 @@ const DEFAULT_WEIGHTS = {         // used for ovals — sums to 1.00
 // Still shrinks toward 50 by confidence: conf = min(1, nCorrRaces/4).
 // trackHistory uses trackAvgRating with the same shrinkage on nTrackRaces (0 for first-timers).
 
-const ROAD_COURSE_WEIGHTS = {
-  corrHistory:  0.35,
+const ROAD_COURSE_WEIGHTS = {   // Cup/O'Reilly road — raceCraft cut to 0 on 2026-07-07 (corr 0.35->0.60)
+  corrHistory:  0.60,
   longRunPace:  0.15,
-  shortRunPace: 0.05,
+  shortRunPace: 0.05,  // NEVER re-tested on road (oval fold-out doesn't cover this) — candidate to consolidate like trucks
   startPos:     0.15,  // backed by r=0.416 correlation across 682 observations
-  tireFalloff:  0.05,
-  raceCraft:    0.25,  // actual race passing data — most meaningful at road courses
+  tireFalloff:  0.05,  // same — untested on road, likely dead weight per truck result
+  raceCraft:    0.00,
+  trackHistory: 0.00,
+}
+
+const TRUCK_ROAD_WEIGHTS = {    // practice CONSOLIDATED 2026-07-09 (commit c7980361): 25/0/0 beat the
+  corrHistory:  0.55,           // legacy 15/5/5 split on all metrics; trend_slope input only 35/177 coverage
+  longRunPace:  0.25,           // = overall_avg, the whole practice signal
+  shortRunPace: 0.00,
+  startPos:     0.20,
+  tireFalloff:  0.00,
+  raceCraft:    0.00,
   trackHistory: 0.00,
 }
 ```
