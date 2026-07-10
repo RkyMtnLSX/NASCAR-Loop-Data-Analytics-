@@ -1046,6 +1046,32 @@ pct-equipment share) and ride-change rows (modal car pool -> current car pool). 
 remaining: loop-loader car_number stamping on new race loads (RR results pages carry the
 car column; loader parses those pages already).
 
+### ALLOCATION-CONDITIONED FOLLOW-UP -> real interaction found, market test pending (2026-07-10)
+User corrected the era framing: tire allocation varies PER SESSION (1/2/multi sets), not by
+year. Built a FRESH-SET DETECTOR from raw practice_laps (runs at lap_number gaps; later run
+flagged fresh if its best beats all prior bests by >=0.05s; session-level allocation = share of
+field with 2+ est. sets: >=40 pct MULTI, <20 pct SINGLE, else AMBIG). Detector validates
+cleanly: sessions split bimodally (0-16 pct vs 51-90 pct); Chicagoland 2026 (the known
+multi-set session) flags at 87 pct / median 3 sets; 2026 is NOT uniformly multi-set (8 of its
+sessions are single-set) -- the earlier year-based cut was mixing regimes. NOTE: no session
+timestamps in practice_laps, so no track-evolution correction possible; the AMBIG band
+absorbs the cooling-effect cases.
+CONDITIONED HEAD-TO-HEAD (cup ovals 2024-2026, Spearman practice-metric vs finish):
+  MULTI-SET (11r):  overall_avg 0.206 | best5 0.242 | filt103 0.250  <- BOTH challengers win
+  SINGLE-SET (16r): overall_avg 0.282 | best5 0.275 | filt103 0.273  <- incumbent wins
+  AMBIG (9r):       overall_avg 0.293 | best5 0.242 | filt103 0.275  <- best5 punished (cooling)
+COHERENT MECHANISM: fresh sets for everyone -> fresh pace is apples-to-apples -> filtered/
+short-run metrics gain; single worn set -> all-clean-laps average is the fair comparison. This
+also explains why every archive practice test favored overall_avg: the historical sample was
+mostly single-set sessions.
+CANDIDATE DESIGN (task #119): allocation-conditioned practice input -- overall_avg for
+single/ambig sessions, filt103 for detector-flagged multi-set sessions. DO NOT SHIP until it
+clears the full-market + favorite-gap bar in the MC harness (11 multi-set races is thin, and
+filt103's anchor-to-best is the avg_pace hazard profile). Detector should ship to the
+grader/report card NOW (display + stored per-session allocation) so labeled data accrues.
+ALSO FLAGGED: practice_laps track_name drift persists (three Vegas spellings, Homestead-MIami
+typo) even though practice_sessions was normalized -- normalize before any laps-based joins.
+
 ### EXTERNAL PRACTICE-METRIC PROPOSAL vs INCUMBENT -> archive holds; ONE watch item (2026-07-10)
 User brought a Fable-extension Excel analysis of Chicagoland practice recommending: base pace =
 best-10-lap window, plus tire deg + consistency as sim inputs, traffic filter at 103 pct of
