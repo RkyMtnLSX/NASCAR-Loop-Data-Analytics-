@@ -66,10 +66,10 @@ export const ONEILLY_SUPERSPEEDWAY_WEIGHTS = {
 
 export const TRUCK_ROAD_WEIGHTS = {   // Trucks road courses (2026-07-07, 9-race sweep): startPos leans higher than Cup, raceCraft 0
   corrHistory:  0.55,
-  longRunPace:  0.15,
-  shortRunPace: 0.05,
+  longRunPace:  0.25,
+  shortRunPace: 0.00,
   startPos:     0.20,  // sweep monotonic 10->25; trucks reward qualifying/start more than Cup road ringers
-  tireFalloff:  0.05,
+  tireFalloff:  0.00,
   raceCraft:    0.00,
   trackHistory: 0.00,
 }
