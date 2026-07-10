@@ -1022,7 +1022,26 @@ pattern -- renders ONLY affected drivers. Thin-history rows: driver, car, driver
 car-hist (n), source-split bar (driver/equipment/neutral), blended corr input + "was X"
 counterfactual vs old neutral-shrink. Ride-change rows: old car -> new car, both pools, the
 k*delta applied. Established unchanged drivers never render. Numbers must expose the recipe so
-the operator can audit any driver's input at a glance.
+the operator can audit any driver's input at a glance. Current-weekend car numbers come from
+entry_list (user loads it pre-weekend) -- panel needs a "load entry list" empty state.
+
+CAR-NUMBER BACKFILL, FINAL METHOD (2026-07-09, user precision requirement): user correctly
+rejected join-trust and proposed Racing Reference as source of record -- RIGHT CALL. RR
+race-results URLs are CONSTRUCTIBLE from (year, race_number, series letter W/B/C) via
+/race-results/{yyyy}-{rr}/{L}, killing race-identity inference entirely (my GFS date-window
+join was the weak link -- it silently mismapped cup 2022 Dover, caught only by validation).
+Scraped all 366 races in-browser (same-origin fetch from an RR tab, throttled, ZERO failures),
+parsed the results table (car col confirmed against user's screenshot: Sanchez 2 / Heim 11 /
+Caruth 71). Validation tiers: VERIFIED 12,861 (RR finish == loop finish); TRUSTED 144 (finish
+differs -- post-race DQ/penalty revisions across 25 races, e.g. 2025 Martinsville off-by-one
+cascade below the DQ'd car -- but race identity proven by 10+ verified rows + unique name);
+NULL 454 (Jason White duplicate-name race, corrupted 'Daniel Su - rez' loop row, name variants).
+Alias: John Hunter Nemechek == RR's John H. Nemechek (142 rows). CORROBORATION: 100.00 pct car
+agreement with the independent GFS mapping on all 12,473 overlapping rows, zero disagreements.
+Deliverable: backfill_loop_car_numbers_rr.sql (13,005 rows, 96.6 pct coverage, self-verifying
+queries included). LESSONS: (1) constructed identity beats inferred identity; (2) loop_data
+finishes are AS-RACED -- RR reflects official post-penalty revisions; any future finish-based
+join must expect ~25 revision races; (3) RR results pages carry car numbers for the loader fix.
 
 ### PRACTICE-EDGE AT SCALE (#114) -> CLOSED, sleepers are real but ALREADY PRICED (2026-07-09)
 The queued re-run, now on the full sample: 40 cup oval practice races, 1403 driver-obs,
