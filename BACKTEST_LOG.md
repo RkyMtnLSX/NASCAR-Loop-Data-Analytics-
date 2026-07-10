@@ -1046,6 +1046,27 @@ pct-equipment share) and ride-change rows (modal car pool -> current car pool). 
 remaining: loop-loader car_number stamping on new race loads (RR results pages carry the
 car column; loader parses those pages already).
 
+### CONDITIONED TEST ON TRUE LABELS -> the interaction DISSOLVES; #119 closed-pending-data (2026-07-10)
+The definitive rerun with operator-verified tire_sets labels. VERDICT: the earlier "multi-set
+sessions favor filt103/best5" finding was AN ARTIFACT OF DETECTOR MISLABELS -- its "multi"
+bucket contained Kansas x4, Michigan 2024, Bristol x2, Martinsville 2026, all actually 1-set.
+On TRUE labels:
+- TRUE MULTI (3 sets, n=2 scoreable): SPLIT. 2025 Indy R22: f103 0.296 / overall 0.161 /
+  best5 0.082. 2024 Phoenix R4: overall 0.373 / f103 0.273 / best5 0.255. No conclusion at n=2.
+- TRUE SINGLE (37 races): overall 0.249 / f103 0.256 / best5 0.260 -- ALL WITHIN NOISE. Even
+  the "incumbent wins single-set" half of the earlier story doesn't hold cleanly.
+- 2026 Chicagoland (the 3rd verified multi race) CANNOT score yet: its cup loop_data was never
+  loaded (PDF is in the user's NASCAR Loop Data folder -- load it to add the data point).
+- Mixed-compound Phoenix R36 shown for reference only: overall 0.328 best there, fittingly.
+DISPOSITION: #119 CLOSED-PENDING-DATA. Keep overall_avg unconditionally (incumbent, never
+beaten on trustworthy labels). The infrastructure survives and accrues: tire_sets ground truth
+per session (uploader field pending), three seasons labeled, mixed-compound exclusion rule.
+REOPEN trigger: >= ~8 verified homogeneous multi-set races with practice + finishes.
+META-LESSON (the day's biggest): an exciting conditional finding survived TWO backtest reruns
+while resting on silent label noise, and died the moment ground truth arrived. Label quality
+gates EVERYTHING downstream -- validate the conditioning variable before trusting the
+condition. The operator's fact-check (allocations, prime/option) did what no harness could.
+
 ### FULL 2024-25 ALLOCATION GROUND TRUTH RETRIEVED + stamped (2026-07-10)
 Scraped Jayski Goodyear Fast Facts for every 2024-25 cup race (user's source suggestion; three
 article formats handled: "Set limits: Cup: N set(s) for practice" -> "Total Sets: N (... / N
