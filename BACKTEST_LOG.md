@@ -1046,6 +1046,28 @@ pct-equipment share) and ride-change rows (modal car pool -> current car pool). 
 remaining: loop-loader car_number stamping on new race loads (RR results pages carry the
 car column; loader parses those pages already).
 
+### FULL 2024-25 ALLOCATION GROUND TRUTH RETRIEVED + stamped (2026-07-10)
+Scraped Jayski Goodyear Fast Facts for every 2024-25 cup race (user's source suggestion; three
+article formats handled: "Set limits: Cup: N set(s) for practice" -> "Total Sets: N (... / N
+practice)" -> "Total Dry Weather Sets"; late-2025 pages are client-rendered, scraped via
+same-origin IFRAMES). RESULTS stamped into practice_sessions.tire_sets by (year, race_number):
+- 2025: ALL 1 set except Indianapolis R22 (3) and fall Phoenix R36 (see correction below).
+- 2024: multi-set at spring Phoenix R4 (3), COTA R6 (3), Sonoma R16 (3), Iowa R17 (3), Indy
+  R22 (3), fall Phoenix R36 (3); TWO-set at Watkins R28, fall Bristol R29, fall Charlotte R32,
+  fall Martinsville R35; everything else 1.
+DETECTOR FINAL SCORECARD vs truth: false positives Kansas 2024+2025 (both visits 1 set --
+Kansas rubbers so fast it fools pace-jump detection every year), Michigan 2024, Martinsville
+2026, Coronado 2026; false negative Dover 2026 (2 allowed, unused); under-called Phoenix 2024
+(true 3+3, read as ambiguous); correct only on extremes (Chicagoland 3, Indy 79 pct). CONFIRMED
+DEAD as a classifier.
+USER FACT-CHECK CORRECTION: fall Phoenix 2025 was NOT 4 sets -- it was the PRIME/OPTION
+compound experiment (1 prime + 1 option = 2 sets of DIFFERENT compounds: option = short-run
+speed with falloff, prime = long-run). Corrected to 2 via SQL. NEW CATEGORY RULE: mixed-compound
+sessions must be EXCLUDED from the multi-set treatment in #119 -- cross-driver pace is
+confounded by compound choice, worse than tire-age mixing. Ask/flag any other prime-option
+points races in the data. LESSON: scraped ground truth still needs domain fact-checking --
+the operator caught what the parser could not.
+
 ### GROUND-TRUTH CORRECTION -- detector demoted, conditioned finding UNVERIFIED (2026-07-10)
 User retrieved TRUE 2026 practice tire allocations (from entry blanks): everything 1 set
 EXCEPT Chicagoland (3 sets -- track unvisited 7 years) and Dover (2 sets). Scoring the
