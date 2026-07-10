@@ -57,8 +57,8 @@ const __CLV_MKTS=[['win','Win','win_pct'],['t3','Top 3','top3_pct'],['t5','Top 5
 function ClvPanel({ series, stage }) {
   const [sim,setSim]=useState(null);
   const [win,setWin]=useState(''); const [t10,setT10]=useState(''); const [fd,setFd]=useState(''); const [hr,setHr]=useState('');
-  const [rows,setRows]=useState(null); const [msg,setMsg]=useState(''); const [season,setSeason]=useState(null);
-  function loadSeason(){ supabase.from('clv_log').select('clv').then(({ data:d })=>{ if(!d){setSeason(null);return;} const n=d.length,pos=d.filter(x=>x.clv>0).length,avg=n?d.reduce((a,b)=>a+(+b.clv||0),0)/n:0; setSeason({n,pos,avg}); }); }
+  const [rows,setRows]=useState(null); const [msg,setMsg]=useState(''); const [season,setSeason]=useState(null); const [hist,setHist]=useState([]);
+  function loadSeason(){ supabase.from('clv_log').select('*').order('race_year',{ ascending:false }).order('race_number',{ ascending:false }).order('clv',{ ascending:false }).then(({ data:d })=>{ if(!d){ setSeason(null); setHist([]); return; } const n=d.length,pos=d.filter(x=>x.clv>0).length,avg=n?d.reduce((a,b)=>a+(+b.clv||0),0)/n:0; setSeason({ n, pos, avg }); setHist(d); }); }
   useEffect(()=>{ loadSeason() },[]);
   useEffect(()=>{ setSim(null); setRows(null); },[series,stage]);
   async function loadSim(){
@@ -137,6 +137,29 @@ function ClvPanel({ series, stage }) {
             ))}
           </tbody>
         </table>
+      ) : null}
+      {hist && hist.length ? (
+        <div style={{ marginTop: 22 }}>
+          <div style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: 8 }}>CLV history ({hist.length})</div>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead><tr><th style={{ ...th, textAlign: 'left' }}>Race</th><th style={{ ...th, textAlign: 'left' }}>Driver</th><th style={{ ...th, textAlign: 'left' }}>Mkt</th><th style={th}>Sim %</th><th style={th}>Bet</th><th style={th}>Close</th><th style={th}>CLV</th></tr></thead>
+              <tbody>
+                {hist.map((r, i) => (
+                  <tr key={i}>
+                    <td style={{ ...td, textAlign: 'left', color: 'var(--text-muted)', fontSize: '0.78rem' }}>{'R' + r.race_number + ' ' + (r.track_name || '').replace(/ (Motor )?Speedway| International| Superspeedway| Raceway/, '') + " '" + String(r.race_year).slice(2) + ' ' + (r.series || '')}</td>
+                    <td style={{ ...td, textAlign: 'left' }}>{r.driver_name}</td>
+                    <td style={{ ...td, textAlign: 'left' }}>{({ win: 'Win', t3: 'Top 3', t5: 'Top 5', t10: 'Top 10' })[r.market] || r.market}</td>
+                    <td style={td}>{r.sim_prob != null ? (+r.sim_prob).toFixed(1) + '%' : '-'}</td>
+                    <td style={td}>{__amFmt(r.bet_odds)}</td>
+                    <td style={td}>{__amFmt(r.close_odds)}</td>
+                    <td style={{ ...td, fontWeight: 600, color: r.clv > 0 ? '#22c55e' : '#ef4444' }}>{(r.clv > 0 ? '+' : '') + (+r.clv).toFixed(1)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       ) : null}
     </div>
   );
