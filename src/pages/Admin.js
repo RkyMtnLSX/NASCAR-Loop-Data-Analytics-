@@ -709,7 +709,13 @@ function LoadNewRace() {
       if (existing) return setStatus({ error: 'Already loaded: ' + existing.track_name + ' ' + year + ' (' + racingRefId + ')' })
       const totalLaps = expectedLaps || Math.max(...rows.map(r => r.laps_completed || 0))
       const winner = rows.find(r => r.finish_position === 1)?.driver_name || null
-      const { data: raceRecord, error: raceErr } = await supabase.from('races').insert({
+      // Adopt a stub race row created earlier by the practice uploader (same series+year+track+race#, no RR URL)
+      const { data: stubRows } = await supabase.from('races').select('id')
+        .eq('series', series).eq('year', parseInt(year)).eq('track_name', trackName)
+        .eq('race_number', parseInt(raceNum)).is('racing_reference_url', null)
+        .order('id', { ascending: true })
+      const stubId = (stubRows && stubRows.length) ? stubRows[0].id : null
+      const raceFields = {
         racing_reference_id: racingRefId,
         race_name: trackName + ' ' + year,
         track_name: trackName,
@@ -726,8 +732,14 @@ function LoadNewRace() {
         margin_of_victory: marginOfVictory,
         racing_reference_url: 'https://www.racing-reference.info/loopdata/' + year + '-' + String(raceNum).padStart(2,'0') + '/' + (seriesCodeMap[series] || 'W'),
         race_date: raceDate || null,
-      }).select('id').single()
-      if (raceErr) return setStatus({ error: 'Race insert failed: ' + raceErr.message })
+      }
+      let raceRecord, raceErr
+      if (stubId) {
+        ({ data: raceRecord, error: raceErr } = await supabase.from('races').update(raceFields).eq('id', stubId).select('id').single())
+      } else {
+        ({ data: raceRecord, error: raceErr } = await supabase.from('races').insert(raceFields).select('id').single())
+      }
+      if (raceErr) return setStatus({ error: 'Race upsert failed: ' + raceErr.message })
       const raceId = raceRecord.id
       let inserted = 0
       const errors = []
@@ -1806,10 +1818,12 @@ export default function Admin() {
     setUploadStatus(null)
     try {
       let raceId = null
-      const { data: existingRace } = await supabase
-        .from('races').select('id')
+      const { data: raceMatches } = await supabase
+        .from('races').select('id, racing_reference_url')
         .eq('track_name', trackName).eq('year', year).eq('series', series).eq('race_number', practiceRaceNum)
-        .single()
+        .order('id', { ascending: true })
+      // Prefer the canonical row (loop-data loader row has the RR URL) if duplicates exist
+      const existingRace = (raceMatches || []).find(rm => rm.racing_reference_url) || (raceMatches || [])[0] || null
 
       if (existingRace) {
         raceId = existingRace.id
