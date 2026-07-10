@@ -1046,6 +1046,32 @@ pct-equipment share) and ride-change rows (modal car pool -> current car pool). 
 remaining: loop-loader car_number stamping on new race loads (RR results pages carry the
 car column; loader parses those pages already).
 
+### GROUND-TRUTH CORRECTION -- detector demoted, conditioned finding UNVERIFIED (2026-07-10)
+User retrieved TRUE 2026 practice tire allocations (from entry blanks): everything 1 set
+EXCEPT Chicagoland (3 sets -- track unvisited 7 years) and Dover (2 sets). Scoring the
+fresh-set detector against truth:
+- Chicagoland: NAILED (87 pct field, median 3 -- matched the actual 3-set allocation).
+- FALSE POSITIVES: Martinsville 2026 (68 pct "multi" -- actually 1 set; short-track rubber-in)
+  and Coronado (90 pct "multi" -- actually 1 set; new street course, surface evolved all
+  session). Coronado's 90 pct exceeds Chicagoland's TRUE 87 pct -> NO threshold separates
+  track evolution from real fresh sets. Detector is DEAD as a session classifier.
+- FALSE NEGATIVE: Dover 2026 (2 sets ALLOWED, detector 0 pct -- teams banked the second set,
+  likely for qualifying). ALLOWED is not USED; the detector measures usage, entry blanks
+  measure allowance, and they disagree in both directions.
+CONSEQUENCES: (1) the conditioned backtest below used heuristic labels -- its MULTI bucket
+contains at least one confirmed false positive (Martinsville 2026) and all 2024-25 labels are
+unverified -> the best5/filt103-on-multi-set finding is DEMOTED TO UNVERIFIED. Only ONE
+verified multi-set race with a finish exists (Chicagoland 2026, n=1). (2) practice_sessions
+gains a tire_sets column (ALLOWED sets, manual ground truth; 2026 cup fully stamped via SQL;
+2024-25 NULL pending retrieval -- the flagged sessions that matter: Kansas 24 x2, Michigan 24,
+Bristol 25 x2, Indy 25, Kansas 25 x2, Phoenix 25 x2). (3) Detector demoted to per-driver
+"estimated fresh runs" display hint on the report card -- never a classifier. (4) Practice
+uploader should gain a Tire Sets input (user enters from the entry blank, 2 seconds/weekend).
+STRATEGIC NOTE: multi-set allocations happen when NASCAR expects data-starved weekends (new
+tracks, long absences) -- rare, but exactly the weekends where corr history is thinnest and a
+practice edge is worth the most. The #119 market test now WAITS for verified multi-set
+weekends to accumulate (or 2024-25 allocation retrieval).
+
 ### ALLOCATION-CONDITIONED FOLLOW-UP -> real interaction found, market test pending (2026-07-10)
 User corrected the era framing: tire allocation varies PER SESSION (1/2/multi sets), not by
 year. Built a FRESH-SET DETECTOR from raw practice_laps (runs at lap_number gaps; later run
