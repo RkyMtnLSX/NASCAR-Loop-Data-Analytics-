@@ -1046,6 +1046,37 @@ pct-equipment share) and ride-change rows (modal car pool -> current car pool). 
 remaining: loop-loader car_number stamping on new race loads (RR results pages carry the
 car column; loader parses those pages already).
 
+### EXTERNAL PRACTICE-METRIC PROPOSAL vs INCUMBENT -> archive holds; ONE watch item (2026-07-10)
+User brought a Fable-extension Excel analysis of Chicagoland practice recommending: base pace =
+best-10-lap window, plus tire deg + consistency as sim inputs, traffic filter at 103 pct of
+session best. RECONCILIATION FIRST: (a) its "all-lap average" critique targets a RAW mean --
+our overall_avg already cuts laps beyond 8 pct of median (the Wallace 36.2/33.9 examples are
+already excluded); (b) run segmentation/falloff/consistency already exist in practiceGrader +
+practice_sessions since 19f7bd68; (c) deg (~0.03 corr) and consistency (-0.03) are settled
+rejections; (d) "self-selects the freshest set" is the avg_pace calibration failure mode
+restated as a feature. NEW and untested: the 103pct filter definition, fresh-set awareness
+under the 2026 MULTI-TIRE-SET rules change (satisfies the new-data clause), track evolution.
+HEAD-TO-HEAD (36 cup oval practice races from raw practice_laps, 50,310 laps; per-race Spearman
+of metric vs finish; replica of stored overall_avg validated at 0.262 vs 0.264 stored):
+                 ALL     2024-25  2026-only(10)
+  overall_avg    0.264   0.259    0.276
+  filt-103pct    0.270   0.265    0.284   <- mild consistent upgrade, BUT fresh-tire-leaning
+  best10 w/fb    0.263   0.255    0.285
+  best5          0.257   0.234    0.318   <- WATCH ITEM (see below)
+  best10 strict  0.229   0.215    0.261   <- loses again, replicating the 2026-07-03 test
+VERDICTS: (1) keep overall_avg as the sim input -- the proposal's recommended base pace fails
+the same way pooled-long-stints did. (2) filt-103 is a CANDIDATE but must clear the
+betting-market + favorite-gap bar in the full-sim harness before any swap (its anchor to
+session-best is exactly the avg_pace hazard profile) -- do NOT ship on Spearman alone.
+(3) BEST-5 IN THE MULTI-SET ERA is the genuine new signal candidate: 0.318 vs 0.276 on the 10
+races run under the 2026 multiple-tire-set rule, while being clearly WORSE (0.234) in the
+single-set era. Mechanism plausible: fresh sets for everyone = short-run pace becomes
+apples-to-apples. n=10 -- RE-RUN when the 2026 sample reaches ~20 races; if it holds, consider
+an ERA-CONDITIONED practice input (overall_avg pre-2026, blend in best5 for multi-set sessions)
+tested on full markets. (4) Report-card side is free to adopt display metrics (fresh-set flags,
+filtered long-run, per-run views) -- grade and sim serve different masters, per the standing
+principle.
+
 STAGE 4 SHIPPED -- LOADER STAMPING, #118 COMPLETE (2026-07-10, commit 19003614, bundle
 main.ae1487c6.js): Load New Race (Admin.js) now stamps loop_data.car_number at insert by
 joining the PRE-LOADED entry_list (series + race_year + track_name, normalized-name match).
