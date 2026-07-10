@@ -158,7 +158,7 @@ export default function PracticeReportCard({ isSubscriber }) {
               .th-tip:hover::before { content: ''; position: absolute; left: 50%; top: 100%; transform: translateX(-50%); margin-top: 3px; border: 5px solid transparent; border-bottom-color: #3a3d44; z-index: 30; }
             `}</style>
             {visibleRows.length > 0 && visibleRows[0].tire_sets != null && (
-              <div style={{ margin: '4px 0 8px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+              <div style={{ margin: '4px 0 10px', padding: '8px 12px', fontSize: '0.8rem', color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px' }}>
                 Practice tire allocation: <strong>{visibleRows[0].tire_sets} set{visibleRows[0].tire_sets > 1 ? 's' : ''}</strong>
                 {visibleRows[0].tire_sets > 1 ? ' \u2014 fresh-rubber columns (Best Lap / Best Stint) are apples-to-apples this week' : ' \u2014 later runs are scuffs; Avg Pace normalizes run composition'}
               </div>
@@ -173,7 +173,7 @@ export default function PracticeReportCard({ isSubscriber }) {
                   <th className="th-tip" data-tip="Starting position for this race.">Start</th>
                   <th className="th-tip" data-tip="Overall practice grade (percentile of the field), from Avg Pace 50% + Best Lap 50% (v3, 2026-07-10).">Grade</th>
                   <th className="th-tip" data-tip="Letter-aligned score: A+ 97-100, A 93-96.9 ... F 40-59.9. The session's top car is always 100.">Score</th>
-                  <th className="th-tip" data-tip="Graded (clean) laps / total laps. Laps beyond 8% of the session median are excluded from grading.">Laps</th>
+                  <th className="th-tip" data-tip="Graded (clean) laps / total laps. Laps beyond 8% of the session median are excluded from grading.">Graded Laps</th>
                   <th className="th-tip" data-tip="Average of each run's average lap time - each run weighted equally, so one short outlier run can swing it. Lower is faster.">Avg Pace</th>
                   <th className="th-tip" data-tip="Simple average of every clean lap - each lap weighted equally, so a short outlier run barely moves it. Lower is faster.">All Laps</th>
                   <th className="th-tip" data-tip="Fastest single run's average lap time - peak sustained pace. Lower is faster.">Best Stint</th>
@@ -222,7 +222,7 @@ export default function PracticeReportCard({ isSubscriber }) {
                       <td style={{ fontFamily: 'var(--font-mono)' }}>{(() => { let n = null; try { n = JSON.parse(d.notes || 'null') } catch (e) { n = null }
                         const gl = n && n.gl != null ? n.gl : null
                         const fr = n && n.fr != null ? n.fr : null
-                        return <span>{gl != null ? gl + '/' : ''}{d.total_laps ?? '-'}{fr != null && fr > 1 ? <span style={{ color: 'var(--text-muted)', fontSize: '0.85em' }}> ~{fr}fr</span> : null}</span> })()}</td>
+                        return <span>{gl != null ? gl + '/' : ''}{d.total_laps ?? '-'}{fr != null && fr > 1 ? <span title="Estimated fresh-tire runs: run 1 plus any later run whose best lap beats all prior laps by 0.05s+. Display hint only - not part of the grade." style={{ color: 'var(--text-muted)', fontSize: '0.85em', cursor: 'help' }}> ~{fr}fr</span> : null}</span> })()}</td>
                       <td style={{ fontFamily: 'var(--font-mono)' }}>{d.avg_pace?.toFixed(3) || '-'}</td>
                       <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>{d.overall_avg?.toFixed(3) || '-'}</td>
                       <td style={{ fontFamily: 'var(--font-mono)' }}>{d.best_stint?.toFixed(3) || '-'}</td>
