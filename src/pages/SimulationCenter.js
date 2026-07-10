@@ -158,6 +158,10 @@ export function __marketValue(winTxt, t10Txt, fdTxt, hrTxt, drivers) {
     Object.keys(d2).forEach(function (k) { dk.t10[k] = d2[k][0]; });
     var books = { dk: dk, fd: parseSect(fdTxt, FDh), hr: parseSect(hrTxt, HRh) };
     var MKS = [['win', 1, 'winPct'], ['t3', 3, 'top3Pct'], ['t5', 5, 'top5Pct'], ['t10', 10, 'top10Pct']];
+    // Tail guard (2026-07-09): below these model probabilities the sim has no calibrated
+    // resolution -- MC noise puts backmarkers at ~1pct top3, and longshot odds amplify that
+    // into fake +EV (Reaume/Lime Rock case). No flag, no edge below the floor.
+    var MINP = { win: 0.02, t3: 0.05, t5: 0.08, t10: 0.12 };
     var res = {};
     MKS.forEach(function (mk) {
       var key = mk[0], target = mk[1], pf = mk[2];
@@ -191,7 +195,7 @@ export function __marketValue(winTxt, t10Txt, fdTxt, hrTxt, drivers) {
         var consP = cons.length ? cons.reduce(function (a, b) { return a + b; }, 0) / cons.length : null;
         var p = (d[pf] || 0) / 100;
         res[d.name] = res[d.name] || {};
-        res[d.name][key] = { dk: px.dk, fd: px.fd, hr: px.hr, best: best, bb: bb, ev: +((p * dec(best) - 1) * 100).toFixed(0), mev: consP != null ? +((consP * dec(best) - 1) * 100).toFixed(0) : null };
+        res[d.name][key] = { dk: px.dk, fd: px.fd, hr: px.hr, best: best, bb: bb, ev: p >= MINP[key] ? +((p * dec(best) - 1) * 100).toFixed(0) : null, mev: consP != null ? +((consP * dec(best) - 1) * 100).toFixed(0) : null };
       });
     });
     return res;
