@@ -934,3 +934,19 @@ ALSO SHIPPED (commit a13ec713): Sim Admin formula panel label renamed 'Long Run 
 'Practice Pace (All Laps)' -- the metric was always overall_avg (ALL clean laps within 8 pct of
 median), not a long-run-only figure; the old name was flagged misleading back in the 2026-07-03
 definition test. Weight KEY (longRunPace) unchanged -- display label only, no logic touched.
+
+### TRUCK ROAD PRACTICE SPLIT -> CONSOLIDATED 25/0/0, SHIPPED (2026-07-09, same day)
+User caught that the road weight sets still carried shortRunPace 0.05 + tireFalloff 0.05 --
+signals folded to 0 on OVALS (2026-07-02) but never re-tested on road; they survived by inertia,
+not decision (trackHistory 0 on road IS the decided design). Head-to-head on the same 5 truck
+road races, production split (longRun .15 / shortRun .05 / falloff .05, real late_run_avg +
+trend_slope inputs) vs consolidated (longRun .25 / shortRun 0 / falloff 0):
+  SPLIT 15/5/5: Spearman 0.501, p5 0.400   CONSOLIDATED 25/0/0: Spearman 0.510, p5 0.440
+Consolidated wins BOTH metrics, and the falloff input barely exists for trucks (trend_slope
+populated 35/177 driver-sessions; late_run_avg 136/177) -- 5 pct weight on a mostly-null column
+is neutral-fill dead weight. SHIPPED commit c7980361: TRUCK_ROAD_WEIGHTS longRunPace 0.25 /
+shortRunPace 0 / tireFalloff 0 (sum re-verified 1.00).
+OPEN: Cup/O'Reilly ROAD_COURSE_WEIGHTS still carry the 15/5/5 split -- same structural question,
+needs its own check on cup/oreilly road practice sessions before consolidating (do NOT assume
+the truck result transfers; test first). Also fixed pitboard.md section 7 ROAD_COURSE_WEIGHTS
+block, which was stale (still showed pre-2026-07-07 corr 0.35 / raceCraft 0.25).
