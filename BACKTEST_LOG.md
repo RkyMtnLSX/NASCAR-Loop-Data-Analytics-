@@ -1006,6 +1006,24 @@ entry_list.car_number. ~40-60 line change in the data-load effect -- implement i
 code-focused session, verify on the Reaume/Tyrrell lines (they should differentiate by ride).
 Also subsumes the manual crossover_borrows for most cases (keep borrows for cross-SERIES).
 
+EXTENSION VALIDATED same day -- RIDE-CHANGE EQUIPMENT DELTA for ESTABLISHED drivers (the
+Kligerman question: veteran with deep history earned in OLD equipment, now in a better ride --
+the thin-prior never fires for him because conf_d is 1). Mechanism: adjusted = driverPooled +
+k * confE * (pool(currentCar) - pool(modalHistoricCar)), confE = min(1, min(nNew, nOld)/4).
+Trigger is CAR NUMBER, never team name (green_flag_speed.team is sponsor drift). Tested on
+1,689 ride-change obs (established, current car differs from modal prior car, both pools n>=2
+-- ~1 in 5 established driver-races qualifies):
+  k 0.00: train .528 / test .535   k 0.25: train .547 / test .545  <- BEST both splits
+  k 0.50: .543/.533   k 0.75: .518/.505   k 1.00: .483/.468 (full delta OVER-attributes badly)
+SHIP k = 0.25: quarter-strength equipment credit -- driver skill dominates, equipment shifts
+the mean. A veteran moving to equipment that pools 8 points better gets ~+2. Include in #118.
+UI SPEC (user request): admin-only "Equipment prior" panel below the weights panel, win-shade
+pattern -- renders ONLY affected drivers. Thin-history rows: driver, car, driver-hist (n),
+car-hist (n), source-split bar (driver/equipment/neutral), blended corr input + "was X"
+counterfactual vs old neutral-shrink. Ride-change rows: old car -> new car, both pools, the
+k*delta applied. Established unchanged drivers never render. Numbers must expose the recipe so
+the operator can audit any driver's input at a glance.
+
 ### PRACTICE-EDGE AT SCALE (#114) -> CLOSED, sleepers are real but ALREADY PRICED (2026-07-09)
 The queued re-run, now on the full sample: 40 cup oval practice races, 1403 driver-obs,
 production-shape composite (corr .36 / practice .15 / start .34 / track .15).
