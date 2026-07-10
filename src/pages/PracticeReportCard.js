@@ -90,7 +90,7 @@ export default function PracticeReportCard({ isSubscriber }) {
     <div className="page">
       <div className="page-header">
         <h1 className="page-title">Practice Report Cards</h1>
-        <p className="page-subtitle">Grades weighted 50/50 on All Laps pace &amp; Best Lap speed</p>
+        <p className="page-subtitle">Grades weighted 50/50 on Avg Pace (run-aware) &amp; Best Lap speed &middot; scores aligned to letter bands</p>
       </div>
 
       {/* Series tabs */}
@@ -157,6 +157,12 @@ export default function PracticeReportCard({ isSubscriber }) {
               .th-tip:hover::after { content: attr(data-tip); position: absolute; left: 50%; top: 100%; transform: translateX(-50%); margin-top: 8px; z-index: 30; width: 190px; padding: 9px 11px; background: #16181d; color: #e8e8e8; border: 1px solid #3a3d44; border-radius: 8px; font-size: 0.72rem; font-weight: 400; line-height: 1.4; letter-spacing: normal; text-transform: none; text-decoration: none; white-space: normal; text-align: left; box-shadow: 0 6px 20px rgba(0,0,0,0.55); pointer-events: none; }
               .th-tip:hover::before { content: ''; position: absolute; left: 50%; top: 100%; transform: translateX(-50%); margin-top: 3px; border: 5px solid transparent; border-bottom-color: #3a3d44; z-index: 30; }
             `}</style>
+            {visibleRows.length > 0 && visibleRows[0].tire_sets != null && (
+              <div style={{ margin: '4px 0 8px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                Practice tire allocation: <strong>{visibleRows[0].tire_sets} set{visibleRows[0].tire_sets > 1 ? 's' : ''}</strong>
+                {visibleRows[0].tire_sets > 1 ? ' \u2014 fresh-rubber columns (Best Lap / Best Stint) are apples-to-apples this week' : ' \u2014 later runs are scuffs; Avg Pace normalizes run composition'}
+              </div>
+            )}
             <table>
               <thead>
                 <tr>
@@ -165,9 +171,9 @@ export default function PracticeReportCard({ isSubscriber }) {
                   <th className="left">Driver</th>
                   {hasGroup && <th style={{ width: 60 }}>Group</th>}
                   <th className="th-tip" data-tip="Starting position for this race.">Start</th>
-                  <th className="th-tip" data-tip="Overall practice grade (percentile of the field), from All Laps 50% + Best Lap 50%.">Grade</th>
-                  <th className="th-tip" data-tip="Composite 0-100 practice score used to rank the grade.">Score</th>
-                  <th className="th-tip" data-tip="Total clean practice laps recorded.">Laps</th>
+                  <th className="th-tip" data-tip="Overall practice grade (percentile of the field), from Avg Pace 50% + Best Lap 50% (v3, 2026-07-10).">Grade</th>
+                  <th className="th-tip" data-tip="Letter-aligned score: A+ 97-100, A 93-96.9 ... F 40-59.9. The session's top car is always 100.">Score</th>
+                  <th className="th-tip" data-tip="Graded (clean) laps / total laps. Laps beyond 8% of the session median are excluded from grading.">Laps</th>
                   <th className="th-tip" data-tip="Average of each run's average lap time - each run weighted equally, so one short outlier run can swing it. Lower is faster.">Avg Pace</th>
                   <th className="th-tip" data-tip="Simple average of every clean lap - each lap weighted equally, so a short outlier run barely moves it. Lower is faster.">All Laps</th>
                   <th className="th-tip" data-tip="Fastest single run's average lap time - peak sustained pace. Lower is faster.">Best Stint</th>
@@ -213,11 +219,14 @@ export default function PracticeReportCard({ isSubscriber }) {
                       <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
                         {d.practice_score?.toFixed(1) || '-'}
                       </td>
-                      <td style={{ fontFamily: 'var(--font-mono)' }}>{d.total_laps ?? '-'}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)' }}>{(() => { let n = null; try { n = JSON.parse(d.notes || 'null') } catch (e) { n = null }
+                        const gl = n && n.gl != null ? n.gl : null
+                        const fr = n && n.fr != null ? n.fr : null
+                        return <span>{gl != null ? gl + '/' : ''}{d.total_laps ?? '-'}{fr != null && fr > 1 ? <span style={{ color: 'var(--text-muted)', fontSize: '0.85em' }}> ~{fr}fr</span> : null}</span> })()}</td>
                       <td style={{ fontFamily: 'var(--font-mono)' }}>{d.avg_pace?.toFixed(3) || '-'}</td>
                       <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>{d.overall_avg?.toFixed(3) || '-'}</td>
                       <td style={{ fontFamily: 'var(--font-mono)' }}>{d.best_stint?.toFixed(3) || '-'}</td>
-                      <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>{d.long_run?.toFixed(3) || '-'}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>{d.long_run?.toFixed(3) || <span style={{ fontSize: '0.7rem', padding: '1px 5px', borderRadius: 4, background: '#4a3a12', color: '#e0b64f' }}>low conf</span>}</td>
                       <td style={{ fontFamily: 'var(--font-mono)' }}>{d.consistency?.toFixed(3) || '-'}</td>
                       <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent)' }}>{d.best_lap?.toFixed(3) || '-'}</td>
                     </tr>
