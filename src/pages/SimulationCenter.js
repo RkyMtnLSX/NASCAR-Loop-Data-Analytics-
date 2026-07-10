@@ -259,12 +259,13 @@ function buildSpeedScores(drivers, weights) {
     // pre-118 value (rawC*conf + 50*(1-conf)) when car data is absent.
     const __eqS = __eqScale ? __eqScale(d.equipRating) : null
     const __eqM = __eqScale ? __eqScale(d.modalEquipRating) : null
-    const __eqConf = d.nEquipRaces > 0 ? Math.min(1, d.nEquipRaces / 4) : 0
+    const __eqScl = d.equipScale != null ? d.equipScale : 1
+    const __eqConf = (d.nEquipRaces > 0 ? Math.min(1, d.nEquipRaces / 4) : 0) * __eqScl
     const __eqFill = __eqS != null ? __eqS * __eqConf + 50 * (1 - __eqConf) : 50
     let c = rawC * conf + __eqFill * (1 - conf)
     if (conf >= 1 && __eqS != null && __eqM != null && d.modalCar && d.carNumber && String(d.carNumber).trim() !== d.modalCar) {
       const __dConf = Math.min(1, Math.min(d.nEquipRaces, d.nModalEquip) / 4)
-      c = Math.max(0, Math.min(100, c + 0.25 * __dConf * (__eqS - __eqM)))
+      c = Math.max(0, Math.min(100, c + 0.25 * __dConf * __eqScl * (__eqS - __eqM)))
     }
     const trs = trackRatingScores[i]
     const tfs = trackFinishScores[i]
@@ -779,8 +780,10 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
     return () => { cancelled = true }
   }, [series])
 
+  // EQUIPMENT PRIOR overrides (task 118): per-driver influence scale, session-only, default 1
+  const [eqOverrides, setEqOverrides] = useState({})
   const driversWithScores = useMemo(
-    () => buildSpeedScores(rawDrivers, __applyRainOut(weights, rainOut)), [rawDrivers, weights, rainOut]
+    () => buildSpeedScores(rawDrivers.map(d => ({ ...d, equipScale: eqOverrides[d.name] != null ? eqOverrides[d.name] : 1 })), __applyRainOut(weights, rainOut)), [rawDrivers, weights, rainOut, eqOverrides]
   )
 
   function handleLogin(e) {
@@ -1074,7 +1077,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
               const fmt = v => v == null ? '-' : Number(v).toFixed(1)
               return (
                 <div style={{ margin: '10px 0', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 6 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Equipment prior</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4, display: 'flex', gap: 10, alignItems: 'center' }}>Equipment prior{Object.keys(eqOverrides).length > 0 && <button onClick={() => setEqOverrides({})} style={{ fontSize: 11, padding: '1px 6px', background: 'transparent', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--text-muted)', cursor: 'pointer' }}>reset overrides</button>}</div>
                   {!anyCar ? (
                     <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>No car numbers on this roster - load the entry list to activate the equipment prior.</div>
                   ) : thinRows.length === 0 && rideRows.length === 0 ? (
@@ -1090,6 +1093,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
                               <span>own {fmt(d.corrAvgRating)} (n{d.nCorrRaces})</span>
                               <span>car {fmt(d.equipRating)} (n{d.nEquipRaces})</span>
                               <span style={{ color: '#f5c518' }}>{Math.round((1 - Math.min(1, d.nCorrRaces / 4)) * 100)}% equipment</span>
+                              <span style={{ color: 'var(--text-muted)' }}>infl <input type="number" min={0} max={150} step={10} value={Math.round((eqOverrides[d.name] != null ? eqOverrides[d.name] : 1) * 100)} onChange={e => setEqOverrides(o => ({ ...o, [d.name]: Math.max(0, Math.min(1.5, (parseFloat(e.target.value) || 0) / 100)) }))} style={{ width: 52, fontSize: 11, background: 'transparent', border: '1px solid var(--border)', borderRadius: 4, color: 'inherit', padding: '0 3px' }} />%</span>
                             </div>
                           ))}
                         </div>
@@ -1101,6 +1105,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
                             <div key={d.name} style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                               <span style={{ minWidth: 170 }}>{d.name}</span>
                               <span>#{d.modalCar} {fmt(d.modalEquipRating)} (n{d.nModalEquip}) to #{String(d.carNumber).trim()} {fmt(d.equipRating)} (n{d.nEquipRaces})</span>
+                              <span style={{ color: 'var(--text-muted)' }}>infl <input type="number" min={0} max={150} step={10} value={Math.round((eqOverrides[d.name] != null ? eqOverrides[d.name] : 1) * 100)} onChange={e => setEqOverrides(o => ({ ...o, [d.name]: Math.max(0, Math.min(1.5, (parseFloat(e.target.value) || 0) / 100)) }))} style={{ width: 52, fontSize: 11, background: 'transparent', border: '1px solid var(--border)', borderRadius: 4, color: 'inherit', padding: '0 3px' }} />%</span>
                             </div>
                           ))}
                         </div>
