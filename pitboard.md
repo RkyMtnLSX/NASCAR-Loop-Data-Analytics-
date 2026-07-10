@@ -313,6 +313,8 @@ Every current weight was tuned this way and validated out-of-sample on 29 (2025+
 - **Sim practice input = `overall_avg`** (all clean laps, 8% cut). Beat `avg_pace` on
   every betting market + calibration. (The practice GRADE uses avg_pace; the SIM does not
   — intentional: grade optimizes finish prediction, sim optimizes calibrated favorites.)
+  Grade v3 shipped 2026-07-10: avgPace 50 / bestLap 50, letter-aligned scores, notes JSON
+  extras — see the practiceGrader section + BACKTEST_LOG Archive C.
 - **Road course — NOW PER-SERIES (2026-07-07).** Cup/O'Reilly (`ROAD_COURSE_WEIGHTS`):
   corr 0.60 / longRun 0.15 / shortRun 0.05 / startPos 0.15 / tireFalloff 0.05 / raceCraft
   **0** / trackHistory 0. Trucks (`TRUCK_ROAD_WEIGHTS`, new export): corr 0.55 / startPos
@@ -512,7 +514,11 @@ the equipment-prior key — see task #118; NOTE loop loader does not stamp it ye
 `total_laps`, `num_stints`, `longest_stint`, **`overall_avg`** (all clean laps, 8% cut =
 the SIM longRunPace input), **`avg_pace`** (mean of per-run avgs = the GRADE input, added
 2026-07-04), `best_lap`, `best_stint`, `long_run`, `late_run_avg`, `trend_slope`,
-`consistency`, `practice_score`, `practice_grade` (computed+stored at upload), `notes`,
+`consistency`, `practice_score`, `practice_grade` (computed+stored at upload), `notes`
+(since grade v3 2026-07-10: JSON `{"gl": gradedLaps, "fr": estFreshRuns}` written by the
+grader at upload; report card parses it for the Laps column), **`tire_sets`** (int —
+MANUAL practice tire-allocation label, added 2026-07-10; 2024-26 Cup labeled from
+Jayski/user fact-check, NOT set by the uploader — re-stamp after any re-upload),
 `created_at`. Delete/reinsert key: `race_id + series + session_number + race_number`.
 
 ### `practice_laps` — raw practice laps (NO race_id / no FK)
@@ -672,8 +678,13 @@ Unicode arrows (↑ ↓ ▲ ▼) survive if stored as `\uXXXX` escapes, but lite
 ### Vercel deploy timing
 Vercel picks up main branch pushes automatically but takes ~60–90 seconds to build. After a push, wait before checking the live site. Do not assume the latest commit is live immediately.
 
-### `practiceGrader.js` — pending re-upload
-Task #93 is pending: the SRP formula was fixed in practiceGrader.js but the practice Excel for the current race has not been re-uploaded through the Admin panel to apply the fix.
+### `practiceGrader.js` — GRADE v3 LIVE (commit `50e90bfb`, 2026-07-10)
+Formula: `rankScale(avgPace)*0.50 + rankScale(bestLap)*0.50` (falls back to overallAvg if
+avg_pace missing). Scores are LETTER-ALIGNED via SCORE_BANDS (A+ = 97-100, B = 83-86.9, F
+floors at 40); the session's #1 driver is always A+/100. Raw composite still orders the
+field — only the displayed score is band-mapped. Extras written to `notes` JSON (gl/fr).
+Backtest: 0.326 all / 0.325 test vs incumbent 0.310/0.304 (BACKTEST_LOG Archive C,
+2026-07-10). Grades compute AT UPLOAD — old sessions keep old grades until re-uploaded.
 
 ### `load-race.js` — pending fix (task #102)
 The serverless function does not yet auto-set `race_date` or auto-increment `track race_number (1/2)`. Manual workaround is in place.
@@ -696,6 +707,24 @@ REST, 377 rows, race-level registry). `handleUpload`'s race lookup now filters
 `race_number: practiceRaceNum` + names it `${track} ${year} R${R#}`, so each date at a
 two-race track resolves to its own `race_id`. Enter the Race # to MATCH `races.race_number`
 (the audit R#).
+
+### Phantom race rows — FIXED (commit `b8bbeb8b`, 2026-07-10)
+Incident: Chicagoland Cup 2026 ended up with THREE races rows (392 practice stub / 405
+Load New Race / 406 phantom). Two compounding bugs, both fixed:
+(a) **Load New Race deduped only by `racing_reference_id`** — it never adopted the stub
+row a practice upload creates pre-race, so every "practice first, loop data after the
+race" weekend minted a duplicate race row. NOW: before inserting, it looks up a stub
+(same series+year+track_name+race_number, `racing_reference_url IS NULL`) and UPDATEs it
+in place — loop data, race_date and RR URL land on the SAME race_id the practice
+sessions already use.
+(b) **Practice uploader's race lookup used `.single()`** — with 2 matching rows it
+errored, returned null, and the fallback CREATED a third row. NOW: fetches all matches
+and prefers the row with `racing_reference_url` (the canonical loader row).
+Cleanup (user-run SQL 2026-07-10): deleted sessions on 392/406, all Cup 2026 Chicagoland
+practice_laps (doubled — the laps delete key missed because old laps carried a different
+`race_number`), and races 392/406; everything consolidated on 405. Related lesson: a
+stale browser tab grades re-uploads with the OLD bundle (grades compute client-side at
+upload) — hard-refresh before re-uploading after any grader deploy.
 
 Data-hygiene notes (observed 2026-07-03 via REST on practice_sessions, 638 rows / 14
 sessions): (a) some sessions are DUPLICATED — Cup Pocono showed 76 driver rows, O'Reilly
