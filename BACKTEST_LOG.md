@@ -1046,6 +1046,15 @@ pct-equipment share) and ride-change rows (modal car pool -> current car pool). 
 remaining: loop-loader car_number stamping on new race loads (RR results pages carry the
 car column; loader parses those pages already).
 
+STAGE 4 SHIPPED -- LOADER STAMPING, #118 COMPLETE (2026-07-10, commit 19003614, bundle
+main.ae1487c6.js): Load New Race (Admin.js) now stamps loop_data.car_number at insert by
+joining the PRE-LOADED entry_list (series + race_year + track_name, normalized-name match).
+Chosen over scraping RR race-results in the loader: the RR loopdata page the user pastes has
+NO car column, RR blocks cross-origin browser fetches (would have needed the serverless), and
+entry_list is the same source RR reflects -- already in-house, loaded every weekend per user
+workflow. Missing entry list or driver substitution -> NULL (equipment prior degrades to
+neutral; backfillable). WORKFLOW ORDER NOW MATTERS: entry list BEFORE loop data load.
+
 STAGE 3 SHIPPED (2026-07-09, commit 4e1d7209, bundle main.9ca65ae6.js): per-driver equipment
 INFLUENCE OVERRIDES. Every affected row in the Equipment-prior panel has an "infl" input
 (0-150 pct, default 100) + a reset-overrides button in the header. Scale multiplies eqConf in
