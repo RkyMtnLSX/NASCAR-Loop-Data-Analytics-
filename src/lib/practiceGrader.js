@@ -195,10 +195,24 @@ export function gradePracticeSession(drivers) {
     if (totalLaps < MIN_LAPS || avgPace == null) {
       return { ...dr, stints: stints.length, longestStint: longest, totalLaps, overallAvg: rnd(overallAvg, 1000), lateRunAvg: rnd(lateRunAvg, 1000), bestLap: rnd(bestLap, 1000), trendSlope: rnd(falloff, 10000), consistency: rnd(consistency, 1000), avgPace: null, bestStint: null, longRun: null, inc: true }
     }
+    // Report-card extras via notes JSON (2026-07-10, no schema change):
+    // gl = graded laps (within 8 pct of session median); fr = estimated fresh runs
+    // (run 1 + later runs whose best beats all priors by >=0.05s -- DISPLAY HINT ONLY,
+    // heuristic confirmed unreliable vs true tire allocations).
+    const __srt2 = [...allTimes].sort((a, b) => a - b)
+    const __sessMed = __srt2[Math.floor(__srt2.length / 2)]
+    const __graded = allTimes.filter(tt => tt <= __sessMed * 1.08).length
+    let __fresh = 1, __prior = null
+    stints.forEach((st, si) => {
+      const bb = Math.min(...st.map(([, tt]) => tt))
+      if (si > 0 && __prior != null && bb <= __prior - 0.05) __fresh++
+      __prior = __prior == null ? bb : Math.min(__prior, bb)
+    })
     return { ...dr, stints: stints.length, longestStint: longest, totalLaps,
       overallAvg: rnd(overallAvg, 1000), lateRunAvg: rnd(lateRunAvg, 1000), bestLap: rnd(bestLap, 1000),
       trendSlope: rnd(falloff, 10000), consistency: rnd(consistency, 1000),
-      avgPace: rnd(avgPace, 1000), bestStint: rnd(bestStint, 1000), longRun: rnd(longRun, 1000), inc: false }
+      avgPace: rnd(avgPace, 1000), bestStint: rnd(bestStint, 1000), longRun: rnd(longRun, 1000),
+      notes: JSON.stringify({ gl: __graded, fr: __fresh }), inc: false }
   })
 
   const gradable = parsed.filter(d => !d.inc)
@@ -212,14 +226,33 @@ export function gradePracticeSession(drivers) {
     valid.forEach((d, i) => sc.set(d, N > 1 ? 100 * (1 - i / (N - 1)) : 100))
     return sc
   }
-  const alS = rankScale('overallAvg'), blS = rankScale('bestLap')
+  // GRADE FORMULA v3 (2026-07-10): pace half is now run-aware avgPace (each run's clean mean
+  // counts once -- normalizes stickers/scuffs run composition, the user's insight). Backtest,
+  // 41 cup oval races: avgPace50/bl50 = 0.326 (test 0.325) vs allLaps50/bl50 = 0.310 (test
+  // 0.304). The 2026-07-04 selection sweep never tested THIS pairing (avgPace was only tried
+  // with bestStint). SIM INPUT UNCHANGED: overall_avg stays (calibration, see BACKTEST_LOG).
+  const apS = rankScale('avgPace'), alS = rankScale('overallAvg'), blS = rankScale('bestLap')
   const scored = gradable.map(d => {
-    const al = alS.has(d) ? alS.get(d) : 50
+    const pace = apS.has(d) ? apS.get(d) : (alS.has(d) ? alS.get(d) : 50)
     const bl = blS.has(d) ? blS.get(d) : 50
-    return { ...d, composite: Math.round((al * 0.50 + bl * 0.50) * 10) / 10 }
+    return { ...d, composite: Math.round((pace * 0.50 + bl * 0.50) * 10) / 10 }
   })
   scored.sort((a, b) => b.composite - a.composite)
   const total = scored.length
-  scored.forEach((d, i) => { d.rank = i + 1; d.grade = percentileGrade(i + 1, total) })
+  // LETTER-ALIGNED SCORES (2026-07-10): displayed score lives inside the letter's academic
+  // band (A+ 97-100 ... F 40-59.9), positioned by percentile within the band. Rank 1 is
+  // always A+ / 100. Raw composite still decides the ORDERING; only the score shown changes.
+  const SCORE_BANDS = { 'A+': [100, 97], 'A': [96.9, 93], 'A-': [92.9, 90], 'B+': [89.9, 87], 'B': [86.9, 83], 'B-': [82.9, 80], 'C+': [79.9, 77], 'C': [76.9, 73], 'C-': [72.9, 70], 'D': [69.9, 60], 'F': [59.9, 40] }
+  const PCT_BANDS = { 'A+': [0, 0.03], 'A': [0.03, 0.08], 'A-': [0.08, 0.13], 'B+': [0.13, 0.21], 'B': [0.21, 0.32], 'B-': [0.32, 0.42], 'C+': [0.42, 0.55], 'C': [0.55, 0.68], 'C-': [0.68, 0.79], 'D': [0.79, 0.89], 'F': [0.89, 1] }
+  scored.forEach((d, i) => {
+    d.rank = i + 1
+    d.grade = i === 0 ? 'A+' : percentileGrade(i + 1, total)
+    if (i === 0) { d.composite = 100; return }
+    const pct = (i + 1) / total
+    const pb = PCT_BANDS[d.grade] || [0.89, 1]
+    const frac = Math.min(1, Math.max(0, (pct - pb[0]) / ((pb[1] - pb[0]) || 1)))
+    const sb = SCORE_BANDS[d.grade] || [59.9, 40]
+    d.composite = Math.round((sb[0] - frac * (sb[0] - sb[1])) * 10) / 10
+  })
   return scored.concat(incs.map(d => ({ ...d, rank: null, grade: null, composite: null })))
 }
