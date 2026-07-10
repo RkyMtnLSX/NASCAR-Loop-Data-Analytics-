@@ -497,6 +497,8 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
   const [dnfPreset, setDnfPreset]           = useState(DNF_PRESETS[1])
   const [numSims, setNumSims]               = useState(10000)
   const [totalRaceLaps, setTotalRaceLaps]   = useState(200)
+  const [stage1Laps, setStage1Laps] = useState(0)
+  const [stage2Laps, setStage2Laps] = useState(0)
   const [simResults, setSimResults]         = useState(null)
   const [running, setRunning]               = useState(false)
   const [loading, setLoading]               = useState(true)
@@ -776,7 +778,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
       race_year:  config.race_year || new Date().getFullYear(),
       race_number: raceNumMap[series] ? parseInt(raceNumMap[series]) : null,
       stage: simStage,
-      config: { weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
+      config: { weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
       results: simResults.map(d => ({
         driver_name:  d.name,
         car_number:   d.carNumber,
@@ -982,7 +984,14 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
                   style={{ width: 72, padding: '5px 8px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 5, color: 'var(--text-primary)', fontSize: '1.03rem', textAlign: 'center' }} />
                 <span style={{ color: 'var(--text-secondary)', fontSize: '0.94rem' }}>laps</span>
               </div>
-              <div style={hintStyle}>Used for laps led distribution model</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '0.82rem' }}>Stage 1</span>
+                <input type="number" value={stage1Laps} min={0} max={999} onChange={e => setStage1Laps(parseInt(e.target.value) || 0)} style={{ width: 56, padding: '4px 7px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text)' }} />
+                <span style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', marginLeft: 6 }}>Stage 2</span>
+                <input type="number" value={stage2Laps} min={0} max={999} onChange={e => setStage2Laps(parseInt(e.target.value) || 0)} style={{ width: 56, padding: '4px 7px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text)' }} />
+                <span style={{ color: 'var(--text-secondary)', fontSize: '0.82rem' }}>laps</span>
+              </div>
+              <div style={hintStyle}>Race length feeds the laps-led model. Stage lengths are captured with the sim for the future caution/pit layer but do not affect results yet.</div>
             </div>
           </div>
 
