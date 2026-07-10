@@ -1066,6 +1066,50 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
                 Reset {roadCourse ? 'Road Course' : 'Defaults'}
               </button>
             </div>
+            {/* EQUIPMENT PRIOR PANEL (task 118 stage 2): renders ONLY affected drivers */}
+            {rawDrivers.length > 0 && (() => {
+              const thinRows = rawDrivers.filter(d => d.nCorrRaces < 4 && d.equipRating != null)
+              const rideRows = rawDrivers.filter(d => d.nCorrRaces >= 4 && d.modalCar && d.carNumber && String(d.carNumber).trim() !== d.modalCar && d.equipRating != null && d.modalEquipRating != null)
+              const anyCar = rawDrivers.some(d => d.carNumber)
+              const fmt = v => v == null ? '-' : Number(v).toFixed(1)
+              return (
+                <div style={{ margin: '10px 0', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 6 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Equipment prior</div>
+                  {!anyCar ? (
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>No car numbers on this roster - load the entry list to activate the equipment prior.</div>
+                  ) : thinRows.length === 0 && rideRows.length === 0 ? (
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>No drivers affected - full field has established history in their usual rides.</div>
+                  ) : (
+                    <div style={{ fontSize: 12 }}>
+                      {thinRows.length > 0 && (
+                        <div style={{ marginBottom: 6 }}>
+                          <div style={{ color: 'var(--text-muted)', marginBottom: 2 }}>Thin history (input fills toward car pool):</div>
+                          {thinRows.map(d => (
+                            <div key={d.name} style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                              <span style={{ minWidth: 170 }}>{d.name} <span style={{ color: 'var(--text-muted)' }}>#{String(d.carNumber).trim()}</span></span>
+                              <span>own {fmt(d.corrAvgRating)} (n{d.nCorrRaces})</span>
+                              <span>car {fmt(d.equipRating)} (n{d.nEquipRaces})</span>
+                              <span style={{ color: '#f5c518' }}>{Math.round((1 - Math.min(1, d.nCorrRaces / 4)) * 100)}% equipment</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {rideRows.length > 0 && (
+                        <div>
+                          <div style={{ color: 'var(--text-muted)', marginBottom: 2 }}>Ride change (quarter-strength delta):</div>
+                          {rideRows.map(d => (
+                            <div key={d.name} style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                              <span style={{ minWidth: 170 }}>{d.name}</span>
+                              <span>#{d.modalCar} {fmt(d.modalEquipRating)} (n{d.nModalEquip}) to #{String(d.carNumber).trim()} {fmt(d.equipRating)} (n{d.nEquipRaces})</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
             <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
               {[
                 { key: 'corrHistory',  label: 'Corr. Track History' },
