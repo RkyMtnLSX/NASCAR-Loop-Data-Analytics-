@@ -733,11 +733,20 @@ function LoadNewRace() {
       const errors = []
       const { count: priorCount } = await supabase.from('races').select('id', { count: 'exact', head: true }).eq('track_name', trackName).eq('year', parseInt(year)).eq('series', series).neq('id', raceId)
       const trackRaceNum = (priorCount || 0) + 1
+      // EQUIPMENT PRIOR (task 118): stamp car_number from the pre-loaded entry list.
+      // Same-source as RR's car column; missing entry list or substitution -> null (safe).
+      const __elNorm = s2 => (s2 || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[.,']/g, '').replace(/\b(jr|sr|ii|iii|iv)\b/g, '').replace(/\s+/g, ' ').trim()
+      const { data: __elRows } = await supabase.from('entry_list')
+        .select('driver_name, car_number')
+        .eq('series', series).eq('race_year', parseInt(year)).eq('track_name', trackName)
+      const __carByDriver = {}
+      ;(__elRows || []).forEach(e2 => { const k2 = __elNorm(e2.driver_name); if (k2 && e2.car_number) __carByDriver[k2] = String(e2.car_number).trim() })
       for (const row of rows) {
         await supabase.from('drivers').upsert({ name: row.driver_name, series }, { onConflict: 'name,series', ignoreDuplicates: true })
         const finishStatus = (row.laps_completed && totalLaps && row.laps_completed < totalLaps * 0.9) ? 'dnf' : 'running'
         const { error } = await supabase.from('loop_data').insert({
           race_id: raceId, driver_name: row.driver_name, series,
+          car_number: __carByDriver[__elNorm(row.driver_name)] || null,
           race_number: trackRaceNum,
           year: parseInt(year), track_name: trackName,
           start_position: row.start_position, mid_race_position: row.mid_race_position,
