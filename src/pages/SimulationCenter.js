@@ -1015,7 +1015,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
             <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
               {[
                 { key: 'corrHistory',  label: 'Corr. Track History' },
-                { key: 'longRunPace',  label: 'Long Run Pace' },
+                { key: 'longRunPace',  label: 'Practice Pace (All Laps)' },
                 { key: 'shortRunPace', label: 'Short Run Pace' },
                 { key: 'startPos',     label: 'Starting Position' },
                 { key: 'tireFalloff',  label: 'Tire Falloff' },
