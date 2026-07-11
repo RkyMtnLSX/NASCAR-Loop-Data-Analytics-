@@ -1364,8 +1364,14 @@ was the ATTRITION/translation layer (run settings), not driver ordering. Grades:
 7 flags, 1 hit (Kligerman t5 +125), net -3.75u; post added ZERO new bets under the pre-
 ownership rule (first live use, worked as designed). Post board was WORSE than pre (MAE
 9.49->10.27) -- practice weight pushed Riggs up and Kligerman down (P4!); noted, not
-actionable at n=1 against the 5-race validation. sim_grades save needed
-`alter table sim_grades add column config jsonb` (grader stores the config snapshot now).
+actionable at n=1 against the 5-race validation. CAVEAT (operator): the pre and post runs
+used DIFFERENT equipment-prior infl values -- the post run's overrides were reconstructed
+from memory (persistence shipped between the two runs), so the pre-vs-post delta is
+CONFOUNDED and cannot cleanly blame practice inputs. Not diagnosable retroactively (the
+config snapshot didn't capture eqOverrides until commit f7e2cd39, which now stamps them
+into every published board's config -- future pre/post comparisons are auditable).
+sim_grades save needed `alter table sim_grades add column config jsonb` (grader stores
+the config snapshot now).
 
 ### BET ATTRIBUTION DOCTRINE -- pre board owns the bet (commit d85aa8cf, 2026-07-11)
 User insight from Lime Rock grading: the POST-stage grade logged Majeski WIN +700 as a
