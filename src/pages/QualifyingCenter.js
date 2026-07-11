@@ -250,6 +250,10 @@ export default function QualifyingCenter({ isSubscriber }) {
         .from('qualifying_results')
         .select('driver_name, car_number, track_name, year, qualifying_position, qualifying_speed, draw_order, race_number')
         .eq('series', 'cup')
+        // Guard (2026-07-11): only REAL time-trial sessions count as qualifying history.
+        // Metric/rain/practice-fallback lineups (lineup_source tagging, 2026-07-09) are
+        // points-order artifacts and would contaminate the position distributions.
+        .or('lineup_source.is.null,lineup_source.eq.qualifying')
         .in('track_name', allTrackNames)
         .order('qualifying_position')
       if (rowErr) throw rowErr
