@@ -1276,3 +1276,24 @@ INTERPRETATION: the model already prices sleepers -- practice pace and startPos 
 so "fast in practice + deep in the grid" already projects forward. There is no residual sleeper
 alpha to add. VERDICT: task #114 CLOSED, practice lever fully exhausted (input choice, weight,
 definition, edge term -- all settled). Do not revisit without a structurally new practice metric.
+
+### ATLANTA: track history vs corr-group history -- pooling WINS, hypothesis rejected (2026-07-10)
+User hypothesis: Atlanta post-repave "is its own beast," so pure Atlanta history might pick
+winners better than the Superspeedway corr group (Daytona/Talladega/Atlanta). Walk-forward,
+leak-free (prior races only by race_date, same-series pooling, age weights 1.3/1.0/.75/.55/.4,
+year-weighted mean driver_rating; eligible = drivers with >=1 prior Atlanta AND >=1 prior other-SS
+so all variants score the same field). 20 Atlanta races 2022-26 all series; 14 scoreable.
+- Winner-hit@1: atl-only 1/14, full group 2/14, group-minus-Atlanta 3/14. Winner-in-top3:
+  5/14, 5/14, 4/14. Counts this small are noise -- no winner-picking edge for track history.
+- Full-field Spearman: atl-only 0.221 < group-minus-Atl 0.236 < FULL GROUP 0.248. Pure track
+  history is the WORST variant tested.
+- Blend sweep w*AtlHist + (1-w)*otherSS: Spearman peaks at w=0.30 (0.253); w=1.0 is the floor
+  (0.221). The sim's effective Atlanta share at Atlanta (corr 0.55 with Atl inside the pool +
+  trackHistory 0.30 on top) ~= 0.45-0.50 -> 0.241 -- inside noise of the 0.30 peak on n=14.
+- COVERAGE KILLER: 6 of 20 races skipped because the WINNER had no prior Atlanta start (5 of
+  them trucks -- one Atlanta/yr). A track-history-heavy model literally cannot see those
+  winners; pooling can.
+VERDICT: hypothesis REJECTED. Do NOT raise trackHistory at Atlanta; SS weights stay
+(corr 0.55 / trackHistory 0.30 / startPos 0.15). If anything the data leans toward LESS
+Atlanta-specific weight, but n=14 with 0.01-magnitude Spearman gaps does not justify a
+per-track weight fork. Revisit only if a per-track fork is ever on the table for other reasons.
