@@ -44,7 +44,7 @@ function rankColor(rank) {
   return 'rgba(231,76,60,0.42)'
 }
 
-function HeatMapView({ rows, byYear }) {
+function HeatMapView({ rows, byYear, series }) {
   const [sortKey, setSortKey] = useState('avg')
   const [sortAsc, setSortAsc] = useState(true)
   if (!rows.length) return <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', padding: '24px 0' }}>No data available.</div>
@@ -138,7 +138,7 @@ function HeatMapView({ rows, byYear }) {
   )
 }
 
-function RaceTable({ rows }) {
+function RaceTable({ rows, series }) {
   if (!rows.length) return null
   const sorted = [...rows].sort((a, b) => parseFloat(b.green_flag_speed) - parseFloat(a.green_flag_speed))
   return (
@@ -281,14 +281,14 @@ export default function GreenFlagSpeed() {
 
       {loading && <div style={{ color: 'var(--text-muted)', padding: 30, textAlign: 'center' }}>Loading{'…'}</div>}
       {error && !loading && <div style={{ color: 'var(--text-muted)', padding: 30, textAlign: 'center' }}>{error}</div>}
-      {!loading && !error && view === 'heat' && <HeatMapView rows={filtered} />}
+      {!loading && !error && view === 'heat' && <HeatMapView rows={filtered} series={series} />}
       {!loading && !error && view === 'track' && (
         <div>
           <select value={selectedTrack} onChange={e => setSelectedTrack(e.target.value)} style={{ padding: '8px 10px', marginBottom: 16, background: 'var(--bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 6, minWidth: 320 }}>
             <option value="" style={{ backgroundColor: '#181b22', color: '#e6e6e6' }}>Select a track{'…'}</option>
             {trackOpts.map(t => <option key={t} value={t} style={{ backgroundColor: '#181b22', color: '#e6e6e6' }}>{t}</option>)}
           </select>
-          {selectedTrack ? <HeatMapView rows={trackRows} byYear={true} /> : <div style={{ color: 'var(--text-muted)', padding: 20 }}>Pick a track to see its green-flag-speed history across the Next Gen era.</div>}
+          {selectedTrack ? <HeatMapView rows={trackRows} byYear={true} series={series} /> : <div style={{ color: 'var(--text-muted)', padding: 20 }}>Pick a track to see its green-flag-speed history across the Next Gen era.</div>}
         </div>
       )}
     </div>
