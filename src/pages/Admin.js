@@ -1040,6 +1040,7 @@ function LoadQualifying() {
 
   async function handleSubmit() {
     if (!preview || !trackName || !year) return
+    if (!raceNumber || !parseInt(raceNumber)) return setStatus({ error: 'Enter the Race # (season round) before loading - lineups join on it.' })
     setLoading(true)
     setStatus(null)
     try {
@@ -1263,6 +1264,7 @@ function LoadQualifyingOrder() {
 
   async function handleSave() {
     if (!preview || !trackName || !year) return
+    if (!raceNumber || !parseInt(raceNumber)) return setStatus({ error: 'Enter the Race # (season round) before loading - draw order joins on it.' })
     setLoading(true)
     setStatus(null)
     try {
@@ -1776,7 +1778,7 @@ export default function Admin() {
   const [trackName, setTrackName] = useState('')
   const [year, setYear] = useState(new Date().getFullYear())
   const [sessionNum, setSessionNum] = useState(1)
-  const [practiceRaceNum, setPracticeRaceNum] = useState(1)
+  const [practiceRaceNum, setPracticeRaceNum] = useState('')
   const [trackList, setTrackList] = useState([])
 
   useEffect(() => {
@@ -1814,6 +1816,7 @@ export default function Admin() {
 
   async function handleUpload() {
     if (!file || !trackName || !preview) return
+    if (!practiceRaceNum || !parseInt(practiceRaceNum)) { setUploadStatus({ type: 'error', message: 'Enter the Race # (season round R#) before uploading - sessions and laps join on it.' }); return }
     setUploading(true)
     setUploadStatus(null)
     try {
