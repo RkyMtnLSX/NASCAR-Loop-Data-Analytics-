@@ -726,6 +726,21 @@ model+market-agreement toggle (ev>0 AND mev>0). Previously the edge/fav filters 
 inside Qualified, which also silently required market agreement — inputs looked dead.
 `ev`/`mev` are integer PERCENT units (×100 at build in `__marketValue`).
 
+### HOUSE FLOOR: 10% edge / -250 fav cap (commits `c3aa64b3`, `e004fdce`, 2026-07-10)
+Superseded the viewer-adjustable filters above on PUBLIC pages, same day. Two enforcement
+points, BOTH hard-coded (change requires a code edit, intentionally):
+- **SimResults (public)**: `MIN_EDGE_PUBLIC = 10`, `MAX_FAV_PUBLIC = -250`. The min-edge /
+  hide-favs inputs were REMOVED (viewers could change them — SimResults has no auth).
+  Qualified = ev >= 10 AND mev > 0 AND fav not shorter than -250. The Edge column renders a
+  dash for anything below +10% — sub-floor edges are never visible, even with Qualified
+  off. Display-time -> retro-cleans all previously published boards.
+- **GradeCenter**: `MIN_EDGE_BET = 10`, `MAX_FAV_BET = -250` in `__gradeRace` — ev_flags/ROI
+  only log bets at 10%+ edge (was: any ev > 0). Keeps the sim_grades ROI sample honest.
+- Admin-side SimulationCenter market-value preview is UNTOUCHED (full detail + adjustable
+  filters — that's the admin decision tool).
+- Stacks on the PROBABILITY tail guard (win>=2% / t3>=5% / t5>=8% / t10>=12%, 2026-07-09):
+  that kills implausible model probs (Reaume +12000), this kills thin edges (+6% Ankrum).
+
 ### Phantom race rows — FIXED (commit `b8bbeb8b`, 2026-07-10)
 Incident: Chicagoland Cup 2026 ended up with THREE races rows (392 practice stub / 405
 Load New Race / 406 phantom). Two compounding bugs, both fixed:
