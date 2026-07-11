@@ -4,6 +4,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts'
 
+const SERIES_COLOR = { cup: 'var(--series-cup)', oreilly: 'var(--series-oreilly)', xfinity: 'var(--series-oreilly)', trucks: 'var(--series-trucks)' }
 const SERIES_TABS = [
   { value: 'cup',    label: 'Cup Series' },
   { value: 'oreilly', label: "O'Reilly Series" },
@@ -243,6 +244,7 @@ CREATE INDEX ON practice_laps (series, year, track_name, session_number);`}</pre
           <button
             key={t.value}
             className={`tab ${series === t.value ? 'active' : ''}`}
+            style={series === t.value ? { background: SERIES_COLOR[t.value], color: t.value === 'trucks' ? '#111' : '#fff', borderColor: 'transparent' } : undefined}
             onClick={() => setSeries(t.value)}
           >
             {t.label}
