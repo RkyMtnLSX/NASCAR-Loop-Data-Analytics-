@@ -1355,6 +1355,17 @@ the SS-style sweep when the sample reaches ~8-10 races (currently ~6).
 ACTION: load Lime Rock 2026 loop data when posted, grade the race (ev_flags will honestly
 record the losing Riggs/Majeski win flags if odds were attached), and note Lewis P2 as an
 ordering win beneath the chaos.
+POST-RACE ADDENDUM (loop data loaded): the model's PACE read was RIGHT -- Riggs led 48/100
+laps (finished P23 anyway), Ruggiero led 21 (P20), Honeycutt led 14 (P3); the top-2 lap
+leaders combined for 69% of the race and finished 23rd/20th. Majeski brake failure from
+P6, Annunziata fire from top-5. Attrition: 15% hard DNF vs the 5% preset (3x), 11/33 a lap
+down or worse. Finish-order Spearman ~0 while lap-led order matched the board -- the miss
+was the ATTRITION/translation layer (run settings), not driver ordering. Grades: pre bets
+7 flags, 1 hit (Kligerman t5 +125), net -3.75u; post added ZERO new bets under the pre-
+ownership rule (first live use, worked as designed). Post board was WORSE than pre (MAE
+9.49->10.27) -- practice weight pushed Riggs up and Kligerman down (P4!); noted, not
+actionable at n=1 against the 5-race validation. sim_grades save needed
+`alter table sim_grades add column config jsonb` (grader stores the config snapshot now).
 
 ### BET ATTRIBUTION DOCTRINE -- pre board owns the bet (commit d85aa8cf, 2026-07-11)
 User insight from Lime Rock grading: the POST-stage grade logged Majeski WIN +700 as a
