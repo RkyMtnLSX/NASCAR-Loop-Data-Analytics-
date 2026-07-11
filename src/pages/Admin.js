@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { parsePracticeExcel } from '../lib/excelParser'
+import { gradePracticeSession } from '../lib/practiceGrader'
+import SimulationCenter, { DEFAULT_WEIGHTS, ROAD_COURSE_WEIGHTS, SUPERSPEEDWAY_WEIGHTS, TRUCK_ROAD_WEIGHTS, ONEILLY_SUPERSPEEDWAY_WEIGHTS } from './SimulationCenter'
+import GradeCenter from './GradeCenter'
+
 // Race # single source of truth (2026-07-11): loader Race # fields default from
 // featured_weekend.race_number for the selected series (set once in Weekend Config).
 // Prefill only - always editable for historical backfills.
@@ -11,10 +16,6 @@ function useWeekendRaceNum(series, setter) {
     return () => { cancelled = true }
   }, [series]) // eslint-disable-line
 }
-import { parsePracticeExcel } from '../lib/excelParser'
-import { gradePracticeSession } from '../lib/practiceGrader'
-import SimulationCenter, { DEFAULT_WEIGHTS, ROAD_COURSE_WEIGHTS, SUPERSPEEDWAY_WEIGHTS, TRUCK_ROAD_WEIGHTS, ONEILLY_SUPERSPEEDWAY_WEIGHTS } from './SimulationCenter'
-import GradeCenter from './GradeCenter'
 
 const ADMIN_PASSWORD = process.env.REACT_APP_ADMIN_PASSWORD
 
