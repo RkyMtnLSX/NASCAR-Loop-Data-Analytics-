@@ -1339,6 +1339,23 @@ SUPERSEDED SHIP -> per-series multipliers (commit 2532418d, replaces the cup-onl
   Atlanta will pull Hill from 35.3% to roughly upper-20s%, consistent with his real
   dominance priced at the win-Brier optimum rather than above it.
 
+### LIME ROCK TRUCKS DEBRIEF -- chaos race vs Low/Low settings (2026-07-11, race day)
+Outcome: Enfinger WON at 1.2% model (longshot tail); Landen Lewis P2 (model had him 5th on
+win%, proj 8.6 -- good call); the top of the board (Riggs 34.1%, Majeski 18.1%, Chandler
+Smith 12.2%) all crushed by incidents. User: "much more chaotic than last year's race."
+CONFIG SNAPSHOT (from the published board -- the new config stamping paying off):
+caution LOW (4, noise 15), DNF LOW (5%), lineup practice-fallback. Ex-ante defensible:
+2025 Lime Rock had ONE DNF in 34 trucks (3%) -- Low matched the only prior. Ex-post: n=1
+race history is a terrible basis for chaos settings, and the asymmetry matters -- under-
+estimating chaos concentrates the board (34% road-course favorite) and torches win bets;
+overestimating just flattens edges. WORKING RULE going forward: trucks never run below
+MEDIUM caution/noise regardless of prior-year cleanliness; bump to High at tight circuits
+on judgment. NOT a model change -- run-settings doctrine. Revisit truck ROAD noise with
+the SS-style sweep when the sample reaches ~8-10 races (currently ~6).
+ACTION: load Lime Rock 2026 loop data when posted, grade the race (ev_flags will honestly
+record the losing Riggs/Majeski win flags if odds were attached), and note Lewis P2 as an
+ordering win beneath the chaos.
+
 ### QUALIFYING SIM audited: lineup_source guard SHIPPED + nudge backtest (2026-07-11)
 Audit of QualifyingCenter.js (user request). Architecture: per-driver NORMAL fit to actual
 qualifying positions (track history + corr-group, recency by replication 2026x5..2022x1,
