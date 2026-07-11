@@ -514,6 +514,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
   const [series, setSeries]                 = useState('cup')
   const [config, setConfig]                 = useState(null)
   const [rawDrivers, setRawDrivers]         = useState([])
+  const [lineupState, setLineupState]       = useState('none')
   const [weights, setWeights]               = useState(DEFAULT_WEIGHTS)
   const [rainOut, setRainOut] = useState(false)
   const [cautionPreset, setCautionPreset]   = useState(CAUTION_PRESETS[1])
@@ -584,7 +585,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
             .eq('race_year', cfg.race_year || new Date().getFullYear())
             .eq('track_name', cfg.track_name),
           supabase.from('qualifying_results')
-            .select('driver_name, qualifying_position, lap_time')
+            .select('driver_name, qualifying_position, lap_time, lineup_source')
             .eq('series', s)
             .eq('track_name', cfg.track_name)
             .eq('year', cfg.race_year || new Date().getFullYear()),
@@ -768,6 +769,21 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
           })
           .filter(Boolean)
 
+        // Lineup-state badge: what does startPos actually use for this run?
+        const __lnQ = drivers.filter(d => { const q = qualMap.get(normalizeName(d.name)); return q && q.qualifying_position }).length
+        const __lnAny = drivers.filter(d => d.startPos !== null).length
+        let __lnSrc = 'none'
+        if (__lnQ >= Math.max(3, drivers.length * 0.5)) {
+          const __srcCnt = {}
+          ;(qualData || []).forEach(q => { const sv = q.lineup_source || 'qualifying'; __srcCnt[sv] = (__srcCnt[sv] || 0) + 1 })
+          __lnSrc = Object.keys(__srcCnt).sort((a, b) => __srcCnt[b] - __srcCnt[a])[0] || 'qualifying'
+        } else if (__lnAny >= Math.max(3, drivers.length * 0.5)) {
+          __lnSrc = 'practice fallback'
+        } else if (__lnAny > 0) {
+          __lnSrc = 'partial ' + __lnAny + '/' + drivers.length
+        }
+        setLineupState(__lnSrc)
+
         setRawDrivers(drivers)
       } catch (e) {
         if (!cancelled) setError(e.message)
@@ -835,7 +851,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
       race_year:  config.race_year || new Date().getFullYear(),
       race_number: raceNumMap[series] ? parseInt(raceNumMap[series]) : null,
       stage: simStage,
-      config: { weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
+      config: { lineup: lineupState, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
       results: simResults.map(d => ({
         driver_name:  d.name,
         car_number:   d.carNumber,
@@ -1241,6 +1257,13 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
             )}
           </div>
 
+          {simResults && (
+            <div style={{ margin: '10px 0 6px', fontSize: '0.8rem' }}>
+              <span title="Where the Start column came from when this sim ran" style={{ padding: '3px 10px', borderRadius: 999, border: '1px solid var(--border)', background: 'var(--bg-surface)', color: lineupState === 'none' ? '#dd8844' : (lineupState.indexOf('partial') === 0 || lineupState === 'practice fallback') ? '#e8c766' : '#3fb950' }}>
+                lineup: {lineupState}
+              </span>
+            </div>
+          )}
           {simResults && (
             <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid var(--border)' }}>
               <table style={{ borderCollapse: 'collapse', fontSize: '0.92rem', whiteSpace: 'nowrap', minWidth: '100%' }}>
