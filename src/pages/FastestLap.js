@@ -13,6 +13,7 @@ const stickyCell = (bg) => ({ position: 'sticky', left: 0, zIndex: 1, background
 const numCell = { padding: '8px 12px', fontSize: '0.8125rem', fontFamily: 'var(--font-mono)', textAlign: 'right', whiteSpace: 'nowrap' }
 const pillStyle = (active) => ({ padding: '5px 14px', borderRadius: 'var(--radius-md)', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: active ? 600 : 400, border: '1px solid ' + (active ? 'var(--accent)' : 'var(--border)'), background: active ? 'var(--accent)' : 'transparent', color: active ? '#000' : 'var(--text-secondary)', fontFamily: 'var(--font-sans)', transition: 'all 0.15s' })
 
+function __normName(s) { return String(s || '').toLowerCase().replace(/[^a-z ]/g, '').replace(/\s+(jr|sr|ii|iii|iv)$/, '').replace(/\s+/g, ' ').trim() }
 function shortTrackName(track) {
   return (track || '').split('(')[0].replace(/\bInternational\b/g,'').replace(/\bMotor\b/g,'').replace(/\bSuperspeedway\b/g,'').replace(/\bSpeedway\b/g,'').replace(/\bRaceway\b/g,'').replace(/\bMemorial\b/g,'').replace(/\bCircuit\b/g,'').replace(/\s+/g,' ').trim().split(' ').slice(0,2).join(' ').trim()
 }
@@ -192,6 +193,8 @@ export default function FastestLap({ isSubscriber }) {
   const [year, setYear] = useState('2026')
   const [trackType, setTrackType] = useState('All')
   const [trackSel, setTrackSel] = useState('All')
+  const [entryDrivers, setEntryDrivers] = useState(null) // Set of normalized names from cup weekend entry list; null = no weekend configured
+  const [entryOnly, setEntryOnly] = useState(true)
   const [races, setRaces] = useState([])
   const [selectedRace, setSelectedRace] = useState('')
   const [raceRows, setRaceRows] = useState([])
@@ -201,6 +204,19 @@ export default function FastestLap({ isSubscriber }) {
   const [error, setError] = useState(null)
 
   useEffect(() => { loadYear(year, trackType) }, [year, trackType]) // eslint-disable-line
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data: cfg } = await supabase.from('featured_weekend').select('*').eq('series', 'cup').single()
+        if (!cfg || !cfg.track_name) { setEntryDrivers(null); return }
+        const { data: el } = await supabase.from('entry_list').select('driver_name')
+          .eq('series', 'cup').eq('race_year', cfg.correlation_year).eq('track_name', cfg.track_name)
+        if (!el || !el.length) { setEntryDrivers(null); return }
+        setEntryDrivers(new Set(el.map(e => __normName(e.driver_name))))
+      } catch (e) { setEntryDrivers(null) }
+    })()
+  }, []) // eslint-disable-line
 
   async function loadYear(yr, tt) {
     setLoading(true); setError(null); setRaceRows([]); setSelectedRace('')
@@ -258,6 +274,7 @@ export default function FastestLap({ isSubscriber }) {
         <select value={trackSel} onChange={e=>setTrackSel(e.target.value)} style={{marginLeft:8,padding:'6px 12px',background:'var(--bg-surface)',border:'1px solid var(--border)',borderRadius:999,color:trackSel==='All'?'var(--text-secondary)':'var(--accent)',fontSize:'0.85rem',cursor:'pointer'}}>
           {trackOptions.map(tn=><option key={tn} value={tn}>{tn==='All'?'All tracks':tn}</option>)}
         </select>
+        {entryDrivers && <button onClick={()=>setEntryOnly(v=>!v)} title="Heat map only: limit driver rows to the current cup weekend entry list" style={{...pillStyle(entryOnly),marginLeft:4}}>Entry list ({entryDrivers.size})</button>}
       </div>
       <div style={{display:'flex',gap:6,marginBottom:24}}>
         {[['heat','\uD83D\uDD25 Heat Map'],['race','Race View'],['season','Season Summary']].map(([v,label])=>(
@@ -266,7 +283,7 @@ export default function FastestLap({ isSubscriber }) {
       </div>
       {error&&<div style={{padding:'12px 16px',background:'#922B2120',border:'1px solid #922B2140',borderRadius:'var(--radius-md)',color:'#E74C3C',fontSize:'0.8125rem',marginBottom:24}}>{error}</div>}
       {loading&&<div style={{color:'var(--text-muted)',fontSize:'0.875rem',padding:'32px 0'}}>Loading...</div>}
-      {!loading&&!error&&view==='heat'&&<HeatMapView rows={shownRows} year={year} trackType={trackType}/>}
+      {!loading&&!error&&view==='heat'&&<HeatMapView rows={(entryDrivers && entryOnly) ? shownRows.filter(r => entryDrivers.has(__normName(r.driver))) : shownRows} year={year} trackType={trackType}/>}
       {!loading&&!error&&view==='race'&&(
         <>
           <div style={{marginBottom:24}}>
