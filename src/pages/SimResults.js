@@ -161,11 +161,12 @@ export default function SimResults() {
     return sortAsc ? aVal - bVal : bVal - aVal
   })
 
+  const SERIES_COLOR = { cup: 'var(--series-cup)', oreilly: 'var(--series-oreilly)', trucks: 'var(--series-trucks)' }
   const tabStyle = (s) => ({
     padding: '8px 18px', border: 'none', borderRadius: 6, cursor: 'pointer',
     fontWeight: 600, fontSize: '0.875rem',
-    background: series === s ? 'var(--accent)' : 'var(--bg-surface)',
-    color: series === s ? '#111' : 'var(--text-secondary)',
+    background: series === s ? (SERIES_COLOR[s] || 'var(--accent)') : 'var(--bg-surface)',
+    color: series === s ? (s === 'trucks' ? '#111' : '#fff') : 'var(--text-secondary)',
   })
 
   const thStyle = {
