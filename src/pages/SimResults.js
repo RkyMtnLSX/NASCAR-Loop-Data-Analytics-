@@ -162,6 +162,12 @@ export default function SimResults() {
   })
 
   const SERIES_COLOR = { cup: 'var(--series-cup)', oreilly: 'var(--series-oreilly)', trucks: 'var(--series-trucks)' }
+  const __fmvTh = { title: 'Fair market value: the break-even American odds implied by the model probability. Shop your books for anything better.' }
+  const __fmvCell = p => {
+    if (p == null || p <= 0) return <span style={{ color: 'var(--text-muted)', opacity: 0.5 }}>-</span>
+    const v = fmvAmerican(p / 100)
+    return <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent)' }}>{v}</span>
+  }
   const tabStyle = (s) => ({
     padding: '8px 18px', border: 'none', borderRadius: 6, cursor: 'pointer',
     fontWeight: 600, fontSize: '0.875rem',
@@ -247,9 +253,13 @@ export default function SimResults() {
                 <th style={{ ...thStyle, textAlign: 'center' }} title="Best case: 10th-percentile finish across all sims (older boards without a stored matrix show the 25th percentile)">Ceiling</th>
                 <th style={{ ...thStyle, textAlign: 'center' }}>Proj DK</th>
                 <th style={{ ...thStyle, textAlign: 'center' }}>Win%</th>
+                <th style={{ ...thStyle, textAlign: 'center' }} {...__fmvTh}>FMV</th>
                 <th style={{ ...thStyle, textAlign: 'center' }}>Top 3%</th>
+                <th style={{ ...thStyle, textAlign: 'center' }} {...__fmvTh}>FMV</th>
                 <th style={{ ...thStyle, textAlign: 'center' }}>Top 5%</th>
+                <th style={{ ...thStyle, textAlign: 'center' }} {...__fmvTh}>FMV</th>
                 <th style={{ ...thStyle, textAlign: 'center' }}>Top 10%</th>
+                <th style={{ ...thStyle, textAlign: 'center' }} {...__fmvTh}>FMV</th>
                 <th style={{ ...thStyle, textAlign: 'center' }}>Laps Led</th>
                 <th style={{ ...thStyle, textAlign: 'center' }}>Fast Laps</th>
                 <th style={{ ...thStyle, textAlign: 'center' }}>DNF%</th>
@@ -295,9 +305,13 @@ export default function SimResults() {
                   <td style={{ ...tdStyle, textAlign: 'center' }}>{(__p10Map && __p10Map[d.driver_name] != null) ? (+__p10Map[d.driver_name]).toFixed(1) : d.finish_p25 != null ? (+d.finish_p25).toFixed(1) : '-'}</td>
                   <td style={{ ...tdStyle, textAlign: 'center', color: 'var(--accent)', fontWeight: 600 }}>{fmtDK(d.proj_dk)}</td>
                   <td style={{ ...pctStyle(d.win_pct, 5), textAlign: 'center' }}>{fmt(d.win_pct)}</td>
+                  <td style={{ ...tdStyle, textAlign: 'center' }}>{__fmvCell(d.win_pct)}</td>
                   <td style={{ ...pctStyle(d.top3_pct, 10), textAlign: 'center' }}>{fmt(d.top3_pct)}</td>
+                  <td style={{ ...tdStyle, textAlign: 'center' }}>{__fmvCell(d.top3_pct)}</td>
                   <td style={{ ...pctStyle(d.top5_pct, 15), textAlign: 'center' }}>{fmt(d.top5_pct)}</td>
+                  <td style={{ ...tdStyle, textAlign: 'center' }}>{__fmvCell(d.top5_pct)}</td>
                   <td style={{ ...pctStyle(d.top10_pct, 25), textAlign: 'center' }}>{fmt(d.top10_pct)}</td>
+                  <td style={{ ...tdStyle, textAlign: 'center' }}>{__fmvCell(d.top10_pct)}</td>
                   <td style={{ ...tdStyle, textAlign: 'center', color: 'var(--text-muted)' }}>{fmtNum(d.laps_led)}</td>
                   <td style={{ ...tdStyle, textAlign: 'center', color: 'var(--text-muted)' }}>{fmtNum(d.avg_fast_laps)}</td>
                   <td style={{ ...tdStyle, textAlign: 'center', color: 'var(--text-muted)' }}>{fmt(d.dnf_pct)}</td>
