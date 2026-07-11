@@ -1317,3 +1317,20 @@ SS unscaled (trucks sample too small to tune; revisit when it grows). Expected e
 favorite ~9-12% win, fair odds near books; the Logano/Blaney "+216%/+78% edges" evaporate.
 ACTION: re-run + republish the cup Atlanta board. NOTE: the proxy omits winConv/equipment/
 practice, so magnitude is directional -- validate the republished fav% vs books and grade it.
+FULL-MARKET EXTENSION (user asked; win-only was not enough):
+- CUP SS Brier x1e-3 by market: noise 16 -> 48 improves EVERY market monotonically:
+  win 28.65->25.69, top3 89.4->73.7, top5 145.3->116.6, top10 242.6->194.8 (70 adds little).
+  Even top-10 -- where flattening was most likely to hurt -- improves, because cup SS
+  top-10s are also lottery-spread. The x3 ship is validated on all four markets.
+- OREILLY SS: win Brier optimum 23-35 (25.07 at 28) and DEGRADES at 48 (25.62); top3/5/10
+  drift slightly better toward 48 but the win market -- where the Hill bets live -- says
+  don't flatten to cup levels. NOTE: O'Reilly Medium preset is 18 (NOT inside the optimum).
+- TRUCKS SS (user asked to extend): 9 different winners in 11 races; 8 scoreable walk-forward.
+  Optimum ~35-46 (win min at 35: 30.21; top3 min 46: 77.8; top10 min 60: 188.7). Preset 23
+  is too sharp. Small n -- re-tune when the truck SS sample grows.
+SUPERSEDED SHIP -> per-series multipliers (commit 2532418d, replaces the cup-only x3):
+  __SS_NOISE_MULT = cup 3.0 (Medium 16->48), oreilly 1.5 (18->27), trucks 1.75 (23->40) --
+  each lands at its measured optimum. Applied in handleRun when isSuperspeedway; noise ONLY
+  (caution value/chaos untouched); UI still shows the base preset. Republishing O'Reilly
+  Atlanta will pull Hill from 35.3% to roughly upper-20s%, consistent with his real
+  dominance priced at the win-Brier optimum rather than above it.
