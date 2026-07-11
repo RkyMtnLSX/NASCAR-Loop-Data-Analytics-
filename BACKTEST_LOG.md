@@ -1328,6 +1328,10 @@ FULL-MARKET EXTENSION (user asked; win-only was not enough):
 - TRUCKS SS (user asked to extend): 9 different winners in 11 races; 8 scoreable walk-forward.
   Optimum ~35-46 (win min at 35: 30.21; top3 min 46: 77.8; top10 min 60: 188.7). Preset 23
   is too sharp. Small n -- re-tune when the truck SS sample grows.
+DNF RATE CHECK (user asked; never previously tested): actual cup SS DNF rate from
+fastest_laps.status, 28 points races 2022-26, 1,044 entries = 25.4% (226 accidents + mech).
+The sim's 25% SS preset is VALIDATED as-is. Per track: Daytona 31.8% / Atlanta 24.0% /
+Talladega 20.1% -- per-track presets possible but differences too small to bother.
 SUPERSEDED SHIP -> per-series multipliers (commit 2532418d, replaces the cup-only x3):
   __SS_NOISE_MULT = cup 3.0 (Medium 16->48), oreilly 1.5 (18->27), trucks 1.75 (23->40) --
   each lands at its measured optimum. Applied in handleRun when isSuperspeedway; noise ONLY
