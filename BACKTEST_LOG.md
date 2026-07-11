@@ -1356,7 +1356,17 @@ ACTION: load Lime Rock 2026 loop data when posted, grade the race (ev_flags will
 record the losing Riggs/Majeski win flags if odds were attached), and note Lewis P2 as an
 ordering win beneath the chaos.
 
-### QUALIFYING SIM audited: lineup_source guard SHIPPED + nudge backtest (2026-07-11)
+### BET ATTRIBUTION DOCTRINE -- pre board owns the bet (commit d85aa8cf, 2026-07-11)
+User insight from Lime Rock grading: the POST-stage grade logged Majeski WIN +700 as a
+"miss," but the actual position was taken off the PRE board at better numbers -- the post
+flag isn't a bet anyone placed, and logging it double-counts the driver and poisons ROI.
+SHIPPED (GradeCenter): grading a post sim now fetches the matching pre board (same series
++ race #), builds its qualified-flag set (same 10%-edge / -250-fav house rule), and
+EXCLUDES those driver+market combos from post ev_flags. Post logs only NEWLY qualified
+bets (post-P&Q information). The pre-vs-close price gap is CLV (clv_log panel), the pre
+grade records the bet outcome, the post grade records only incremental bets. Re-grading a
+race # updates its sim_grades row, so re-grade Lime Rock post to strip the phantom flag --
+and grade the PRE stage so the real Majeski bet enters the record at its true odds.
 Audit of QualifyingCenter.js (user request). Architecture: per-driver NORMAL fit to actual
 qualifying positions (track history + corr-group, recency by replication 2026x5..2022x1,
 MAD outlier trim), sd floored at per-format "nudge" (qual_sim_config), 2000 draws ->
