@@ -10,6 +10,17 @@ const MEDAL = { 1: '🥇', 2: '🥈', 3: '🥉' }
 const sectionHead = { fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }
 const stickyHead = { position: 'sticky', left: 0, zIndex: 3, background: 'var(--bg-elevated)', textAlign: 'left', padding: '10px 16px', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)', borderRight: '1px solid var(--border)' }
 const numHead = { padding: '10px 12px', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', textAlign: 'right', whiteSpace: 'nowrap', borderBottom: '1px solid var(--border)', background: 'var(--bg-elevated)' }
+const __CAR_ALIAS = { '133': '33' }
+function CarNum({ car, series }) {
+  if (!car) return null
+  const dir = series === 'oreilly' ? '/car-numbers-oreilly/' : series === 'trucks' ? '/car-numbers-trucks/' : '/car-numbers/'
+  return (
+    <img src={dir + (__CAR_ALIAS[String(car)] || car) + '.png'} alt={'#' + car}
+      style={{ height: 22, marginRight: 6, verticalAlign: 'middle' }}
+      onError={(e) => { const t = e.target; if (!t.dataset.retried) { t.dataset.retried = '1'; t.src = t.src + (t.src.indexOf('?') >= 0 ? '&r=' : '?r=') + Date.now() } else { t.style.display = 'none' } }} />
+  )
+}
+
 const stickyCell = (bg) => ({ position: 'sticky', left: 0, zIndex: 1, background: bg, padding: '8px 16px', fontSize: '0.8125rem', whiteSpace: 'nowrap', borderRight: '1px solid var(--border)', minWidth: 180 })
 const numCell = { padding: '8px 12px', fontSize: '0.8125rem', fontFamily: 'var(--font-mono)', textAlign: 'right', whiteSpace: 'nowrap' }
 const pillStyle = (active) => ({ padding: '5px 14px', borderRadius: 'var(--radius-md)', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: active ? 600 : 400, border: '1px solid ' + (active ? 'var(--accent)' : 'var(--border)'), background: active ? 'var(--accent)' : 'transparent', color: active ? '#fff' : 'var(--text-secondary)' })
@@ -52,9 +63,11 @@ function HeatMapView({ rows, byYear }) {
     const s = shortTrackName(r.track); trackIdx[s] = (trackIdx[s] || 0) + 1; return { ...r, label: trackTotal[s] > 1 ? s + ' ' + trackIdx[s] : s }
   })
   const driverMap = new Map()
+    const carMap = new Map()
   rows.forEach(r => {
     const key = r.race_name + '|' + r.race_date
     if (!driverMap.has(r.driver)) driverMap.set(r.driver, {})
+      if (r.car && !carMap.has(r.driver)) carMap.set(r.driver, r.car)
     driverMap.get(r.driver)[key] = { rank: parseInt(r.gfs_rank), short: !!r.short_run }
   })
   const drivers = [...driverMap.entries()].map(([driver, rankMap]) => {
@@ -102,7 +115,7 @@ function HeatMapView({ rows, byYear }) {
                 <tr key={d.driver}>
                   <td style={{ ...stickyCell(rowBg), fontWeight: isTop ? 700 : 400 }}>
                     {isTop && <span style={{ marginRight: 6, fontSize: '0.7rem' }}>{'⚡'}</span>}
-                    {d.driver}
+                    <CarNum car={carMap.get(d.driver)} series={series} />{d.driver}
                   </td>
                   {hasMulti && <td style={{ ...numCell, fontWeight: 700, background: rowBg, textAlign: 'center', color: isTop ? 'var(--accent)' : d.avg <= 15 ? 'var(--text-primary)' : 'var(--text-muted)' }}>{isFinite(d.avg) ? d.avg.toFixed(1) : '—'}</td>}
                   {finalLabels.map(r => {
@@ -142,7 +155,7 @@ function RaceTable({ rows }) {
           {sorted.map((r, i) => (
             <tr key={r.id || i} title={r.short_run ? 'rank excluded due to DNF' : ''} style={{ background: i % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-elevated)', opacity: r.short_run ? 0.4 : 1 }}>
               <td style={{ ...numCell, textAlign: 'center' }}>{MEDAL[r.gfs_rank] || r.gfs_rank}</td>
-              <td style={stickyCell(i % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-elevated)')}>{r.driver}{r.short_run ? <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', marginLeft: 6 }}>(excluded)</span> : null}</td>
+              <td style={stickyCell(i % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-elevated)')}><CarNum car={r.car} series={series} />{r.driver}{r.short_run ? <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', marginLeft: 6 }}>(excluded)</span> : null}</td>
               <td style={{ ...numCell, color: 'var(--text-muted)' }}>{r.car}</td>
               <td style={numCell}>{parseFloat(r.green_flag_speed).toFixed(3)}</td>
               <td style={{ ...numCell, color: 'var(--text-muted)' }}>{r.finish_pos}</td>
