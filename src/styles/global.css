@@ -6,6 +6,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
 
 :root {
+  /* Series identity colors (2026-07-11): cup red / oreilly blue / trucks yellow */
+  --series-cup: #e10600;
+  --series-oreilly: #1d6fd1;
+  --series-trucks: #f5c518;
   /* Core palette */
   --bg-base:        #0A0A0F;
   --bg-surface:     #111118;
