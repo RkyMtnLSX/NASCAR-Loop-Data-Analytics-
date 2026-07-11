@@ -81,12 +81,16 @@ function SeasonSummaryTable({ rows }) {
   const raceMap = {}
   rows.forEach(r => { const key=r.race_name+'|'+r.race_date; if(!raceMap[key]||parseInt(r.rank)<parseInt(raceMap[key].rank)) raceMap[key]=r })
   const raceRows = Object.values(raceMap).sort((a,b)=>(a.race_date||'')<(b.race_date||'')?-1:1)
+  const trackCounts = {}
+  raceRows.forEach(r => { trackCounts[r.track] = (trackCounts[r.track] || 0) + 1 })
+  const seenT = {}
+  const trackLabels = raceRows.map(r => { seenT[r.track] = (seenT[r.track] || 0) + 1; return trackCounts[r.track] > 1 ? ((r.track || '') + ' ' + seenT[r.track]) : (r.track || r.race_name) })
   if (!raceRows.length) return <div style={{color:'var(--text-muted)',fontSize:'0.875rem',padding:'24px 0'}}>No data available.</div>
   return (
     <div style={{overflowX:'auto',borderRadius:'var(--radius-md)',border:'1px solid var(--border)'}}>
       <table style={{borderCollapse:'collapse',minWidth:800,width:'100%'}}>
         <thead><tr>
-          <th style={stickyHead}>Race</th>
+          <th style={stickyHead}>Track</th>
           <th style={numHead}>Date</th>
           <th style={numHead}>Track Type</th>
           <th style={numHead}>Driver</th>
@@ -99,7 +103,7 @@ function SeasonSummaryTable({ rows }) {
             const bg=i%2===0?'rgb(10,10,15)':'#1a1a24'
             return (
               <tr key={i} style={{background:bg}}>
-                <td style={{...stickyCell(bg),maxWidth:280,overflow:'hidden',textOverflow:'ellipsis'}}>{r.race_name}</td>
+                <td title={r.race_name} style={{...stickyCell(bg),maxWidth:280,overflow:'hidden',textOverflow:'ellipsis'}}>{trackLabels[i]}</td>
                 <td style={numCell}>{r.race_date}</td>
                 <td style={{...numCell,textAlign:'left',fontSize:'0.75rem'}}>
                   <span style={{padding:'2px 8px',borderRadius:4,fontSize:'0.7rem',fontFamily:'var(--font-sans)',background:TRACK_TYPE_COLORS[r.track_type]||'#444',color:'#fff',whiteSpace:'nowrap'}}>{r.track_type}</span>
@@ -185,6 +189,7 @@ function HeatMapView({ rows, year, trackType }) {
 export default function FastestLap({ isSubscriber }) {
   const [year, setYear] = useState('2026')
   const [trackType, setTrackType] = useState('All')
+  const [trackSel, setTrackSel] = useState('All')
   const [races, setRaces] = useState([])
   const [selectedRace, setSelectedRace] = useState('')
   const [raceRows, setRaceRows] = useState([])
@@ -202,9 +207,11 @@ export default function FastestLap({ isSubscriber }) {
       if (tt !== 'All') q = q.eq('track_type', tt)
       const { data, error: err } = await q
       if (err) throw err
-      setAllRows(data || [])
+      // Exclude exhibition races (Duels / Clash / All-Star / Open) - half-size fields, not comparable
+      const cleanData = (data || []).filter(r => !/duel|clash|all.?star/i.test(r.race_name || ''))
+      setAllRows(cleanData)
       const seen = new Set(); const raceList = []
-      ;(data || []).forEach(r => { const key=r.race_name+'|'+r.race_date; if(!seen.has(key)){seen.add(key);raceList.push({name:r.race_name,date:r.race_date})} })
+      ;cleanData.forEach(r => { const key=r.race_name+'|'+r.race_date; if(!seen.has(key)){seen.add(key);raceList.push({name:r.race_name,date:r.race_date})} })
       setRaces(raceList)
       if (raceList.length) setSelectedRace(raceList[raceList.length-1].name)
     } catch(e) { setError(e.message) } finally { setLoading(false) }
@@ -216,18 +223,24 @@ export default function FastestLap({ isSubscriber }) {
   }, [selectedRace, allRows])
 
   const selectedRaceTrack = raceRows[0]?.track || ''
+  const trackOptions = ['All', ...Array.from(new Set(allRows.map(r => r.track).filter(Boolean))).sort()]
+  const shownRows = trackSel === 'All' ? allRows : allRows.filter(r => r.track === trackSel)
+  const shownRaces = trackSel === 'All' ? races : races.filter(rc => shownRows.some(r => r.race_name === rc.name && r.race_date === rc.date))
 
   return (
     <div className="page">
       <div className="page-header">
         <h1 className="page-title">Fastest Laps</h1>
-        <p className="page-subtitle">Lap Raptor fastest lap data \u2014 NextGen era (2022\u20132026)</p>
+        <p className="page-subtitle">Lap Raptor fastest lap data {'\u2014'} NextGen era (2022{'\u2013'}2026)</p>
       </div>
       <div style={{display:'flex',gap:6,marginBottom:16,flexWrap:'wrap'}}>
         {YEARS.map(y=><button key={y} onClick={()=>setYear(y)} style={pillStyle(year===y)}>{y}</button>)}
       </div>
       <div style={{display:'flex',gap:6,marginBottom:24,flexWrap:'wrap'}}>
         {TRACK_TYPES.map(tt=><button key={tt} onClick={()=>setTrackType(tt)} style={pillStyle(trackType===tt)}>{tt}</button>)}
+        <select value={trackSel} onChange={e=>setTrackSel(e.target.value)} style={{marginLeft:8,padding:'6px 12px',background:'var(--bg-surface)',border:'1px solid var(--border)',borderRadius:999,color:trackSel==='All'?'var(--text-secondary)':'var(--accent)',fontSize:'0.85rem',cursor:'pointer'}}>
+          {trackOptions.map(tn=><option key={tn} value={tn}>{tn==='All'?'All tracks':tn}</option>)}
+        </select>
       </div>
       <div style={{display:'flex',gap:6,marginBottom:24}}>
         {[['heat','\uD83D\uDD25 Heat Map'],['race','Race View'],['season','Season Summary']].map(([v,label])=>(
@@ -236,13 +249,13 @@ export default function FastestLap({ isSubscriber }) {
       </div>
       {error&&<div style={{padding:'12px 16px',background:'#922B2120',border:'1px solid #922B2140',borderRadius:'var(--radius-md)',color:'#E74C3C',fontSize:'0.8125rem',marginBottom:24}}>{error}</div>}
       {loading&&<div style={{color:'var(--text-muted)',fontSize:'0.875rem',padding:'32px 0'}}>Loading...</div>}
-      {!loading&&!error&&view==='heat'&&<HeatMapView rows={allRows} year={year} trackType={trackType}/>}
+      {!loading&&!error&&view==='heat'&&<HeatMapView rows={shownRows} year={year} trackType={trackType}/>}
       {!loading&&!error&&view==='race'&&(
         <>
           <div style={{marginBottom:24}}>
             <label style={{...sectionHead,display:'block',marginBottom:8}}>Select Race</label>
             <select value={selectedRace} onChange={e=>setSelectedRace(e.target.value)} style={{padding:'8px 12px',borderRadius:'var(--radius-md)',border:'1px solid var(--border)',background:'var(--bg-elevated)',color:'var(--text-primary)',fontSize:'0.8125rem',fontFamily:'var(--font-sans)',minWidth:360,cursor:'pointer'}}>
-              {races.map(r=><option key={r.name+r.date} value={r.name}>{r.date} \u2014 {r.name}</option>)}
+              {races.map(r=><option key={r.name+r.date} value={r.name}>{r.date} {'\u2014'} {r.name}</option>)}
             </select>
             <span style={{marginLeft:12,fontSize:'0.75rem',color:'var(--text-muted)'}}>{raceRows.length} drivers</span>
           </div>
@@ -251,8 +264,8 @@ export default function FastestLap({ isSubscriber }) {
       )}
       {!loading&&!error&&view==='season'&&(
         <>
-          <h3 style={{...sectionHead,marginBottom:16}}>Fastest Lap per Race \u2014 {year}</h3>
-          <SeasonSummaryTable rows={allRows}/>
+          <h3 style={{...sectionHead,marginBottom:16}}>Fastest Lap per Race {'\u2014'} {year}</h3>
+          <SeasonSummaryTable rows={shownRows}/>
         </>
       )}
     </div>
