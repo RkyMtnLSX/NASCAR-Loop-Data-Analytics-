@@ -52,8 +52,8 @@ export default function Landing() {
             lineHeight: 1.1,
             marginBottom: 16,
           }}>
-            The data edge for<br />
-            <span style={{ color: 'var(--accent)' }}>serious NASCAR bettors</span>
+            Bet the number,<br />
+            <span style={{ color: 'var(--accent)' }}>not the narrative</span>
           </h1>
 
           <p style={{
@@ -62,16 +62,16 @@ export default function Landing() {
             lineHeight: 1.7,
             marginBottom: 32,
           }}>
-            Loop data, practice grades, and practice comparisons — all in one place.
-            Built for DFS lineups and race betting.
+            Model-built probabilities for every driver, every market, every week {'\u2014'}
+            compared line-by-line against DraftKings, FanDuel, and Hard Rock.
           </p>
 
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             <Link to="/subscribe" className="btn btn-primary" style={{ padding: '10px 24px' }}>
               Get Full Access
             </Link>
-            <Link to="/loop-data" className="btn btn-secondary" style={{ padding: '10px 24px' }}>
-              Browse Loop Data
+            <Link to="/sim-results" className="btn btn-secondary" style={{ padding: '10px 24px' }}>
+              Find This Week{'\u2019'}s Edges
             </Link>
           </div>
         </div>
