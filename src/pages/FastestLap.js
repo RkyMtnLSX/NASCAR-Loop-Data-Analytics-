@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 
 const YEARS = ['2022', '2023', '2024', '2025', '2026']
-const TRACK_TYPES = ['All', 'Short Track', 'Superspeedway', 'Intermediate', 'Road Course', 'Other']
+const TRACK_TYPES = ['All', 'Short Track', 'Superspeedway', 'Intermediate', 'Road Course']
 const MEDAL = { 1: '\uD83E\uDD47', 2: '\uD83E\uDD48', 3: '\uD83E\uDD49' }
 const MEDAL_BG = { 1: 'rgba(255,215,0,0.15)', 2: 'rgba(192,192,192,0.15)', 3: 'rgba(205,127,50,0.15)' }
 const TRACK_TYPE_COLORS = { 'Short Track': '#2D6A4F', 'Superspeedway': '#6A0572', 'Intermediate': '#1B4F72', 'Road Course': '#7B3F00', 'Other': '#555' }
@@ -289,7 +289,7 @@ export default function FastestLap({ isSubscriber }) {
         <select value={trackSel} onChange={e=>setTrackSel(e.target.value)} style={{marginLeft:8,padding:'6px 12px',background:'var(--bg-surface)',border:'1px solid var(--border)',borderRadius:999,color:trackSel==='All'?'var(--text-secondary)':'var(--accent)',fontSize:'0.85rem',cursor:'pointer'}}>
           {trackOptions.map(tn=><option key={tn} value={tn}>{tn==='All'?'All tracks':tn}</option>)}
         </select>
-        {entryDrivers && <button onClick={()=>setEntryOnly(v=>!v)} title="Heat map only: limit driver rows to the current cup weekend entry list" style={{...pillStyle(entryOnly),marginLeft:4}}>Entry list ({entryDrivers.size})</button>}
+        {entryDrivers && <button onClick={()=>setEntryOnly(v=>!v)} title="Show only drivers on the current weekend entry list" style={{...pillStyle(entryOnly),marginLeft:4}}>Racing this week</button>}
       </div>
       <div style={{display:'flex',gap:6,marginBottom:24}}>
         {[['heat','\uD83D\uDD25 Heat Map'],['race','Race View'],['season','Season Summary']].map(([v,label])=>(
