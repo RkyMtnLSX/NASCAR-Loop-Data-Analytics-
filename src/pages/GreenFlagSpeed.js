@@ -34,6 +34,8 @@ function rankColor(rank) {
 }
 
 function HeatMapView({ rows, byYear }) {
+  const [sortKey, setSortKey] = useState('avg')
+  const [sortAsc, setSortAsc] = useState(true)
   if (!rows.length) return <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', padding: '24px 0' }}>No data available.</div>
   const raceSeen = new Set()
   const races = []
@@ -59,7 +61,14 @@ function HeatMapView({ rows, byYear }) {
     const valid = Object.values(rankMap).filter(v => !v.short && !isNaN(v.rank) && v.rank > 0).map(v => v.rank)
     const avg = valid.length ? valid.reduce((a, b) => a + b, 0) / valid.length : Infinity
     return { driver, rankMap, avg, count: valid.length }
-  }).sort((a, b) => a.avg - b.avg)
+  }).sort((a, b) => {
+    const gv = d => sortKey === 'avg' ? d.avg : (d.rankMap[sortKey] && !isNaN(d.rankMap[sortKey].rank) ? d.rankMap[sortKey].rank : Infinity)
+    const va = gv(a), vb = gv(b)
+    if (va === Infinity && vb === Infinity) return a.driver.localeCompare(b.driver)
+    if (va === Infinity) return 1
+    if (vb === Infinity) return -1
+    return sortAsc ? va - vb : vb - va
+  })
   const hasMulti = finalLabels.length > 1
   const LEGEND = [{ label: '1st', color: 'rgba(255,215,0,0.55)' }, { label: '2nd', color: 'rgba(192,192,192,0.5)' }, { label: '3rd', color: 'rgba(205,127,50,0.5)' }, { label: '4-12', color: 'rgba(46,204,113,0.4)' }, { label: '13-20', color: 'rgba(241,196,15,0.4)' }, { label: '21+', color: 'rgba(230,126,34,0.4)' }]
   return (
@@ -79,9 +88,9 @@ function HeatMapView({ rows, byYear }) {
           <thead>
             <tr>
               <th style={{ ...stickyHead, minWidth: 180, zIndex: 4 }}>Driver</th>
-              {hasMulti && <th style={{ ...numHead, minWidth: 52, fontWeight: 700, color: 'var(--accent)', textAlign: 'center' }}>Avg</th>}
+              {hasMulti && <th onClick={() => { if (sortKey === 'avg') setSortAsc(a => !a); else { setSortKey('avg'); setSortAsc(true) } }} style={{ ...numHead, minWidth: 52, fontWeight: 700, color: 'var(--accent)', textAlign: 'center', cursor: 'pointer', userSelect: 'none' }}>Avg{sortKey === 'avg' ? (sortAsc ? ' \u2191' : ' \u2193') : ''}</th>}
               {finalLabels.map(r => (
-                <th key={r.key} style={{ ...numHead, minWidth: 80, fontSize: '0.65rem', fontWeight: 600, padding: '8px 6px', whiteSpace: 'nowrap', textAlign: 'center' }} title={r.name + ' - ' + r.date}>{r.label}</th>
+                <th key={r.key} onClick={() => { if (sortKey === r.key) setSortAsc(a => !a); else { setSortKey(r.key); setSortAsc(true) } }} style={{ ...numHead, minWidth: 80, fontSize: '0.65rem', fontWeight: 600, padding: '8px 6px', whiteSpace: 'nowrap', textAlign: 'center', cursor: 'pointer', userSelect: 'none', color: sortKey === r.key ? 'var(--accent)' : undefined }} title={r.name + ' - ' + r.date + ' - click to sort'}>{r.label}</th>
               ))}
             </tr>
           </thead>
@@ -147,7 +156,8 @@ function RaceTable({ rows }) {
 
 export default function GreenFlagSpeed() {
   const [series, setSeries] = useState('cup')
-  const [year, setYear] = useState('2025')
+  const [years, setYears] = useState(['2026'])
+  const [heatTrack, setHeatTrack] = useState('All')
   const [trackType, setTrackType] = useState('All')
   const [allRows, setAllRows] = useState([])
   const [typeMap, setTypeMap] = useState({})
@@ -209,13 +219,14 @@ export default function GreenFlagSpeed() {
     if (s.includes('daytona') || s.includes('talladega')) return 'Superspeedway'
     return 'Other'
   }
-  const yearRows = allRows.filter(r => String(r.year) === String(year))
-  const byType = trackType === 'All' ? yearRows : yearRows.filter(r => typeOf(r.track) === trackType)
+  const yearRows = allRows.filter(r => years.includes(String(r.year)))
+  const byType0 = trackType === 'All' ? yearRows : yearRows.filter(r => typeOf(r.track) === trackType)
+  const byType = heatTrack === 'All' ? byType0 : byType0.filter(r => r.track === heatTrack)
   const filtered = (entryOnly && entrySet) ? byType.filter(r => entrySet.has(normName(r.driver))) : byType
   const raceSeen = new Set(); const raceOpts = []
   filtered.forEach(r => { const k = r.race_name + '|' + r.race_date; if (!raceSeen.has(k)) { raceSeen.add(k); raceOpts.push({ k, label: r.race_name + ' (' + (r.race_date || r.report_date) + ')' }) } })
   const raceRows = selectedRace ? filtered.filter(r => (r.race_name + '|' + r.race_date) === selectedRace) : []
-  const groupTabs = ['All', ...[...new Set(allRows.map(r => typeOf(r.track)))].filter(x => x && x !== 'All').sort()]
+  const groupTabs = ['All', ...[...new Set(allRows.map(r => typeOf(r.track)))].filter(x => x && x !== 'All' && x !== 'Other').sort()]
   const trackOpts = [...new Set(allRows.map(r => r.track))].filter(Boolean).sort()
   const trackRows0 = selectedTrack ? allRows.filter(r => r.track === selectedTrack) : []
   const trackRows = (entryOnly && entrySet) ? trackRows0.filter(r => entrySet.has(normName(r.driver))) : trackRows0
@@ -236,11 +247,21 @@ export default function GreenFlagSpeed() {
       </div>
       {view === 'heat' && (
         <div>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-            {YEARS.map(y => <span key={y} onClick={() => setYear(y)} style={pillStyle(year === y)}>{y}</span>)}
+          <div style={{ display: 'flex', gap: 14, marginBottom: 10, flexWrap: 'wrap', alignItems: 'center', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 14px', width: 'fit-content' }}>
+            <span style={{ fontSize: '0.7rem', letterSpacing: 1, color: 'var(--text-muted)', fontWeight: 700 }}>RACE YEARS</span>
+            {YEARS.map(y => (
+              <label key={y} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, cursor: 'pointer', color: years.includes(y) ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: years.includes(y) ? 700 : 400, fontSize: '0.9rem' }}>
+                <input type="checkbox" checked={years.includes(y)} onChange={() => setYears(p => p.includes(y) ? p.filter(x => x !== y) : [...p, y].sort())} style={{ accentColor: 'var(--accent)' }}/>
+                {y}
+              </label>
+            ))}
           </div>
           <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
             {groupTabs.map(t => <span key={t} onClick={() => setTrackType(t)} style={pillStyle(trackType === t)}>{t}</span>)}
+            <select value={heatTrack} onChange={e => setHeatTrack(e.target.value)} style={{ marginLeft: 8, padding: '6px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 999, color: heatTrack === 'All' ? 'var(--text-secondary)' : 'var(--accent)', fontSize: '0.85rem', cursor: 'pointer' }}>
+              <option value="All">All tracks</option>
+              {trackOpts.map(tn => <option key={tn} value={tn}>{tn}</option>)}
+            </select>
           </div>
         </div>
       )}
