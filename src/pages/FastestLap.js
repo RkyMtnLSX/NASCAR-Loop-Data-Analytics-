@@ -9,6 +9,17 @@ const TRACK_TYPE_COLORS = { 'Short Track': '#2D6A4F', 'Superspeedway': '#6A0572'
 const sectionHead = { fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }
 const stickyHead = { position: 'sticky', left: 0, zIndex: 3, background: 'var(--bg-elevated)', textAlign: 'left', padding: '10px 16px', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap', borderBottom: '1px solid var(--border)', borderRight: '1px solid var(--border)', minWidth: 180 }
 const numHead = { padding: '10px 12px', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', textAlign: 'right', whiteSpace: 'nowrap', borderBottom: '1px solid var(--border)', background: 'var(--bg-elevated)' }
+const __CAR_ALIAS = { '133': '33' }
+function CarNum({ car, series }) {
+  if (!car) return null
+  const dir = series === 'oreilly' ? '/car-numbers-oreilly/' : series === 'trucks' ? '/car-numbers-trucks/' : '/car-numbers/'
+  return (
+    <img src={dir + (__CAR_ALIAS[String(car)] || car) + '.png'} alt={'#' + car}
+      style={{ height: 22, marginRight: 6, verticalAlign: 'middle' }}
+      onError={(e) => { const t = e.target; if (!t.dataset.retried) { t.dataset.retried = '1'; t.src = t.src + (t.src.indexOf('?') >= 0 ? '&r=' : '?r=') + Date.now() } else { t.style.display = 'none' } }} />
+  )
+}
+
 const stickyCell = (bg) => ({ position: 'sticky', left: 0, zIndex: 1, background: bg, padding: '8px 16px', fontSize: '0.8125rem', whiteSpace: 'nowrap', borderRight: '1px solid var(--border)', minWidth: 180 })
 const numCell = { padding: '8px 12px', fontSize: '0.8125rem', fontFamily: 'var(--font-mono)', textAlign: 'right', whiteSpace: 'nowrap' }
 const pillStyle = (active) => ({ padding: '5px 14px', borderRadius: 'var(--radius-md)', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: active ? 600 : 400, border: '1px solid ' + (active ? 'var(--accent)' : 'var(--border)'), background: active ? 'var(--accent)' : 'transparent', color: active ? '#000' : 'var(--text-secondary)', fontFamily: 'var(--font-sans)', transition: 'all 0.15s' })
@@ -59,7 +70,7 @@ function RaceTable({ rows, raceName, track }) {
                 <tr key={i} style={{background:rowBg}}>
                   <td style={stickyCell(rowBg)}>
                     <span style={{marginRight:6,fontSize:'0.75rem',fontFamily:'var(--font-mono)',color:rank<=3?'var(--accent)':'var(--text-muted)',minWidth:22,display:'inline-block'}}>{MEDAL[rank]||rank}</span>
-                    <span style={{fontWeight:rank<=3?700:400}}>{r.driver}</span>
+                    <span style={{fontWeight:rank<=3?700:400}}><CarNum car={r.car} />{r.driver}</span>
                   </td>
                   <td style={numCell}>{r.car}</td>
                   <td style={{...numCell,color:'var(--accent)',fontWeight:rank===1?700:400}}>{r.fastest_time}</td>
@@ -116,7 +127,7 @@ function SeasonSummaryTable({ rows }) {
                 <td style={{...numCell,textAlign:'left',fontSize:'0.75rem'}}>
                   <span style={{padding:'2px 8px',borderRadius:4,fontSize:'0.7rem',fontFamily:'var(--font-sans)',background:TRACK_TYPE_COLORS[r.track_type]||'#444',color:'#fff',whiteSpace:'nowrap'}}>{r.track_type}</span>
                 </td>
-                <td style={{...numCell,textAlign:'left',fontWeight:600}}>{r.driver}</td>
+                <td style={{...numCell,textAlign:'left',fontWeight:600}}><CarNum car={r.car} />{r.driver}</td>
                 <td style={numCell}>{r.car}</td>
                 <td style={{...numCell,color:'var(--accent)',fontWeight:600}}>{r.fastest_time}</td>
                 <td style={numCell}>{r.fastest_speed?parseFloat(r.fastest_speed).toFixed(2):'\u2014'}</td>
@@ -144,6 +155,7 @@ function HeatMapView({ rows, year, trackType }) {
   const trackIdx={}
   const finalLabels=races.map(r=>{const yy=__isoDate(r.date).slice(0,4);const s=shortTrackName(r.track)+(multiYear?'|'+yy:'');trackIdx[s]=(trackIdx[s]||0)+1;const base=multiYear?shortTrackName(r.track)+" '"+yy.slice(2):shortTrackName(r.track);return{...r,label:trackTotal[s]>1?base+' '+trackIdx[s]:base}})
   const driverMap=new Map()
+  const carMap=new Map();rows.forEach(r=>{if(r.car&&!carMap.has(r.driver))carMap.set(r.driver,r.car)})
   rows.forEach(r=>{const key=r.race_name+'|'+r.race_date;if(!driverMap.has(r.driver))driverMap.set(r.driver,{});const existing=driverMap.get(r.driver)[key];const rank=parseInt(r.rank);if(!existing||rank<existing)driverMap.get(r.driver)[key]=rank})
   const drivers=[...driverMap.entries()].map(([driver,rankMap])=>{const ranks=Object.values(rankMap).filter(v=>!isNaN(v)&&v>0);const avg=ranks.length?ranks.reduce((a,b)=>a+b,0)/ranks.length:Infinity;return{driver,rankMap,avg,count:ranks.length}}).sort((a,b)=>{
     const va = sortKey==='avg' ? a.avg : (a.rankMap[sortKey] != null ? a.rankMap[sortKey] : Infinity)
@@ -186,7 +198,7 @@ function HeatMapView({ rows, year, trackType }) {
                 <tr key={d.driver}>
                   <td style={{...stickyCell(rowBg),fontWeight:isTop?700:400}}>
                     {isTop&&<span style={{marginRight:6,fontSize:'0.7rem'}}>{'\u26A1'}</span>}
-                    {d.driver}
+                    <CarNum car={carMap.get(d.driver)} />{d.driver}
                   </td>
                   {hasMulti&&<td style={{...numCell,fontWeight:700,background:rowBg,color:isTop?'var(--accent)':d.avg<=15?'var(--text-primary)':'var(--text-muted)'}}>{isFinite(d.avg)?d.avg.toFixed(1):'\u2014'}</td>}
                   {finalLabels.map(r=>{
