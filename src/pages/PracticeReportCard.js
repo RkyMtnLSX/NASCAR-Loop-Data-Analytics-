@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { gradeColor } from '../lib/practiceGrader'
 
+const SERIES_COLOR = { cup: 'var(--series-cup)', xfinity: 'var(--series-oreilly)', trucks: 'var(--series-trucks)' }
 const SERIES_TABS = [
   { value: 'cup',      label: 'Cup Series' },
   { value: 'xfinity',  label: "O'Reilly Series" },
@@ -99,6 +100,7 @@ export default function PracticeReportCard({ isSubscriber }) {
           <button
             key={t.value}
             className={`tab ${series === t.value ? 'active' : ''}`}
+            style={series === t.value ? { background: SERIES_COLOR[t.value], color: t.value === 'trucks' ? '#111' : '#fff', borderColor: 'transparent' } : undefined}
             onClick={() => setSeries(t.value)}
           >
             {t.label}
