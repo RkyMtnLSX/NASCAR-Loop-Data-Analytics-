@@ -1338,3 +1338,31 @@ SUPERSEDED SHIP -> per-series multipliers (commit 2532418d, replaces the cup-onl
   (caution value/chaos untouched); UI still shows the base preset. Republishing O'Reilly
   Atlanta will pull Hill from 35.3% to roughly upper-20s%, consistent with his real
   dominance priced at the win-Brier optimum rather than above it.
+
+### QUALIFYING SIM audited: lineup_source guard SHIPPED + nudge backtest (2026-07-11)
+Audit of QualifyingCenter.js (user request). Architecture: per-driver NORMAL fit to actual
+qualifying positions (track history + corr-group, recency by replication 2026x5..2022x1,
+MAD outlier trim), sd floored at per-format "nudge" (qual_sim_config), 2000 draws ->
+expected + P10-P90. History keys are track_year_R# (double-header safe BEFORE the race sim
+was). Cup only.
+- SHIPPED (commit 887b4a7a): fetch now excludes lineup_source metric/rain/practice rows
+  (keeps null + 'qualifying'). No contamination existed yet (934 tagged qualifying, 4066
+  pre-tag null, 0 synthetic) -- this is a forward guard; the first rain-out metric lineup
+  loaded would have become fake qualifying history.
+- DRAW ORDER: only 3 events stored (Sonoma/Chicagoland/Atlanta 2026, 90 rows) -- CANNOT
+  test draw-order effects (user's hunch confirmed). NOTE FOUND: Atlanta 2026 draw order is
+  stored R20 but the cup sim board published as R21 -- reconcile before grading.
+- NUDGE BACKTEST (walk-forward, 154 real cup qualifying events, 5.4k driver-events, page
+  recipe emulated: same-track all prior + corr-group <=2yr, reps 5/4/2/1, MAD trim, normal
+  P10-P90, target 80% coverage):
+  CONFIGURED NUDGES FAIL EVERYWHERE: oval 3 -> 59.4%, short 2 -> 56.7%, SS 1 -> 45.6%,
+  road 0 -> 50.2% coverage. Bands are ~half as wide as honest. Worst exactly where nudge is
+  smallest (SS). Expected-position MAE ~6.6-7.3 across formats -- per-driver qualifying
+  history is simply high-variance; the sim was displaying false precision.
+  Multiplicative sd*k needs k~2.0-2.4 for 80% but yields WIDER bands (25-31 positions) than
+  an additive floor at equal coverage -- floor is the better mechanism (it doesn't further
+  inflate already-erratic drivers). Floor sweep: 80% lands at nudge 9 (oval 83.0 / short
+  82.4 / road 81.8) and 10 for superspeedway (82.4).
+  RECOMMENDED CONFIG (SQL, no code): nudge_oval 9, nudge_short_track 9, nudge_superspeedway
+  10, nudge_road 9. Caveat: backtest emulates the page recipe (sim_corr_years window
+  approximated); treat 9/10 as calibrated-band values, not decimals.
