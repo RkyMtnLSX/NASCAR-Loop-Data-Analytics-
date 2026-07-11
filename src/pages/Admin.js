@@ -78,6 +78,9 @@ function WeekendConfig() {
         correlation_label: cfg.correlation_label || (track ? track.correlation_group_label : ''),
         correlation_year: parseInt(cfg.correlation_year) || new Date().getFullYear(),
         race_number: parseInt(cfg.race_number) || null,
+        total_laps: parseInt(cfg.total_laps) || null,
+        stage1_laps: parseInt(cfg.stage1_laps) || null,
+        stage2_laps: parseInt(cfg.stage2_laps) || null,
         updated_at: new Date().toISOString(),
       }
       const { error } = await supabase
@@ -168,6 +171,37 @@ function WeekendConfig() {
                   value={cfg.race_number || ''}
                   onChange={e => updateField(s, 'race_number', parseInt(e.target.value) || '')}
                   placeholder="audit R#"
+                  style={inputStyle}
+                />
+              </div>
+
+              <div>
+                <label style={labelStyle}>Race Length (laps)</label>
+                <input
+                  type="number"
+                  value={cfg.total_laps || ''}
+                  onChange={e => updateField(s, 'total_laps', parseInt(e.target.value) || '')}
+                  placeholder="e.g. 260"
+                  style={inputStyle}
+                />
+              </div>
+
+              <div>
+                <label style={labelStyle}>Stage 1 Laps</label>
+                <input
+                  type="number"
+                  value={cfg.stage1_laps || ''}
+                  onChange={e => updateField(s, 'stage1_laps', parseInt(e.target.value) || '')}
+                  style={inputStyle}
+                />
+              </div>
+
+              <div>
+                <label style={labelStyle}>Stage 2 Laps</label>
+                <input
+                  type="number"
+                  value={cfg.stage2_laps || ''}
+                  onChange={e => updateField(s, 'stage2_laps', parseInt(e.target.value) || '')}
                   style={inputStyle}
                 />
               </div>
