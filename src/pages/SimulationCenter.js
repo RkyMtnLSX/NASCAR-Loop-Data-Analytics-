@@ -584,17 +584,26 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
             .eq('series', s)
             .eq('race_year', cfg.race_year || new Date().getFullYear())
             .eq('track_name', cfg.track_name),
-          supabase.from('qualifying_results')
-            .select('driver_name, qualifying_position, lap_time, lineup_source')
-            .eq('series', s)
-            .eq('track_name', cfg.track_name)
-            .eq('year', cfg.race_year || new Date().getFullYear()),
-          supabase.from('practice_sessions')
-            .select('driver_name, overall_avg, late_run_avg, trend_slope, practice_score, session_number, qualifying_position')
-            .eq('series', s)
-            .eq('track_name', cfg.track_name)
-            .eq('year', cfg.race_year || new Date().getFullYear())
-            .order('session_number', { ascending: false }),
+          (() => {
+            // Double-header guard (2026-07-10): scope lineup to the configured Race # so a
+            // spring lineup at the same track/year cannot leak into the fall sim
+            let q = supabase.from('qualifying_results')
+              .select('driver_name, qualifying_position, lap_time, lineup_source')
+              .eq('series', s)
+              .eq('track_name', cfg.track_name)
+              .eq('year', cfg.race_year || new Date().getFullYear())
+            if (cfg.race_number) q = q.eq('race_number', cfg.race_number)
+            return q
+          })(),
+          (() => {
+            let q = supabase.from('practice_sessions')
+              .select('driver_name, overall_avg, late_run_avg, trend_slope, practice_score, session_number, qualifying_position')
+              .eq('series', s)
+              .eq('track_name', cfg.track_name)
+              .eq('year', cfg.race_year || new Date().getFullYear())
+            if (cfg.race_number) q = q.eq('race_number', cfg.race_number)
+            return q.order('session_number', { ascending: false })
+          })(),
           supabase.from('tracks')
             .select('name')
             .eq('correlation_group_label', cfg.correlation_label),
