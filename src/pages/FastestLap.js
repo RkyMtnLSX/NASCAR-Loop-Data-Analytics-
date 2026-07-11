@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 
-const YEARS = ['2022', '2023', '2024', '2025', '2026']
+const YEARS = ['2022', '2023', '2024', '2025', '2026', 'All']
 const TRACK_TYPES = ['All', 'Short Track', 'Superspeedway', 'Intermediate', 'Road Course', 'Other']
 const MEDAL = { 1: '\uD83E\uDD47', 2: '\uD83E\uDD48', 3: '\uD83E\uDD49' }
 const MEDAL_BG = { 1: 'rgba(255,215,0,0.15)', 2: 'rgba(192,192,192,0.15)', 3: 'rgba(205,127,50,0.15)' }
@@ -127,10 +127,11 @@ function HeatMapView({ rows, year, trackType }) {
   const races = []
   rows.forEach(r => { const key=r.race_name+'|'+r.race_date; if(!raceSeen.has(key)){raceSeen.add(key);races.push({name:r.race_name,date:r.race_date,track:r.track,key})} })
   races.sort((a,b)=>a.date<b.date?-1:1)
+  const multiYear = new Set(races.map(r=>(r.date||'').slice(0,4))).size > 1
   const trackTotal={}
-  races.forEach(r=>{const s=shortTrackName(r.track);trackTotal[s]=(trackTotal[s]||0)+1})
+  races.forEach(r=>{const s=shortTrackName(r.track)+(multiYear?'|'+(r.date||'').slice(0,4):'');trackTotal[s]=(trackTotal[s]||0)+1})
   const trackIdx={}
-  const finalLabels=races.map(r=>{const s=shortTrackName(r.track);trackIdx[s]=(trackIdx[s]||0)+1;return{...r,label:trackTotal[s]>1?s+' '+trackIdx[s]:s}})
+  const finalLabels=races.map(r=>{const yy=(r.date||'').slice(0,4);const s=shortTrackName(r.track)+(multiYear?'|'+yy:'');trackIdx[s]=(trackIdx[s]||0)+1;const base=multiYear?shortTrackName(r.track)+" '"+yy.slice(2):shortTrackName(r.track);return{...r,label:trackTotal[s]>1?base+' '+trackIdx[s]:base}})
   const driverMap=new Map()
   rows.forEach(r=>{const key=r.race_name+'|'+r.race_date;if(!driverMap.has(r.driver))driverMap.set(r.driver,{});const existing=driverMap.get(r.driver)[key];const rank=parseInt(r.rank);if(!existing||rank<existing)driverMap.get(r.driver)[key]=rank})
   const drivers=[...driverMap.entries()].map(([driver,rankMap])=>{const ranks=Object.values(rankMap).filter(v=>!isNaN(v)&&v>0);const avg=ranks.length?ranks.reduce((a,b)=>a+b,0)/ranks.length:Infinity;return{driver,rankMap,avg,count:ranks.length}}).sort((a,b)=>{if(a.avg===Infinity&&b.avg===Infinity)return a.driver.localeCompare(b.driver);return a.avg-b.avg})
@@ -203,9 +204,24 @@ export default function FastestLap({ isSubscriber }) {
   async function loadYear(yr, tt) {
     setLoading(true); setError(null); setRaceRows([]); setSelectedRace('')
     try {
-      let q = supabase.from('fastest_laps').select('*').eq('year', yr).order('race_date').order('rank')
-      if (tt !== 'All') q = q.eq('track_type', tt)
-      const { data, error: err } = await q
+      let data = null, err = null
+      if (yr === 'All') {
+        const acc = []
+        for (let pg = 0; pg < 20; pg++) {
+          let q = supabase.from('fastest_laps').select('*').order('race_date').order('rank').range(pg * 1000, pg * 1000 + 999)
+          if (tt !== 'All') q = q.eq('track_type', tt)
+          const res = await q
+          if (res.error) { err = res.error; break }
+          acc.push(...(res.data || []))
+          if (!res.data || res.data.length < 1000) break
+        }
+        data = acc
+      } else {
+        let q = supabase.from('fastest_laps').select('*').eq('year', yr).order('race_date').order('rank')
+        if (tt !== 'All') q = q.eq('track_type', tt)
+        const res = await q
+        data = res.data; err = res.error
+      }
       if (err) throw err
       // Exclude exhibition races (Duels / Clash / All-Star / Open) - half-size fields, not comparable
       const cleanData = (data || []).filter(r => !/duel|clash|all.?star/i.test(r.race_name || ''))
