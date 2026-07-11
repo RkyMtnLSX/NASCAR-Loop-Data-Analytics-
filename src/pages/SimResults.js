@@ -256,7 +256,7 @@ export default function SimResults() {
                           }}
                         />
                       ) : null}
-                      {(series === 'cup' || series === 'oreilly') && d.car_number ? (
+                      {(series === 'cup' || series === 'oreilly' || series === 'trucks') && d.car_number ? (
                         <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', display: 'none' }}>
                           #{d.car_number}
                         </span>
