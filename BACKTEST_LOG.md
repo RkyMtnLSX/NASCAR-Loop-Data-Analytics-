@@ -1297,3 +1297,23 @@ VERDICT: hypothesis REJECTED. Do NOT raise trackHistory at Atlanta; SS weights s
 (corr 0.55 / trackHistory 0.30 / startPos 0.15). If anything the data leans toward LESS
 Atlanta-specific weight, but n=14 with 0.01-magnitude Spearman gaps does not justify a
 per-track weight fork. Revisit only if a per-track fork is ever on the table for other reasons.
+
+### CUP SS NOISE CALIBRATION -- favorite 26.3% -> ~10%, 3x noise SHIPPED (2026-07-11)
+Trigger: fall-Atlanta cup board (post double-header fix, lineup:none) put Logano at 26.3%
+win / fair +280 vs books +1100 (+216% "edge"), Blaney 14.8%. User called it high; DATA AGREES:
+- Base rates: cup SS 2022-26 = 16 DIFFERENT winners in 27 races. Logano 2/27 wins, Blaney
+  2/27. Books' 8.3% implied ~= his 7.4% base rate. Contrast O'REILLY SS: Hill 9/20 (45%) --
+  the two series have OPPOSITE concentration; one noise value cannot fit both.
+- Walk-forward noise sweep (proxy composite: corr .647 / trackHist .353 min-max scaled like
+  buildSpeedScores, prior-races-only, age wts, MC argmax(score + N(0,noise)) x3000):
+  CUP SS (26 races): model favorite won 2/26 (8%) at EVERY noise. Win Brier monotonically
+  improves 28.6 (noise 16) -> 25.6-25.8 FLAT across noise 42-90; fav pred matches realized
+  ~8-10% at noise 55-70. Noise 16 predicts fav 37% (proxy) / 26.3% (real sim) -- indefensible.
+  OREILLY SS (19 races): Brier optimum noise ~28 (24.83), fav pred 28.7% ~ Hill's real 35.3%
+  only mildly warm. Flattening further HURTS O'Reilly. Confirms leaving O'Reilly unscaled.
+SHIPPED (SimulationCenter commit cfbf464c): handleRun scales cautionPreset.noise x3 when
+isSuperspeedway AND series==='cup' (Medium 16 -> 48, inside the flat optimum). O'Reilly + trucks
+SS unscaled (trucks sample too small to tune; revisit when it grows). Expected effect: cup SS
+favorite ~9-12% win, fair odds near books; the Logano/Blaney "+216%/+78% edges" evaporate.
+ACTION: re-run + republish the cup Atlanta board. NOTE: the proxy omits winConv/equipment/
+practice, so magnitude is directional -- validate the republished fav% vs books and grade it.
