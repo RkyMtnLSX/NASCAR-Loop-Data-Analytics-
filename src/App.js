@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import './styles/global.css'
 
 import Nav                from './components/Nav'
+import RacingStripes      from './components/RacingStripes'
 import Landing            from './pages/Landing'
 import PracticeReportCard from './pages/PracticeReportCard'
 import LapComparison      from './pages/LapComparison'
@@ -68,6 +69,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <RacingStripes />
       <Nav
         isAdmin={isAdmin}
         onAdminClick={() => setShowLogin(true)}
