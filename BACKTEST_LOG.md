@@ -1373,6 +1373,19 @@ into every published board's config -- future pre/post comparisons are auditable
 sim_grades save needed `alter table sim_grades add column config jsonb` (grader stores
 the config snapshot now).
 
+### FINCH CASE -- rookie fill at SS overshoots; candidate task opened (2026-07-11)
+O'Reilly Atlanta board: Jake Finch (1 prior SS start, P17 in the 55; now in the 9 JRM)
+model top-5 21.2% vs market 12-13% (+650/+750, DK-only price). Data: the "elite" 9 car has
+0 top-5s in 11 O'Reilly SS races (all B.Jones 23-24, avg fin ~21); drivers with <=1 prior
+SS start hit top-5 at 9.8% (18/184) vs field avg ~13% -- rookies UNDERPERFORM at SS, while
+thin-history fill pulls them TOWARD equipment level. Even at infl 0 (neutral fill) Finch
+sits ~mid-15s: the model has no rookie-penalty concept. OPERATOR ACTION: infl 0, published,
+bet PASSED despite displayed edge (model missing a known variable does not get to call
+edges on drivers that variable describes; his ARCA Talladega win noted but ARCA SS wins
+translate weakly). CANDIDATE TASK: backtest regressing n<=2 drivers toward the SS debut
+base rate instead of equipment/neutral fill; validate on the 184-entry sample (win/t3/t5
+Briers, walk-forward). His Saturday result is data point #185.
+
 ### BET ATTRIBUTION DOCTRINE -- pre board owns the bet (commit d85aa8cf, 2026-07-11)
 User insight from Lime Rock grading: the POST-stage grade logged Majeski WIN +700 as a
 "miss," but the actual position was taken off the PRE board at better numbers -- the post
