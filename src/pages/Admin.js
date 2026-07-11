@@ -8,6 +8,14 @@ import GradeCenter from './GradeCenter'
 // Race # single source of truth (2026-07-11): loader Race # fields default from
 // featured_weekend.race_number for the selected series (set once in Weekend Config).
 // Prefill only - always editable for historical backfills.
+function useWeekendTrack(series, setter) {
+  useEffect(() => {
+    let cancelled = false
+    supabase.from('featured_weekend').select('track_name').eq('series', series).maybeSingle()
+      .then(({ data }) => { if (!cancelled && data && data.track_name) setter(data.track_name) })
+    return () => { cancelled = true }
+  }, [series]) // eslint-disable-line
+}
 function useWeekendRaceNum(series, setter) {
   useEffect(() => {
     let cancelled = false
@@ -700,6 +708,7 @@ function LoadNewRace() {
   const [loading, setLoading]   = useState(false)
   const [raceDate, setRaceDate]   = useState('')
   const [selTrack, setSelTrack] = useState('')
+  useWeekendTrack(series, setSelTrack)
   const [tracks, setTracks] = useState([])
   useEffect(() => { supabase.from('tracks').select('name').order('name').then(({ data }) => setTracks((data || []).map(t => t.name))) }, [])
 
@@ -937,6 +946,7 @@ function LoadQualifying() {
   const [raceNumber, setRaceNumber] = useState('')
   useWeekendRaceNum(series, setRaceNumber)
   const [trackName, setTrackName]   = useState('')
+  useWeekendTrack(series, setTrackName)
   const [tracks, setTracks] = useState([])
   useEffect(() => { supabase.from('tracks').select('name').order('name').then(({ data }) => setTracks((data || []).map(t => t.name))) }, [])
   const [pastedText, setPastedText] = useState('')
@@ -1277,6 +1287,7 @@ function LoadQualifyingOrder() {
   const [series, setSeries] = useState('cup')
   const [year, setYear] = useState(new Date().getFullYear())
   const [trackName, setTrackName] = useState('')
+  useWeekendTrack(series, setTrackName)
   const [raceNumber, setRaceNumber] = useState('')
   useWeekendRaceNum(series, setRaceNumber)
   const [file, setFile] = useState(null)
@@ -1409,6 +1420,7 @@ function LoadFastestLaps() {
   const [raceName, setRaceName]   = useState('')
   const [raceDate, setRaceDate]   = useState('')
   const [trackName, setTrackName] = useState('')
+  useWeekendTrack('cup', setTrackName)
   const [pasteText, setPasteText] = useState('')
   const [parsed, setParsed]       = useState(null)
   const [loading, setLoading]     = useState(false)
@@ -1722,6 +1734,7 @@ function LoadGreenFlagSpeed() {
   const [raceDate, setRaceDate] = useState('')
   const [raceName, setRaceName] = useState('')
   const [selTrack, setSelTrack] = useState('')
+  useWeekendTrack(series, setSelTrack)
   const [tracks, setTracks] = useState([])
   const [parsed, setParsed] = useState(null)
   const [status, setStatus] = useState(null)
@@ -1838,6 +1851,7 @@ export default function Admin() {
 
   const [series, setSeries] = useState('cup')
   const [trackName, setTrackName] = useState('')
+  useWeekendTrack(series, setTrackName)
   const [year, setYear] = useState(new Date().getFullYear())
   const [sessionNum, setSessionNum] = useState(1)
   const [practiceRaceNum, setPracticeRaceNum] = useState('')
