@@ -111,8 +111,6 @@ export default function SimResults() {
   const [mvUnits, setMvUnits] = useState('odds')
   const [mvSort, setMvSort] = useState('edge')
   const [mvQual, setMvQual] = useState(false)
-  const [mvMinEdge, setMvMinEdge] = useState(5)
-  const [mvMaxFav, setMvMaxFav] = useState(-250)
   const [data, setData]           = useState(null)
   const [loading, setLoading]     = useState(true)
   const [error, setError]         = useState(null)
@@ -307,9 +305,8 @@ export default function SimResults() {
   var MINP = { win: 2, t3: 5, t5: 8, t10: 12, win_pct: 2, top3_pct: 5, top5_pct: 8, top10_pct: 12 }; // tail guard 2026-07-09 (see SimulationCenter __marketValue)
   var rows = withMv.map(function (d) { var m = d.mv[key]; if (!m) return null; var p = (d[SF[mvMkt]] || 0) / 100; return { name: d.driver_name, dk: m.dk, fd: m.fd, hr: m.hr, best: m.best, bb: (m.bb || '').toUpperCase(), modelPct: d[SF[mvMkt]] || 0, fair: fairOdds(p), ev: m.ev, mev: m.mev }; }).filter(function (r) { return r && r.best != null && r.modelPct >= (MINP[key] != null ? MINP[key] : 0); });
   rows.sort(function (a, b) { return mvSort === 'best' ? (dec(b.best) - dec(a.best)) : mvSort === 'model' ? (b.modelPct - a.modelPct) : (b.ev - a.ev); });
-  if (mvQual) { rows = rows.filter(function (r) { return r.ev > 0 && r.mev > 0; }); }
-  if (mvMinEdge > 0) { rows = rows.filter(function (r) { return r.ev !== null && r.ev >= mvMinEdge; }); }
-  rows = rows.filter(function (r) { return !(r.best < 0 && r.best < mvMaxFav); });
+  var MIN_EDGE_PUBLIC = 10; var MAX_FAV_PUBLIC = -250; // house rule 2026-07-10: public boards never surface edges below 10% or favs shorter than -250
+  if (mvQual) { rows = rows.filter(function (r) { return r.ev !== null && r.ev >= MIN_EDGE_PUBLIC && r.mev > 0 && !(r.best < 0 && r.best < MAX_FAV_PUBLIC); }); }
   var odds = mvUnits === 'odds';
   var thc = { padding: '7px 6px', color: '#8a8a8a', fontSize: 11, fontWeight: 500, borderBottom: '0.5px solid #333' };
   var seg = function (cur, set, val, label) { return <button onClick={function () { set(val); }} style={{ padding: '5px 10px', fontSize: 12, border: 'none', background: cur === val ? '#262626' : 'transparent', color: cur === val ? '#fff' : '#9a9a9a', cursor: 'pointer' }}>{label}</button>; };
@@ -321,7 +318,7 @@ export default function SimResults() {
       <div style={{ marginBottom: 10 }}>{['Win', 'Top 3', 'Top 5', 'Top 10'].map(function (k) { return <button key={k} onClick={function () { setMvMkt(k); }} style={{ padding: '6px 14px', borderRadius: 999, border: '0.5px solid ' + (mvMkt === k ? '#e8c766' : '#333'), background: mvMkt === k ? '#262626' : 'transparent', color: mvMkt === k ? '#f5c518' : '#9a9a9a', fontSize: 13, cursor: 'pointer', marginRight: 4 }}>{k}</button>; })}</div>
       <div style={{ display: 'flex', gap: 16, alignItems: 'center', fontSize: 12, color: '#888', marginBottom: 10 }}>
         <span>units <span style={{ border: '0.5px solid #333', borderRadius: 6, overflow: 'hidden', display: 'inline-flex' }}>{seg(mvUnits, setMvUnits, 'odds', 'Odds')}{seg(mvUnits, setMvUnits, 'pct', '%')}</span></span>
-        <span>sort <span style={{ border: '0.5px solid #333', borderRadius: 6, overflow: 'hidden', display: 'inline-flex' }}>{seg(mvSort, setMvSort, 'edge', 'Edge')}{seg(mvSort, setMvSort, 'best', 'Best')}{seg(mvSort, setMvSort, 'model', 'Model')}</span></span> <span style={{ marginLeft: 4 }}>bets <button onClick={function () { setMvQual(!mvQual); }} style={{ cursor: 'pointer', border: '0.5px solid #333', borderRadius: 6, padding: '2px 8px', background: mvQual ? '#123d24' : 'transparent', color: mvQual ? '#3fb950' : '#888', fontSize: 12 }}>Qualified only</button></span><span>min edge <input type="number" value={mvMinEdge} onChange={function (e) { setMvMinEdge(parseInt(e.target.value) || 0); }} style={{ width: 44, padding: '2px 4px', background: '#1a1a1a', border: '0.5px solid #333', borderRadius: 4, color: '#ddd', fontSize: 12 }} />%</span><span>hide favs shorter than <input type="number" value={mvMaxFav} onChange={function (e) { setMvMaxFav(parseInt(e.target.value) || -100000); }} style={{ width: 52, padding: '2px 4px', background: '#1a1a1a', border: '0.5px solid #333', borderRadius: 4, color: '#ddd', fontSize: 12 }} /></span><span style={{ marginLeft: 8, color: '#3fb950' }}>{rows.length} qualify</span>
+        <span>sort <span style={{ border: '0.5px solid #333', borderRadius: 6, overflow: 'hidden', display: 'inline-flex' }}>{seg(mvSort, setMvSort, 'edge', 'Edge')}{seg(mvSort, setMvSort, 'best', 'Best')}{seg(mvSort, setMvSort, 'model', 'Model')}</span></span> <span style={{ marginLeft: 4 }}>bets <button onClick={function () { setMvQual(!mvQual); }} style={{ cursor: 'pointer', border: '0.5px solid #333', borderRadius: 6, padding: '2px 8px', background: mvQual ? '#123d24' : 'transparent', color: mvQual ? '#3fb950' : '#888', fontSize: 12 }}>Qualified only</button></span><span style={{ color: '#666' }}>qualified = 10%+ edge, market agrees, no favs past -250</span><span style={{ marginLeft: 8, color: '#3fb950' }}>{rows.length} qualify</span>
       </div>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, tableLayout: 'fixed' }}>
         <thead><tr>
@@ -345,7 +342,7 @@ export default function SimResults() {
               <td style={{ padding: '7px 6px', textAlign: 'right' }}>{oc(r.hr, r.best)}</td>
               <td style={{ padding: '7px 6px', textAlign: 'right', color: '#3fb950', fontWeight: 500 }}>{fo(r.best)}<img src={'/book-' + r.bb.toLowerCase() + '.png'} alt={r.bb} style={{ maxHeight: 26, maxWidth: 60, verticalAlign: 'middle', marginLeft: 3 }} /></td>
               <td style={{ padding: '7px 6px', textAlign: 'right' }}>{mod}</td>
-              <td style={{ padding: '7px 6px', textAlign: 'right' }}>{r.ev > 0 ? <span style={{ background: '#123d24', color: '#3fb950', padding: '2px 6px', borderRadius: 999, fontWeight: 500 }}>+{r.ev}%</span> : <span style={{ color: '#8a8a8a' }}>{r.ev}%</span>}{(r.mev != null && r.mev > 0) ? <span style={{ fontSize: 9, color: '#3fb950', marginLeft: 3 }}>mkt</span> : null}</td>
+              <td style={{ padding: '7px 6px', textAlign: 'right' }}>{(r.ev != null && r.ev >= 10) ? <span><span style={{ background: '#123d24', color: '#3fb950', padding: '2px 6px', borderRadius: 999, fontWeight: 500 }}>+{r.ev}%</span>{(r.mev != null && r.mev > 0) ? <span style={{ fontSize: 9, color: '#3fb950', marginLeft: 3 }}>mkt</span> : null}</span> : <span style={{ color: '#555' }}>-</span>}</td>
             </tr>;
           })}
         </tbody>
