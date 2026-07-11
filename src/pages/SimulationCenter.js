@@ -827,8 +827,34 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
     }, 800)
     return () => clearTimeout(h)
   }, [eqOverrides, series]) // eslint-disable-line
+
+  // TO-THE-REAR overrides (2026-07-11): drivers forfeiting their qualifying spot (backup
+  // car, unapproved adjustments, driver change). Sim scores them as starting at field size.
+  // Persisted per series in featured_weekend.rear_overrides, same pattern as eq_overrides.
+  const [rearOverrides, setRearOverrides] = useState({})
+  const __rearLoaded = React.useRef(false)
+  useEffect(() => {
+    __rearLoaded.current = false
+    supabase.from('featured_weekend').select('rear_overrides').eq('series', series).maybeSingle()
+      .then(({ data }) => { setRearOverrides((data && data.rear_overrides) || {}); __rearLoaded.current = true })
+  }, [series]) // eslint-disable-line
+  useEffect(() => {
+    if (!__rearLoaded.current) return
+    const h = setTimeout(() => {
+      supabase.from('featured_weekend').update({ rear_overrides: rearOverrides }).eq('series', series)
+        .then(({ error }) => { if (error && /rear_overrides/.test(error.message || '')) console.warn('Run: alter table featured_weekend add column rear_overrides jsonb') })
+    }, 800)
+    return () => clearTimeout(h)
+  }, [rearOverrides, series]) // eslint-disable-line
   const driversWithScores = useMemo(
-    () => buildSpeedScores(rawDrivers.map(d => ({ ...d, equipScale: eqOverrides[d.name] != null ? eqOverrides[d.name] : 1 })), __applyRainOut(weights, rainOut)), [rawDrivers, weights, rainOut, eqOverrides]
+    () => {
+      const __rearPos = rawDrivers.length
+      return buildSpeedScores(rawDrivers.map(d => ({
+        ...d,
+        equipScale: eqOverrides[d.name] != null ? eqOverrides[d.name] : 1,
+        startPos: rearOverrides[d.name] ? __rearPos : d.startPos,
+      })), __applyRainOut(weights, rainOut))
+    }, [rawDrivers, weights, rainOut, eqOverrides, rearOverrides]
   )
 
   function handleLogin(e) {
@@ -893,7 +919,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
       race_year:  config.race_year || new Date().getFullYear(),
       race_number: raceNumMap[series] ? parseInt(raceNumMap[series]) : null,
       stage: simStage,
-      config: { lineup: lineupState, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
+      config: { lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
       results: simResults.map(d => ({
         driver_name:  d.name,
         car_number:   d.carNumber,
@@ -1170,6 +1196,28 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
                       )}
                     </div>
                   )}
+                </div>
+              )
+            })()}
+            {rawDrivers.length > 0 && (() => {
+              const rearNames = Object.keys(rearOverrides).filter(n => rearOverrides[n])
+              const withStart = rawDrivers.filter(d => d.startPos != null && !rearOverrides[d.name]).sort((a, b) => a.startPos - b.startPos)
+              const noStart = rawDrivers.filter(d => d.startPos == null && !rearOverrides[d.name])
+              return (
+                <div style={{ margin: '10px 0', padding: '10px 14px', border: '1px solid var(--border)', borderRadius: 6 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>To the rear <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: 11 }}>(forfeited start {'\u2014'} sim scores them as P{rawDrivers.length})</span></div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                    {rearNames.map(n => (
+                      <span key={n} style={{ padding: '2px 10px', borderRadius: 999, border: '1px solid var(--border)', background: 'rgba(221,136,68,0.12)', color: '#dd8844', fontSize: 12 }}>
+                        {n} <span onClick={() => setRearOverrides(o => { const c = { ...o }; delete c[n]; return c })} style={{ cursor: 'pointer', marginLeft: 4, fontWeight: 700 }}>x</span>
+                      </span>
+                    ))}
+                    <select value="" onChange={e => { const v = e.target.value; if (v) setRearOverrides(o => ({ ...o, [v]: true })) }} style={{ padding: '4px 8px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text-secondary)', fontSize: 12 }}>
+                      <option value="">+ send driver to rear...</option>
+                      {withStart.map(d => <option key={d.name} value={d.name}>{d.name} (P{d.startPos})</option>)}
+                      {noStart.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
+                    </select>
+                  </div>
                 </div>
               )
             })()}
