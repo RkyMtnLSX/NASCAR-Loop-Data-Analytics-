@@ -156,6 +156,13 @@ export default function Landing() {
               link: '/practice',
             },
             {
+              icon: '📈',
+              title: 'Practice Comparison Tool',
+              desc: 'Compare drivers side-by-side on practice lap times. Spot pace gaps and consistency trends before race day.',
+              tag: 'Subscriber',
+              link: '/lap-comparison',
+            },
+            {
               icon: '⚡',
               title: 'Speed Pages',
               desc: 'Fastest-lap heat maps and green-flag speed ranks across the NextGen era \u2014 filter by track, year, and this weekend\u2019s entry list.',
