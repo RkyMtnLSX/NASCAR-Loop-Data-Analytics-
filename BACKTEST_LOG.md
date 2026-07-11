@@ -1373,7 +1373,24 @@ into every published board's config -- future pre/post comparisons are auditable
 sim_grades save needed `alter table sim_grades add column config jsonb` (grader stores
 the config snapshot now).
 
-### FINCH CASE -- rookie fill at SS overshoots; candidate task opened (2026-07-11)
+### CEILING/VARIANCE WIN TERM -- REJECTED; variant D reconfirmed (2026-07-11)
+The parked "option 4" (ceiling term for bimodal SS drivers), triggered by the Mayer case:
+Sam Mayer O'Reilly Atlanta, model 3.4% win (FMV +2841) vs DK +800 (11.1%). His 20-race SS
+profile is textbook boom/bust: P2/P3/P5 near-wins (all 2025) + P36/P38/P31 wrecks, 0 wins.
+Hypothesis: mean-rating + wins-only winConv under-prices right-tail drafters.
+BACKTEST (walk-forward, proxy composite corr .647/track .353 min-maxed, MC at series-optimal
+noise, winConv variants year-weighted + shrunk n/5 toward field mean, blended at w 0-0.2):
+- OREILLY SS (17 scoreable): variant D (WINS-ONLY) best at w=0.2 -- Brier 24.47, winner-
+  assigned prob 19.0%. E1 (podium half-credit) ties Brier at w=0.1 but winnerP only 16.4%;
+  E2 (top5 rate) worse everywhere (25.0+). Near-win credit does NOT beat wins-only.
+- CUP SS (24 scoreable, noise 48): ALL variants at ALL weights within +-0.15 Brier of
+  no-term (MC jitter floor), winnerP ~4.7% flat. No conversion term of any flavor helps
+  cup SS. Current cup SS weights (no winConv) stay.
+VERDICT: hypothesis REJECTED, option 4 CLOSED. Mayer's 3.4% is what a validated structure
+says: O'Reilly SS winners have been repeat closers (Hill 9/20), and near-wins carry no
+incremental win signal on this sample. The books' +800 prices reputation/upside the data
+does not support -- no model change; bet-against-the-model calls on Mayer-class drivers
+are operator discretion, not model error. Caveats: proxy omits practice/equipment, n=17/24.
 O'Reilly Atlanta board: Jake Finch (1 prior SS start, P17 in the 55; now in the 9 JRM)
 model top-5 21.2% vs market 12-13% (+650/+750, DK-only price). Data: the "elite" 9 car has
 0 top-5s in 11 O'Reilly SS races (all B.Jones 23-24, avg fin ~21); drivers with <=1 prior
