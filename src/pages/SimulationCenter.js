@@ -830,6 +830,10 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
 
   const publishResults = async () => {
     if (!simResults || !config) return
+    if (!raceNumMap[series] || !parseInt(raceNumMap[series])) {
+      alert('Enter a Race # before publishing - published boards and grading join on it.')
+      return
+    }
     const __mv = __marketValue(oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt, simResults)
     let __mtxB64 = null, __mtxN = 0, __mtxOrder = null
     if (simResults.posMatrix && simResults.simN) {
