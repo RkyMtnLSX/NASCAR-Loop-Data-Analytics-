@@ -1,7 +1,9 @@
 import * as XLSX from 'xlsx'
 
 // Parse uploaded practice Excel file into driver lap data
-// Expected format: Driver, Start, then lap numbers (1,2,3 or Lap 1, Lap 2...)
+// Expected format: Driver, Start, then lap columns. Headers may be bare numbers (1,2,3),
+// or lap-prefixed in any case (LAP 1 / Lap 1 / lap 1 / Lap #1). Columns may run ascending OR
+// descending (e.g. LAP 30..LAP 1) - laps are keyed by their header number, then sorted.
 export function parsePracticeExcel(file, series = 'cup') {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -33,16 +35,17 @@ export function parsePracticeExcel(file, series = 'cup') {
         const startColIndex  = headers.findIndex(h => h.toLowerCase() === 'start' || h.toLowerCase() === 'spos' || h.toLowerCase() === 'pos')
         const carColIndex     = headers.findIndex(h => { const l = h.toLowerCase(); return l === 'car' || l === 'car #' || l === 'car#' || l === '#' })
         if (driverColIndex === -1) { reject(new Error('Could not find Driver column')); return }
-        // Find lap columns: plain numeric ('1','2') or 'Lap 1','Lap 2' format
+        // Find lap columns. Header may be plain numeric ('1','2') or lap-prefixed in ANY case
         const lapColumns = []
         headers.forEach((h, i) => {
           let num = parseInt(h)
           if (isNaN(num)) {
-            const m = h.match(/^[Ll]ap\s*(\d+)$/)
+            const m = h.match(/^lap\s*#?\s*(\d+)$/i)
             if (m) num = parseInt(m[1])
           }
           if (!isNaN(num) && num > 0 && num <= 100) lapColumns.push({ index: i, lapNum: num })
         })
+        lapColumns.sort(function (a, b) { return a.lapNum - b.lapNum })
         if (lapColumns.length === 0) { reject(new Error('Could not find lap time columns')); return }
         const drivers = []
         for (let i = headerRowIndex + 1; i < rows.length; i++) {
