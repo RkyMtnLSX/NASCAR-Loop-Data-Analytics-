@@ -573,7 +573,11 @@ auto-parsed from the entry-list PDF's "Veh Mfg" column), `created_at`.
 per-driver array: projFinish, win/top3/5/10 %, finish_p25/50/75, start_pos, and the full
 `mv` odds object per market), **`config`** (jsonb — settings snapshot: weights, caution, dnf,
 rainOut, numSims, totalLaps, `stage1Laps` / `stage2Laps` (stage lengths, captured 2026-07-09 —
-data-only, no sim module consumes them yet), plus the packed `simMatrix`/`simMatrixN`/`simOrder`;
+data-only, no sim module consumes them yet), **`lineup`** (added 2026-07-10: startPos
+provenance at publish time — 'qualifying'/'metric'/'rain'/'practice fallback'/'partial N/M'/
+'none'; computed in SimulationCenter from qualMap coverage + modal `lineup_source`, shown as
+a badge on the sim results header AND the published board header; boards published before
+2026-07-10 lack it), plus the packed `simMatrix`/`simMatrixN`/`simOrder`;
 added 2026-07-07 via `ALTER TABLE sim_results ADD COLUMN config
 jsonb`. Publish payload has always sent this — if publish errors "Could not find the 'config'
 column … in the schema cache", the column is missing; run that ALTER), **`stage`**
@@ -707,6 +711,20 @@ REST, 377 rows, race-level registry). `handleUpload`'s race lookup now filters
 `race_number: practiceRaceNum` + names it `${track} ${year} R${R#}`, so each date at a
 two-race track resolves to its own `race_id`. Enter the Race # to MATCH `races.race_number`
 (the audit R#).
+
+### Race # guards — ALL loaders + publish (commits `a86f3bc7`, `c1720c41`, 2026-07-10)
+Publishing a sim now HARD-BLOCKS if the series' Race # field is empty (boards/grading join
+on race_number; a null-R# board is unmatchable). Load Qualifying, Qualifying Order, and the
+Practice uploader block the same way; the practice Race # no longer silently defaults to 1
+(that default is how the pre-2026-07 sessions all got stamped R1). Load New Race + GFS
+already had guards. Entry list needs none (no race_number column — keyed year+track).
+Same-weekend rule: use each series' own season R# consistently across every tool.
+
+### Market value min-edge — decoupled from "Qualified only" (commit `70506c1b`, 2026-07-10)
+min edge + fav cutoff now always apply and always render; "Qualified only" is purely the
+model+market-agreement toggle (ev>0 AND mev>0). Previously the edge/fav filters only ran
+inside Qualified, which also silently required market agreement — inputs looked dead.
+`ev`/`mev` are integer PERCENT units (×100 at build in `__marketValue`).
 
 ### Phantom race rows — FIXED (commit `b8bbeb8b`, 2026-07-10)
 Incident: Chicagoland Cup 2026 ended up with THREE races rows (392 practice stub / 405
