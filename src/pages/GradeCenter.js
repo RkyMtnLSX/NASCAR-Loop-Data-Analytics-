@@ -247,7 +247,7 @@ export default function GradeCenter() {
   }
   const pill = v => ({ color: v >= 0 ? '#2e9e52' : '#dd3355', fontWeight: 700 })
   const cfgSummary = c => { if (!c) return '-'; const w = c.weights || {}; const prac = (w.longRunPace || 0) + (w.shortRunPace || 0); return 'corr ' + (w.corrHistory != null ? w.corrHistory : '?') + ' / start ' + (w.startPos != null ? w.startPos : '?') + ' / track ' + (w.trackHistory != null ? w.trackHistory : '?') + ' / prac ' + prac + '  |  DNF ' + ((c.dnf && c.dnf.label) || '?') + ' / Caution ' + ((c.caution && c.caution.label) || '?') + (c.rainOut ? '  |  Rain-out grid' : ''); }
-  const cfgShort = c => { if (!c) return '-'; const w = c.weights || {}; let reg = 'Oval'; if ((w.raceCraft || 0) >= 0.2) reg = 'Road'; else if ((w.startPos || 0) <= 0.15 && (w.corrHistory || 0) >= 0.45) reg = 'SuperS'; return reg + ' / ' + ((c.dnf && c.dnf.label) || '?') + (c.rainOut ? ' / RO' : ''); }
+  const cfgShort = c => { if (!c) return '-'; const w = c.weights || {}; const prac = (w.longRunPace || 0) + (w.shortRunPace || 0); let reg = 'Oval'; if ((w.trackHistory || 0) >= 0.25 && prac === 0) reg = 'SuperS'; else if ((w.trackHistory || 0) === 0 && (w.corrHistory || 0) >= 0.5) reg = 'Road'; return reg + ' / ' + ((c.dnf && c.dnf.label) || '?') + (c.rainOut ? ' / RO' : ''); }
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: '24px 20px' }}>
       <h1 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: 4 }}>Sim Grader</h1>
