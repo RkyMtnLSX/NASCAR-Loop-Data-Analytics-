@@ -712,6 +712,18 @@ REST, 377 rows, race-level registry). `handleUpload`'s race lookup now filters
 two-race track resolves to its own `race_id`. Enter the Race # to MATCH `races.race_number`
 (the audit R#).
 
+### Double-header lineup leak — FIXED (commits `a09ec38a`, `d0053200`, 2026-07-10)
+Incident: the fall-Atlanta cup sim showed "lineup: qualifying" with no lineup loaded — it was
+the FEBRUARY Atlanta lineup (qualifying_results race_number 2, backfilled 06-11). The sim's
+qualifying AND practice fetches matched (series, track_name, year) only, so at any two-race
+track the spring rows leak into the fall sim. FIX: `featured_weekend.race_number` column
+(user-run `alter table featured_weekend add column race_number int4`), a "Race # (season
+round)" field on the Admin Weekend Config form, and both sim fetches now add
+`.eq('race_number', cfg.race_number)` when set (null = old behavior, fine at single-visit
+tracks). WORKFLOW: at double-header tracks, SET THE RACE # IN WEEKEND CONFIG — it is what
+keeps February out of the fall sim. The lineup badge exposed this bug within hours of
+shipping; before it, the sim would have silently used a 5-month-old lineup.
+
 ### Race # guards — ALL loaders + publish (commits `a86f3bc7`, `c1720c41`, 2026-07-10)
 Publishing a sim now HARD-BLOCKS if the series' Race # field is empty (boards/grading join
 on race_number; a null-R# board is unmatchable). Load Qualifying, Qualifying Order, and the
