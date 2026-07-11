@@ -82,9 +82,9 @@ function SeasonSummaryTable({ rows }) {
   rows.forEach(r => { const key=r.race_name+'|'+r.race_date; if(!raceMap[key]||parseInt(r.rank)<parseInt(raceMap[key].rank)) raceMap[key]=r })
   const raceRows = Object.values(raceMap).sort((a,b)=>__isoDate(a.race_date)<__isoDate(b.race_date)?-1:1)
   const trackCounts = {}
-  raceRows.forEach(r => { trackCounts[r.track] = (trackCounts[r.track] || 0) + 1 })
+  raceRows.forEach(r => { const tk = r.track + '|' + __isoDate(r.race_date).slice(0, 4); trackCounts[tk] = (trackCounts[tk] || 0) + 1 })
   const seenT = {}
-  const trackLabels = raceRows.map(r => { seenT[r.track] = (seenT[r.track] || 0) + 1; return trackCounts[r.track] > 1 ? ((r.track || '') + ' ' + seenT[r.track]) : (r.track || r.race_name) })
+  const trackLabels = raceRows.map(r => { const tk = r.track + '|' + __isoDate(r.race_date).slice(0, 4); seenT[tk] = (seenT[tk] || 0) + 1; const base = shortTrackName(r.track) || r.race_name; return trackCounts[tk] > 1 ? (base + ' R' + seenT[tk]) : base })
   if (!raceRows.length) return <div style={{color:'var(--text-muted)',fontSize:'0.875rem',padding:'24px 0'}}>No data available.</div>
   return (
     <div style={{overflowX:'auto',borderRadius:'var(--radius-md)',border:'1px solid var(--border)'}}>
@@ -121,7 +121,7 @@ function SeasonSummaryTable({ rows }) {
   )
 }
 
-function __isoDate(d) { const m = String(d || '').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); return m ? m[3] + '-' + m[1].padStart(2, '0') + '-' + m[2].padStart(2, '0') : String(d || '') }
+function __isoDate(d) { const s = String(d || ''); let m = s.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); if (!m) m = (s.match(/^(\d{2})(\d{2})\/(\d{4})$/) || []).length ? s.match(/^(\d{2})(\d{2})\/(\d{4})$/) : null; return m ? m[3] + '-' + m[1].padStart(2, '0') + '-' + m[2].padStart(2, '0') : s }
 function HeatMapView({ rows, year, trackType }) {
   if (!rows.length) return <div style={{color:'var(--text-muted)',fontSize:'0.875rem',padding:'24px 0'}}>No data available.</div>
   const raceSeen = new Set()
