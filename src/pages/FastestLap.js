@@ -273,7 +273,7 @@ export default function FastestLap({ isSubscriber }) {
     <div className="page">
       <div className="page-header">
         <h1 className="page-title">Fastest Laps</h1>
-        <p className="page-subtitle">Lap Raptor fastest lap data {'\u2014'} NextGen era (2022{'\u2013'}2026)</p>
+        <p className="page-subtitle">Fastest lap data {'\u2014'} NextGen era (2022{'\u2013'}2026)</p>
       </div>
       <div style={{display:'flex',gap:14,marginBottom:16,flexWrap:'wrap',alignItems:'center',border:'1px solid var(--border)',borderRadius:8,padding:'8px 14px',width:'fit-content'}}>
         <span style={{fontSize:'0.7rem',letterSpacing:1,color:'var(--text-muted)',fontWeight:700}}>RACE YEARS</span>
