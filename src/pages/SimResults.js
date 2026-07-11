@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 
 const SERIES_TABS = [
@@ -140,6 +140,21 @@ export default function SimResults() {
 
   const results = data?.results || []
 
+  // Ceiling = TRUE 10th-percentile finish, computed from the stored sim matrix at display
+  // time (2026-07-11) - no republish needed. Boards without a matrix fall back to p25.
+  const __p10Map = useMemo(() => {
+    const M = __decodeMtx(data && data.config)
+    if (!M) return null
+    const out = {}
+    const fins = new Uint8Array(M.simN)
+    for (let c = 0; c < M.nD; c++) {
+      for (let s = 0; s < M.simN; s++) fins[s] = M.mtx[s * M.nD + c]
+      fins.sort()
+      out[M.order[c]] = fins[Math.floor(M.simN * 0.10)]
+    }
+    return out
+  }, [data])
+
   const sorted = [...results].sort((a, b) => {
     const aVal = a.proj_finish ?? 99
     const bVal = b.proj_finish ?? 99
@@ -228,7 +243,7 @@ export default function SimResults() {
                   Proj Finish {sortAsc ? '' : ''}
                 </th>
                 <th style={{ ...thStyle, textAlign: 'center' }}>Median</th>
-                <th style={{ ...thStyle, textAlign: 'center' }}>Ceiling</th>
+                <th style={{ ...thStyle, textAlign: 'center' }} title="Best case: 10th-percentile finish across all sims (older boards without a stored matrix show the 25th percentile)">Ceiling</th>
                 <th style={{ ...thStyle, textAlign: 'center' }}>Proj DK</th>
                 <th style={{ ...thStyle, textAlign: 'center' }}>Win%</th>
                 <th style={{ ...thStyle, textAlign: 'center' }}>Top 3%</th>
@@ -276,7 +291,7 @@ export default function SimResults() {
                   <td style={{ ...tdStyle, textAlign: 'center', color: 'var(--text-muted)' }}>{d.start_pos ?? ''}</td>
                   <td style={{ ...tdStyle, textAlign: 'center' }}>{d.proj_finish != null ? (+d.proj_finish).toFixed(1) : ''}</td>
                   <td style={{ ...tdStyle, textAlign: 'center' }}>{d.finish_p50 != null ? (+d.finish_p50).toFixed(1) : '-'}</td>
-                  <td style={{ ...tdStyle, textAlign: 'center' }}>{d.finish_p25 != null ? (+d.finish_p25).toFixed(1) : '-'}</td>
+                  <td style={{ ...tdStyle, textAlign: 'center' }}>{(__p10Map && __p10Map[d.driver_name] != null) ? (+__p10Map[d.driver_name]).toFixed(1) : d.finish_p25 != null ? (+d.finish_p25).toFixed(1) : '-'}</td>
                   <td style={{ ...tdStyle, textAlign: 'center', color: 'var(--accent)', fontWeight: 600 }}>{fmtDK(d.proj_dk)}</td>
                   <td style={{ ...pctStyle(d.win_pct, 5), textAlign: 'center' }}>{fmt(d.win_pct)}</td>
                   <td style={{ ...pctStyle(d.top3_pct, 10), textAlign: 'center' }}>{fmt(d.top3_pct)}</td>
