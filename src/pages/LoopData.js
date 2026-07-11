@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 
+const SERIES_COLOR = { cup: 'var(--series-cup)', oreilly: 'var(--series-oreilly)', xfinity: 'var(--series-oreilly)', trucks: 'var(--series-trucks)' }
 const SERIES_OPTIONS = [
 { value: 'cup', label: 'Cup Series' },
 { value: 'oreilly', label: "O'Reilly Series" },
@@ -870,8 +871,8 @@ return (
 {SERIES_OPTIONS.map(opt => (
 <button key={opt.value} onClick={() => setSeries(opt.value)} style={{
 padding: '7px 18px', borderRadius: 6, border: '1px solid var(--border)',
-background: series === opt.value ? 'var(--accent)' : 'var(--bg-surface)',
-color: series === opt.value ? '#fff' : 'var(--text-secondary)',
+background: series === opt.value ? (SERIES_COLOR[opt.value] || 'var(--accent)') : 'var(--bg-surface)',
+color: series === opt.value ? (opt.value === 'trucks' ? '#111' : '#fff') : 'var(--text-secondary)',
 fontWeight: series === opt.value ? 600 : 400, cursor: 'pointer',
 fontSize: '0.85rem', transition: 'all 0.15s',
 }}>{opt.label}</button>
