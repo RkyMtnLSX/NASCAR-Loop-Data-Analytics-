@@ -562,6 +562,11 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
         // weekend config so a stale manual value can't mislabel a published board (the R14
         // incident). Set it once per weekend in Admin -> Weekend Config; still editable here.
         if (cfg.race_number) setRaceNumMap(prev => ({ ...prev, [s]: String(cfg.race_number) }))
+        // Race length + stage lengths from weekend config (2026-07-11): set once in Admin,
+        // loaded on every sim session - still editable here for one-off tweaks.
+        if (cfg.total_laps) setTotalRaceLaps(parseInt(cfg.total_laps))
+        if (cfg.stage1_laps != null) setStage1Laps(parseInt(cfg.stage1_laps) || 0)
+        if (cfg.stage2_laps != null) setStage2Laps(parseInt(cfg.stage2_laps) || 0)
 
         // Auto-apply track-type weights
         setWeights(isSuperspeedway(cfg.track_name) ? (s === 'oreilly' ? ONEILLY_SUPERSPEEDWAY_WEIGHTS : SUPERSPEEDWAY_WEIGHTS) : isRoadCourse(cfg.track_name) ? (s === 'trucks' ? TRUCK_ROAD_WEIGHTS : ROAD_COURSE_WEIGHTS) : DEFAULT_WEIGHTS)
