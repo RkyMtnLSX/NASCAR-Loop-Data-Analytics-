@@ -809,8 +809,24 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
     return () => { cancelled = true }
   }, [series])
 
-  // EQUIPMENT PRIOR overrides (task 118): per-driver influence scale, session-only, default 1
+  // EQUIPMENT PRIOR overrides (task 118): per-driver influence scale, default 1.
+  // PERSISTED (2026-07-11): saved to featured_weekend.eq_overrides (jsonb) per series with a
+  // debounce, loaded on page load - pre-quali tweaks carry into the post-quali session.
   const [eqOverrides, setEqOverrides] = useState({})
+  const __eqLoaded = React.useRef(false)
+  useEffect(() => {
+    __eqLoaded.current = false
+    supabase.from('featured_weekend').select('eq_overrides').eq('series', series).maybeSingle()
+      .then(({ data }) => { setEqOverrides((data && data.eq_overrides) || {}); __eqLoaded.current = true })
+  }, [series]) // eslint-disable-line
+  useEffect(() => {
+    if (!__eqLoaded.current) return
+    const h = setTimeout(() => {
+      supabase.from('featured_weekend').update({ eq_overrides: eqOverrides }).eq('series', series)
+        .then(({ error }) => { if (error && /eq_overrides/.test(error.message || '')) console.warn('Run: alter table featured_weekend add column eq_overrides jsonb') })
+    }, 800)
+    return () => clearTimeout(h)
+  }, [eqOverrides, series]) // eslint-disable-line
   const driversWithScores = useMemo(
     () => buildSpeedScores(rawDrivers.map(d => ({ ...d, equipScale: eqOverrides[d.name] != null ? eqOverrides[d.name] : 1 })), __applyRainOut(weights, rainOut)), [rawDrivers, weights, rainOut, eqOverrides]
   )
