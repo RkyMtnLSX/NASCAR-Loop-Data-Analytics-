@@ -826,13 +826,14 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
     setSimResults(null)
     setPublished(false)
     setTimeout(() => {
-      // CUP SS NOISE CALIBRATION (2026-07-11 backtest, BACKTEST_LOG Archive C): cup SS had 16
-      // different winners in 27 races; the model favorite won 2/26 (8%) while noise 16 predicts
-      // ~26-37% for the favorite. Walk-forward Brier optimum sits at ~3x base noise (flat 42-90).
-      // O'Reilly SS is intentionally NOT scaled (Hill-era ace dynamics are real; optimum ~28).
-      // Trucks SS left unscaled pending a bigger sample.
-      const __simCaution = (isSuperspeedway(config?.track_name) && series === 'cup')
-        ? { ...cautionPreset, noise: Math.round(cautionPreset.noise * 3) }
+      // SS NOISE CALIBRATION (2026-07-11 walk-forward, ALL FOUR MARKETS - BACKTEST_LOG Archive C).
+      // Per-series multipliers land each series at its measured Brier optimum (Medium preset):
+      //   cup:     16 -> 48 (16 winners in 27 races; every market improves monotonically to ~48-70)
+      //   oreilly: 18 -> 27 (win-Brier optimum 23-35, min 28; degrades by 48 - Hill dominance is real)
+      //   trucks:  23 -> 40 (9 winners in 11 races; optimum ~35-46; n=8 scoreable, re-tune as sample grows)
+      const __SS_NOISE_MULT = { cup: 3.0, oreilly: 1.5, trucks: 1.75 }
+      const __simCaution = isSuperspeedway(config?.track_name)
+        ? { ...cautionPreset, noise: Math.round(cautionPreset.noise * (__SS_NOISE_MULT[series] || 1)) }
         : cautionPreset
       const results = runRaceSim(driversWithScores, {
         numSims,
