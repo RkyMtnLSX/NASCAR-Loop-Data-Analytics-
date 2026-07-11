@@ -80,7 +80,7 @@ function RaceTable({ rows, raceName, track }) {
 function SeasonSummaryTable({ rows }) {
   const raceMap = {}
   rows.forEach(r => { const key=r.race_name+'|'+r.race_date; if(!raceMap[key]||parseInt(r.rank)<parseInt(raceMap[key].rank)) raceMap[key]=r })
-  const raceRows = Object.values(raceMap).sort((a,b)=>(a.race_date||'')<(b.race_date||'')?-1:1)
+  const raceRows = Object.values(raceMap).sort((a,b)=>__isoDate(a.race_date)<__isoDate(b.race_date)?-1:1)
   const trackCounts = {}
   raceRows.forEach(r => { trackCounts[r.track] = (trackCounts[r.track] || 0) + 1 })
   const seenT = {}
@@ -121,17 +121,18 @@ function SeasonSummaryTable({ rows }) {
   )
 }
 
+function __isoDate(d) { const m = String(d || '').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); return m ? m[3] + '-' + m[1].padStart(2, '0') + '-' + m[2].padStart(2, '0') : String(d || '') }
 function HeatMapView({ rows, year, trackType }) {
   if (!rows.length) return <div style={{color:'var(--text-muted)',fontSize:'0.875rem',padding:'24px 0'}}>No data available.</div>
   const raceSeen = new Set()
   const races = []
   rows.forEach(r => { const key=r.race_name+'|'+r.race_date; if(!raceSeen.has(key)){raceSeen.add(key);races.push({name:r.race_name,date:r.race_date,track:r.track,key})} })
-  races.sort((a,b)=>a.date<b.date?-1:1)
-  const multiYear = new Set(races.map(r=>(r.date||'').slice(0,4))).size > 1
+  races.sort((a,b)=>__isoDate(a.date)<__isoDate(b.date)?-1:1)
+  const multiYear = new Set(races.map(r=>__isoDate(r.date).slice(0,4))).size > 1
   const trackTotal={}
-  races.forEach(r=>{const s=shortTrackName(r.track)+(multiYear?'|'+(r.date||'').slice(0,4):'');trackTotal[s]=(trackTotal[s]||0)+1})
+  races.forEach(r=>{const s=shortTrackName(r.track)+(multiYear?'|'+__isoDate(r.date).slice(0,4):'');trackTotal[s]=(trackTotal[s]||0)+1})
   const trackIdx={}
-  const finalLabels=races.map(r=>{const yy=(r.date||'').slice(0,4);const s=shortTrackName(r.track)+(multiYear?'|'+yy:'');trackIdx[s]=(trackIdx[s]||0)+1;const base=multiYear?shortTrackName(r.track)+" '"+yy.slice(2):shortTrackName(r.track);return{...r,label:trackTotal[s]>1?base+' '+trackIdx[s]:base}})
+  const finalLabels=races.map(r=>{const yy=__isoDate(r.date).slice(0,4);const s=shortTrackName(r.track)+(multiYear?'|'+yy:'');trackIdx[s]=(trackIdx[s]||0)+1;const base=multiYear?shortTrackName(r.track)+" '"+yy.slice(2):shortTrackName(r.track);return{...r,label:trackTotal[s]>1?base+' '+trackIdx[s]:base}})
   const driverMap=new Map()
   rows.forEach(r=>{const key=r.race_name+'|'+r.race_date;if(!driverMap.has(r.driver))driverMap.set(r.driver,{});const existing=driverMap.get(r.driver)[key];const rank=parseInt(r.rank);if(!existing||rank<existing)driverMap.get(r.driver)[key]=rank})
   const drivers=[...driverMap.entries()].map(([driver,rankMap])=>{const ranks=Object.values(rankMap).filter(v=>!isNaN(v)&&v>0);const avg=ranks.length?ranks.reduce((a,b)=>a+b,0)/ranks.length:Infinity;return{driver,rankMap,avg,count:ranks.length}}).sort((a,b)=>{if(a.avg===Infinity&&b.avg===Infinity)return a.driver.localeCompare(b.driver);return a.avg-b.avg})
