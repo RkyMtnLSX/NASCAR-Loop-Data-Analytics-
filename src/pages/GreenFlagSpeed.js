@@ -250,7 +250,7 @@ export default function GreenFlagSpeed() {
       <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 20 }}>Average green-flag speed rank by driver and race. Drivers who completed under 40% of a race are dimmed and excluded from their season average.</p>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
-        {SERIES.map(s => <span key={s.v} onClick={() => setSeries(s.v)} style={pillStyle(series === s.v)}>{s.label}</span>)}
+        {SERIES.map(s => { const SC = { cup: 'var(--series-cup)', oreilly: 'var(--series-oreilly)', trucks: 'var(--series-trucks)' }; return <span key={s.v} onClick={() => setSeries(s.v)} style={{ ...pillStyle(series === s.v), ...(series === s.v ? { background: SC[s.v], color: s.v === 'trucks' ? '#111' : '#fff', borderColor: 'transparent' } : {}) }}>{s.label}</span> })}
       </div>
       <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
         <span onClick={() => setView('heat')} style={pillStyle(view === 'heat')}>Heat Map</span>
