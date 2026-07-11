@@ -28,7 +28,7 @@ function __parseFinish(txt, board) {
   return { actualMap, matched, unmatched }
 }
 
-function __gradeRace(board, actualMap) {
+function __gradeRace(board, actualMap, preOwned) {
   const dec = a => a > 0 ? a / 100 + 1 : 100 / Math.abs(a) + 1
   const Ncut = { win: 1, t3: 3, t5: 5, t10: 10 }
   const rows = board.map(d => ({ name: d.driver_name, car: String(d.car_number), pf: d.proj_finish, win: d.win_pct, t3: d.top3_pct, t5: d.top5_pct, t10: d.top10_pct, mv: d.mv, act: actualMap[String(d.car_number)] })).filter(d => d.act != null)
@@ -43,7 +43,7 @@ function __gradeRace(board, actualMap) {
   metrics.prec = { win: prec('win', 1), t3: prec('t3', 3), t5: prec('t5', 5), t10: prec('t10', 10) }
   const evFlags = []
   var MIN_EDGE_BET = 10; var MAX_FAV_BET = -250; // house rule 2026-07-10: only edges >= 10% (and no favs shorter than -250) count as logged bets
-  rows.forEach(r => { if (!r.mv) return; ['win', 't3', 't5', 't10'].forEach(mk => { const m = r.mv[mk]; if (!m || m.ev == null || m.ev < MIN_EDGE_BET) return; if (m.best != null && m.best < 0 && m.best < MAX_FAV_BET) return; evFlags.push({ driver: r.name, market: mk, price: m.best, book: (m.bb || '').toUpperCase(), ev: m.ev, mev: m.mev, hit: r.act <= Ncut[mk] }) }) })
+  rows.forEach(r => { if (!r.mv) return; ['win', 't3', 't5', 't10'].forEach(mk => { const m = r.mv[mk]; if (!m || m.ev == null || m.ev < MIN_EDGE_BET) return; if (m.best != null && m.best < 0 && m.best < MAX_FAV_BET) return; if (preOwned && preOwned.has(r.name + '|' + mk)) return; evFlags.push({ driver: r.name, market: mk, price: m.best, book: (m.bb || '').toUpperCase(), ev: m.ev, mev: m.mev, hit: r.act <= Ncut[mk] }) }) })
   const roiOf = fl => { if (!fl.length) return { bets: 0, profit: 0, roi: 0 }; const ret = fl.reduce((s, f) => s + (f.hit ? dec(f.price) : 0), 0); return { bets: fl.length, profit: +(ret - fl.length).toFixed(2), roi: +(((ret - fl.length) / fl.length) * 100).toFixed(1) } }
   const roi = { all: roiOf(evFlags), win: roiOf(evFlags.filter(f => f.market === 'win')), exwin: roiOf(evFlags.filter(f => f.market !== 'win')), consensus: roiOf(evFlags.filter(f => f.mev > 0)) }
   const detail = rows.slice().sort((a, b) => a.act - b.act).map(r => ({ name: r.name, car: r.car, pf: r.pf, act: r.act, win: r.win, flags: evFlags.filter(f => f.driver === r.name).map(f => f.market) }))
@@ -51,6 +51,28 @@ function __gradeRace(board, actualMap) {
 }
 
 const SERIES_TABS = [{ id: 'cup', label: 'Cup Series' }, { id: 'oreilly', label: "O'Reilly Series" }, { id: 'trucks', label: 'Truck Series' }]
+
+// Pre-board bet ownership (2026-07-11): when grading a POST sim, bets already flagged on the
+// PRE board (same race) are NOT re-logged - the position was taken at the better pre price
+// (that gap is CLV, tracked in the CLV panel), so re-flagging at post odds double-counts.
+async function __preOwnedFlags(series, postRow) {
+  try {
+    const { data } = await supabase.from('sim_results').select('results, race_number, race_year')
+      .eq('series', series).eq('stage', 'pre').order('published_at', { ascending: false }).limit(1)
+    const pre = (data || [])[0]
+    if (!pre || !pre.results) return null
+    if (postRow && postRow.race_number != null && pre.race_number != null && String(pre.race_number) !== String(postRow.race_number)) return null
+    const owned = new Set()
+    pre.results.forEach(d => {
+      if (!d.mv) return
+      ;['win', 't3', 't5', 't10'].forEach(mk => {
+        const m = d.mv[mk]
+        if (m && m.ev != null && m.ev >= 10 && !(m.best != null && m.best < 0 && m.best < -250)) owned.add(d.driver_name + '|' + mk)
+      })
+    })
+    return owned.size ? owned : null
+  } catch (e) { return null }
+}
 
 function __impl(a){ if(a==null||isNaN(a))return null; return a>0 ? 100/(a+100) : (-a)/((-a)+100); }
 function __amFmt(a){ if(a==null)return '-'; return a>0?'+'+a:''+a; }
@@ -184,7 +206,8 @@ export default function GradeCenter() {
     if (row.race_number != null) setRaceNum(String(row.race_number))
     const parsed = __parseFinish(gradeTxt, row.results)
     if (Object.keys(parsed.actualMap).length < 3) { setPrev(null); setMsg('Could not read the finishing order - paste one driver per line, winner first.'); return }
-    const g = __gradeRace(row.results, parsed.actualMap)
+    const __preOwned = gradeStage === 'post' ? await __preOwnedFlags(series, row) : null
+    const g = __gradeRace(row.results, parsed.actualMap, __preOwned)
     setPrev({ metrics: g.metrics, evFlags: g.evFlags, roi: g.roi, detail: g.detail, parsed: parsed, simId: row.id, track: row.track_name, year: row.race_year, config: row.config })
     setMsg(parsed.matched.length + ' matched' + (parsed.unmatched.length ? ', ' + parsed.unmatched.length + ' skipped' : '') + '.')
   }
@@ -204,7 +227,8 @@ export default function GradeCenter() {
     const actualMap = {}
     laps.forEach(l => { const car = byName[nrm(l.driver_name)]; if (car && l.finish_position != null) actualMap[car] = l.finish_position })
     if (Object.keys(actualMap).length < 3) { setPrev(null); setMsg('Could not match loop-data drivers to the published sim.'); return }
-    const g = __gradeRace(row.results, actualMap)
+    const __preOwned2 = gradeStage === 'post' ? await __preOwnedFlags(series, row) : null
+    const g = __gradeRace(row.results, actualMap, __preOwned2)
     if (row.race_number != null) setRaceNum(String(row.race_number))
     setPrev({ metrics: g.metrics, evFlags: g.evFlags, roi: g.roi, detail: g.detail, parsed: { actualMap: actualMap }, simId: row.id, track: row.track_name, year: row.race_year, config: row.config })
     setMsg('Imported ' + Object.keys(actualMap).length + ' finishes from loop data.')
