@@ -723,6 +723,16 @@ round)" field on the Admin Weekend Config form, and both sim fetches now add
 tracks). WORKFLOW: at double-header tracks, SET THE RACE # IN WEEKEND CONFIG — it is what
 keeps February out of the fall sim. The lineup badge exposed this bug within hours of
 shipping; before it, the sim would have silently used a 5-month-old lineup.
+RACE # SINGLE SOURCE OF TRUTH (commit `263ebf0a`, 2026-07-11): the sim's publish Race #
+field now PREFILLS from `featured_weekend.race_number` on config load (still editable).
+Set it ONCE per series per weekend in Admin → Weekend Config and every downstream stamp
+agrees. Motivating incident: the cup Atlanta board was republished with a stale manual
+R14 while the true round was R20 (fixed by user-run SQL on sim_results). The qualifying
+sim (QualifyingCenter, commit `887b4a7a`) also now excludes metric/rain/practice
+lineup_source rows from qualifying history — only real time trials count. Qual-sim nudge
+backtest (see BACKTEST_LOG 2026-07-11): configured nudges give 46-59% P10-P90 coverage vs
+80% target; recommended config values 9/9/10/9 (oval/short/SS/road), SQL-only change,
+user's call pending.
 
 ### Race # guards — ALL loaders + publish (commits `a86f3bc7`, `c1720c41`, 2026-07-10)
 Publishing a sim now HARD-BLOCKS if the series' Race # field is empty (boards/grading join
