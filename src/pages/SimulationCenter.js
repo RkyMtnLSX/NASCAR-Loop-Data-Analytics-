@@ -558,6 +558,10 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
         if (cfgErr) throw new Error('Weekend config not set for ' + s + ' -- configure in Admin.')
         if (cancelled) return
         setConfig(cfg)
+        // Race # single source of truth (2026-07-11): the publish field defaults from the
+        // weekend config so a stale manual value can't mislabel a published board (the R14
+        // incident). Set it once per weekend in Admin -> Weekend Config; still editable here.
+        if (cfg.race_number) setRaceNumMap(prev => ({ ...prev, [s]: String(cfg.race_number) }))
 
         // Auto-apply track-type weights
         setWeights(isSuperspeedway(cfg.track_name) ? (s === 'oreilly' ? ONEILLY_SUPERSPEEDWAY_WEIGHTS : SUPERSPEEDWAY_WEIGHTS) : isRoadCourse(cfg.track_name) ? (s === 'trucks' ? TRUCK_ROAD_WEIGHTS : ROAD_COURSE_WEIGHTS) : DEFAULT_WEIGHTS)
