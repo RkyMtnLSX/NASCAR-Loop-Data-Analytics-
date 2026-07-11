@@ -65,6 +65,7 @@ function WeekendConfig() {
         track_years: cfg.track_years || [],
         correlation_label: cfg.correlation_label || (track ? track.correlation_group_label : ''),
         correlation_year: parseInt(cfg.correlation_year) || new Date().getFullYear(),
+        race_number: parseInt(cfg.race_number) || null,
         updated_at: new Date().toISOString(),
       }
       const { error } = await supabase
@@ -144,6 +145,17 @@ function WeekendConfig() {
                   type="number"
                   value={cfg.correlation_year || new Date().getFullYear()}
                   onChange={e => updateField(s, 'correlation_year', parseInt(e.target.value))}
+                  style={inputStyle}
+                />
+              </div>
+
+              <div>
+                <label style={labelStyle}>Race # (season round)</label>
+                <input
+                  type="number"
+                  value={cfg.race_number || ''}
+                  onChange={e => updateField(s, 'race_number', parseInt(e.target.value) || '')}
+                  placeholder="audit R#"
                   style={inputStyle}
                 />
               </div>
