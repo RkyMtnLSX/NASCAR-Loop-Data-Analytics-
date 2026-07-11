@@ -811,7 +811,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
 
   // EQUIPMENT PRIOR overrides (task 118): per-driver influence scale, default 1.
   // PERSISTED (2026-07-11): saved to featured_weekend.eq_overrides (jsonb) per series with a
-  // debounce, loaded on page load - pre-quali tweaks carry into the post-quali session.
+  // debounce, loaded on page load - pre-quali tweaks carry into the post-quali session. (v2)
   const [eqOverrides, setEqOverrides] = useState({})
   const __eqLoaded = React.useRef(false)
   useEffect(() => {
