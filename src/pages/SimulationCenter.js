@@ -1553,6 +1553,126 @@ function BmTable({ data, col1 }) {
   )
 }
 
+// ---------------------------------------------------------------------------
+// GROUP MARKETS (2026-07-12): Winning Manufacturer, Winning Team, Top {Make}.
+// Kept SEPARATE from __marketValue on purpose: the outcomes are makes/teams (not drivers),
+// and the books publish them on different pages. Same de-vig + LEAVE-ONE-OUT consensus.
+// BOOK FORMATS OBSERVED (all paste as "Name\n+price"):
+//   DK  "Winning Manufacturer" / "Winning Team"                         (no top-make market)
+//   FD  "Winning Manufacturer of Race" / "Team Of Winning Driver" / "Top Chevrolet|Ford|Toyota"
+//   HR  "Team of Race Winner" / "Top Chevrolet|Ford|Toyota Car"         (no manufacturer market)
+// HR lists only ~10 teams plus an "Any Other Team" bucket. That row MUST be counted in the
+// de-vig sum (drop it and every listed team gets inflated) but is never a bettable outcome --
+// it simply never matches a model row, so it falls out.
+// Top-{Make} needs the JOINT matrix (who is the best finisher of that make in each sim);
+// it CANNOT be derived from marginal win%.
+// ---------------------------------------------------------------------------
+export function __groupMarketValue(dkTxt, fdTxt, hrTxt, drivers, posMatrix, simN) {
+  try {
+    var rows = drivers || [];
+    if (!rows.length) return null;
+    var norm = function (s) { return (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[.']/g, "").replace(/\s+/g, " ").trim(); };
+    var amer = function (l) { var m = (l || "").trim().replace(/[\u2212\u2013\u2014]/g, "-"); return /^[+\-]\d{2,6}$/.test(m) ? parseInt(m, 10) : null; };
+    var dec = function (a) { return a > 0 ? a / 100 + 1 : 100 / (-a) + 1; };
+    var impl = function (a) { return a > 0 ? 100 / (a + 100) : -a / (-a + 100); };
+    var HDRS = [
+      [/winning\s+manufacturer|manufacturer\s+of\s+race/i, "mfr"],
+      [/winning\s+team|team\s+of\s+(the\s+)?(race\s+)?winner|team\s+of\s+winning\s+driver/i, "team"],
+      [/top\s+chevrolet|top\s+chevy/i, "topChevrolet"],
+      [/top\s+ford/i, "topFord"],
+      [/top\s+toyota/i, "topToyota"]
+    ];
+    var NOISE = /^(show (less|more)|singles|parlays|live|any driver|odd$|even$|under |over |grid position|car number|\d{1,2}:\d{2})/i;
+    var parseGrp = function (txt) {
+      var out = { mfr: {}, team: {}, topChevrolet: {}, topFord: {}, topToyota: {} };
+      var cur = null, pend = null;
+      (txt || "").split("\n").forEach(function (raw) {
+        var line = (raw || "").replace(/^[\s*\u2022\-]+/, "").trim();
+        if (!line) return;
+        var hit = null;
+        for (var i = 0; i < HDRS.length; i++) { if (HDRS[i][0].test(line)) { hit = HDRS[i][1]; break; } }
+        if (hit) { cur = hit; pend = null; return; }
+        if (!cur) return;
+        var a = amer(line);
+        if (a != null) { if (pend) { out[cur][pend] = a; pend = null; } return; }
+        if (NOISE.test(line)) { pend = null; return; }
+        pend = line;
+      });
+      return out;
+    };
+    var books = { dk: parseGrp(dkTxt), fd: parseGrp(fdTxt), hr: parseGrp(hrTxt) };
+    var MKTS = ["mfr", "team", "topChevrolet", "topFord", "topToyota"];
+    var model = { mfr: {}, team: {}, topChevrolet: {}, topFord: {}, topToyota: {} };
+    rows.forEach(function (r) {
+      var mk = ((r.manufacturer || "") + "").trim();
+      var tm = ((r.organization || "") + "").trim();
+      var w = (r.winPct || 0) / 100;
+      if (mk) model.mfr[mk] = (model.mfr[mk] || 0) + w;
+      if (tm) model.team[tm] = (model.team[tm] || 0) + w;
+    });
+    var MAKES = [["Chevrolet", "topChevrolet"], ["Ford", "topFord"], ["Toyota", "topToyota"]];
+    var n = rows.length;
+    if (posMatrix && simN) {
+      MAKES.forEach(function (mm) {
+        var mem = rows.filter(function (r) { return ((r.manufacturer || "") + "").trim() === mm[0]; });
+        if (!mem.length) return;
+        var wins = mem.map(function () { return 0; });
+        for (var s = 0; s < simN; s++) {
+          var best = 1e9, bi = -1;
+          for (var gi = 0; gi < mem.length; gi++) {
+            var pos = posMatrix[s * n + mem[gi].simIdx];
+            if (pos < best) { best = pos; bi = gi; }
+          }
+          if (bi >= 0) wins[bi]++;
+        }
+        mem.forEach(function (d, gi) { model[mm[1]][d.name] = wins[gi] / simN; });
+      });
+    }
+    var dvg = {};
+    MKTS.forEach(function (mk) {
+      dvg[mk] = {};
+      Object.keys(books).forEach(function (bk) {
+        var raw = books[bk][mk] || {}; var ks = Object.keys(raw);
+        if (!ks.length) return;
+        var s = 0; ks.forEach(function (k) { s += impl(raw[k]); });
+        if (!s) return;
+        dvg[mk][bk] = {}; ks.forEach(function (k) { dvg[mk][bk][norm(k)] = impl(raw[k]) / s; });
+      });
+    });
+    var res = {};
+    MKTS.forEach(function (mk) {
+      res[mk] = [];
+      Object.keys(model[mk]).forEach(function (name) {
+        var key = norm(name);
+        var px = {};
+        Object.keys(books).forEach(function (bk) {
+          var raw = books[bk][mk] || {}; var found = null;
+          Object.keys(raw).forEach(function (k) { if (norm(k) === key) found = raw[k]; });
+          px[bk] = found;
+        });
+        var p = model[mk][name];
+        if (px.dk == null && px.fd == null && px.hr == null) return;
+        var best = null, bb = "";
+        Object.keys(px).forEach(function (bk) { if (px[bk] != null && (best == null || dec(px[bk]) > dec(best))) { best = px[bk]; bb = bk; } });
+        var cons = [];
+        Object.keys(books).forEach(function (bk) { if (bk === bb) return; if (dvg[mk][bk] && dvg[mk][bk][key] != null) cons.push(dvg[mk][bk][key]); });
+        if (!cons.length) Object.keys(books).forEach(function (bk) { if (dvg[mk][bk] && dvg[mk][bk][key] != null) cons.push(dvg[mk][bk][key]); });
+        var consP = cons.length ? cons.reduce(function (a, b) { return a + b; }, 0) / cons.length : null;
+        res[mk].push({
+          name: name, dk: px.dk, fd: px.fd, hr: px.hr, best: best, bb: bb,
+          p: +(p * 100).toFixed(1),
+          fair: p > 0 ? (p >= 0.5 ? Math.round(-100 * p / (1 - p)) : Math.round(100 * (1 - p) / p)) : null,
+          ev: best != null ? +((p * dec(best) - 1) * 100).toFixed(0) : null,
+          mev: (consP != null && best != null) ? +((consP * dec(best) - 1) * 100).toFixed(0) : null,
+          medge: consP != null ? +(((p - consP) * 100).toFixed(2)) : null
+        });
+      });
+      res[mk].sort(function (a, b) { return (b.ev == null ? -1e9 : b.ev) - (a.ev == null ? -1e9 : a.ev); });
+    });
+    return res;
+  } catch (e) { return null; }
+}
+
 function BettingMarkets({ simResults }) {
   const [gA, setGA] = useState([])
   const [gB, setGB] = useState([])
@@ -1562,6 +1682,13 @@ function BettingMarkets({ simResults }) {
   const n = rows.length
   const posMatrix = simResults && simResults.posMatrix
   const simN = (simResults && simResults.simN) || 0
+  const [gDk, setGDk] = useState("")
+  const [gFd, setGFd] = useState("")
+  const [gHr, setGHr] = useState("")
+  const gmv = useMemo(function () {
+    if (!gDk && !gFd && !gHr) return null
+    return __groupMarketValue(gDk, gFd, gHr, rows, posMatrix, simN)
+  }, [gDk, gFd, gHr, rows, posMatrix, simN])
   function toggle(name, which) {
     const cur = which === 'A' ? gA : gB
     const set = which === 'A' ? setGA : setGB
@@ -1620,6 +1747,58 @@ function BettingMarkets({ simResults }) {
       <BmTable data={byMfr} col1="Manufacturer" />
       <h2 style={{ fontSize: '0.95rem', fontWeight: 700, margin: '20px 0 4px' }}>Winning Team</h2>
       <BmTable data={byTeam} col1="Team" />
+      <div style={{ marginTop: 22, paddingTop: 16, borderTop: "1px solid var(--border)" }}>
+        <h2 style={{ fontSize: "0.95rem", fontWeight: 700, margin: "0 0 4px" }}>Group market odds</h2>
+        <div style={{ fontSize: 12, color: "#888", marginBottom: 10 }}>
+          Paste each book page (Winning Manufacturer / Winning Team / Top Chevrolet-Ford-Toyota). DK has no top-make market and Hard Rock has no manufacturer market - blank columns there are expected.
+        </div>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          {[["DK", gDk, setGDk], ["FanDuel", gFd, setGFd], ["Hard Rock", gHr, setGHr]].map(function (b) {
+            return (
+              <div key={b[0]} style={{ flex: "1 1 220px" }}>
+                <div style={{ fontSize: 11, color: "#888", marginBottom: 4 }}>{b[0]}</div>
+                <textarea value={b[1]} onChange={function (e) { b[2](e.target.value) }} placeholder={"Paste " + b[0] + " page"}
+                  style={{ width: "100%", height: 84, background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 6, color: "var(--text)", fontSize: 12, padding: 6 }} />
+              </div>
+            )
+          })}
+        </div>
+        {gmv && [["mfr", "Winning Manufacturer"], ["team", "Winning Team"], ["topChevrolet", "Top Chevrolet"], ["topFord", "Top Ford"], ["topToyota", "Top Toyota"]].map(function (m) {
+          var list = (gmv[m[0]] || []).filter(function (r) { return r.best != null })
+          if (!list.length) return null
+          var fo = function (a) { return a == null ? "-" : (a > 0 ? "+" + a : "" + a) }
+          return (
+            <div key={m[0]} style={{ marginTop: 16 }}>
+              <h3 style={{ fontSize: "0.85rem", fontWeight: 700, margin: "0 0 6px" }}>{m[1]}</h3>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem" }}>
+                <thead><tr>
+                  {["", "Model", "Fair", "DK", "FD", "HR", "Best", "Edge", "mev", "medge"].map(function (h, i) {
+                    return <th key={i} style={{ padding: "5px 6px", color: "#8a8a8a", fontSize: 11, textAlign: i === 0 ? "left" : "right", borderBottom: "0.5px solid #333" }}>{h}</th>
+                  })}
+                </tr></thead>
+                <tbody>
+                  {list.map(function (r) {
+                    return (
+                      <tr key={r.name}>
+                        <td style={{ padding: "5px 6px" }}>{r.name}</td>
+                        <td style={{ padding: "5px 6px", textAlign: "right" }}>{r.p}%</td>
+                        <td style={{ padding: "5px 6px", textAlign: "right", color: "#888" }}>{fo(r.fair)}</td>
+                        <td style={{ padding: "5px 6px", textAlign: "right", color: r.bb === "dk" ? "#3fb950" : "#888" }}>{fo(r.dk)}</td>
+                        <td style={{ padding: "5px 6px", textAlign: "right", color: r.bb === "fd" ? "#3fb950" : "#888" }}>{fo(r.fd)}</td>
+                        <td style={{ padding: "5px 6px", textAlign: "right", color: r.bb === "hr" ? "#3fb950" : "#888" }}>{fo(r.hr)}</td>
+                        <td style={{ padding: "5px 6px", textAlign: "right", fontWeight: 700 }}>{fo(r.best)}</td>
+                        <td style={{ padding: "5px 6px", textAlign: "right" }}>{r.ev == null ? "-" : <span style={{ background: r.ev >= 10 ? "#123d24" : "transparent", color: r.ev >= 10 ? "#3fb950" : "#888", padding: "1px 6px", borderRadius: 4 }}>{(r.ev > 0 ? "+" : "") + r.ev}%</span>}</td>
+                        <td style={{ padding: "5px 6px", textAlign: "right", color: (r.mev != null && r.mev > 0) ? "#3fb950" : "#888" }}>{r.mev == null ? "-" : (r.mev > 0 ? "+" : "") + r.mev + "%"}</td>
+                        <td style={{ padding: "5px 6px", textAlign: "right", color: (r.medge != null && r.medge > 0) ? "#3fb950" : "#e74c3c" }}>{r.medge == null ? "-" : (r.medge > 0 ? "+" : "") + r.medge}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
