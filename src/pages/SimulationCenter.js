@@ -544,6 +544,9 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
   const [oddsT10Txt, setOddsT10Txt] = useState('')
   const [oddsFdTxt, setOddsFdTxt] = useState('')
   const [oddsHrTxt, setOddsHrTxt] = useState('')
+  const [gDk, setGDk] = useState('')
+  const [gFd, setGFd] = useState('')
+  const [gHr, setGHr] = useState('')
   const [shadeLambda, setShadeLambda] = useState(0.5)
   const [showShade, setShowShade] = useState(false)
   const [showBorrows, setShowBorrows] = useState(false)
@@ -1283,6 +1286,16 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
   <textarea value={oddsFdTxt} onChange={e => setOddsFdTxt(e.target.value)} rows={3} style={{ width: '100%', fontFamily: 'monospace', fontSize: 11 }} />
   <div style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '6px 0 4px' }}>Hard Rock odds - full page (paste)</div>
   <textarea value={oddsHrTxt} onChange={e => setOddsHrTxt(e.target.value)} rows={3} style={{ width: '100%', fontFamily: 'monospace', fontSize: 11 }} />
+  <div style={{ marginTop: 10, paddingTop: 8, borderTop: "1px dashed var(--border)" }}>
+    <div style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 700 }}>Group markets - Winning Manufacturer / Winning Team / Top Chevy-Ford-Toyota</div>
+    <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>Paste each book page. DK has no top-make market and Hard Rock has no manufacturer market - blanks there are expected.</div>
+  </div>
+  <div style={{ fontSize: 12, color: "var(--text-secondary)", margin: "6px 0 4px" }}>DK - group markets (paste)</div>
+  <textarea value={gDk} onChange={e => setGDk(e.target.value)} rows={3} placeholder="Winning Manufacturer / Winning Team" style={{ width: "100%", fontFamily: "monospace", fontSize: 11, background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 6, color: "var(--text)", padding: 6 }} />
+  <div style={{ fontSize: 12, color: "var(--text-secondary)", margin: "6px 0 4px" }}>FanDuel - group markets (paste)</div>
+  <textarea value={gFd} onChange={e => setGFd(e.target.value)} rows={3} placeholder="Winning Manufacturer of Race / Team Of Winning Driver / Top Chevrolet-Ford-Toyota" style={{ width: "100%", fontFamily: "monospace", fontSize: 11, background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 6, color: "var(--text)", padding: 6 }} />
+  <div style={{ fontSize: 12, color: "var(--text-secondary)", margin: "6px 0 4px" }}>Hard Rock - group markets (paste)</div>
+  <textarea value={gHr} onChange={e => setGHr(e.target.value)} rows={3} placeholder="Team of Race Winner / Top Chevrolet-Ford-Toyota Car" style={{ width: "100%", fontFamily: "monospace", fontSize: 11, background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 6, color: "var(--text)", padding: 6 }} />
       {oddsCounts ? <div style={{ fontSize: 11, marginTop: 4, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
         {[['DK', oddsWinTxt, oddsCounts.dk], ['FD', oddsFdTxt, oddsCounts.fd], ['HR', oddsHrTxt, oddsCounts.hr]].map(bc => (
           <span key={bc[0]} style={{ color: (bc[1] && bc[1].trim() && !bc[2]) ? '#ef4444' : 'var(--text-muted)' }}>{bc[0]}: {bc[2]} parsed{(bc[1] && bc[1].trim() && !bc[2]) ? ' \u26a0' : ''}</span>
@@ -1503,7 +1516,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
             </div>
           )}
 
-          {simResults && <BettingMarkets simResults={simResults} />}
+          {simResults && <BettingMarkets simResults={simResults} gDk={gDk} gFd={gFd} gHr={gHr} />}
 
           {!simResults && !running && (
             <div className="empty-state" style={{ marginTop: 8 }}>
@@ -1673,7 +1686,7 @@ export function __groupMarketValue(dkTxt, fdTxt, hrTxt, drivers, posMatrix, simN
   } catch (e) { return null; }
 }
 
-function BettingMarkets({ simResults }) {
+function BettingMarkets({ simResults, gDk, gFd, gHr }) {
   const [gA, setGA] = useState([])
   const [gB, setGB] = useState([])
   const [resA, setResA] = useState(null)
@@ -1682,9 +1695,6 @@ function BettingMarkets({ simResults }) {
   const n = rows.length
   const posMatrix = simResults && simResults.posMatrix
   const simN = (simResults && simResults.simN) || 0
-  const [gDk, setGDk] = useState("")
-  const [gFd, setGFd] = useState("")
-  const [gHr, setGHr] = useState("")
   const gmv = useMemo(function () {
     if (!gDk && !gFd && !gHr) return null
     return __groupMarketValue(gDk, gFd, gHr, rows, posMatrix, simN)
@@ -1751,17 +1761,6 @@ function BettingMarkets({ simResults }) {
         <h2 style={{ fontSize: "0.95rem", fontWeight: 700, margin: "0 0 4px" }}>Group market odds</h2>
         <div style={{ fontSize: 12, color: "#888", marginBottom: 10 }}>
           Paste each book page (Winning Manufacturer / Winning Team / Top Chevrolet-Ford-Toyota). DK has no top-make market and Hard Rock has no manufacturer market - blank columns there are expected.
-        </div>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          {[["DK", gDk, setGDk], ["FanDuel", gFd, setGFd], ["Hard Rock", gHr, setGHr]].map(function (b) {
-            return (
-              <div key={b[0]} style={{ flex: "1 1 220px" }}>
-                <div style={{ fontSize: 11, color: "#888", marginBottom: 4 }}>{b[0]}</div>
-                <textarea value={b[1]} onChange={function (e) { b[2](e.target.value) }} placeholder={"Paste " + b[0] + " page"}
-                  style={{ width: "100%", height: 84, background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 6, color: "var(--text)", fontSize: 12, padding: 6 }} />
-              </div>
-            )
-          })}
         </div>
         {gmv && [["mfr", "Winning Manufacturer"], ["team", "Winning Team"], ["topChevrolet", "Top Chevrolet"], ["topFord", "Top Ford"], ["topToyota", "Top Toyota"]].map(function (m) {
           var list = (gmv[m[0]] || []).filter(function (r) { return r.best != null })
