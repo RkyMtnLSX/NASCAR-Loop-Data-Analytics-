@@ -1373,6 +1373,20 @@ into every published board's config -- future pre/post comparisons are auditable
 sim_grades save needed `alter table sim_grades add column config jsonb` (grader stores
 the config snapshot now).
 
+### SS STAKING DOCTRINE (operator, 2026-07-11 -- Atlanta O'Reilly destruction derby)
+Race: Allgaier won; Sanchez crashed from P2 on the LAST LAP; 17 cars finished 1+ laps down;
+top of the board wrecked again (same weekend as the Lime Rock chaos race). Operator policy,
+now formal: BET LOW VOLUME AT SUPERSPEEDWAYS. Justification is analytic, not emotional:
+(1) variance drag -- SS outcomes are correlated wipeouts (whole slates die together), so
+equal EV arrives on a much bumpier path; (2) SS is where model signal is thinnest (fav won
+2/26 cup SS; ordering ~noise), so stated edges carry the widest error bars of any we flag.
+Lower reliability x higher variance = smaller stakes even under flat-unit doctrine (e.g.
+half units, and/or skip win markets, keep placement/matchups). The model PRICED the chaos
+(25% DNF validated, flattened noise) -- calibrated edges at chaotic tracks are honest but
+should be bet small, which is different from fake edges not bet at all. FUTURE TEST: once
+the graded sample is big enough, split realized flag ROI by track type -- if SS flags
+underperform other regimes at equal stated edge, the low-volume rule gets a number.
+
 ### PIT CREW DATA (pitcrewrank.com) -- STRONGEST RESIDUAL SIGNAL YET; accrue, don't ship (2026-07-11)
 User sourced pitcrewrank.com: fan-built, transparent methodology -- trimmed-mean 4-tire stop
 times per crew per race, RACE-NORMALIZED z-scores (handles hot-day/track effects), from
