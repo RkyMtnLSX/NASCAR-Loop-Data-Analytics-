@@ -746,6 +746,15 @@ round)" field on the Admin Weekend Config form, and both sim fetches now add
 tracks). WORKFLOW: at double-header tracks, SET THE RACE # IN WEEKEND CONFIG — it is what
 keeps February out of the fall sim. The lineup badge exposed this bug within hours of
 shipping; before it, the sim would have silently used a 5-month-old lineup.
+THIRD INCIDENT — GRADER IMPORT (commit `edd6ab9a`, 2026-07-11 evening): grading the fall
+O'Reilly Atlanta board, "Import from loop data" mixed BOTH Atlanta races' fields — because
+`loop_data.race_number` is a TRACK-VISIT count with inconsistent backfills (Feb's rows AND
+today's rows both carried 2), the two-race check saw one value and merged 76 rows. FIX: the
+import now resolves the exact race via the RACES table (season `race_number` matching the
+board's R#) → `loop_data.race_id`. STANDING RULE: `races.race_number` = season R# is the
+ONLY trustworthy race disambiguator; `loop_data.race_number` (visit count) must never be
+used to select a race. Anything joining loop data at a two-race track goes through
+races.race_id.
 RACE # SINGLE SOURCE OF TRUTH (commit `263ebf0a`, 2026-07-11): the sim's publish Race #
 field now PREFILLS from `featured_weekend.race_number` on config load (still editable).
 Set it ONCE per series per weekend in Admin → Weekend Config and every downstream stamp
