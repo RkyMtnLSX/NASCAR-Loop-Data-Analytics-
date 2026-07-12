@@ -25,10 +25,10 @@ export const DEFAULT_WEIGHTS = {
 // captures meaningful passing in traffic, correlates with road/street course survival.
 export const ROAD_COURSE_WEIGHTS = {
   corrHistory:  0.60,  // race craft 0.25 folded here 2026-07-07 (Cup + 8-race truck road sweep: raceCraft redundant w/ rating)
-  longRunPace:  0.15,  // fewer laps at road courses, still useful
-  shortRunPace: 0.05,  // near-redundant with LRP when stints are short
+  longRunPace:  0.25,  // CONSOLIDATED 2026-07-12: absorbs shortRun+falloff (practice total unchanged at 0.25)  // fewer laps at road courses, still useful
+  shortRunPace: 0.00,  // folded out - redundant w/ LRP (validated on cup ovals 2026-07-02; truck road c7980361)  // near-redundant with LRP when stints are short
   startPos:     0.15,  // backed by r=0.416 correlation across 682 obs
-  tireFalloff:  0.05,  // can't measure properly without long stints
+  tireFalloff:  0.00,  // dropped - noisy dead weight; trend_slope only 39% populated on cup road  // can't measure properly without long stints
   raceCraft:    0.00,  // CUT 2026-07-07: ~0.81 corr with driver_rating; monotonic sweep, never wins a market
   trackHistory: 0.00,
 }
