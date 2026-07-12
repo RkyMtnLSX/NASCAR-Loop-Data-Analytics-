@@ -1373,6 +1373,23 @@ into every published board's config -- future pre/post comparisons are auditable
 sim_grades save needed `alter table sim_grades add column config jsonb` (grader stores
 the config snapshot now).
 
+### PER-DRIVER DNF PROPENSITY -- signal REAL but too weak to price; REJECTED (2026-07-11)
+Idea: replace the flat per-track DNF rate with per-driver attrition (crash propensity is a
+trait; would tax Mayer-class boom/bust drivers and rookies personally). Two-stage test on
+all cup loop data (6,085 rows, 163 races, DNF = laps_completed < 90% of race max):
+- STAGE A (persistence, walk-forward from 2023-06, 113 races, age-weighted rate shrunk
+  k=8/12/18 toward field base): terciles realized DNF 9.0 / 10.4 / 12.8 pct -- monotone,
+  stable across k, calibrated (pred 11.5 vs realized 10.8). Crash propensity EXISTS.
+- STAGE B (market impact, cup intermediates 64 races, MC with DNF layer flat-vs-personal,
+  train 22-24 / test 25-26): NO improvement anywhere. Win Brier train 24.15 vs 24.15,
+  test 21.91 flat vs 22.08 personal (worse); t5/t10 slightly worse both splits. A ~4pt
+  spread around an 11pct base is too weak -- individual estimation noise cancels the signal
+  at market level.
+VERDICT: keep flat per-track DNF presets (they're validated: SS 25.4 pct actual vs 25
+preset). Possible future refinements if ever revisited: status-based crash-only rates
+(fastest_laps.status, cup only), track-type-specific propensity -- but each adds estimator
+noise against an already-weak base. Not worth knob risk now.
+
 ### LATE-RACE LOTTERY (fable_response.md design) -- MECHANISM SOUND, REJECTED OUT-OF-SAMPLE (2026-07-11)
 The gated "pack-only winner reshuffle" (in-sim two-stage draw: with p=chaos_rate the winner
 is re-drawn from the top-8 running order, weights score^0.7 -- taxes ONLY the win condition).
