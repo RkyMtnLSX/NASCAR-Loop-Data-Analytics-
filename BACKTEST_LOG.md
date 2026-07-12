@@ -1373,7 +1373,28 @@ into every published board's config -- future pre/post comparisons are auditable
 sim_grades save needed `alter table sim_grades add column config jsonb` (grader stores
 the config snapshot now).
 
-### CEILING/VARIANCE WIN TERM -- REJECTED; variant D reconfirmed (2026-07-11)
+### LATE-RACE LOTTERY (fable_response.md design) -- MECHANISM SOUND, REJECTED OUT-OF-SAMPLE (2026-07-11)
+The gated "pack-only winner reshuffle" (in-sim two-stage draw: with p=chaos_rate the winner
+is re-drawn from the top-8 running order, weights score^0.7 -- taxes ONLY the win condition).
+Gate was "walk-forward first, then fit chaos_rate" -- the harness now exists; fit was run
+honestly: ONE knob (chaos_rate), pack/alpha fixed at 8/0.7, train 2022-24 / test 2025-26,
+cup INTERMEDIATES (60 scoreable races, history-only proxy corr .7/track .3, noise 24).
+- Realized winner model-rank (all 60): rank1 9 (15%), rank2-3 13, rank4-5 5, rank6-10 18,
+  rank11+ 15 -- winners spread deep. Proxy favorite overshoots at every noise (21.7-37%).
+- LOTTERY FIT: TRAIN improves monotonically with chaos (winBrier 26.72 -> 26.21 at 0.55;
+  era favorites won 2/37 = 5.4%). TEST DEGRADES monotonically (23.77 -> 24.12; era
+  favorites won 6/23 = 26%, matching the untaxed sim's 23% favP). The intermediate
+  favorite-overshoot was a 2022-24 PARITY-ERA artifact; the 2025-26 era converts favorites
+  at rates the incumbent already predicts. Fitting chaos on pooled data would have shipped
+  a knob tuned on a dead market regime -- the exact trap the gating anticipated.
+- Mechanism validation: placement Briers unchanged across all chaos levels (t5 +-0.5,
+  t10 +-1.4) -- the surgical win-tax architecture WORKS; it just has no current target at
+  intermediates. SS favorite-overshoot was real but is handled by the per-series noise
+  multipliers (SS top-10s are lottery-spread too, so the global flatten was correct there).
+VERDICT: do NOT implement. Keep the design on the shelf with this calibration recipe.
+REOPEN trigger: if the graded-race favorite gap at intermediates drifts positive (favorites
+winning materially less than predicted) over 15+ current-era races. Caveat: proxy omits
+startPos/practice; era-split finding is about the TARGET's existence, not exact magnitudes.
 The parked "option 4" (ceiling term for bimodal SS drivers), triggered by the Mayer case:
 Sam Mayer O'Reilly Atlanta, model 3.4% win (FMV +2841) vs DK +800 (11.1%). His 20-race SS
 profile is textbook boom/bust: P2/P3/P5 near-wins (all 2025) + P36/P38/P31 wrecks, 0 wins.
