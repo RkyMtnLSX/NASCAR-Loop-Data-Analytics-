@@ -1537,3 +1537,36 @@ was). Cup only.
   RECOMMENDED CONFIG (SQL, no code): nudge_oval 9, nudge_short_track 9, nudge_superspeedway
   10, nudge_road 9. Caveat: backtest emulates the page recipe (sim_corr_years window
   approximated); treat 9/10 as calibrated-band values, not decimals.
+
+### CUP/O'REILLY ROAD PRACTICE SPLIT -> CONSOLIDATED 25/0/0, SHIPPED (2026-07-12, commit `0281bc19`)
+Closes the open item from the 2026-07-09 truck-road entry ('needs its own check on cup/oreilly road
+practice sessions before consolidating -- do NOT assume'). THE DIRECT CHECK IS NOT RUNNABLE, and that
+is itself the finding: cup has only 4 ROAD practice sessions and O'Reilly has ONE practice session in
+the entire DB (2026 Chicagoland R20 -- an intermediate, not even a road course). A market-scored
+train/test weight sweep on n=4 is not a test.
+SHIPPED ANYWAY on three independent converging lines, none of which is the missing cup-road sweep:
+1. CUP OVALS (large sample, 14 -> 29 -> 40 races): shortRunPace was FOLDED OUT entirely ('redundant
+   with longRunPace -- sustained pace is one signal, not two') and tireFalloff DROPPED to 0 ('noisy
+   dead weight', the SVG Chicagoland case). Both validated on the betting markets.
+2. TRUCK ROAD (5 races, 2026-07-09): consolidated 15/5/5 -> 25/0/0 won BOTH metrics (Spearman 0.501
+   -> 0.510, p5 0.400 -> 0.440).
+3. COVERAGE on cup road: late_run_avg populated 50 pct of driver-rows, trend_slope only 39 pct. The
+   majority of the field is NEUTRAL-FILLED 50 on both inputs -- the same dead-weight profile that
+   justified the truck consolidation (trend_slope 35/177 there).
+TWO MECHANISMS WORSE THAN PLAIN DILUTION, worth recording:
+- AVAILABILITY BIAS (partial coverage): a driver who actually ran a long run and posted real falloff
+  is ranked against drivers who simply have NO falloff data sitting at neutral 50. The weight
+  effectively penalises teams for gathering data. That is an artifact, not a signal.
+- SPREAD COMPRESSION (zero coverage, i.e. O'Reilly road): 25 pct of the composite becomes a constant.
+  A constant does not change RANKING, but it shrinks the score spread, and against a FIXED caution-noise
+  term a compressed spread means noise dominates more -> the field prices flatter than it is. Missing
+  practice is therefore NOT a harmless no-op; it is a calibration effect.
+CHANGE: ROAD_COURSE_WEIGHTS longRunPace 0.15 -> 0.25, shortRunPace 0.05 -> 0, tireFalloff 0.05 -> 0.
+Practice TOTAL is unchanged at 0.25 and corr/startPos are untouched -- this is a consolidation WITHIN
+practice, not a rebalance of the load-bearing inputs, so it cannot disturb them. Sum re-verified 1.00.
+shortRunPace and tireFalloff are now 0 in ALL THREE weight sets (ovals, cup/oreilly road, truck road).
+HONESTY NOTE: this is a REMOVAL of a provably-mostly-null input, not the ADDITION of a knob -- the
+burden of proof is asymmetric, which is why it ships without the out-of-sample split that (correctly)
+killed the lottery / per-driver-DNF / form-slope challengers. Re-open only if cup road practice ever
+accrues enough sessions to run the real sweep.
+
