@@ -191,11 +191,20 @@ export function __marketValue(winTxt, t10Txt, fdTxt, hrTxt, drivers) {
         var px = {}; Object.keys(books).forEach(function (bk) { var kk = fk(books[bk][key]); px[bk] = kk != null ? books[bk][key][kk] : null; });
         if (px.dk == null && px.fd == null && px.hr == null) return;
         var best = null, bb = ''; Object.keys(px).forEach(function (bk) { if (px[bk] != null && (best == null || dec(px[bk]) > dec(best))) { best = px[bk]; bb = bk; } });
-        var cons = []; Object.keys(books).forEach(function (bk) { var kk = fk(books[bk][key]); if (kk != null && dvg[bk][kk] != null) cons.push(dvg[bk][kk]); });
+        // LEAVE-ONE-OUT consensus (2026-07-12). The book we would BET (bb) is excluded: a soft
+        // outlier implies a LOW probability, so leaving it in drags the consensus toward itself and
+        // UNDERSTATES how soft the line is (Erik Jones Atlanta: mev +24 with FD in, +47 with FD out).
+        var cons = []; Object.keys(books).forEach(function (bk) { if (bk === bb) return; var kk = fk(books[bk][key]); if (kk != null && dvg[bk][kk] != null) cons.push(dvg[bk][kk]); });
+        if (!cons.length) { Object.keys(books).forEach(function (bk) { var kk = fk(books[bk][key]); if (kk != null && dvg[bk][kk] != null) cons.push(dvg[bk][kk]); }); }
         var consP = cons.length ? cons.reduce(function (a, b) { return a + b; }, 0) / cons.length : null;
         var p = (d[pf] || 0) / 100;
         res[d.name] = res[d.name] || {};
-        res[d.name][key] = { dk: px.dk, fd: px.fd, hr: px.hr, best: best, bb: bb, ev: p >= MINP[key] ? +((p * dec(best) - 1) * 100).toFixed(0) : null, mev: consP != null ? +((consP * dec(best) - 1) * 100).toFixed(0) : null };
+        // ev    = EV at the BEST price using OUR prob  -> what you bet on (model alpha + line-shop alpha)
+        // mev   = EV at the BEST price using the SHARP (leave-one-out) consensus prob -> is the line SOFT?
+        // medge = OUR prob minus the SHARP consensus prob, in probability POINTS -> do we actually beat
+        //         the market? This is the ONLY one of the three that isolates model alpha. A model with
+        //         zero edge still prints a fat ev whenever one book hangs a bad number.
+        res[d.name][key] = { dk: px.dk, fd: px.fd, hr: px.hr, best: best, bb: bb, ev: p >= MINP[key] ? +((p * dec(best) - 1) * 100).toFixed(0) : null, mev: consP != null ? +((consP * dec(best) - 1) * 100).toFixed(0) : null, medge: (consP != null && p >= MINP[key]) ? +(((p - consP) * 100).toFixed(2)) : null };
       });
     });
     return res;
