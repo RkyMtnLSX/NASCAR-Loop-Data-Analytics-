@@ -811,8 +811,6 @@ function LoadNewRace() {
       const raceId = raceRecord.id
       let inserted = 0
       const errors = []
-      const { count: priorCount } = await supabase.from('races').select('id', { count: 'exact', head: true }).eq('track_name', trackName).eq('year', parseInt(year)).eq('series', series).neq('id', raceId)
-      const trackRaceNum = (priorCount || 0) + 1
       // EQUIPMENT PRIOR (task 118): stamp car_number from the pre-loaded entry list.
       // Same-source as RR's car column; missing entry list or substitution -> null (safe).
       const __elNorm = s2 => (s2 || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[.,']/g, '').replace(/\b(jr|sr|ii|iii|iv)\b/g, '').replace(/\s+/g, ' ').trim()
@@ -827,7 +825,7 @@ function LoadNewRace() {
         const { error } = await supabase.from('loop_data').insert({
           race_id: raceId, driver_name: row.driver_name, series,
           car_number: __carByDriver[__elNorm(row.driver_name)] || null,
-          race_number: trackRaceNum,
+          race_number: parseInt(raceNum),   // SEASON ROUND (race # single source of truth) - NOT the track occurrence
           year: parseInt(year), track_name: trackName,
           start_position: row.start_position, mid_race_position: row.mid_race_position,
           finish_position: row.finish_position, high_position: row.high_position,
