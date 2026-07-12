@@ -1373,6 +1373,29 @@ into every published board's config -- future pre/post comparisons are auditable
 sim_grades save needed `alter table sim_grades add column config jsonb` (grader stores
 the config snapshot now).
 
+### PIT CREW DATA (pitcrewrank.com) -- STRONGEST RESIDUAL SIGNAL YET; accrue, don't ship (2026-07-11)
+User sourced pitcrewrank.com: fan-built, transparent methodology -- trimmed-mean 4-tire stop
+times per crew per race, RACE-NORMALIZED z-scores (handles hot-day/track effects), from
+NASCAR public timing. Cup 2026 only, 19 races (17 points; Duels + All-Star excluded).
+JSON API discovered: /api/races (index) + /api/races/{id}/detail (per-car trimmed_mean,
+z_score, stop_count, best/worst). Race numbering matches season R#; join by car or driver.
+- PERSISTENCE: corr(first-half z, second-half z) = 0.671 across 35 crews. By far the most
+  stable trait tested (cf. DNF propensity's weak terciles). Crews are who they are.
+- RESIDUAL TEST (walk-forward, 13 2026 races, prior-races-only crew z, partial Spearman vs
+  finish controlling the history composite BOTH-SIDES per doctrine): mean partial +0.073,
+  POSITIVE IN 11/13 races (binomial p~0.01). Compare practice-EDGE -0.0003. The two
+  negatives are diagnostic: Talladega (pack racing neutralizes pit deltas) and Texas.
+- MARKET DIRECTION (12 non-SS races, blend w 0-0.15, descriptive -- no split possible at
+  this n): top10 Brier improves monotonically 169.0 -> 165.2; t5 flat; WIN unmoved/worse.
+  Consistent with mechanism: crews grind track position, they don't decide wins.
+VERDICT: DO NOT SHIP YET (n=12-13, single season, no out-of-sample split possible) but this
+clears every bar the rejected ideas failed. PLAN: build pit_crew schema + weekly scrape of
+the API after each race; re-test with proper split at ~25 accrued races; design as a
+PLACEMENT-market input gated to non-SS tracks. Site updates weekly after each race.
+Suggested schema: pit_crew_race(series, year, race_date, race_name, car_number, driver_name,
+trimmed_mean, z_score, stop_count, best_stop). Data also enables the passing-difficulty
+interaction test (crew value should rise where passing is hardest).
+
 ### RECENT-FORM SLOPE (last 5 in-group races) -- REJECTED out-of-sample (2026-07-11)
 User-spec'd: linear slope of driver_rating over the last 5 races WITHIN the correlation
 group, min-maxed per race (no-slope drivers neutral 50), blended at w 0-0.22 into the
