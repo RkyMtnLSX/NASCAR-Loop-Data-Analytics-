@@ -794,6 +794,26 @@ GROUP BY 1,2,3,4,5,6
 HAVING r.race_number IS DISTINCT FROM l.race_number;
 ```
 
+FULL-TABLE AUDIT (2026-07-12, all 367 races carrying loop data) - CORRECTS the THIRD INCIDENT note above:
+  loop.race_number == races.race_number (SEASON ROUND) ... 364  (99.2 pct)
+  mismatched ......................................... 3    (rid 404 / 405 / 408)
+  multi-valued per race_id ........................... 0
+**`loop_data.race_number` is NOT a track-visit count.** It is the SEASON ROUND in 364/367 races. The only
+exceptions are the last four races ever loaded (404 trucks-2022 Mid-Ohio, 405 cup-2026 Chicagoland,
+408 trucks-2026 Lime Rock, 409 oreilly-2026 Atlanta) - every one a victim of the `trackRaceNum` loader
+regression, not a legacy backfill. The 'visit count with inconsistent backfills' reading was inferred
+from ONE two-race collision (Feb Atlanta's season round 2 vs the new race's visit count 2) and
+generalised into a property the column never had. Repaired by user SQL to 15 / 19 / 14 / 21.
+NOTE rid405 is cup Chicagoland - the graded race - so any loop join on race # was silently missing it.
+RECONCILIATION: Fable's grader-import fix (resolve the race via `races` -> `loop_data.race_id`, commit
+`edd6ab9a`) STAYS - routing through race_id is strictly more robust and costs nothing. But the
+STANDING RULE should read: race_id is the safest join key; `loop_data.race_number` is the season round and
+is now consistent - if it ever disagrees with `races.race_number`, that is a LOADER BUG to fix, not a
+property to route around. The LoopData upper table legitimately groups on it; 'fixing' the column to be
+a visit count would break that table.
+LESSON: when a column looks corrupt, AUDIT THE WHOLE TABLE before inferring its semantics. A 3-row
+regression looked like a 13,000-row design flaw.
+
 ### UI work shipped 2026-07-12
 - **Practice uploader lap headers** (`excelParser.js`, commit `448b3e8d`): the lap-column regex was
   `/^[Ll]ap\s*(\d+)$/` - CASE-SENSITIVE - so `LAP 1` (all-caps, the Google Sheets export format) matched
