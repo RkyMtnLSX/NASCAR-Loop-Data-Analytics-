@@ -1395,6 +1395,15 @@ PLACEMENT-market input gated to non-SS tracks. Site updates weekly after each ra
 Suggested schema: pit_crew_race(series, year, race_date, race_name, car_number, driver_name,
 trimmed_mean, z_score, stop_count, best_stop). Data also enables the passing-difficulty
 interaction test (crew value should rise where passing is hardest).
+STATUS UPDATE (same night): pit_crew_race table CREATED (user-run SQL, unique on
+pcr_race_id+car_number, permissive RLS) and BACKFILLED -- 633 rows, all 17 points races
+through Chicago 07-05. Their API is same-origin only (no CORS), so weekly sync is a
+BOOKMARKLET the user clicks while on pitcrewrank.com (diffs pcr_race_id against the table,
+inserts only new races, merge-duplicates upsert, auto-skips Duels/All-Star) -- delivered
+2026-07-11. Fallback: any chat session can sync in-browser. SCOPE DECISION (operator):
+track per-CAR crew performance only; crew_assignments member-level tracking deemed not
+worth the complexity. Season-scoped rolling window design stands. Re-test with proper
+split at ~25 points races (~late August); until then the data accrues weekly.
 
 ### RECENT-FORM SLOPE (last 5 in-group races) -- REJECTED out-of-sample (2026-07-11)
 User-spec'd: linear slope of driver_rating over the last 5 races WITHIN the correlation
