@@ -208,10 +208,10 @@ const DEFAULT_WEIGHTS = {         // used for ovals — sums to 1.00
 
 const ROAD_COURSE_WEIGHTS = {   // Cup/O'Reilly road — raceCraft cut to 0 on 2026-07-07 (corr 0.35->0.60)
   corrHistory:  0.60,
-  longRunPace:  0.15,
-  shortRunPace: 0.05,  // NEVER re-tested on road (oval fold-out doesn't cover this) — candidate to consolidate like trucks
+  longRunPace:  0.25,  // CONSOLIDATED 2026-07-12 (0281bc19): absorbs shortRun+falloff; practice total unchanged at 0.25
+  shortRunPace: 0.00,  // folded out — validated on cup ovals + truck road; 50% null on cup road
   startPos:     0.15,  // backed by r=0.416 correlation across 682 observations
-  tireFalloff:  0.05,  // same — untested on road, likely dead weight per truck result
+  tireFalloff:  0.00,  // dropped — noisy dead weight; trend_slope only 39% populated on cup road
   raceCraft:    0.00,
   trackHistory: 0.00,
 }
@@ -316,7 +316,7 @@ Every current weight was tuned this way and validated out-of-sample on 29 (2025+
   Grade v3 shipped 2026-07-10: avgPace 50 / bestLap 50, letter-aligned scores, notes JSON
   extras — see the practiceGrader section + BACKTEST_LOG Archive C.
 - **Road course — NOW PER-SERIES (2026-07-07).** Cup/O'Reilly (`ROAD_COURSE_WEIGHTS`):
-  corr 0.60 / longRun 0.15 / shortRun 0.05 / startPos 0.15 / tireFalloff 0.05 / raceCraft
+  corr 0.60 / longRun **0.25** / shortRun **0** / startPos 0.15 / tireFalloff **0** (practice CONSOLIDATED 2026-07-12, commit `0281bc19` — see BACKTEST_LOG; practice total unchanged at 0.25) / raceCraft
   **0** / trackHistory 0. Trucks (`TRUCK_ROAD_WEIGHTS`, new export): corr 0.55 / startPos
   **0.20** / (same practice 0.25) / raceCraft 0 / trackHistory 0 — selected when
   `s === 'trucks'` in the config-load effect. Truck road practice 0.25 VALIDATED 2026-07-09
