@@ -216,11 +216,22 @@ export default function GradeCenter() {
     const { data } = await supabase.from('sim_results').select('*').eq('series', series).eq('stage', gradeStage).order('published_at', { ascending: false }).limit(1)
     const row = (data || [])[0]
     if (!row || !row.results) { setPrev(null); setMsg('No published sim found for ' + series + '.'); return }
-    const res = await supabase.from('loop_data').select('driver_name, finish_position, race_number').eq('series', series).eq('track_name', row.track_name).eq('year', row.race_year)
+    // Resolve the exact race via the RACES table (2026-07-11): loop_data.race_number is a
+    // TRACK-VISIT count with inconsistent backfills - at double-header tracks both races can
+    // carry the same value, silently mixing fields (the Feb-Atlanta grading incident).
+    // races.race_number is the season R# and matches the published board.
+    const { data: raceRows } = await supabase.from('races').select('id, race_number, race_date')
+      .eq('series', series).eq('track_name', row.track_name).eq('year', row.race_year)
+    let target = null
+    if (raceRows && raceRows.length === 1) target = raceRows[0]
+    else if (raceRows && raceRows.length > 1) {
+      target = raceRows.find(r => String(r.race_number) === String(row.race_number)) || null
+      if (!target) { setPrev(null); setMsg('Multiple races at this track/year (R' + raceRows.map(r => r.race_number).join(', R') + ') and none match the board R' + row.race_number + '. Fix the race # first.'); return }
+    }
+    if (!target) { setPrev(null); setMsg('No race row found for ' + row.track_name + ' ' + row.race_year + ' (' + series + '). Load the race in Admin first.'); return }
+    const res = await supabase.from('loop_data').select('driver_name, finish_position').eq('race_id', target.id)
     let laps = res.data || []
     if (!laps.length) { setPrev(null); setMsg('No loop data found for ' + row.track_name + ' ' + row.race_year + ' (' + series + '). Load it in Admin, or paste the finish above.'); return }
-    const rns = Array.from(new Set(laps.map(l => l.race_number)))
-    if (rns.length > 1) { if (row.race_number != null && rns.indexOf(row.race_number) >= 0) { laps = laps.filter(l => l.race_number === row.race_number) } else { setPrev(null); setMsg('Two races found for this track/year (R' + rns.join(', R') + '). Set the sim Race # to match one, then re-import.'); return } }
     const nrm = s => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/g, ' ').split(' ').filter(Boolean).join(' ')
     const byName = {}
     row.results.forEach(d => { byName[nrm(d.driver_name)] = String(d.car_number) })
