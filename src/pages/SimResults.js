@@ -90,18 +90,67 @@ function CompareTray({ sel, config, onToggle, onClear }) {
     </div>
   )
 }
-function MarketTables({ results }) {
+function MarketTables({ results, config }) {
   function aggBy(key) {
     const m = {}
-    ;(results || []).forEach((r) => { const g = ((r[key] || 'Unknown') + '').trim() || 'Unknown'; m[g] = (m[g] || 0) + (r.win_pct || 0) })
+    ;(results || []).forEach((r) => { const g = ((r[key] || "Unknown") + "").trim() || "Unknown"; m[g] = (m[g] || 0) + (r.win_pct || 0) })
     return Object.entries(m).map(([k, v]) => ({ name: k, winPct: v, fmv: fmvAmerican(v / 100) })).sort((a, b) => b.winPct - a.winPct)
   }
+  const gmv = config && config.gmv
+  const fo = (a) => (a == null ? "-" : (a > 0 ? "+" + a : "" + a))
+  const mut = "var(--text-muted)"
+  const TIP = {
+    Edge: "Model EV at the best available price. NOTE this blends model edge with line-shopping: a soft book inflates it.",
+    mev: "EV at the best price using the SHARP (leave-one-out) consensus - i.e. is this line soft vs the other books?",
+    medge: "Model prob minus the sharp consensus, in points. The ONLY column that isolates model edge from line-shopping."
+  }
+  function GmTable({ rows, col1 }) {
+    const list = (rows || []).filter((r) => r.best != null)
+    if (!list.length) return null
+    return (
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem" }}>
+        <thead><tr>
+          {[col1, "Model", "Fair", "DK", "FD", "HR", "Best", "Edge", "mev", "medge"].map((h, i) => (
+            <th key={i} title={TIP[h] || ""} style={{ padding: "7px 6px", color: "#8a8a8a", fontSize: 11, fontWeight: 500, textAlign: i === 0 ? "left" : "right", borderBottom: "0.5px solid #333", cursor: TIP[h] ? "help" : "default" }}>{h}</th>
+          ))}
+        </tr></thead>
+        <tbody>
+          {list.map((r) => (
+            <tr key={r.name}>
+              <td style={{ padding: "7px 6px" }}>{r.name}</td>
+              <td style={{ padding: "7px 6px", textAlign: "right" }}>{r.p}%</td>
+              <td style={{ padding: "7px 6px", textAlign: "right", color: mut }}>{fo(r.fair)}</td>
+              <td style={{ padding: "7px 6px", textAlign: "right", color: r.bb === "dk" ? "#3fb950" : mut }}>{fo(r.dk)}</td>
+              <td style={{ padding: "7px 6px", textAlign: "right", color: r.bb === "fd" ? "#3fb950" : mut }}>{fo(r.fd)}</td>
+              <td style={{ padding: "7px 6px", textAlign: "right", color: r.bb === "hr" ? "#3fb950" : mut }}>{fo(r.hr)}</td>
+              <td style={{ padding: "7px 6px", textAlign: "right", fontWeight: 700 }}>{fo(r.best)}</td>
+              <td style={{ padding: "7px 6px", textAlign: "right" }}>{r.ev == null ? "-" : <span style={{ background: r.ev >= 10 ? "#123d24" : "transparent", color: r.ev >= 10 ? "#3fb950" : mut, padding: "1px 7px", borderRadius: 4 }}>{(r.ev > 0 ? "+" : "") + r.ev}%</span>}</td>
+              <td style={{ padding: "7px 6px", textAlign: "right", color: (r.mev != null && r.mev > 0) ? "#3fb950" : mut }}>{r.mev == null ? "-" : (r.mev > 0 ? "+" : "") + r.mev + "%"}</td>
+              <td style={{ padding: "7px 6px", textAlign: "right", color: r.medge == null ? mut : (r.medge > 0 ? "#3fb950" : "#e74c3c") }}>{r.medge == null ? "-" : (r.medge > 0 ? "+" : "") + r.medge}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )
+  }
+  const MK = [["mfr", "Winning Manufacturer", "Manufacturer"], ["team", "Winning Team", "Team"], ["topChevrolet", "Top Chevrolet", "Driver"], ["topFord", "Top Ford", "Driver"], ["topToyota", "Top Toyota", "Driver"]]
   return (
     <div>
-      <h2 style={{ fontSize: '1rem', fontWeight: 700, margin: '4px 0' }}>Winning Manufacturer</h2>
-      <SrTable data={aggBy('manufacturer')} col1="Manufacturer" />
-      <h2 style={{ fontSize: '1rem', fontWeight: 700, margin: '22px 0 4px' }}>Winning Team</h2>
-      <SrTable data={aggBy('organization')} col1="Team" />
+      {MK.map((m, mi) => {
+        const rows = gmv && gmv[m[0]]
+        const hasOdds = rows && rows.some((r) => r.best != null)
+        if (hasOdds) {
+          return (
+            <div key={m[0]}>
+              <h2 style={{ fontSize: "1rem", fontWeight: 700, margin: mi === 0 ? "4px 0" : "22px 0 4px" }}>{m[1]}</h2>
+              <GmTable rows={rows} col1={m[2]} />
+            </div>
+          )
+        }
+        if (m[0] === "mfr") return (<div key={m[0]}><h2 style={{ fontSize: "1rem", fontWeight: 700, margin: "4px 0" }}>Winning Manufacturer</h2><SrTable data={aggBy("manufacturer")} col1="Manufacturer" /></div>)
+        if (m[0] === "team") return (<div key={m[0]}><h2 style={{ fontSize: "1rem", fontWeight: 700, margin: "22px 0 4px" }}>Winning Team</h2><SrTable data={aggBy("organization")} col1="Team" /></div>)
+        return null
+      })}
     </div>
   )
 }
@@ -382,7 +431,7 @@ export default function SimResults() {
 })()}
             </div>
           )}
-          {tab === 'markets' && <MarketTables results={results} />}
+          {tab === 'markets' && <MarketTables results={results} config={data && data.config} />}
         </>
       )}
     </div>
