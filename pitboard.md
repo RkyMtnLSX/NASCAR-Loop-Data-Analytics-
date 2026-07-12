@@ -553,11 +553,18 @@ non-points), oreilly + trucks loaded. NOT a sim input (tested + rejected, Archiv
 **`driver`** (not driver_name), `car`, `fastest_lap_num`, **`fastest_time`** (not
 fastest_lap_time), `fastest_speed`, `start_pos`, `finish_pos`, `status`.
 
-### `featured_weekend` — current race config
+### `featured_weekend` — current race config (THE single source of truth per weekend)
 `id`, `series`, `track_name`, `track_label`, `track_years`, `correlation_label`,
 `correlation_year`, `correlation_years`, `correlation_tracks` (UNUSED), **`correlation_label`**
 (the sim matches this against `tracks.correlation_group_label` to pool corr history — keep in
-sync when track labels change), `show_qual_sim` (deprecated), `updated_at`.
+sync when track labels change), `show_qual_sim` (deprecated), **`race_number`** (season R#,
+added 2026-07-10 — prefills every loader + the sim publish field; the double-header guard),
+**`total_laps`, `stage1_laps`, `stage2_laps`** (added 2026-07-11 — prefill the sim's race
+length/stage inputs), **`eq_overrides`** (jsonb, added 2026-07-11 — persisted equipment-prior
+infl values, auto-saved debounced from the sim page, loaded per series on page load),
+**`rear_overrides`** (jsonb, added 2026-07-11 — persisted "to the rear" start overrides,
+same pattern), `updated_at`. Set track + R# + laps ONCE per series per weekend in Admin →
+Weekend Config; every loader and the sim inherit all of it.
 
 ### `entry_list` — active roster
 `id`, `series`, `race_year`, `track_name`, `driver_name`, `car_number`, `organization`
@@ -586,7 +593,23 @@ column … in the schema cache", the column is missing; run that ALTER), **`stag
 ### `sim_grades` — per-race grade log (accumulating validation sample)
 `id`, `sim_id`, `series`, `track_name`, `race_year`, `race_number`, `actual` (jsonb, actual
 finish), `metrics` (jsonb — MAE/Brier/Spearman/precision), `ev_flags` (jsonb — +EV hit/miss),
-`roi`, `shade_on` (was the win shade applied), **`stage`** ('pre'/'post'), `graded_at`, `notes`.
+`roi`, `shade_on` (was the win shade applied), **`stage`** ('pre'/'post'), `graded_at`, `notes`,
+**`config`** (jsonb, added 2026-07-11 via `alter table sim_grades add column config jsonb` —
+the graded board's config snapshot; the grader's save FAILS without this column). Grading a
+POST board excludes bets already flagged on the PRE board (bet attribution doctrine — see
+BACKTEST_LOG 2026-07-11).
+
+### `pit_crew_race` — per-car pit crew performance (added 2026-07-11, source pitcrewrank.com)
+`id`, `series` ('cup'), `year`, `race_date` (**THE join key to `races` — their race numbering
+counts exhibitions, so R#s are offset from ours; always join by date**), `race_name`,
+`pcr_race_id` (their id; unique with car_number → re-syncs upsert), `car_number`,
+`driver_name`, `trimmed_mean` (4-tire stop seconds), **`z_score`** (race-normalized — the
+signal), `stop_count`, `best_stop`, `created_at`. 633 rows / 17 points races backfilled
+2026-07-11; exhibitions excluded. WEEKLY SYNC: user clicks a bookmarklet while on
+pitcrewrank.com (their API is same-origin only) — diffs pcr_race_id, pulls only new races.
+Validated: persistence 0.671, residual partial +0.073 (11/13 races), improves t10 Brier only.
+NOT a sim input yet — re-test with proper split at ~25 points races (~late Aug); designed as
+a season-scoped rolling-window PLACEMENT input, gated off superspeedways (BACKTEST_LOG).
 
 ### `green_flag_speed` — per-driver green-flag avg speed + rank (added 2026-07-07)
 `id`, `series`, `year`, `track` (canonical, from PDF header — NOTE a few PDF spellings differ
