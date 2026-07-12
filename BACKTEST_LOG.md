@@ -1373,6 +1373,19 @@ into every published board's config -- future pre/post comparisons are auditable
 sim_grades save needed `alter table sim_grades add column config jsonb` (grader stores
 the config snapshot now).
 
+### RECENT-FORM SLOPE (last 5 in-group races) -- REJECTED out-of-sample (2026-07-11)
+User-spec'd: linear slope of driver_rating over the last 5 races WITHIN the correlation
+group, min-maxed per race (no-slope drivers neutral 50), blended at w 0-0.22 into the
+history composite. Cup intermediates, 63 races (40 train 22-24 / 23 test 25-26), noise 20.
+- TRAIN teased: t5 113.7 -> 110.2, t10 181.6 -> 174.6 improving with w; win flat.
+- TEST killed it: win Brier DEGRADES monotonically (23.93 -> 24.27), t5 degrades
+  (100.3 -> 102.3); only t10 keeps a faint gain (168.7 -> 166.8) -- one sub-market's
+  2 pts does not carry a new input.
+Interpretation: form is largely redundant with the existing recency year-weighting in corr
+(current season already 1.3-2x); the slope adds a noisy second derivative. VERDICT: no
+form input. Tonight's tally: lottery, per-driver DNF, form slope -- 3 challengers tested
+honestly, 3 rejected out-of-sample, incumbent structure unchanged and stronger for it.
+
 ### PER-DRIVER DNF PROPENSITY -- signal REAL but too weak to price; REJECTED (2026-07-11)
 Idea: replace the flat per-track DNF rate with per-driver attrition (crash propensity is a
 trait; would tax Mayer-class boom/bust drivers and rookies personally). Two-stage test on
