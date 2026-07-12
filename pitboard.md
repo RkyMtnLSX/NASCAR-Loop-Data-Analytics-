@@ -766,6 +766,57 @@ backtest (see BACKTEST_LOG 2026-07-11): configured nudges give 46-59% P10-P90 co
 80% target; recommended config values 9/9/10/9 (oval/short/SS/road), SQL-only change,
 user's call pending.
 
+### loop_data.race_number REGRESSION - track occurrence vs season round (FIXED, commit `da631ef7`, 2026-07-12)
+`Load New Race` (Admin.js) was stamping **`loop_data.race_number` with `trackRaceNum`** - a count of prior
+visits to that track that year (`(priorCount || 0) + 1`, i.e. 1 or 2) - instead of the SEASON ROUND.
+The `races` row got the correct round; its `loop_data` rows did not. Violates the Race # single-source-of-
+truth doctrine directly below.
+SYMPTOM (O'Reilly Atlanta 2026, race_id 409): the LoopData UPPER table showed only ONE of the two 2026
+Atlanta races, while the superspeedway AVERAGES table showed BOTH. The upper table keys race columns on
+(year, track, race_number); spring Atlanta is season round **2** and the summer race got trackRaceNum
+**2**, so they collided and collapsed into one column. The averages table aggregates raw rows by track
+and never reads race_number - which is exactly why it still looked right. **A disagreement between two
+tables on the same page is the tell: the one that ignores the broken key keeps working.**
+NOT COSMETIC: the sim publishes + grades by SEASON ROUND, so GradeCenter would have found no actuals
+(or matched the WRONG race) for any race hit by this.
+SCOPE: fresh regression. Audited all O'Reilly 2026 races - R1-R19 all had loop.rn == races.rn; only 409
+mismatched. Single-visit tracks would have silently gotten race_number = 1 too, so it would have
+surfaced on the very next load regardless.
+FIX: the loop_data insert now uses `parseInt(raceNum)` (season round); the dead `trackRaceNum`/`priorCount`
+lines were removed (an unused var FAILS the Vercel build - CI treats warnings as errors). Data repaired
+by user SQL: `UPDATE loop_data SET race_number = 21 WHERE race_id = 409;`
+STANDING AUDIT QUERY - any race whose loop rows disagree with its registry row:
+```sql
+SELECT r.id, r.series, r.year, r.track_name, r.race_number AS races_rn,
+       l.race_number AS loop_rn, COUNT(*) AS n
+FROM races r JOIN loop_data l ON l.race_id = r.id
+GROUP BY 1,2,3,4,5,6
+HAVING r.race_number IS DISTINCT FROM l.race_number;
+```
+
+### UI work shipped 2026-07-12
+- **Practice uploader lap headers** (`excelParser.js`, commit `448b3e8d`): the lap-column regex was
+  `/^[Ll]ap\s*(\d+)$/` - CASE-SENSITIVE - so `LAP 1` (all-caps, the Google Sheets export format) matched
+  NOTHING and the upload died with 'Could not find lap time columns'. Now `/^lap\s*#?\s*(\d+)$/i` (any
+  case, tolerates 'Lap #1'). Lap columns are also now SORTED by lap number, so a sheet whose columns run
+  LAP 30..LAP 1 (descending - common in exports) parses identically to 1..30. Laps were already keyed by
+  header number rather than column position, so order was mostly safe already; the sort makes it explicit.
+  Verified on all four header styles.
+- **Car-number PNGs on FastestLap + GreenFlagSpeed** (commits `200c9322`, `2f754fc3`, `731f6a9f`):
+  mirrors LoopData's rendering (per-series `/car-numbers/`, `/car-numbers-oreilly/`, `/car-numbers-trucks/`;
+  `133`->`33` alias; onError retries once with a cache-bust, then hides). FastestLap is cup-only
+  (`fastest_laps` has no series column) so it uses the cup path.
+  **BUG WORTH REMEMBERING**: GreenFlagSpeed's `HeatMapView`/`RaceTable` are CHILD components that never
+  receive `series` - the first pass referenced an out-of-scope variable. ALWAYS check whether the JSX you
+  are editing lives in a child component before reaching for a parent's state. Fixed by threading the prop
+  through both call sites. (`RaceTable` is defined but never rendered - dead code.)
+  Missing art added to `public/`: cup 78, oreilly 30 + 38, trucks 4. NOTE oreilly has NO car-4 art - that
+  driver's number simply will not render (the onError fallback hides it; no broken image).
+- **Lap Raptor attribution removed** from the public Fastest Laps subtitle (commit `89603c91`). The 4
+  remaining references in Admin.js are the paste-workflow instructions and were intentionally KEPT.
+- **Stage-length inputs** on SimulationCenter beside Race Length (commit `2ff81684`): `stage1Laps`/
+  `stage2Laps` stored in the published `config`. DATA CAPTURE ONLY - no sim module reads them yet.
+
 ### Race # guards — ALL loaders + publish (commits `a86f3bc7`, `c1720c41`, 2026-07-10)
 Publishing a sim now HARD-BLOCKS if the series' Race # field is empty (boards/grading join
 on race_number; a null-R# board is unmatchable). Load Qualifying, Qualifying Order, and the
