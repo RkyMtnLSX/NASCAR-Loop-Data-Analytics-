@@ -1427,9 +1427,14 @@ function LoadFastestLaps() {
   useEffect(() => { supabase.from('tracks').select('name').order('name').then(({ data }) => setTracks((data || []).map(t => t.name))) }, [])
 
   // Lap Raptor Lap Performance columns (use ?report=lap_performance tab):
-  // Driver  Car  Make  Start  Finish  Status  ARP  FL#  FL_Time(s)  P50_Time  P95_Time  FL_Speed(mph)  P50_Speed  P95_Speed
+  // LAYOUT CHANGED 2026-07-12: Lap Raptor DROPPED the Make column and turned Car into an <img>,
+  // whose alt text pastes as "Number 45" instead of a bare 45. The old regex required Make and a
+  // bare number, so it matched ZERO rows ("No rows parsed"). The regex below accepts BOTH layouts:
+  //   NEW: Driver  "Number NN"  Start  Finish  Status  ARP  FL#  FL_Time  P50_T  P95_T  FL_Speed  P50_S  P95_S
+  //   OLD: Driver  NN  Make     Start  Finish  Status  ARP  FL#  FL_Time  P50_T  P95_T  FL_Speed  P50_S  P95_S
+  // If it ever returns 0 rows again, diff a fresh paste against these two shapes first.
   function parsePaste() {
-    const RE = /^(.+?)\s+(\d{1,3})\s+(?:Chevy|Chevrolet|Ford|Toyota|Dodge|Ram)\s+(\d+)\s+(\d+)\s+(\w+)\s+[\d.]+\s+(\d+)\s+([\d.]+)\s+[\d.]+\s+[\d.]+\s+([\d.]+)/gm
+    const RE = /^(.+?)\s+(?:Number\s+)?(\d{1,3})\s+(?:(?:Chevy|Chevrolet|Ford|Toyota|Dodge|Ram)\s+)?(\d+)\s+(\d+)\s+(\w+)\s+[\d.]+\s+(\d+)\s+([\d.]+)\s+[\d.]+\s+[\d.]+\s+([\d.]+)/gm
     const rows = []
     let m
     while ((m = RE.exec(pasteText)) !== null) {
