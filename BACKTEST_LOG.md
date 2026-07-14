@@ -1959,3 +1959,56 @@ CODE~ SimulationCenter.js
   clamped to [0.03, 0.30]. Low/Medium/High remain as MANUAL OVERRIDES only. UI shows the resolved
   rate to 1dp and states its provenance ("measured from N prior races" vs "no track history -> group").
   Resolved values~ NW cup 8.1 pct (was 15.0). Talladega cup ~19.0 (was 15.0). Bristol cup ~7.0 (was 5.0).
+
+### !! CORRECTION !! THE "SHRINK-TO-50 IS A LOAD-BEARING REGULARIZER" CLAIM IS FALSE (2026-07-14)
+RETRACTS the trackHistory zero-coverage renormalization entry from earlier the same day. That entry
+concluded renormalization was "worse on every market, monotone" and that the neutral-50 fill is an
+"accidental regularizer that flattens favourite overconfidence". BOTH CONCLUSIONS ARE WRONG.
+They were an artefact of a CONFOUNDED TEST.
+
+THE CONFOUND (discovered while testing DNF, same day)~ NOISE AND ANY DISPERSION CHANGE ARE SUBSTITUTES,
+AND BRIER CANNOT TELL THEM APART. Renormalizing WIDENS the composite spread (the neutral-50 fill pulls
+low-coverage drivers toward the middle; dropping the weight does not). Scored at FIXED noise, that extra
+spread reads as damage. It is not damage -- it is a dispersion change that the noise term should absorb.
+ANY test that alters spread while holding noise constant is RIGGED. The original test did exactly that.
+
+RE-AUDIT, noise RE-TUNED per mode (best N on TRAIN, scored on TEST 2025-26), DNF = group empirical~
+  trackHistory (weight 0.15)
+  market   fill50(current)  renorm0   renormFull        [train 22-24]
+  win       23.15           23.17     23.16
+  t3        60.0            60.3      60.3
+  t5        88.9            89.3      89.3
+  t10      148.6           148.5     148.6
+  ... and with the 2022 BURN-IN YEAR DROPPED (train 23-24), identical~ 23.15 / 23.17 / 23.16.
+
+  corrHistory (weight 0.35 -- the big one, also flagged load-bearing)
+  market   fill50          renorm0   renormFull
+  win       23.14           23.14     23.14
+  t3        60.2            60.2      60.2
+  t5        89.6            89.6      89.6
+  t10      149.6           149.6     149.5
+
+VERDICT~ DEAD NEUTRAL, both terms. The neutral-50 fill is NOT doing secret work. It is simply ONE OF
+SEVERAL EQUIVALENT ways to handle missing coverage. KEEP IT -- but keep it because it is SIMPLE, not
+because it is load-bearing. Anyone who believes the regularizer story will preserve neutral-fill in
+places where it is actively wrong. That is the damage this correction prevents.
+
+WHY corrHistory was always going to be inert~ coverage is 87.9 pct FULL, only 3.5 pct zero. The fill
+branch almost never fires. (trackHistory is the sparse one~ 25.5 pct zero, 49.4 pct thin.)
+
+### THE 2022 BURN-IN ARTEFACT -- READ BEFORE TRUSTING ANY TRAIN-SELECTED PARAMETER (2026-07-14)
+trackHistory ZERO-COVERAGE RATE BY YEAR, in the harness~
+  2022  75.7 pct   <-- the DATABASE STARTS in 2022, so 3/4 of drivers have NO prior track history
+  2023  10.0 pct
+  2024  18.8 pct
+  2025   6.1 pct
+  2026  14.0 pct
+2022 IS A BURN-IN YEAR. Its composite is mostly NEUTRAL FILL -- a state the live model NEVER sees.
+TRAIN = 2022-24 is therefore contaminated by a degenerate year, and a degenerate composite CRAVES NOISE.
+This is very likely the true cause of the "noise optimum drifts downward over time" finding logged
+earlier today (train wants N25-32, 2026 wants N13-19). I attributed it to "the composite sharpens as
+history accrues". The honest version is narrower~ the composite is GARBAGE IN 2022 BECAUSE THE DB HAD
+NO HISTORY YET, and that is a data-warmup artefact, not a property of the sport.
+CONSEQUENCE~ do NOT select noise (or any dispersion parameter) on a train set that includes 2022.
+It will always overshoot. Prefer train = 2023-24.
+STILL UNRESOLVED~ whether any real drift remains after dropping 2022. Do not claim one until tested.
