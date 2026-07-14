@@ -1781,3 +1781,55 @@ rose, straight through NOISE 24, in BOTH train and test. This harness is feature
 equipment prior) so its noise optimum does NOT transfer -- but it hints the live noise may have been
 tuned on win/MAE and left the TOP-3/5/10 markets UNDER-DISPERSED, which is precisely where most of the
 betting volume sits. Next~ per-market noise sweep on the FULL live model.
+
+### PER-MARKET NOISE SWEEP ON THE LIVE MODEL -> NO CHANGE; live noise 16 is correctly placed (2026-07-14)
+Follow-up to the spin-off lead from the per-driver-variance rejection above ("place markets look
+UNDER-dispersed; every one improved monotonically as noise rose"). That lead is now DEAD. It was an
+artefact. Two things were missing from the reduced harness and both mattered~
+  (1) DNF. Live runRaceSim does `dnf = Math.random() < dnfRate` and sorts DNFs to the bottom.
+      Cup Medium dnfRate = 0.15 -- a 15 pct per-driver knockout the reduced harness did not have AT ALL.
+      That is a large, speed-uncorrelated source of bottom-tail mass. Uniform noise was proxying for it.
+  (2) ERA POOLING. Train (2022-24) and test (2025-26) were being read as one regime. They are not.
+
+Re-ran with DNF wired in (mirrors live~ score = comp + gauss*noise, dnf sorted last), dnfRate swept
+0 / .05 / .15 / .25, noise 10..36, and the test set SPLIT BY SEASON. Cup, 107 races, NSIM 1500.
+
+HEADLINE~ THE NOISE OPTIMUM DRIFTS DOWNWARD OVER TIME. It is not a constant.
+  argmin noise, dnfRate .15 (live)
+  market   TRAIN(n71)   2025(n24)   2026(n12)
+  win        N32          N19         N13
+  t3         N25          N25         N16
+  t5         N25          N25         N16
+  t10        N25          N32         N19
+Tuning noise on TRAIN would have set it at 25-32. The CURRENT season wants 13-19. Train-selected noise
+is systematically TOO HIGH, and the older the training data the worse the overshoot.
+MECHANISM (hypothesis)~ the composite SHARPENS as history accumulates -- every driver has more prior
+in-group races, so the neutral-50 shrink fill (conf = min(1, n/4)) bites less and the speed score
+separates more. A sharper composite needs LESS noise. Early seasons are blurry and want more.
+
+CONSEQUENCE FOR THE LIVE SETTING~ Cup Medium noise = 16 sits essentially ON the 2026 optimum for t3 and
+t5 (both N16), one notch under t10 (N19), one notch over win (N13). It is well placed. DO NOT RETUNE.
+The "place markets are under-dispersed" story was TRAIN leaking its thin-history noise appetite into a
+pooled average. On 2026 alone the place markets want 16, which is exactly what we already run.
+
+REAL FINDING THAT SURVIVES -- 2026 favGap is strongly NEGATIVE~
+  favGap (+ = model OVERconfident on the favourite), dnfRate .15
+  N     TRAIN   2025    2026
+  13    13.7    10.5    -14.3
+  16     8.6     5.9    -19.8   <- live setting
+  19     5.9     2.5    -23.9
+  25     2.3    -6.5    -29.7
+In 2026 the top-projected driver WINS FAR MORE OFTEN than the sim says he will, and raising noise makes
+it worse. Corroborates the independently-logged pre-board finding (favGap -9). Chalk is live in 2026 and
+the sim is pushing probability into the tail that does not belong there -- which is precisely WHY
+pre-board longshots keep looking tempting and keep losing (Berry, twice). This REINFORCES the existing
+operator rule~ do not take a 2-3 pct longshot off a pre board.
+
+CAVEATS~ 2026 is only n=12 races -- the drift is directionally consistent across all four markets and
+all four dnfRates, but the 2026 LEVEL is not precise. Harness is DEFAULT oval weights, no practice /
+equipment prior, so absolute Brier is not comparable to the live sim. Do NOT port a noise number from
+this table. The DIRECTION (optimum falls as history accrues) is the result; the levels are not.
+
+NEXT (unresolved)~ if the noise optimum really is a function of composite sharpness, noise should scale
+with mean driver confidence rather than being a fixed preset. Do not build this on n=12. Revisit at
+~25 races of 2026.
