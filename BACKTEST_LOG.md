@@ -2062,3 +2062,62 @@ startPos .15). SMALL SAMPLE -- read every number below with that in mind.
    at ~30 SS races. DO NOT tune to it.
 
 STILL UNTESTED~ ROAD COURSE has never been in a harness either. Same gap.
+
+### ROAD COURSE HARNESS -- FIRST EVER. ROAD IS WHERE THE MODEL IS STRONGEST. (2026-07-14)
+Cup road, 2022 burn-in dropped, train 2023-24 (n=11) / test 2025-26 (n=10). SMALL SAMPLE.
+
+!!! HARNESS LIMITATION, STATE IT EVERY TIME~ PRACTICE PACE IS NOT IN ANY HARNESS. !!!
+practice_sessions distinct tracks by year~ cup 2022~0, 2023~0, 2024~10, 2025~14, 2026~17.
+PRACTICE DATA DOES NOT EXIST BEFORE 2024. It CANNOT go in a train=2023-24 harness. Of 27 cup road
+races, only 4 have practice pace (all 2026). So every harness today is corr + startPos + trackHistory,
+NOT the live model (which carries practice at 0.15 ovals / 0.25 road).
+NOTE ON THE NAME~ the weight key is still `longRunPace` but it is fed by practice_sessions.overall_avg
+-- i.e. PRACTICE PACE across all laps. The key name is a STALE MISNOMER. (srpTime = late_run_avg is
+still wired but its weight is 0.00 everywhere -- dead code.)
+MITIGATION~ the live model fills a missing practice value with neutral-50 and KEEPS the weight; the
+harness DROPS the weight and renormalises. The renormalisation re-audit (logged above) proves those two
+are DISPERSION-EQUIVALENT once noise is re-tuned. So the harness is a fair proxy for pre-2024 races.
+For 2025-26 test races that DO have practice, it is NOT the live model. Treat test numbers accordingly.
+
+1) THE CAUTION-PRESET AUTO-LOGIC IS EXCELLENT. Independently verified, all four groups~
+   group           avgCautions  preset -> live noise      harness optimum
+   Road Course        4.8       Low    -> 10              10       EXACT
+   Superspeedway      7.1       Medium -> 16 x3.0 = 48    40-48    EXACT
+   Intermediate       8.4       Medium -> 16              16       matches
+   Short & Flat       6.9       Medium -> 16              16       matches
+   Every group lands on its measured optimum. NO CHANGES. Do not touch the caution presets.
+
+2) ROAD IS THE MODEL`S STRONGEST GROUP BY A MILE. Test set, noise 10 (live)~
+                        win     t3     t5      t10
+   UNIFORM (no model)   25.85   73.3   115.1   194.9
+   road model @ N10     12.80   50.8    83.6   154.2
+   improvement          50.5%   30.7%   27.4%   20.9%
+   Compare SUPERSPEEDWAY, same measurement~ 2.6% / 0.7% / 1.9% / 2.9%.
+
+   >>> STAKING HIERARCHY (the actionable output of both harnesses) <<<
+   ROAD COURSE      model edge is HUGE      -- trust the sim, size up
+   INTERMEDIATE     model edge is REAL      -- normal sizing
+   SHORT & FLAT     model edge is REAL      -- normal sizing
+   SUPERSPEEDWAY    model edge is ~NOTHING  -- do not size on model edge; line-shop (mev) only
+
+3) TRAIN AND TEST WANT OPPOSITE NOISE AT ROAD -- AND THE CAUSE HAS A NAME~ SHANE VAN GISBERGEN.
+   noise   TRAIN win   TEST win
+   10      30.98       12.80    <- test LOVES low noise
+   25      25.56       17.35
+   40      25.00       20.84    <- train LOVES high noise
+   Perfect inversion. The model picks SVG as favourite in 8 of the 10 test road races and he WON 6
+   (Mexico, Chicago, Sonoma, Watkins Glen, Charlotte Roval 2025; Watkins Glen 2026). Train (2023-24)
+   had no dominant road ace -- Reddick was favourite and converted once -- so a blurry field wanted
+   noise. TRAIN-SELECTING ROAD NOISE ON 2023-24 WOULD PICK 40 AND COST 8 BRIER POINTS ON TEST.
+   The live setting (Low/10, from 4.8 avg cautions) is right for the RIGHT REASON~ road courses
+   genuinely have few cautions and low pack randomness. It is not luck that it matches.
+   CAUTION~ the test-set brilliance is ONE DRIVER. If SVG regresses or leaves, road win Brier will
+   deteriorate sharply. Do not read 12.80 as a durable property of the model.
+
+4) startPos AT ROAD~ model-free Pearson r(start, finish) = 0.448 on 794 obs 2023-26. The live comment
+   cites r=0.416 -- CONFIRMED, and it has if anything strengthened. The startPos weight sweep was
+   UNINFORMATIVE because train-selection picks N40 for every weight (see 3). Cannot resolve the road
+   startPos weight until there is a train set that is not SVG-inverted. LEAVE AT 0.15.
+
+STILL UNTESTED~ practice pace, in any harness, at any track type. Blocked on data (starts 2024).
+Earliest a practice-inclusive harness is possible~ train 2024-25 / test 2026. Thin but doable.
