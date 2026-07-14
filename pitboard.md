@@ -198,7 +198,7 @@ const DEFAULT_WEIGHTS = {         // used for ovals — sums to 1.00
   shortRunPace: 0.00,  // FOLDED OUT — redundant with longRunPace
   startPos:     0.33,  // qualifying starting position — confirmed optimal for top-N markets
   tireFalloff:  0.00,  // DROPPED (was 0.05). Falloff is noisy dead weight (SVG Chicagoland case);
-  raceCraft:    0.02,  // quality-pass % (~redundant with rating)
+  raceCraft:    0.00,  // CUT 2026-07-12 (75602460) - last survivor; ~97% corr w/ rating, already 0 on road+SS. Weights now sum 0.98; buildSpeedScores renormalises so RATIOS are unchanged.
   trackHistory: 0.15,  // specific-track history (trackAvgRating), shrunk by nTrackRaces (was 0.10)
 }
 // corrHistory internal blend: rawC = rs (100% normalized driver_rating).
@@ -343,6 +343,28 @@ Every current weight was tuned this way and validated out-of-sample on 29 (2025+
     19.4% (was Love 26.3% / Hill 16.3%), matching FanDuel Hill +260 / Love +500. TODO:
     backtest win-conversion on Cup + Truck SS before extending it there.
   - Auto-sets DNF preset High, caution Medium.
+
+### PRE-RACE SIM STANDARD - no grid loaded (2026-07-12, backtested)
+Run it STOCK. Change nothing. With no qualifying, startPos is null -> neutral-filled 50 for everyone ->
+a CONSTANT, so it cannot mislead the ranking; it only compresses the spread, and that is APPROPRIATE
+(you know less pre-quali, the board SHOULD be flatter). Keeping startPos at 0.33 beat both the rain-out
+toggle and dropping it, on every placement market in both splits (BACKTEST_LOG 2026-07-12).
+**Do NOT use the rain-out toggle pre-race.** It exists for a DIFFERENT failure: a grid that EXISTS but
+is a draw/metric (noise the model would read as speed). No grid = absent input; rain-out grid = MIS-
+LEADING input. Using the toggle pre-race sharpens a board that has less information -- backwards.
+LIVE CAVEAT: the pre board runs UNDER-confident on the win market in the current era (favGap -9). You
+will rarely find value ON favourites pre-race (expected), and longshot WIN flags on a pre board deserve
+extra scepticism -- a flat board inflates tails (Atlanta: Berry +7500 / Stenhouse +5500 both flagged,
+finished P25/P23).
+
+### Neutral-fill is LOAD-BEARING - do not 'fix' it (2026-07-12, backtested + rejected)
+When an input has no coverage the sim fills it with a neutral 50 (conf = min(1, n/4)). This looks like
+dead weight diluting the model. It is NOT: it is an accidental regulariser that flattens the model's
+favourite OVERCONFIDENCE. Renormalising the weight away from a zero-coverage input is WORSE on every
+market in both splits, monotonically. Applies to trackHistory at debut tracks (North Wilkesboro has
+ZERO cup races - only trucks) and to startPos on a pre-race board. NOTE this does NOT contradict the
+equipment prior (#118), which replaced corr's neutral fill with REAL INFORMATION (car pools). Adding
+information helps; deleting shrinkage hurts.
 
 ### Do NOT re-test these (already run, no benefit — numbers in Archive B)
 Momentum / recent-form trend; similarity-weighted history (keep trait-similarity only for
