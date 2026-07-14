@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
+import { getExhibitionRaceIds, excludeExhibition } from '../lib/exhibitionGuard'
 
 const SERIES_COLOR = { cup: 'var(--series-cup)', oreilly: 'var(--series-oreilly)', xfinity: 'var(--series-oreilly)', trucks: 'var(--series-trucks)' }
 const SERIES_OPTIONS = [
@@ -665,15 +666,15 @@ useEffect(() => {
   const tracks = [...new Set([...(cardDriver.rawRaces||[]).map(r=>r.track_name), (config && config.track_name)].filter(Boolean))]
   const tn = tracks[0] || (config && config.track_name)
   if (!tracks.length || !compareDrivers.length) { setCompareHistories({}); return }
-  Promise.all(compareDrivers.map(cd =>
-    supabase.from('loop_data')
+  getExhibitionRaceIds().then(__exIds => Promise.all(compareDrivers.map(cd =>
+    excludeExhibition(supabase.from('loop_data')
       .select('year, race_number, race_id, track_name, finish_position, start_position, avg_position, driver_rating, quality_passes, pass_diff, laps_led, pct_laps_led, pct_top15_laps, fastest_laps, stage1_finish, stage2_finish')
       .eq('driver_name', cd.driver)
       .in('track_name', tracks)
-      .eq('series', series)
+      .eq('series', series), __exIds)
       .order('year', { ascending: true })
       .then(({ data }) => ({ driver: cd.driver, data: data || [] }))
-  )).then(results => {
+  ))).then(results => {
     const m = {}
     results.forEach(r => { m[r.driver] = r.data.map(function(row){ var fin=parseInt(row.finish_position)||0; var st=parseInt(row.start_position)||0; var fl=parseFloat(row.fastest_laps)||0; var ll=parseFloat(row.laps_led)||0; return Object.assign({},row,{dk_pts:dkFinishPts(fin)+(st-fin)+(fl*0.45)+(ll*0.25)}); }) })
     supabase.from('races').select('id, track_name, race_date').in('track_name', tracks).eq('series', series).then(function(rRes){var racesByKey={};(rRes.data||[]).forEach(function(r){var yr=r.race_date?new Date(r.race_date).getFullYear():null;var k=r.track_name+'|'+yr;if(!racesByKey[k])racesByKey[k]=[];racesByKey[k].push(r)});var occMap={};Object.keys(racesByKey).forEach(function(k){var sorted=racesByKey[k].slice().sort(function(a,b){return a.race_date<b.race_date?-1:1});sorted.forEach(function(r,i){occMap[r.id]=i+1})});Object.keys(m).forEach(function(driver){m[driver]=m[driver].map(function(row){return Object.assign({},row,{_occ:occMap[row.race_id]||1})})});setCompareHistories(m)})
@@ -724,10 +725,11 @@ if (cancelled) return
 entryMapRef.current = entryMap
 setHasEntryList(!!entryMap)
 
-const { data: trackData, error: trackErr } = await supabase
+const __exIds = await getExhibitionRaceIds()
+const { data: trackData, error: trackErr } = await excludeExhibition(supabase
 .from('loop_data')
 .select('driver_name, year, race_number, finish_position, start_position, avg_position, driver_rating, quality_passes, pass_diff, laps_led, pct_laps_led, pct_top15_laps, fastest_laps, stage1_finish, stage2_finish, track_name')
-.eq('track_name', cfg.track_name).eq('series', s).in('year', cfg.track_years)
+.eq('track_name', cfg.track_name).eq('series', s).in('year', cfg.track_years), __exIds)
 if (trackErr) throw trackErr
 if (cancelled) return
 setMainRows(groupByDriver(trackData || [], entryMap, cfg.track_years, null))
@@ -740,10 +742,10 @@ if (cancelled) return
 setCorrNames(corrNameList)
 
 if (corrNameList.length) {
-const { data: cd, error: corrErr } = await supabase
+const { data: cd, error: corrErr } = await excludeExhibition(supabase
 .from('loop_data')
 .select('driver_name, year, track_name, race_id, finish_position, start_position, avg_position, driver_rating, quality_passes, pass_diff, laps_led, pct_laps_led, pct_top15_laps, fastest_laps, stage1_finish, stage2_finish')
-.in('track_name', corrNameList).eq('series', s)
+.in('track_name', corrNameList).eq('series', s), __exIds)
 if (corrErr) throw corrErr
 if (cancelled) return
 
