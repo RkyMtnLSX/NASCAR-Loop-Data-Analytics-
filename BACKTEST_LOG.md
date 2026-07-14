@@ -1570,3 +1570,74 @@ burden of proof is asymmetric, which is why it ships without the out-of-sample s
 killed the lottery / per-driver-DNF / form-slope challengers. Re-open only if cup road practice ever
 accrues enough sessions to run the real sweep.
 
+### NEUTRAL-FILL RENORMALISATION -> REJECTED; the dead constant is LOAD-BEARING (2026-07-12)
+Trigger: North Wilkesboro. Cup has ZERO races there (only trucks 2023-25 -- Cup runs the non-points
+All-Star, never loaded), so trackHistory conf = min(1, nTrackRaces/4) = 0 for the ENTIRE field and 15
+pct of the composite becomes a CONSTANT 50. Hypothesis (mine): a constant cannot rank anyone but it
+COMPRESSES the composite spread 15 pct, and against a FIXED caution-noise term a narrower spread means
+noise dominates more -> the board prices flatter than it should. Proposed fix: when an input has no
+coverage, redistribute its weight across the inputs that DO have data instead of filling with 50.
+HARNESS: 107 cup races, DEFAULT_WEIGHTS tracks only (Intermediate 65 + Short & Flat 42 -- road courses
+EXCLUDED because ROAD_COURSE_WEIGHTS already has trackHistory 0.00, so the effect cannot exist there;
+superspeedways excluded, different weight set). Leak-free (history from PRIOR races only by race_date,
+age weights 1.3/1.0/.75/.55/.4), reduced model (no practice: corr .35 / startPos .33 / track .15),
+MC 2000 sims, noise 16. Train 2022-24 (71) / test 2025-26 (36). Scored on the BETTING MARKETS.
+  ARM                          TRAIN win/t3/t5/t10 + favGap        TEST win/t3/t5/t10 + favGap
+  A baseline (shrink to 50)    25.84 / 68.6 / 103.5 / 167.0  +12.5   22.71 / 61.3 / 91.8 / 158.8  +2.2
+  B renorm trackHistory        26.03 / 69.4 / 105.3 / 171.0  +14.5   22.79 / 61.5 / 92.0 / 159.7  +2.7
+  C renorm corr AND track      26.25 / 70.2 / 106.8 / 174.3  +15.2   22.79 / 61.5 / 92.1 / 159.9  +2.9
+VERDICT: REJECTED. Renormalisation is WORSE on EVERY market in BOTH splits, and degrades MONOTONICALLY
+the more you renormalise. Ship nothing.
+MECHANISM (the finding worth keeping): the shrink-to-50 is an accidental REGULARISER. The model is
+OVERCONFIDENT at the top (train: favourite predicted 22.4 pct, favourites actually win 9.9 pct). The
+neutral fill compresses the spread, which FLATTENS the favourites and pulls that overconfidence back
+down. Remove it and favourites sharpen -- favPred climbs 22.4 -> 24.3 -> 25.1 and the gap WIDENS. The
+spread compression was diagnosed correctly; the SIGN was backwards. It is not costing calibration, it
+is BUYING it. Same lesson as the de-meaned car pools: 'contamination is doing predictive work'.
+CONSEQUENCE: North Wilkesboro (and every future debut track) runs on STOCK weights. A flat board at a
+track nobody has history at is CORRECT, not a bug. Do not 'fix' it.
+NOTE the equipment prior (#118) fixed the SAME neutral-50 fill for corrHistory (car-pooled fill, thin-
+driver corr .433 -> .518). It does NOT follow that trackHistory wants the same treatment -- corr's fill
+was replaced with REAL INFORMATION (car pools); this test replaced trackHistory's fill with NOTHING
+(reweighting). Substituting information helps; deleting shrinkage hurts.
+
+### PRE-RACE STANDARD (no grid loaded) -> LEAVE startPos AT FULL WEIGHT; do NOT use the rain-out toggle (2026-07-12)
+Operator question: what should a PRE sim do when qualifying has not run? With no grid, startPos is null
+for everyone -> neutral-filled to 50 -> 33 pct of the oval model becomes a constant. Same mechanism as
+above but TWICE the size. Options: keep 0.33 (status quo), rain-out toggle (0.12, redistribute 0.21),
+or drop startPos entirely. Because the fill is identical for every driver, the RANKING is the same in
+all three arms -- only the SPREAD (i.e. the confidence) changes. Pure calibration question.
+Same harness/splits as above:
+  ARM                       TRAIN win/t3/t5/t10 + favGap        TEST win/t3/t5/t10 + favGap
+  A keep startPos 0.33      26.03 / 68.5 / 100.6 / 161.4  +7.3    23.57 / 61.9 / 93.4 / 152.4  -9.0
+  B rain-out (0.12)         26.47 / 70.0 / 103.0 / 166.8 +12.3    23.54 / 63.4 / 96.6 / 159.7  -2.3
+  C drop startPos           26.80 / 71.3 / 105.1 / 170.9 +14.9    23.65 / 65.0 / 99.4 / 164.8  +1.0
+VERDICT: A. Keep startPos at full weight and let it neutral-fill. A wins EVERY placement market in BOTH
+splits; win Brier is a dead heat (23.57 vs 23.54). STANDARD: a pre-race sim with no grid needs NO
+setting changes -- run it stock.
+WHY THE RAIN-OUT TOGGLE IS THE WRONG TOOL (the distinction that matters):
+  - NO GRID (pre-quali): startPos is ABSENT -> constant 50 -> cannot mislead the ranking, only
+    compresses the spread. That compression is APPROPRIATE: you genuinely know less before qualifying,
+    so the board SHOULD be flatter.
+  - RAIN-OUT GRID: startPos is PRESENT but is NOISE (draw/metric, not speed) -> it actively CORRUPTS
+    the ranking because the model reads a lottery draw as speed. That is what the toggle is for.
+  Using the toggle pre-race SHARPENS a board that has LESS information. Exactly backwards.
+CAVEAT (live consequence): in the 2025-26 era the pre board runs UNDER-confident on the win market
+(favGap -9.0: predicts favourites win 18.8 pct, they actually win 27.8 pct -- note favReal is 7.0 pct in
+2022-24, the same parity-era split the lottery test found). Safe direction (you under-bet favourites,
+never over-bet them) but two live consequences: (1) you will rarely find value ON favourites pre-race,
+their fair line comes out too long and ev goes negative -- expected, not a bug; (2) BE SKEPTICAL OF
+LONGSHOT WIN FLAGS ON A PRE BOARD -- a flat board inflates tail probabilities and can manufacture fake
++EV at long prices. Live example, Atlanta post: Josh Berry +7500 and Stenhouse +5500 both flagged to
+WIN, finished P25/P23. The MINP tail guard catches the worst of it; pre-race win longshots still
+deserve an extra squint.
+
+### RACECRAFT -> 0 ON OVALS, the last survivor (2026-07-12, commit `75602460`)
+DEFAULT_WEIGHTS still carried raceCraft 0.02 -- pure inertia. raceCraft is ~97 pct correlated with
+driver_rating, sits on the permanent do-not-re-test list, and was already cut to 0 on road (2026-07-07)
+and superspeedways (2026-07-09). Now 0 on ovals too. buildSpeedScores divides by wTotal, so the four
+survivors renormalise over 0.98 and their RATIOS are UNCHANGED -- this is a ratio-preserving removal,
+not a rebalance. shortRunPace / tireFalloff / raceCraft are now 0 in EVERY weight set, so all three
+nudge controls were removed from the Sim Center weights panel (they could only mislead the operator).
+ACTIVE OVAL WEIGHTS: corrHistory .35 / longRunPace .15 / startPos .33 / trackHistory .15.
+
