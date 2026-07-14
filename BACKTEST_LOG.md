@@ -1833,3 +1833,49 @@ this table. The DIRECTION (optimum falls as history accrues) is the result; the 
 NEXT (unresolved)~ if the noise optimum really is a function of composite sharpness, noise should scale
 with mean driver confidence rather than being a fixed preset. Do not build this on n=12. Revisit at
 ~25 races of 2026.
+
+### DOCTRINE~ EXHIBITION / ALL-STAR RACES ARE EXCLUDED FROM THE MODEL (2026-07-14) -- SHIPPED
+Operator~ "Dover was run as an all star race this year with a reduced field size so its data is not
+something I want contaminating everything else since its its own animal." Correct, and now enforced in
+code rather than by memory.
+
+WHY (same argument that kept the North Wilkesboro All-Star OUT)~
+  1. REDUCED FIELD MECHANICALLY INFLATES driver_rating. All-Star fields are ~20 cars vs ~38. The rating
+     formula has percentile components (pct_top15_laps and friends) measured AGAINST THE FIELD. In a
+     20-car field the "top 15 pct of laps" is a far larger share of the grid, so EVERY driver`s rating
+     drifts up. It is not a real speed signal, it is a denominator artefact.
+  2. AVAILABILITY BIAS. The entry list is invitational (winners / past champs), so the sample is not a
+     random draw from the field we are actually simulating.
+  3. UNFALSIFIABLE. Non-points, different format, different tyre/aero packages. There is no clean way to
+     validate whether it helped, so it cannot earn its way in.
+
+HOW IT WAS FOUND~ operator said "there`s been 20 Cup races this year"; the harness reported n=12 for
+2026. The reconciliation~ 12 ovals + 4 superspeedway + 4 road = 20 POINTS races, +1 extra row = Dover.
+The oval harness was correct and complete all along. But the audit turned up two real defects~
+  (a) races id 399 (Dover 2026) was tagged correlation_group = Intermediate with 0 loop_data rows.
+      Inert TODAY only because nobody has loaded its loop data yet. The moment anyone did, a 20-car
+      All-Star field would have poured straight into the LARGEST correlation group we have.
+  (b) race_number 11 was used TWICE in 2026 Cup (Texas id 349 AND Dover id 399).
+
+THE TRAP -- READ THIS BEFORE "FIXING" IT~ flagging races.exhibition ALONE DOES NOT PROTECT THE MODEL.
+loop_data has NO exhibition column, and BOTH the sim and the LoopData page read loop_data by
+track_name + series WITHOUT ever joining races. A races-level flag is invisible to them. The guard must
+resolve races.exhibition -> a race_id list and exclude on loop_data.race_id.
+
+SHIPPED~
+  SQL (operator ran)~ ALTER TABLE races ADD COLUMN exhibition boolean NOT NULL DEFAULT false;
+                      UPDATE races SET exhibition = true, race_number = 0 WHERE id = 399;
+                      (race_number 0 is now the convention for non-points; it also clears the R11 dup)
+  src/lib/exhibitionGuard.js  NEW. getExhibitionRaceIds() (cached) + excludeExhibition(query, ids).
+                              SINGLE SOURCE OF TRUTH. Do not duplicate this logic.
+  SimulationCenter.js  guard applied to ALL FOUR contamination paths~ corrHistory pool, trackHistory
+                       pool, the caution-preset average, and the race-length/DNF estimate.
+  LoopData.js          guard applied to the track table, the correlation-group averages, and the
+                       driver-compare histories.
+
+NET EFFECT~ exhibition races can still be LOADED and VIEWED, but can never feed the model or the
+aggregate averages. Adding a future All-Star is now a one-row UPDATE, not a code change.
+
+STANDING RULE~ any non-points / reduced-field / invitational event gets exhibition = true AT LOAD TIME.
+This includes the Clash, the All-Star Race, and any future exhibition. Do NOT load the North Wilkesboro
+Cup All-Star as if it were a points race.
