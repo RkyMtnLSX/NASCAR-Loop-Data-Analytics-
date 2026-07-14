@@ -1702,3 +1702,31 @@ practice, then bet off the POST board. You surrender some CLV; that is the CORRE
 pre-board tail probability is not reliable enough to be worth the closing-line value.
 Same category as the SS staking doctrine: an operator selection/staking rule, NOT a model change.
 
+### BRISTOL OUT OF SHORT & FLAT -> NO CONTAMINATION; leave it (2026-07-12)
+Operator: 'toss Bristol out of this track group, really dont think the correlation is there' (24-30 deg
+CONCRETE vs North Wilkesboro's 14 deg worn asphalt -- physically a different animal). NOTE this is a
+DIFFERENT question from the 2026-07-08 test, which asked 'does moving Bristol INTO Short & Flat help
+BRISTOL races?' (yes, +0.039 Spearman). This asks: does Bristol's presence CONTAMINATE THE OTHER short
+tracks -- i.e. is it poisoning the pool North Wilkesboro will draw on? Never tested.
+Same 107-race leak-free harness. Three schemes, scored by SUBSET:
+  SHORT & FLAT excluding Bristol (n=35)  <- the North Wilkesboro question
+    A Bristol IN (current)      win 25.30  t3 65.0  t5 95.4  t10 155.7
+    B Bristol isolated          win 25.20  t3 65.0  t5 95.7  t10 156.2
+    C Bristol -> Intermediate   win 25.20  t3 65.0  t5 95.7  t10 156.2
+  BRISTOL only (n=7)
+    A 21.90 / 63.1 / 92.1 / 159.3   B 22.02 / 63.4 / 95.6 / 160.0   C 20.85 / 63.8 / 91.9 / 161.6
+  INTERMEDIATE (n=65)
+    A 24.78 / 67.0 / 102.5 / 169.5   B same   C 24.74 / 66.9 / 102.1 / 168.9
+VERDICT: LEAVE BRISTOL WHERE IT IS. Removing it makes the win market 0.1 BETTER and t5/t10 0.3-0.5
+WORSE, with t3 identical -- ~0.3 pct relative, MIXED IN DIRECTION. That is noise, not contamination.
+Bristol-only (n=7) is far too thin to read; do not over-interpret its win-Brier flicker.
+WHY THE LEVER DOES NOT EXIST (the reusable insight): corrHistory pools DRIVER_RATING, and driver_rating
+is overwhelmingly 'WHO IS GOOD'. Good short-track drivers are good at Bristol AND Martinsville AND
+Richmond. The track-SPECIFIC component -- the part where banking and surface actually matter -- is small
+next to the general-skill component that transfers regardless. So shuffling which tracks are in the pool
+barely moves the ratings, because the ratings are mostly measuring the DRIVER, not the TRACK. Physical
+dissimilarity between tracks is REAL and still does not matter here. Third independent confirmation of
+'every single-track reassignment is noise (+-0.007)' (2026-07-08). The assignment lever stays CLOSED.
+North Wilkesboro's board is not limited by group composition -- it is limited by cup never having raced
+there.
+
