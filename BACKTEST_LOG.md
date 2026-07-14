@@ -2135,8 +2135,10 @@ lower lap time = better. Missing -> neutral 50 (matches live).
      start position   0.1951  0.0277   7.04    SIGNIFICANT
      track history    0.0474  0.0478   0.99    not significant
    partial r (practice | corr, start, track) = 0.104. It SURVIVES controlling for everything else.
-   THIS CONTRADICTS the older "practice edge is only 0.0003 / practice does nothing" note. That note
-   should be treated as WRONG. Practice pace earns its place.
+   MISATTRIBUTION CORRECTED (see below)~ I originally wrote that this "contradicts the older practice
+   edge is only 0.0003 note". IT DOES NOT. The 0.0003 figure is NOT a practice-edge measurement at all.
+   It is the SLEEPER RESIDUAL partial correlation from #114. Different quantity entirely. See the
+   correction entry at the end of this log.
    Weight sweep (noise re-tuned, train 2024-25 / test 2026, n=12 test -- underpowered)~ raising the
    weight to 0.30 or 0.50 is CLEARLY WORSE on every market. 0.15 is right. DO NOT RAISE IT.
    Standalone predictive power (rank vs finish, 47 races)~ practice r=0.278, corr r=0.473,
@@ -2179,9 +2181,9 @@ POSITIVE = practice HELPS. Brier x1000.
   t5       +0.630     0.875    0.72   [-1.08, 2.35]     no effect detected
   t10      +2.937     1.013    2.90   [ 0.95, 4.92]     HELPS  (~1.8 pct of a ~160 baseline)
 
->>> THE OLD "practice edge is only 0.0003" NOTE WAS ESSENTIALLY RIGHT -- FOR THE WIN MARKET. <<<
-I retract the retraction. Whoever measured 0.0003 was measuring WIN, and on WIN practice does nothing
-(-0.21 +/- 0.25 -- indistinguishable from zero, if anything negative).
+ON WIN, PRACTICE DOES NOTHING~ -0.21 +/- 0.25, indistinguishable from zero, if anything negative.
+(I originally tied this to the "0.0003" note. That was a MISATTRIBUTION -- see the correction at the
+end of this log. 0.0003 is the SLEEPER RESIDUAL from #114, not a practice-edge number.)
 
 THE RECONCILIATION (both things are true)~
   - The regression signal IS real~ practice survives controlling for corr + startPos + trackHistory
@@ -2252,3 +2254,31 @@ smaller effective weight, and the weight curve is FLAT there. No change. Do not 
 
 STATUS~ the operator`s observation is the most promising UNTESTED idea we have. It is blocked purely on
 sample size, and the fix is a DATA LOAD, not a model change.
+
+### CORRECTION~ WHAT "0.0003" ACTUALLY IS (2026-07-14)
+I misattributed this number TWICE today and then built a "retraction" on top of the misattribution.
+Correcting the record because Fable reads this log.
+
+0.0003 IS NOT A PRACTICE-EDGE MEASUREMENT.
+It is the SLEEPER RESIDUAL partial correlation from #114 (PRACTICE-EDGE AT SCALE, closed 2026-07-09)~
+  partial corr( sleeper edge , model residual ), both sides residualised on corr/start/practice = -0.0003
+MEANING~ the sleeper effect has NO RESIDUAL ALPHA. Not "practice is worthless".
+
+THE SLEEPER EFFECT ITSELF IS REAL AND WAS NEVER IN DOUBT. Re-confirmed today on the current data~
+  SLEEPERS (started outside top-10, practiced top-5)  n=117  P22.3 -> P16.4   GAINED +5.9
+  everyone else                                       n=1259 P18.3 -> P18.9   GAINED -0.6
+  (#114 measured +5.1 vs -0.5 on its sample. Consistent.)
+CASE~ Ross Chastain, Charlotte 2025 (Coca-Cola 600). Practice P1 by 0.177s -- biggest margin in the
+field. Started P40 (LAST). WON. Gained 39 places. He IS the sleeper term, textbook.
+
+WHY THERE IS STILL NOTHING TO SHIP~ practice pace and startPos are BOTH already model inputs, so
+"fast in practice + deep on the grid" ALREADY projects forward in the composite. The model prices the
+sleeper. The -0.0003 residual says there is nothing LEFT OVER to harvest. #114 was closed correctly.
+
+MY ERROR, FOR THE RECORD~ I first measured sleepers by ABSOLUTE FINISH (avg P18.3) and concluded the
+effect ran BACKWARDS. That was the wrong measurement -- cars starting deeper finish deeper, trivially.
+The correct measurement is POSITIONS GAINED. Operator caught it. ALWAYS measure sleeper effects as
+gain-vs-grid, never as absolute finish.
+
+THE PRACTICE FINDING FROM TODAY STANDS ON ITS OWN MEASUREMENT (it never depended on the 0.0003 note)~
+  practice pace~ NOTHING on win (-0.21 +/- 0.25). +2.9 Brier on top-10 (t=2.90). Keep 0.15, do not raise.
