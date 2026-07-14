@@ -589,12 +589,24 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
 
         // Auto-apply track-type weights
         setWeights(isSuperspeedway(cfg.track_name) ? (s === 'oreilly' ? ONEILLY_SUPERSPEEDWAY_WEIGHTS : SUPERSPEEDWAY_WEIGHTS) : isRoadCourse(cfg.track_name) ? (s === 'trucks' ? TRUCK_ROAD_WEIGHTS : ROAD_COURSE_WEIGHTS) : DEFAULT_WEIGHTS)
+        // EXHIBITION GUARD (2026-07-14). All-Star / non-points races run a REDUCED FIELD (~20 cars).
+        // That mechanically inflates driver_rating -- 'top 15 pct of laps' becomes a far larger share of a
+        // small field -- and the invitational entry list creates availability bias. Such races must NEVER
+        // feed corrHistory, trackHistory, the caution preset, or the race-length/DNF estimate.
+        // loop_data has no exhibition column, and the sim reads it by track_name (NOT via a races join),
+        // so the flag alone would not protect us. Single source of truth = races.exhibition -> race_id list.
+        let __exIds = []
         try {
-          const __cr = await supabase.from('races').select('total_cautions').eq('series', s).eq('track_name', cfg.track_name).not('total_cautions', 'is', null)
+          const __ex = await supabase.from('races').select('id').eq('exhibition', true)
+          __exIds = ((__ex && __ex.data) || []).map(function (r) { return r.id })
+        } catch (e) { __exIds = [] }
+        const __noEx = function (q) { return __exIds.length ? q.not('race_id', 'in', '(' + __exIds.join(',') + ')') : q }
+        try {
+          const __cr = await supabase.from('races').select('total_cautions').eq('series', s).eq('track_name', cfg.track_name).not('total_cautions', 'is', null).eq('exhibition', false)
           const __cs = ((__cr && __cr.data) || []).map(function (x) { return x.total_cautions }).filter(function (v) { return v != null })
           const __ci = __cs.length ? (function () { var a = __cs.reduce(function (p, q) { return p + q }, 0) / __cs.length; return a < 6 ? 0 : a < 11.5 ? 1 : 2 })() : 1
           setCautionPreset(getCautionPresets(s)[__ci])
-          const __dl = await supabase.from('loop_data').select('race_id, laps_completed').eq('series', s).eq('track_name', cfg.track_name)
+          const __dl = await __noEx(supabase.from('loop_data').select('race_id, laps_completed').eq('series', s).eq('track_name', cfg.track_name))
           const __by = {}; (((__dl && __dl.data) || [])).forEach(function (r2) { (__by[r2.race_id] = __by[r2.race_id] || []).push(parseInt(r2.laps_completed) || 0) })
           const __dnfs = Object.keys(__by).map(function (k) { var laps = __by[k]; var mx = Math.max.apply(null, laps.concat([1])); return laps.filter(function (l) { return l < 0.9 * mx }).length / laps.length })
           const __di = __dnfs.length ? (function () { var a = __dnfs.reduce(function (p, q) { return p + q }, 0) / __dnfs.length; return a < 0.10 ? 0 : a < 0.20 ? 1 : 2 })() : (isSuperspeedway(cfg.track_name) ? 2 : 1)
@@ -646,21 +658,21 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
         const __borrowSeries = [...new Set(Object.values(__borrowMap).map(b => b.src))]
         let loopRows = []
         if (corrNames.length) {
-          const { data: ld } = await supabase
+          const { data: ld } = await __noEx(supabase
             .from('loop_data')
             .select('driver_name, finish_position, laps_led, fastest_laps, driver_rating, pct_quality_passes, year, series, car_number')
             .in('track_name', corrNames)
-            .in('series', [...new Set([s, 'cup', ...__borrowSeries])])
+            .in('series', [...new Set([s, 'cup', ...__borrowSeries])]))
           loopRows = ld || []
         }
 
         // Specific track history
         let trackRows = []
-        const { data: trData } = await supabase
+        const { data: trData } = await __noEx(supabase
           .from('loop_data')
           .select('driver_name, finish_position, driver_rating, year')
           .eq('track_name', cfg.track_name)
-          .eq('series', s)
+          .eq('series', s))
         trackRows = trData || []
 
         if (cancelled) return
