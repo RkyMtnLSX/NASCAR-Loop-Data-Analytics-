@@ -2166,3 +2166,40 @@ lower lap time = better. Missing -> neutral 50 (matches live).
 
 STILL UNTESTED~ practice pace in O`Reilly / Trucks (coverage is 1 and 3 tracks respectively -- not
 enough). Practice at road courses (4 races, all 2026). Both blocked on data.
+
+### PRACTICE EDGE -- THE PRECISE NUMBER (amends the entry above, same day 2026-07-14)
+The entry above led with the regression t-stat (4.06) and OVERCLAIMED. Operator asked the right
+question~ "what IS the practice edge if not 0.0003?" Here is the actual measured edge.
+
+PAIRED per-race Brier, practice ON (0.153) vs OFF (0.00), ALL 47 practice races, noise fixed at live 16.
+POSITIVE = practice HELPS. Brier x1000.
+  market   mean gain   SE      t       95% CI            verdict
+  win      -0.213     0.250   -0.85   [-0.70, 0.28]     NO EFFECT (slightly negative)
+  t3       +0.598     0.538    1.11   [-0.46, 1.65]     no effect detected
+  t5       +0.630     0.875    0.72   [-1.08, 2.35]     no effect detected
+  t10      +2.937     1.013    2.90   [ 0.95, 4.92]     HELPS  (~1.8 pct of a ~160 baseline)
+
+>>> THE OLD "practice edge is only 0.0003" NOTE WAS ESSENTIALLY RIGHT -- FOR THE WIN MARKET. <<<
+I retract the retraction. Whoever measured 0.0003 was measuring WIN, and on WIN practice does nothing
+(-0.21 +/- 0.25 -- indistinguishable from zero, if anything negative).
+
+THE RECONCILIATION (both things are true)~
+  - The regression signal IS real~ practice survives controlling for corr + startPos + trackHistory
+    (t=4.06, partial r=0.104, n=1497).
+  - But it converts ALMOST ENTIRELY INTO PLACE-MARKET ACCURACY, not win-market accuracy.
+  - Physically obvious in hindsight~ practice pace tells you WHO HAS A GOOD CAR (who avoids a bad day).
+    It does NOT tell you who WINS. Winning needs the tail; a good car only moves the body.
+
+OPERATOR RULE~ PRACTICE MATTERS FOR TOP-10 (and marginally t3/t5). IT DOES NOT MATTER FOR WIN.
+If you are pricing a win bet, practice pace should not change your mind. If you are pricing a top-10,
+it should. KEEP the 0.15 weight either way~ it costs nothing on win and pays ~1.8 pct on t10.
+DO NOT RAISE IT -- 0.30 and 0.50 are clearly worse on every market.
+
+### CLV TOOL EXISTS AND IS NOT BEING USED (2026-07-14)
+clv_log + the GradeCenter CLV tool were shipped 2026-07-09. Current contents~
+  16 rows TOTAL, all from ONE race (oreilly R21). mean CLV +0.24, SE 0.22, t=1.11.
+  positive CLV on 3 of 16 bets (19 pct).
+n=16 from a single race tells us NOTHING yet. But CLV is the ONLY instrument that measures the REAL
+model (equipment prior, crossover borrows, practice, the actual weights) rather than the stripped-down
+backtest harness. Every harness number in this log is a PROXY. CLV is not.
+ACTION~ run the CLV tool EVERY race week. It is already built. It just needs feeding.
