@@ -111,6 +111,38 @@ const DNF_PRESETS = [
   { label: 'High',   value: 0.25 },
 ]
 
+// EMPIRICAL DNF RATES by series x correlation group (2026-07-14).
+// Measured from loop_data, 2022-2026, exhibition races excluded, DNF = completed < 90 pct of the
+// winner's laps. n is large (390-2405 driver-races per cell) and the Cup cells are stable across
+// eras (cup Intermediate 12.8 -> 12.5, cup Superspeedway 17.8 -> 19.4).
+// Used as the FALLBACK when a track has little or no history of its own -- e.g. North Wilkesboro,
+// where Cup has ZERO races, so the old code fell through to a hard-coded Medium (0.15) against a
+// true short-track rate of 0.081. That is ~2x the real attrition, and it buries every contender's
+// floor. See BACKTEST_LOG.
+const DNF_BY_GROUP = {
+  cup:     { 'Short & Flat Tracks': 0.081, 'Road Course': 0.085, 'Intermediate': 0.127, 'Superspeedway': 0.184 },
+  oreilly: { 'Short & Flat Tracks': 0.134, 'Road Course': 0.159, 'Intermediate': 0.108, 'Superspeedway': 0.220 },
+  trucks:  { 'Short & Flat Tracks': 0.133, 'Road Course': 0.176, 'Intermediate': 0.140, 'Superspeedway': 0.187 },
+}
+const DNF_SERIES_MEAN = { cup: 0.118, oreilly: 0.141, trucks: 0.149 }
+const DNF_FLOOR = 0.03, DNF_CAP = 0.30
+
+// Resolve a CONTINUOUS dnf rate. The old code bucketed the measured rate into Low/Medium/High,
+// which injected up to +/-5 pts of rounding error (cup Superspeedway measures 18.4 pct and was
+// being rounded DOWN to the 15 pct Medium bucket; cup Short & Flat measures 8.1 pct and was
+// rounded DOWN to the 5 pct Low bucket). Buckets are kept only as manual overrides.
+// trackAvg is shrunk toward the group rate by conf = min(1, nTrackRaces / 8).
+function resolveDnfRate(series, groupLabel, trackAvg, nTrackRaces) {
+  const grp = (DNF_BY_GROUP[series] || DNF_BY_GROUP.cup)[groupLabel]
+  const base = (grp != null) ? grp : (DNF_SERIES_MEAN[series] || 0.13)
+  let v = base
+  if (trackAvg != null && isFinite(trackAvg) && nTrackRaces > 0) {
+    const conf = Math.min(1, nTrackRaces / 8)
+    v = trackAvg * conf + base * (1 - conf)
+  }
+  return Math.max(DNF_FLOOR, Math.min(DNF_CAP, v))
+}
+
 function gaussNoise() {
   let u = 0, v = 0
   while (u === 0) u = Math.random()
@@ -609,9 +641,12 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
           const __dl = await __noEx(supabase.from('loop_data').select('race_id, laps_completed').eq('series', s).eq('track_name', cfg.track_name))
           const __by = {}; (((__dl && __dl.data) || [])).forEach(function (r2) { (__by[r2.race_id] = __by[r2.race_id] || []).push(parseInt(r2.laps_completed) || 0) })
           const __dnfs = Object.keys(__by).map(function (k) { var laps = __by[k]; var mx = Math.max.apply(null, laps.concat([1])); return laps.filter(function (l) { return l < 0.9 * mx }).length / laps.length })
-          const __di = __dnfs.length ? (function () { var a = __dnfs.reduce(function (p, q) { return p + q }, 0) / __dnfs.length; return a < 0.10 ? 0 : a < 0.20 ? 1 : 2 })() : (isSuperspeedway(cfg.track_name) ? 2 : 1)
-          setDnfPreset(DNF_PRESETS[__di])
-        } catch (e) { setDnfPreset(isSuperspeedway(cfg.track_name) ? DNF_PRESETS[2] : DNF_PRESETS[1]) }
+          const __tAvg = __dnfs.length ? (__dnfs.reduce(function (p, q) { return p + q }, 0) / __dnfs.length) : null
+          const __rate = resolveDnfRate(s, cfg.correlation_label, __tAvg, __dnfs.length)
+          setDnfPreset({ label: 'Auto', value: __rate, auto: true, nTrack: __dnfs.length })
+        } catch (e) {
+          setDnfPreset({ label: 'Auto', value: resolveDnfRate(s, cfg.correlation_label, null, 0), auto: true, nTrack: 0 })
+        }
 
         const [
           { data: entries },
@@ -1143,14 +1178,23 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
             <div style={{ padding: '12px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 8 }}>
               <div style={labelStyle}>DNF Rate</div>
               <div style={{ display: 'flex', gap: 6 }}>
+                <button style={{
+                  ...presetBtn, background: dnfPreset.auto ? 'var(--accent)' : 'var(--bg-elevated)',
+                  color: dnfPreset.auto ? '#111' : 'var(--text-secondary)',
+                }}>Auto</button>
                 {DNF_PRESETS.map(p => (
                   <button key={p.label} onClick={() => setDnfPreset(p)} style={{
-                    ...presetBtn, background: dnfPreset.value === p.value ? 'var(--accent)' : 'var(--bg-elevated)',
-                    color: dnfPreset.value === p.value ? '#111' : 'var(--text-secondary)',
+                    ...presetBtn, background: (!dnfPreset.auto && dnfPreset.value === p.value) ? 'var(--accent)' : 'var(--bg-elevated)',
+                    color: (!dnfPreset.auto && dnfPreset.value === p.value) ? '#111' : 'var(--text-secondary)',
                   }}>{p.label}</button>
                 ))}
               </div>
-              <div style={hintStyle}>{Math.round(dnfPreset.value * 100)}% DNF probability per car</div>
+              <div style={hintStyle}>
+                {(dnfPreset.value * 100).toFixed(1)}% DNF probability per car
+                {dnfPreset.auto ? (dnfPreset.nTrack > 0
+                  ? ' \u00b7 measured from ' + dnfPreset.nTrack + ' prior race' + (dnfPreset.nTrack === 1 ? '' : 's') + ' at this track'
+                  : ' \u00b7 no track history \u2192 ' + (config.correlation_label || 'group') + ' rate') : ' \u00b7 manual override'}
+              </div>
             </div>
 
             <div style={{ padding: '12px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 8 }}>
