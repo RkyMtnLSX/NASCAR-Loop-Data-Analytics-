@@ -2203,3 +2203,52 @@ n=16 from a single race tells us NOTHING yet. But CLV is the ONLY instrument tha
 model (equipment prior, crossover borrows, practice, the actual weights) rather than the stripped-down
 backtest harness. Every harness number in this log is a PROXY. CLV is not.
 ACTION~ run the CLV tool EVERY race week. It is already built. It just needs feeding.
+
+### PRACTICE DOMINANCE vs THE WIN MARKET -- UNRESOLVED, AND THE BLOCKER IS DATA (2026-07-14)
+Operator~ "I have spotted winners myself simply observing how good a car is in practice."
+That is a real hypothesis and it is NOT refuted by the earlier finding. Here is where it actually stands.
+
+THE DISTINCTION THAT MATTERS~ RANK vs MARGIN. My earlier test ranked drivers by practice pace within
+the race. RANK THROWS AWAY MARGIN. P1-by-0.004s and P1-by-three-tenths get the identical input. The
+operator`s eye is reading DOMINANCE, not rank -- and dominance is exactly the kind of thing that shows
+up in WIN and not in TOP-10, because winning needs the TAIL and a dominant car IS the tail.
+
+LOGISTIC MODELS, run SEPARATELY (rank and margin are collinear -- NEVER put both in one model; I did
+that first and margin came out with the WRONG SIGN, a pure collinearity artefact. Same trap as
+trackHistory. Twice in one day.) n=1366 driver-races, controls~ corr rank + start rank.
+  WIN  (40 events)
+    practice RANK        z = -1.43   not sig     logL -141.1
+    MARGIN, avg pace     z =  0.80   not sig     logL -141.8
+    MARGIN, BEST LAP     z =  1.52   not sig     logL -140.9   <- BEST FIT, CORRECT SIGN
+  TOP-5  (197 events)~ RANK z=-3.59 SIG (best fit). MARGIN pace z=2.54.
+  TOP-10 (392 events)~ RANK z=-3.95 SIG (best fit). MARGIN pace z=3.30.
+
+READ THIS CAREFULLY~ for the PLACE markets, RANK is the right representation and the sim already uses
+it. For WIN, BEST-LAP DOMINANCE leads (right sign, best fit) but does NOT reach significance on 40 win
+events. THAT IS NOT EVIDENCE AGAINST THE HYPOTHESIS. It is NO POWER. Different thing entirely.
+Note it is BEST-LAP margin, not avg-pace margin -- closer to what an eye reads~ "that car has speed
+nobody else has".
+
+POWER CALCULATION -- HOW MUCH DATA DO WE NEED?
+  z scales with sqrt(n). To take z=1.52 to z=2.6 needs (2.6/1.52)^2 = 2.93x the races.
+  47 x 2.93 = ~138 Cup oval races with practice.
+  Currently~ 47 with, 60 MISSING (2022~23, 2023~23, 2024~10, 2025~4). Backfilling all 60 -> 107 races,
+  which projects to z ~ 2.29. CLOSE, PROBABLY STILL SHORT on its own.
+  => BACKFILL THE 60 CUP OVAL RACES, *AND* LOAD O`REILLY + TRUCKS PRACTICE (currently 1 and 3 tracks).
+     The extra series add win events and let us test whether the effect is series-specific.
+  THEN re-run~ WIN ~ best_lap MARGIN + corr + startPos.
+
+REJECTED ALONG THE WAY (10th rejection)~ PRACTICE NORMALIZATION.
+normalizeArr is MIN-MAX, anchored on the single slowest car. Lap times are the most outlier-prone input
+we have (a broken practice run is SECONDS off, not tenths). Measured contamination~
+  mean scale eaten by the gap from P90 to the SLOWEST car~  32.7 pct
+  mean scale separating the FASTEST car from the MEDIAN~    39.6 pct
+  worst~ Indianapolis 2025 -- competitive field spans 0.77s, scale spans 4.4s, slowest car alone eats
+         83 pct of the 0-100 range. The real order is crushed into 17 pct of the scale.
+THE CONTAMINATION IS REAL. IT IS ALSO IMMATERIAL. Harness (noise re-tuned, train 24-25 / test 26)~
+  minmax(LIVE) 21.82 / z-score 21.79 / winsorize p5-p95 22.07 / rank 21.85  (win Brier)
+All within noise on every market. At a 15 pct weight, compressing the practice scale is just a slightly
+smaller effective weight, and the weight curve is FLAT there. No change. Do not retry.
+
+STATUS~ the operator`s observation is the most promising UNTESTED idea we have. It is blocked purely on
+sample size, and the fix is a DATA LOAD, not a model change.
