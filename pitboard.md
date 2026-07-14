@@ -1,7 +1,7 @@
 # PitBoard — Project Handoff Document
 
 > **For incoming models:** Read this entire file before touching any code.
-> Last updated: 2026-07-06
+> Last updated: 2026-07-14
 
 ---
 
@@ -787,6 +787,60 @@ lineup_source rows from qualifying history — only real time trials count. Qual
 backtest (see BACKTEST_LOG 2026-07-11): configured nudges give 46-59% P10-P90 coverage vs
 80% target; recommended config values 9/9/10/9 (oval/short/SS/road), SQL-only change,
 user's call pending.
+
+### 2026-07-14 — model-integrity day (SHIPPED code + a big cleanup of the record)
+Full evidence for everything here is in BACKTEST_LOG.md (2026-07-14 entries). Summary for the handoff:
+
+**SHIPPED CODE.**
+- **Exhibition guard** (`src/lib/exhibitionGuard.js` NEW; wired into SimulationCenter + LoopData). All-Star /
+  non-points races (reduced ~20-car field) mechanically inflate driver_rating and must never feed the model
+  or the public averages. SQL (user-run): `races` got an `exhibition boolean` column; Dover 2026 (id 399,
+  All-Star) set `exhibition=true, race_number=0` (also cleared a duplicate R11). THE TRAP: loop_data has no
+  exhibition column and both the sim and LoopData read it by track_name WITHOUT joining races, so the flag
+  alone does nothing — the guard resolves races.exhibition → race_id list and excludes on loop_data.race_id.
+  Any non-points/invitational event gets `exhibition=true` at load time. Do NOT load the NW Cup All-Star as points.
+- **DNF rate: measured, not bucketed** (SimulationCenter, `resolveDnfRate` + `DNF_BY_GROUP`). The sim already
+  measured each track’s DNF rate then threw the precision away bucketing into Low/Med/High (±5pts error).
+  Now continuous: track rate shrunk toward the empirical (series × group) rate. Fixes North Wilkesboro (Cup
+  has ZERO races there → was defaulting to 15% vs a true short-track 8.1%). Brier-neutral; shipped on
+  measurement grounds, NOT counted as a model win.
+
+**MODEL VERDICT: no other changes.** Practice pace (0.15) VALIDATED for the first time. trackHistory (0.15)
+stays. Fable’s SS noise ×3 multiplier independently confirmed. Caution-preset auto-logic lands on the
+measured noise optimum for every track group. North Wilkesboro (a short track) is next — DNF fix applies.
+
+**STAKING HIERARCHY (from the first-ever SS + road harnesses).** Road: model edge is HUGE (~50% over a
+uniform guess) — trust the sim, size up. Intermediate / Short & Flat: real edge, normal sizing.
+Superspeedway: model edge is ~NOTHING (2.6% over guessing) — do NOT size on model edge (ev/medge); line-shop
+(mev) only. This kills MODEL alpha at pack tracks, NOT line-shop alpha.
+
+**PRACTICE PACE — what it is and isn’t.** Real signal (regression t=4.06) but it converts almost entirely to
+PLACE accuracy: NOTHING on win (−0.21±0.25 Brier), +2.9 Brier on top-10 (t=2.90). It tells you who has a good
+car, not who wins. Keep 0.15; do NOT raise it (0.30/0.50 are worse). Winners are top-10 practice cars in 25 of
+47 races. Sleeper effect (fast in practice + deep on grid → +5.9 places) is REAL but ALREADY PRICED (#114).
+Chastain @ Charlotte 2025 (practice P1, started P40, won) is the sleeper term, not a counterexample.
+
+**TWO METHODOLOGY RULES now in force (both cost real error today):**
+1. Noise and any dispersion change are SUBSTITUTES — never test a spread-changing idea at frozen noise; always
+   re-tune noise per variant. (This retracted the earlier “shrink-to-50 is a load-bearing regularizer” claim —
+   renormalization is Brier-NEUTRAL, not worse.)
+2. NEVER drop a sim input on a regression t-stat — inputs are collinear by construction (corr≈track,
+   rank≈margin). Confirm in the harness. (Nearly killed trackHistory on this; it earns its keep.)
+Plus: measure sleeper effects as POSITIONS GAINED vs grid, never absolute finish. And 2022 is a data BURN-IN
+year (75.7% zero track-history) — do NOT select noise on a train set that includes it; use 2023-24.
+
+**RECORD CORRECTION.** The “0.0003” figure is the SLEEPER RESIDUAL partial correlation from #114 — NOT a
+practice-edge measurement. It means the sleeper effect has no residual alpha, not that practice is worthless.
+
+**REJECTED this session (all backtested):** per-driver variance/ceiling; trackHistory renorm; per-market noise
+retune; SS DNF reversal (placebo-controlled); trend_slope as a fade/sustain metric (3×); practice normalization
+(min-max contamination real but immaterial at 15%); best_lap vs overall_avg swap; laps-run / longest-stint
+(die once pace is controlled).
+
+**OPEN THREADS.** (1) CLV tool EXISTS (GradeCenter, `clv_log`) but has only 16 rows from ONE race — run it every
+week; it’s the only instrument measuring the REAL model vs the stripped harness. (2) The win market needs more
+events; the column that would test “sustained long-run pace” is `late_run_avg`, only 42% populated — backfill
+the long-run columns (`late_run_avg`, `long_run`) INSIDE existing races, worth more than adding races.
 
 ### loop_data.race_number REGRESSION - track occurrence vs season round (FIXED, commit `da631ef7`, 2026-07-12)
 `Load New Race` (Admin.js) was stamping **`loop_data.race_number` with `trackRaceNum`** - a count of prior
