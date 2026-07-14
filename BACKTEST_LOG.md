@@ -1730,3 +1730,54 @@ dissimilarity between tracks is REAL and still does not matter here. Third indep
 North Wilkesboro's board is not limited by group composition -- it is limited by cup never having raced
 there.
 
+### PER-DRIVER VARIANCE / "CEILING" (heteroscedastic noise) -> REJECTED (2026-07-14)
+The hypothesis Fable parked and never tested. The sim applies ONE noise sigma to the whole field, so a
+volatile driver (Mayer type) and a metronome (Keselowski type) get identical spread around their
+composite. Give each driver his OWN sigma and, in theory, you fix a two-sided systematic error.
+
+IMPLEMENTATION (leak-free, 107-race harness, train 2022-24 / test 2025-26, NSIM 3000):
+  sd_i   = SD of driver_rating across that driver`s PRIOR in-group races (strictly before this race)
+  shrink = conf * sd_i + (1-conf) * field_mean_sd,  conf = min(1, n_prior/5)
+  noise_i = NOISE * (1 - k + k * (sd_i / mean_sd))     k swept 0 / 0.25 / 0.5 / 0.75 / 1.0
+  k=0 reproduces today`s uniform noise exactly. Scored win / t3 / t5 / t10 Brier + favGap.
+
+FALSIFIABLE PREDICTION (stated BEFORE the run): a high-variance driver has a fatter UPPER tail, so he
+should WIN more often but finish TOP-10 less often. If the ceiling signal is real, win Brier and t10
+Brier improve SIMULTANEOUSLY from opposite causes. If only one moves, it is noise.
+
+RESULT -- THE PREDICTION WAS FALSIFIED. The effect ran BACKWARDS, monotone in train AND test:
+  TEST (2025-26), Brier x1000, base NOISE 16, lower is better
+  k       win     t3     t5      t10
+  0      22.71   61.1   91.7    158.9
+  0.5    22.77   60.5   90.4    156.9
+  1.0    22.93   60.1   89.6    155.7
+  Win gets WORSE as drivers get personal sigmas. The place markets get better. Opposite of the theory.
+
+CONTROL 1 -- UNIFORM NOISE LADDER. The place-market gain is NOT a ceiling signal, it is a dispersion
+artefact (Jensen): heterogeneous sigmas raise effective field spread. Simply turning the uniform noise
+dial up reproduces the whole gain and BEATS it:
+  uniform NOISE 19, k=0      22.69   60.1   89.8   154.1   <- ties/beats k=1 on every market
+  k=1 real sigma, NOISE 16    22.93   60.1   89.6   155.7
+
+CONTROL 2 -- PERMUTATION. Same sigma multiset, randomly reassigned to the WRONG drivers (3 seeds).
+Permuted is worse than real sigma (t10 160-162 vs 155.7), so driver identity does carry a whisper of
+information. But the whisper is worth LESS than one click of the uniform noise dial. Swamped.
+
+CONTROL 3 -- JOINT 2-D GRID (k x NOISE), best-on-TRAIN noise per k, scored on TEST. This is the only
+apples-to-apples comparison, because k and NOISE are confounded:
+  market   k=0      k=0.5    k=1
+  win     22.83    23.03    23.28    <- k hurts, monotone
+  t10    149.8    149.1    148.9     <- k gains 0.9 (0.6 pct)
+At matched, tuned noise k=1 buys 0.6 pct on top-10 and pays 2.0 pct on win. That is not a signal, it is
+a dispersion knob with a bad exchange rate.
+
+VERDICT~ DO NOT SHIP. Keep one sigma for the field. Fable was right to park it. This is the 7th
+challenger rejected in the 2026-07-12/14 block (trackHistory renormalization, pre-race rain-out grid,
+recency re-weighting, season-normalization, Bristol out of Short & Flat, late-race lottery, per-driver
+DNF -- now per-driver variance).
+
+SPIN-OFF LEAD (worth chasing, NOT a result)~ every place market improved MONOTONICALLY as uniform noise
+rose, straight through NOISE 24, in BOTH train and test. This harness is feature-poor (no practice, no
+equipment prior) so its noise optimum does NOT transfer -- but it hints the live noise may have been
+tuned on win/MAE and left the TOP-3/5/10 markets UNDER-DISPERSED, which is precisely where most of the
+betting volume sits. Next~ per-market noise sweep on the FULL live model.
