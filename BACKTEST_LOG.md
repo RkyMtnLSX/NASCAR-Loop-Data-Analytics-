@@ -2121,3 +2121,48 @@ For 2025-26 test races that DO have practice, it is NOT the live model. Treat te
 
 STILL UNTESTED~ practice pace, in any harness, at any track type. Blocked on data (starts 2024).
 Earliest a practice-inclusive harness is possible~ train 2024-25 / test 2026. Thin but doable.
+
+### PRACTICE PACE IS REAL. AND A METHODOLOGY WARNING THAT ALMOST COST US. (2026-07-14)
+First ever validation of the practice input. Cup ovals, 47 races with practice coverage >=20 drivers
+(2024~15, 2025~20, 2026~12). practice = practice_sessions.overall_avg, LATEST session per driver,
+lower lap time = better. Missing -> neutral 50 (matches live).
+
+1) PRACTICE PACE CARRIES GENUINE INDEPENDENT SIGNAL. KEEP THE 0.15 WEIGHT.
+   Multiple regression, finish ~ f(all four inputs ranked within race), n = 1497 driver-races~
+     input             coef     SE      t       verdict
+     PRACTICE pace    0.1099  0.0271   4.06    SIGNIFICANT
+     corr history     0.2658  0.0482   5.51    SIGNIFICANT
+     start position   0.1951  0.0277   7.04    SIGNIFICANT
+     track history    0.0474  0.0478   0.99    not significant
+   partial r (practice | corr, start, track) = 0.104. It SURVIVES controlling for everything else.
+   THIS CONTRADICTS the older "practice edge is only 0.0003 / practice does nothing" note. That note
+   should be treated as WRONG. Practice pace earns its place.
+   Weight sweep (noise re-tuned, train 2024-25 / test 2026, n=12 test -- underpowered)~ raising the
+   weight to 0.30 or 0.50 is CLEARLY WORSE on every market. 0.15 is right. DO NOT RAISE IT.
+   Standalone predictive power (rank vs finish, 47 races)~ practice r=0.278, corr r=0.473,
+   startPos r=0.425, trackHistory r=0.405. Practice is the WEAKEST input -- but not a useless one.
+
+2) !!! METHODOLOGY WARNING -- I ALMOST KILLED trackHistory ON A COLLINEARITY ARTEFACT !!!
+   The regression above says trackHistory is NOT significant (t=0.99; and t=1.68 on 2025-26 alone,
+   t=1.82 on Intermediate). That looks like a 0.15 weight doing nothing. IT IS NOT.
+   BACKTEST, noise re-tuned, train 2023-24 / test 2025-26, 107 oval races~
+     wTrack   TEST win    t3      t5      t10
+     0.000    23.07       60.7    89.3    152.7   <- trackHistory OFF
+     0.075    22.96       60.4    89.0    151.3
+     0.150    22.89       60.2    88.7    150.3   <- LIVE
+     0.220    22.88       60.1    88.9    149.4
+   Dropping it is WORSE on EVERY market, MONOTONICALLY. It is earning its keep. KEEP 0.15.
+
+   WHY THE REGRESSION LIED~ corrHistory and trackHistory are THE SAME QUANTITY (driver_rating history)
+   sliced two ways -- one pooled by correlation group, one by exact track. They are heavily COLLINEAR.
+   Under collinearity OLS splits the credit between them and INFLATES BOTH STANDARD ERRORS, which
+   crushes the t-stat. NON-SIGNIFICANCE UNDER COLLINEARITY DOES NOT MEAN THE VARIABLE IS USELESS FOR
+   PREDICTION. It only means the credit cannot be cleanly ATTRIBUTED. The Monte Carlo does not care
+   about attribution -- it cares about the RANKING, and both terms together rank better than either.
+
+   >>> STANDING RULE~ NEVER drop a sim input on the strength of a regression t-stat. The inputs are
+   >>> collinear by construction. ALWAYS confirm in the harness with noise re-tuned. This is now the
+   >>> SECOND methodology trap found today (the first~ noise absorbs any dispersion change). <<<
+
+STILL UNTESTED~ practice pace in O`Reilly / Trucks (coverage is 1 and 3 tracks respectively -- not
+enough). Practice at road courses (4 races, all 2026). Both blocked on data.
