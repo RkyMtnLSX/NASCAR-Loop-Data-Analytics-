@@ -2012,3 +2012,53 @@ NO HISTORY YET, and that is a data-warmup artefact, not a property of the sport.
 CONSEQUENCE~ do NOT select noise (or any dispersion parameter) on a train set that includes 2022.
 It will always overshoot. Prefer train = 2023-24.
 STILL UNRESOLVED~ whether any real drift remains after dropping 2022. Do not claim one until tested.
+
+### SUPERSPEEDWAY HARNESS -- FIRST EVER. THE SS MODEL BARELY BEATS GUESSING. (2026-07-14)
+Every backtest before this one was OVALS ONLY (Intermediate + Short & Flat). Superspeedway and Road
+Course had NEVER been in a harness. Built the SS one~ Cup, Daytona/Talladega/Atlanta, 2022 burn-in
+dropped, train 2023-24 (n=12) / test 2025-26 (n=10). Live SS weights (corr .55 / trackHistory .30 /
+startPos .15). SMALL SAMPLE -- read every number below with that in mind.
+
+1) FABLE`S SS NOISE MULTIPLIER (cup x3.0) IS VALIDATED. Independently confirmed, no change.
+   noise   TEST win/t3/t5/t10            favGap
+   16      26.01  82.2  128.4  215.6      32.0    <- x1, no multiplier
+   40      24.00  70.3  109.5  185.3      12.5
+   48      23.98  69.6  108.3  183.3      10.4    <- LIVE (x3 x Medium). ON the optimum.
+   60      24.03  69.1  107.5  181.9       8.3
+   75      24.10  69.0  107.3  181.5       6.9    <- LIVE (x3 x High)
+   Train and test both bottom out at 40-48. Good call. LEAVE IT ALONE.
+
+2) !!! THE HEADLINE !!! AT NOISE 48 THE SS MODEL IS BARELY BETTER THAN A UNIFORM GUESS.
+                          win     t3     t5      t10
+   UNIFORM (no model)     24.63   70.1   110.4   188.8
+   SS model @ noise 48    23.98   69.6   108.3   183.3
+   improvement             0.65    0.5     2.1     5.5
+                          (2.6%)  (0.7%)  (1.9%)  (2.9%)
+   That is the WHOLE edge at superspeedways~ ~2-3 pct over literally assigning every car 1/n.
+   And note the circularity~ the x3 multiplier is "correct" PRECISELY BECAUSE pack racing is near-random.
+   Tuning noise correctly at SS means tuning the model into near-irrelevance. Both things are true.
+
+   OPERATOR DOCTRINE (this is the actionable part)~ A MODEL "EDGE" AT A SUPERSPEEDWAY IS MOSTLY NOISE.
+   Do not size up on model edge (ev/medge) at Daytona/Talladega/Atlanta -- there is almost no signal
+   behind it. This CORROBORATES and STRENGTHENS the existing SS staking doctrine.
+   IMPORTANT DISTINCTION~ this kills MODEL alpha at SS, NOT line-shop alpha. mev (soft-book detection)
+   is a property of the BOOKS, not the model, and is unaffected. Erik-Jones-type outlier-line plays
+   remain valid. What is dead is trusting the sim to tell you WHO is live at a pack track.
+
+3) THE SS DNF REVERSAL -> REJECTED (9th rejection). Elite drivers really do DNF MORE at SS (19.2 pct vs
+   16.5 pct for back-markers -- they run up front in the pack, where the Big One collects them). The
+   effect is REAL in the data and USELESS in the model~
+   mode      TEST win/t3/t5/t10          favGap   favT5 pred/act
+   flat15    23.98  69.6  108.3  183.3    10.4    34.9/20.0
+   emp184    23.96  69.6  108.2  183.0    10.3    34.5/20.0
+   tierSS    23.95  69.5  108.0  182.8    10.2    34.1/20.0   <- the measured reversal
+   placebo   23.97  69.7  108.3  183.2    10.4    35.0/20.0   <- SAME numbers, SCRAMBLED order
+   PLACEBO CONTROL~ the real reversal and a deliberately wrong-ordered version perform IDENTICALLY.
+   At a +/-48 shock, a 2.7-point DNF spread is invisible. Do not retry this.
+
+4) SS FAVOURITE~ flagged, NOT actionable. Model says the favourite wins 10.3 pct; he won 0 of 10.
+   Model says top-5 34.6 pct; he did it 2 of 10. favGap z = -1.07 -- n=10 has NO POWER. Directionally
+   the model over-rates SS chalk (opposite of the oval picture), but this CANNOT be acted on. Revisit
+   at ~30 SS races. DO NOT tune to it.
+
+STILL UNTESTED~ ROAD COURSE has never been in a harness either. Same gap.
