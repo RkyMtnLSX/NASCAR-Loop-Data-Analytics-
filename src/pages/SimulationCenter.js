@@ -15,7 +15,7 @@ export const DEFAULT_WEIGHTS = {
   shortRunPace: 0.00,
   startPos:     0.33,
   tireFalloff:  0.00,
-  raceCraft:    0.02,
+  raceCraft:    0.00,  // CUT 2026-07-12: last surviving raceCraft weight. ~97% correlated with driver_rating, already 0 on road (2026-07-07) + SS (2026-07-09), and on the permanent do-not-re-test list. buildSpeedScores divides by wTotal, so the surviving weights renormalise and their RATIOS are unchanged.
   trackHistory: 0.15,
 }
 
@@ -1249,10 +1249,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
               {[
                 { key: 'corrHistory',  label: 'Corr. Track History' },
                 { key: 'longRunPace',  label: 'Practice Pace (All Laps)' },
-                { key: 'shortRunPace', label: 'Short Run Pace' },
                 { key: 'startPos',     label: 'Starting Position' },
-                { key: 'tireFalloff',  label: 'Tire Falloff' },
-               { key: 'raceCraft',   label: 'Race Craft'  },
               { key: 'trackHistory', label: 'Track History' },
               ].map(({ key, label }) => (
                 <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: 5, minWidth: 130 }}>
