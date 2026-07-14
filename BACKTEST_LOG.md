@@ -1879,3 +1879,83 @@ aggregate averages. Adding a future All-Star is now a one-row UPDATE, not a code
 STANDING RULE~ any non-points / reduced-field / invitational event gets exhibition = true AT LOAD TIME.
 This includes the Clash, the All-Star Race, and any future exhibition. Do NOT load the North Wilkesboro
 Cup All-Star as if it were a points race.
+
+### DNF RATE~ MEASURE IT, DO NOT BUCKET IT -- SHIPPED, BRIER-NEUTRAL (2026-07-14)
+NOT a model improvement. Shipped on measurement + operator-error grounds. Do NOT count it as a win.
+
+ORIGIN~ chasing the "sim under-rates its own favourite" lead. That lead LARGELY DIED (see below), but
+the hunt turned up a real defect in how dnfRate is chosen.
+
+FIRST~ THE FAVOURITE LEAD IS MOSTLY NOISE. Own the correction~
+  era          n    pWin(model)  actualWin   favGap    pTop4(model)  actualTop4  worstFinish
+  TRAIN 22-24  71   21.0         9.9         +11.2     53.8          38.0        P36
+  2025         24   26.8         20.8         +6.0     62.7          45.8        P35
+  2026         12   30.5         41.7        -11.2     65.4         100.0        P4
+The 2026 favGap of -11.2 is z = 0.84. NOISE. Over the well-sampled 95 races the model is OVER-confident
+on its favourite, not under. 2026 flips the sign on 12 races and means nothing on its own.
+Model-free check~ the sport did NOT get chalkier. Winner`s median prior-form rank~ 2022 9, 2023 6,
+2024 8, 2025 7, 2026 8. Winner in prior-form top-5~ 2026 = 35 pct, LOWER than 2023 (46) and 2025 (44).
+What actually changed is win CONCENTRATION (HHI .145 vs .090-.122 sample-controlled) -- one driver
+(Hamlin) took 5 of 20. That is a Hamlin season, NOT a regime change. Do not tune to it.
+The only stat with teeth was the favourite`s FLOOR~ top-4 in all 12 (z = 2.52, P = 0.006) -- and even
+that is post-hoc, and its sign contradicts train/2025. Treated as a hint, not a finding.
+
+THE HINT PAID OFF ANYWAY -- ACTUAL DNF RATES (loop_data 2022-26, exhibition excluded,
+DNF = completed < 90 pct of winner`s laps)~
+  series x group            n      rate    22-24   25-26
+  cup Short & Flat        1540    8.1     7.2     9.9
+  cup Road Course         1022    8.5     9.1     7.4
+  cup Intermediate        2405   12.7    12.8    12.5
+  cup Superspeedway       1083   18.4    17.8    19.4
+  oreilly Intermediate    1784   10.8    11.0    10.6
+  oreilly Short & Flat     986   13.4    15.6    10.3
+  oreilly Road Course      945   15.9    16.0    15.7
+  oreilly Superspeedway    797   22.0    21.8    22.1
+  trucks Short & Flat      915   13.3    10.5    19.8   (era-unstable)
+  trucks Intermediate     1205   14.0    13.1    15.0
+  trucks Road Course       425   17.6    17.9    17.5
+  trucks Superspeedway     390   18.7    21.1    15.8   (era-unstable)
+A 2.3x spread. Cup cells are stable across eras.
+
+REJECTED SUB-HYPOTHESIS~ "elite drivers DNF less, so the flat rate buries the favourite`s floor."
+FALSE as stated. Within track groups the tier gradient is weak and REVERSES~
+  group           elite(1-3)  strong  mid    back   tail(26+)
+  Intermediate      11.1       13.0   11.3   11.6   13.6    <- flat, no elite edge
+  Superspeedway     19.2       16.9   17.0   16.5   18.9    <- elite DNF the MOST (they run in the pack)
+  Short & Flat       4.1        5.9    4.5    7.8   11.6    <- real gradient only here
+  Road Course        6.2        4.4    6.3   10.4    7.4
+This is WHY Fable`s per-driver DNF test failed~ the effect is TRACK-TYPE CONDITIONAL and cancels in
+the pool. Do not retry per-driver DNF as a global term.
+
+THE REAL DEFECT~ the sim ALREADY measured the per-track DNF rate -- then THREW THE PRECISION AWAY by
+bucketing it into Low(.05) / Medium(.15) / High(.25)~
+    __di = avg < 0.10 ? 0 : avg < 0.20 ? 1 : 2
+Rounding error up to +/-5 pts~ cup Superspeedway measures 18.4 and was rounded DOWN to 15. Cup Short &
+Flat measures 8.1 and was rounded DOWN to 5. And when a track had NO history the code fell through to a
+hard-coded Medium (0.15) -- which is exactly the NORTH WILKESBORO case, where Cup has ZERO races. The
+sim was about to run NW at 15 pct attrition against a true short-track rate of 8.1 pct. ~2x too high,
+burying every contender`s floor.
+
+BACKTEST (107 Cup ovals, train 22-24 / test 25-26, NOISE RE-TUNED PER MODE -- the fair comparison,
+because dnf and noise are dispersion SUBSTITUTES and freezing noise rigs the test)~
+  market   flat15(old)   group-empirical   group+tier
+  win      23.01         23.01             23.00
+  t3       60.1          60.0              60.0
+  t5       89.0          88.9              88.9
+  t10     148.6         148.4             148.5
+DEAD NEUTRAL. Brier CANNOT distinguish these. The DNF rate was only ever acting as a noise substitute.
+Favourite`s top-5 calibration (which Brier barely sees)~ flat15 predicts 69.3 vs 72.2 actual (-2.9);
+group-empirical 71.8 vs 72.2 (-0.4). Directionally right, but n=36 and SE ~7.5 pts -- NOT significant,
+and NOT the justification.
+
+SHIPPED ANYWAY, and here is the honest reason~ dnfRate is a parameter we can MEASURE (6k+ driver-races
+per series) rather than guess. Using the measured value is free (Brier-neutral, proven above), removes
+a rounding artefact, and removes a real live error (North Wilkesboro). That is not overfitting; there
+is nothing to overfit to.
+
+CODE~ SimulationCenter.js
+  DNF_BY_GROUP + DNF_SERIES_MEAN + resolveDnfRate(series, group, trackAvg, nTrackRaces)
+  dnfRate is now CONTINUOUS~ trackAvg shrunk toward the group rate by conf = min(1, nTrackRaces/8),
+  clamped to [0.03, 0.30]. Low/Medium/High remain as MANUAL OVERRIDES only. UI shows the resolved
+  rate to 1dp and states its provenance ("measured from N prior races" vs "no track history -> group").
+  Resolved values~ NW cup 8.1 pct (was 15.0). Talladega cup ~19.0 (was 15.0). Bristol cup ~7.0 (was 5.0).
