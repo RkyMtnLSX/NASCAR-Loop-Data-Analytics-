@@ -1641,3 +1641,64 @@ not a rebalance. shortRunPace / tireFalloff / raceCraft are now 0 in EVERY weigh
 nudge controls were removed from the Sim Center weights panel (they could only mislead the operator).
 ACTIVE OVAL WEIGHTS: corrHistory .35 / longRunPace .15 / startPos .33 / trackHistory .15.
 
+### RECENCY WEIGHTING SWEEP -> we are NOT under-weighting recency; MORE recency is WORSE (2026-07-12)
+Trigger: North Wilkesboro pre board flagged Josh Berry at +153 pct edge (fair +3900, HR +10000) -- the
+SECOND straight longshot WIN flag on him (Atlanta post: +7500, finished P25). Operator: 'he has been
+terrible this season'. He is right about the form. What the model actually sees for Berry:
+  JOSH BERRY, Short & Flat group (corrHistory pool)
+    2023   2 races  avg rating 76.9   age wt 0.55    5 pct of his corr weight
+    2024  11 races  avg rating 76.2   age wt 0.75   35 pct
+    2025  10 races  avg rating 79.4   age wt 1.00   43 pct
+    2026   3 races  avg rating 71.6   age wt 1.30   17 pct
+    -> year-weighted corrAvgRating = 76.8
+  Full 2026 season (all tracks): 20 races, avg rating 53.4, avg finish 26.9.
+DIAGNOSIS (mine, and it was WRONG): age weights are applied PER RACE, not per season, so his collapsed
+2026 form carries only 17 pct of his rating while 2024-25 carry 78 pct -- recency 'diluted by sample
+count'. Proposed fixes: steepen the age curve, and/or season-normalise (each season contributes its MEAN
+so a 3-race season is not swamped by an 11-race one).
+SWEEP (same 107-race leak-free harness as the neutral-fill test; corr .35 / startPos .33 / track .15;
+MC 2000 x noise 16; train 2022-24 / test 2025-26; scored on the BETTING MARKETS):
+  SCHEME                                  TEST win / t3 / t5 / t10
+  D flat (no recency at all)              22.62 / 61.0 / 91.2 / 158.4   <- BEST
+  A current (1.3/1.0/.75/.55/.4)          22.71 / 61.2 / 91.5 / 158.4
+  B steeper (2.0/1.0/.50/.25/.12)         22.83 / 61.6 / 92.0 / 159.0
+  C steepest (3.0/1.0/.35/.12/.05)        22.94 / 62.0 / 92.6 / 159.7
+  E season-normalised (current age wts)   23.04 / 61.8 / 92.8 / 160.0
+  F season-normalised + steeper           23.25 / 62.4 / 93.9 / 161.3   <- WORST
+PERFECTLY MONOTONE: the more you weight recency, the worse it predicts, on EVERY market. Season-
+normalisation -- the direct fix for the Berry dilution -- is WORSE than the incumbent, and steepening it
+on top is the worst arm tested. BOTH hypotheses rejected.
+MECHANISM: driver_rating is NOISY per race. Averaging more races cuts variance. Recency weighting
+deliberately throws away effective sample size to chase freshness, and driver/team performance does not
+shift fast enough for that trade to pay -- the variance cost exceeds the staleness benefit. This is an
+INDEPENDENT corroboration of the 2026-07-11 recent-form-slope rejection, from the opposite direction:
+form is not the lever, and the corr pool is right to ignore it.
+VERDICT: SHIP NOTHING. Flat beats current by 0.4 pct relative -- inside noise, not worth touching a
+settled weight. The VALUE is the DIRECTION: do not add recency, do not season-normalise, do not reopen.
+DO NOT 'FIX' JOSH BERRY. His 76.8 pooled short-track rating is empirically the BETTER estimator than one
+leaning on his 3 bad 2026 short-track races. And he is not a model error: his 2026 SHORT-TRACK form
+(71.6, incl. Martinsville rating 93.7 / P10) is genuinely far better than his season-wide 53.4.
+
+### OPERATOR DOCTRINE -- LONGSHOT CONFIRMATION RULE (2026-07-12, user)
+'For longshots I need practice confirmation that the speed is actually there from someone like him who
+has not had much speed this year.' Correct, and the two tests above explain WHY it is structurally
+sound rather than merely cautious. Inventory what a PRE board actually knows about a driver:
+  corrHistory  -> a multi-year pooled rating that DELIBERATELY does not chase recent form (validated
+                  above: every attempt to weight recency harder made predictions WORSE).
+  trackHistory -> neutral for the whole field at a debut track (North Wilkesboro: zero cup races).
+  startPos     -> no grid yet. Zero information.
+  practice     -> NOT RUN YET. Zero information.
+=> A PRE BOARD HAS NO CURRENT-SPEED INFORMATION AT ALL. It is a pooled multi-year prior by construction
+(and that is CORRECT for ranking). So a driver whose speed has collapsed is still priced off what he was
+two seasons ago, and the model is DEFINITIONALLY BLIND to the disagreement. PRACTICE IS THE ONLY INPUT
+IN THE ENTIRE MODEL THAT REFLECTS THIS WEEK'S SPEED.
+This stacks with the pre-board calibration finding (same day): the pre board runs UNDER-confident on
+favourites (favGap -9), which mathematically pushes probability INTO THE TAIL -- inflating exactly the
+longshots that look tempting. Berry has now been flagged as a longshot WIN twice (Atlanta +7500 -> P25;
+North Wilkesboro +10000).
+RULE: (1) PRE board -> back only real contenders whose edge is structural (North Wilkesboro: Byron
++1600 vs +1438 fair). Do not take a 2-3 pct longshot off a pre board. (2) LONGSHOTS -> wait for
+practice, then bet off the POST board. You surrender some CLV; that is the CORRECT trade, because the
+pre-board tail probability is not reliable enough to be worth the closing-line value.
+Same category as the SS staking doctrine: an operator selection/staking rule, NOT a model change.
+
