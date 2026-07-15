@@ -2466,3 +2466,40 @@ NOTE ON THE MODEL: the tail numbers themselves were defensible (Ware 0.5 pct is 
 failure was PRESENTATION -- converting sub-tail-resolution disagreements into buy signals -- compounded
 by pre-board favourite softness. No model change shipped; nothing here contradicts noise 16 or any
 validated setting.
+
+### TEAM-CORRELATED NOISE, STEP 1: ORG-LEVEL CO-MOVEMENT IS REAL; MANUFACTURER ADDS NOTHING (2026-07-15)
+Motivation: group markets (Top Chevrolet et al) price JOINT events, but runRaceSim draws every driver
+INDEPENDENTLY -- marginals right, joint distribution wrong. Operator hypothesis: correlation lives in
+the team groupings (Hendrick / Trackhouse / RCR / Spire ...), nested inside manufacturer.
+METHOD (measurement only, no sim change): cup 2022-26 loop_data (6,123 driver-races), exhibitions
+excluded. car_number -> organization map, year-scoped: 2026 from entry_list ground truth (NOTE the data
+says Haas Factory Team runs CHEVROLET in 2026 -- trust the entry list, not memory); 2025 gaps (4, 10,
+41) backfilled from 2026 orgs since those moves happened at the 2025 boundary, with 41/2025 forced back
+to Ford; scrub part-timers left unmapped (single-car orgs cannot contribute to within-org ICC anyway).
+Coverage ~96 pct of driver-races. LEAK-FREE residual: prior = mean driver_rating over the driver's own
+CORR-GROUP races strictly before race_date (min 3); races with >=8 usable drivers; residual = actual
+finish rank pct minus prior-predicted rank pct within the usable subset. n = 5,209 obs (4,448 in
+2023-26; 2022 reported separately per burn-in doctrine).
+ICC, one-way ANOVA on (race, org) cells with k>=2 cars; permutation control = 200 within-race shuffles
+of org labels:
+  ORG 2023-26 (HEADLINE)   ICC 0.106   perm null -0.032 (p95 -0.002)   p 0.000   <- REAL
+  by track group: Superspeedway 0.217 / Short&Flat 0.104 / Intermediate 0.086 / ROAD -0.003 (zero)
+  by era: 2023-24 0.134 / 2025-26 0.077 -- halved but both far outside the null
+  2022 alone: 0.245 -- burn-in artefact direction: thin priors make shared org-quality rating error
+  masquerade as weekly co-movement; do not average it in.
+  MAKE BEYOND ORG (unit = org-mean residual, cells = (race, make) with >=2 orgs):
+  2023-26 real -0.064 vs perm mean -0.060, p 0.61; SS-only p 0.89  ->  ZERO. Nothing there.
+VERDICTS:
+1. Teammates co-move. ~10.6 pct of residual variance is a shared per-org-per-race factor (common draw
+   ~0.33 of residual SD); at superspeedways 0.217 (~0.47) -- teammates run and wreck in the same packs.
+2. The manufacturer umbrella adds NOTHING once orgs are accounted for. Operator's grouping instinct
+   confirmed: model ORGS, skip the make factor entirely.
+3. Road courses show NO team factor -- driver-dominated, consistent with everything else road.
+NEXT (step 2, NOT yet run): prototype correlated noise in the harness sim~
+   score_i = comp_i + sigma * (sqrt(rho_g) * z_org + sqrt(1 - rho_g) * z_i)
+with rho_g by track group (SS .22 / short .10 / inter .09 / road 0). Marginal variance is unchanged by
+construction, but noise still gets RE-TUNED per variant (dispersion-substitute rule). Gate: the four
+driver markets must NOT degrade, and the JOINT-event calibration must improve -- scored with no odds
+needed (e.g. how often the model's top-ranked Chevy actually finishes top Chevy, independent vs
+correlated). Ship only if both hold. Either way group markets stay INFORMATIONAL until graded (see
+doctrine entry above).
