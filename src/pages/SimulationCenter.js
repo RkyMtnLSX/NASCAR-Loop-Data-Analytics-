@@ -1754,12 +1754,12 @@ export function __groupMarketValue(dkTxt, fdTxt, hrTxt, drivers, posMatrix, simN
           name: name, dk: px.dk, fd: px.fd, hr: px.hr, best: best, bb: bb,
           p: +(p * 100).toFixed(1),
           fair: p > 0 ? (p >= 0.5 ? Math.round(-100 * p / (1 - p)) : Math.round(100 * (1 - p) / p)) : null,
-          ev: best != null ? +((p * dec(best) - 1) * 100).toFixed(0) : null,
+          ev: null, // group markets are INFORMATIONAL: model-edge suppressed, market never validated (2026-07-15)
           mev: (consP != null && best != null) ? +((consP * dec(best) - 1) * 100).toFixed(0) : null,
-          medge: consP != null ? +(((p - consP) * 100).toFixed(2)) : null
+          medge: null // suppressed with ev (2026-07-15)
         });
       });
-      res[mk].sort(function (a, b) { return (b.ev == null ? -1e9 : b.ev) - (a.ev == null ? -1e9 : a.ev); });
+      res[mk].sort(function (a, b) { return (b.p || 0) - (a.p || 0); });
     });
     return res;
   } catch (e) { return null; }
