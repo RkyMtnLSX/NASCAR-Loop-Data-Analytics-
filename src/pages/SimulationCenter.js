@@ -191,9 +191,28 @@ export function __marketValue(winTxt, t10Txt, fdTxt, hrTxt, drivers) {
     var parseSect = function (txt, hdr) { var m = { win: {}, t3: {}, t5: {}, t10: {} }; var cur = null, name = null; (txt || '').split('\n').forEach(function (raw) { var l = raw.trim().replace(/^\*\s*/, ''); if (!l) return; for (var h = 0; h < hdr.length; h++) { if (hdr[h][0].test(l)) { cur = hdr[h][1]; name = null; return; } } if (/winning\s+manufacturer|manufacturer\s+of\s+race|top\s+(chevrolet|chevy|ford|toyota)|team\s+of\s+|winning\s+team|odd\s+vs\s+even|grid\s+position|car\s+number\s+of|in-season|matchup/i.test(l)) { cur = null; name = null; return; } if (/ford|toyota|chev|manufacturer|team of|group |chance|in-season| vs |show |MT$|betslip|matchup|special|future|single|parlay|about|career|privacy|terms|faq|responsible|house rule|setting|appearance|download|copyright|build:|server time|^eero|^winner$/i.test(l) && !/finish/i.test(l)) { name = null; return; } var o = amer(l); if (o !== null) { if (name && cur) m[cur][norm(name)] = o; name = null; } else if (/[a-zA-Z]{2,}/.test(l)) { name = l; } }); return m; };
     var FDh = [[/winner|outright/i, 'win'], [/top[\s-]*3/i, 't3'], [/top[\s-]*5/i, 't5'], [/top[\s-]*10/i, 't10']];
     var HRh = [[/winner|outright/i, 'win'], [/top[\s-]*3/i, 't3'], [/top[\s-]*5/i, 't5'], [/top[\s-]*10/i, 't10']];
+    // DK COLUMN-ORDER AUTO-DETECT (2026-07-14). DK sometimes prints the 3-col winner box in a
+    // different column order (seen~ Top 5 / Top 3 / Race Winner instead of Winner / Top 3 / Top 5).
+    // parseDK collects the 3 numbers per row positionally; we must map columns by the HEADER CELLS
+    // in the paste, not by a fixed position. Header lines are already in winTxt (parseDK discards
+    // them). Reads both separate-line and tab-joined header rows. Falls back to Winner/Top3/Top5
+    // when headers are absent, so normal weeks are byte-for-byte unchanged.
+    var detectDkOrder = function (txt) {
+      var seq = [];
+      (txt || '').split('\n').forEach(function (raw) {
+        var l = raw.toLowerCase(), found = [];
+        var m5 = /top\s*-?\s*5/.exec(l);            if (m5) found.push([m5.index, 't5']);
+        var m3 = /top\s*-?\s*3/.exec(l);            if (m3) found.push([m3.index, 't3']);
+        var mw = /race\s*winner|outright|(^|\s)winner(\s|$)/.exec(l); if (mw) found.push([mw.index, 'win']);
+        found.sort(function (a, b) { return a[0] - b[0]; });
+        found.forEach(function (f) { if (seq.indexOf(f[1]) < 0) seq.push(f[1]); });
+      });
+      return seq.length === 3 ? seq : ['win', 't3', 't5'];
+    };
     var d1 = parseDK(winTxt, 3), d2 = parseDK(t10Txt, 1);
     var dk = { win: {}, t3: {}, t5: {}, t10: {} };
-    Object.keys(d1).forEach(function (k) { dk.win[k] = d1[k][0]; dk.t3[k] = d1[k][1]; dk.t5[k] = d1[k][2]; });
+    var __dkOrder = detectDkOrder(winTxt);
+    Object.keys(d1).forEach(function (k) { __dkOrder.forEach(function (mk, ci) { dk[mk][k] = d1[k][ci]; }); });
     Object.keys(d2).forEach(function (k) { dk.t10[k] = d2[k][0]; });
     var books = { dk: dk, fd: parseSect(fdTxt, FDh), hr: parseSect(hrTxt, HRh) };
     var MKS = [['win', 1, 'winPct'], ['t3', 3, 'top3Pct'], ['t5', 5, 'top5Pct'], ['t10', 10, 'top10Pct']];
@@ -1339,7 +1358,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
             </button>
             {simResults && (
               <><div style={{ marginTop: 12 }}>
-  <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 4 }}>DK odds - Winner / Top 3 / Top 5 (paste)</div>
+  <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 4 }}>DK odds - paste incl. the header row (any column order auto-detected)</div>
   <textarea value={oddsWinTxt} onChange={e => setOddsWinTxt(e.target.value)} rows={3} style={{ width: '100%', fontFamily: 'monospace', fontSize: 11 }} />
   <div style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '6px 0 4px' }}>DK odds - Top 10 (paste)</div>
   <textarea value={oddsT10Txt} onChange={e => setOddsT10Txt(e.target.value)} rows={3} style={{ width: '100%', fontFamily: 'monospace', fontSize: 11 }} /> <div style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '6px 0 4px' }}>FanDuel odds - full page (paste)</div>
