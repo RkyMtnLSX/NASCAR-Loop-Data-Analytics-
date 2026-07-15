@@ -2408,3 +2408,24 @@ gain-vs-grid, never as absolute finish.
 
 THE PRACTICE FINDING FROM TODAY STANDS ON ITS OWN MEASUREMENT (it never depended on the 0.0003 note)~
   practice pace~ NOTHING on win (-0.21 +/- 0.25). +2.9 Brier on top-10 (t=2.90). Keep 0.15, do not raise.
+### LONG-RUN COLUMN BACKFILL -> DEAD; sustained-pace win test stays BLOCKED (2026-07-15, operator call)
+CLOSES the 2026-07-14 open thread "backfill the long-run columns (late_run_avg, long_run) INSIDE
+existing races, worth more than adding races." Operator confirms the nulls are STRUCTURAL, not
+upload-vintage: a driver with no 10+ lap stint has no long run to measure, and the underlying laps are
+NOT recoverable. Coverage tops out roughly where it sits (~42 pct late_run_avg). With about half the
+field on neutral-fill, the sustained-pace WIN test cannot be powered. Do NOT re-raise the backfill.
+
+TWO CAVEATS that must ride along with any future test of late_run_avg / long_run:
+1. INFORMATIVE MISSINGNESS (operator insight, 2026-07-15): a driver who LIKES his car stays out on a
+   sustained run; a driver fighting the car pits repeatedly for adjustments. Long runs are therefore
+   SELF-SELECTED by happy cars -- the populated rows are a biased sample, and neutral-filling the
+   no-long-run drivers at 50 is GENEROUS to exactly the cars whose teams pulled in because they were
+   bad. Any measured late_run_avg effect is entangled with this selection. Do not test it naively.
+2. Run length AS a signal is already dead: laps-run / longest-stint die once pace is controlled
+   (2026-07-14 rejected list). The car-happiness is already inside the pace number.
+
+NET: the win-market gap stands (practice converts to PLACE accuracy only; nothing on win) with no
+currently viable practice-side test on existing data. The still-live path is PRACTICE DOMINANCE
+(best-lap margin), which needs the ~60-race 2024 cup oval practice backfill of NEW races -- a
+different, unaffected workstream.
+
