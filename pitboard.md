@@ -1,5 +1,31 @@
 # PitBoard — Project Handoff Document
 
+<!-- ============================ SHARED-FILE PROTOCOL ============================
+THREE AI sessions edit this file concurrently via the GitHub Contents API. On 2026-07-14 one
+session silently REVERTED 665 lines by pairing a stale local copy with a fresh sha. To make that
+impossible, EVERY session MUST follow these rules when writing this file~
+
+  1. APPEND ONLY. Never rewrite or delete existing lines. Add your entry at the END. If you must
+     correct an earlier entry, append a new dated CORRECTION that quotes it -- do not edit it in place.
+
+  2. GET IMMEDIATELY BEFORE PUT. Read the file (content + sha) as the LAST thing you do before
+     writing. Do not build your edit on a copy you fetched earlier in the session.
+
+  3. PUT WITH THE SHA YOU READ THE CONTENT AT -- never a separately re-fetched sha. Pairing old
+     content with a newer sha is EXACTLY the clobber that caused the 2026-07-14 loss. If the two
+     do not come from the same GET, you are doing it wrong.
+
+  4. ON HTTP 409 (conflict), the file moved under you~ re-GET, re-apply your append to the NEW
+     content, and retry. A 409 is the safety net working -- never defeat it by grabbing a new sha.
+
+  5. VERIFY AFTER WRITE~ re-read and confirm both your new entry AND the prior tail are present.
+
+One-time recovery~ if you find your own past entries missing, they are in git history, not gone.
+Diff the current HEAD against your last commit, extract the missing sections, and APPEND them back
+(see the RECONCILIATION banner further down for how this was done on 2026-07-15).
+============================================================================= -->
+
+
 > **For incoming models:** Read this entire file before touching any code.
 > Last updated: 2026-07-14
 
