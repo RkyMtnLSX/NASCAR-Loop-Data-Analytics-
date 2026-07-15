@@ -1373,6 +1373,30 @@ into every published board's config -- future pre/post comparisons are auditable
 sim_grades save needed `alter table sim_grades add column config jsonb` (grader stores
 the config snapshot now).
 
+### CONTINUOUS RECENCY DECAY vs YEAR BUCKETS -- REJECTED as global swap (2026-07-12)
+Estimator-refinement test (first of the "improve the measurement, not add terms" series):
+replace the year-bucket age weights (1.3/1.0/.75/.55/.4) with smooth exponential decay by
+DAYS, half-life swept 2-18 months. Walk-forward, composite Spearman vs finish, per regime,
+GROUP-SCOPED history (matching the sim's corr pooling; an initial all-cup-history run
+overstated the gain -- scope the history like production or the result lies).
+- INTERMEDIATES (63r, dense group): decay mildly better -- 4mo: train 0.4033 vs bucket
+  0.4052 (worse!), test 0.4367 vs 0.4192 (better). Split disagreement. Plateau 3-9mo. Only
+  ~52% of races improved (magnitude not breadth). Burn-in diagnostic: decay helps MORE in
+  Feb-May (+0.0084) than Jun-Nov (+0.0027) -- dense groups never starve, early-season fear
+  refuted HERE.
+- SHORT-FLAT (40r): wash (bucket 0.5403 / 6mo 0.5404 / 4mo 0.5355).
+- SUPERSPEEDWAY (26r): buckets clearly better (0.1610 vs 0.1475-0.1509).
+- ROAD (23r): buckets clearly better (0.4238 vs 0.4050-0.4103).
+MECHANISM: sparse groups (road ~5, SS ~6 races/yr) starve under short half-lives -- 1-2
+meaningfully-weighted races left in the pool; buckets keep last season alive. Dense groups
+can afford aggressive recency.
+VERDICT: KEEP YEAR BUCKETS everywhere. A dense-group-only decay fork is not justified by a
+test-split-only gain with train disagreement. REVISIT: if the intermediates test-era gain
+(+0.017) persists as 2026 accrues, reconsider an intermediates-only half-life ~4-6mo.
+NOTE: "burn-in" is not otherwise documented in this log -- all harnesses implicitly skip
+races until drivers have >=2-3 prior races and the walk-forward starts several races into
+2022; if a prior chat discussed a formal burn-in rule, it was never logged.
+
 ### CROSS-SESSION REVIEW NOTE (Fable, 2026-07-12) -- two flags from re-reading the archive
 (1) DEPENDENCY WARNING for task #115 (trucks/oreilly base-noise re-tune once practice is
 backfilled): the SS noise multipliers (commit 2532418d: cup 3.0 / oreilly 1.5 / trucks 1.75)
