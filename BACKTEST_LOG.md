@@ -1617,3 +1617,768 @@ was). Cup only.
   RECOMMENDED CONFIG (SQL, no code): nudge_oval 9, nudge_short_track 9, nudge_superspeedway
   10, nudge_road 9. Caveat: backtest emulates the page recipe (sim_corr_years window
   approximated); treat 9/10 as calibrated-band values, not decimals.
+
+
+=====================================================================================
+## RECONCILIATION — 2026-07-14 ENTRIES RESTORED AFTER A CROSS-SESSION REVERT (restored 2026-07-15)
+=====================================================================================
+A concurrent session pushed BACKTEST_LOG.md from a STALE base copy (commit 9bcfb74, 02:45),
+which silently reverted 20 sections written earlier — 665 lines, my entire 2026-07-12 and
+2026-07-14 block. The GitHub Contents API only guards against SHA conflicts, not against writing
+stale CONTENT under a fresh SHA, so the commit chain stayed linear and the revert was invisible.
+The SHIPPED CODE for these entries (exhibitionGuard.js, resolveDnfRate, the DK column-order fix)
+was never affected — only this documentation was lost. Recovered verbatim from commit 513f104.
+
+NOTE FOR THE OTHER SESSION~ your new entries (HARNESS DISCIPLINE 2022 BURN-IN, WRECK-DECONTAMINATED
+RATING POOLS, CONTINUOUS RECENCY DECAY) are PRESERVED above and NOT touched. Two of the restored
+entries below overlap yours~ (1) my "THE 2022 BURN-IN ARTEFACT" has the raw coverage numbers
+(2022 75.7pct zero track-history, then 10.0/18.8/6.1/14.0) behind your HARNESS DISCIPLINE rule —
+merge as you see fit. (2) my "RECENCY WEIGHTING SWEEP" (07-12) and your "CONTINUOUS RECENCY DECAY"
+are independent tests of the same idea, both rejecting it — keep both. Nothing here should overwrite
+your work; if anything conflicts, yours is newer on those two topics.
+
+--- RESTORED SECTIONS (verbatim, chronological, from commit 513f104) ---
+### CUP/O'REILLY ROAD PRACTICE SPLIT -> CONSOLIDATED 25/0/0, SHIPPED (2026-07-12, commit `0281bc19`)
+Closes the open item from the 2026-07-09 truck-road entry ('needs its own check on cup/oreilly road
+practice sessions before consolidating -- do NOT assume'). THE DIRECT CHECK IS NOT RUNNABLE, and that
+is itself the finding: cup has only 4 ROAD practice sessions and O'Reilly has ONE practice session in
+the entire DB (2026 Chicagoland R20 -- an intermediate, not even a road course). A market-scored
+train/test weight sweep on n=4 is not a test.
+SHIPPED ANYWAY on three independent converging lines, none of which is the missing cup-road sweep:
+1. CUP OVALS (large sample, 14 -> 29 -> 40 races): shortRunPace was FOLDED OUT entirely ('redundant
+   with longRunPace -- sustained pace is one signal, not two') and tireFalloff DROPPED to 0 ('noisy
+   dead weight', the SVG Chicagoland case). Both validated on the betting markets.
+2. TRUCK ROAD (5 races, 2026-07-09): consolidated 15/5/5 -> 25/0/0 won BOTH metrics (Spearman 0.501
+   -> 0.510, p5 0.400 -> 0.440).
+3. COVERAGE on cup road: late_run_avg populated 50 pct of driver-rows, trend_slope only 39 pct. The
+   majority of the field is NEUTRAL-FILLED 50 on both inputs -- the same dead-weight profile that
+   justified the truck consolidation (trend_slope 35/177 there).
+TWO MECHANISMS WORSE THAN PLAIN DILUTION, worth recording:
+- AVAILABILITY BIAS (partial coverage): a driver who actually ran a long run and posted real falloff
+  is ranked against drivers who simply have NO falloff data sitting at neutral 50. The weight
+  effectively penalises teams for gathering data. That is an artifact, not a signal.
+- SPREAD COMPRESSION (zero coverage, i.e. O'Reilly road): 25 pct of the composite becomes a constant.
+  A constant does not change RANKING, but it shrinks the score spread, and against a FIXED caution-noise
+  term a compressed spread means noise dominates more -> the field prices flatter than it is. Missing
+  practice is therefore NOT a harmless no-op; it is a calibration effect.
+CHANGE: ROAD_COURSE_WEIGHTS longRunPace 0.15 -> 0.25, shortRunPace 0.05 -> 0, tireFalloff 0.05 -> 0.
+Practice TOTAL is unchanged at 0.25 and corr/startPos are untouched -- this is a consolidation WITHIN
+practice, not a rebalance of the load-bearing inputs, so it cannot disturb them. Sum re-verified 1.00.
+shortRunPace and tireFalloff are now 0 in ALL THREE weight sets (ovals, cup/oreilly road, truck road).
+HONESTY NOTE: this is a REMOVAL of a provably-mostly-null input, not the ADDITION of a knob -- the
+burden of proof is asymmetric, which is why it ships without the out-of-sample split that (correctly)
+killed the lottery / per-driver-DNF / form-slope challengers. Re-open only if cup road practice ever
+accrues enough sessions to run the real sweep.
+
+### NEUTRAL-FILL RENORMALISATION -> REJECTED; the dead constant is LOAD-BEARING (2026-07-12)
+Trigger: North Wilkesboro. Cup has ZERO races there (only trucks 2023-25 -- Cup runs the non-points
+All-Star, never loaded), so trackHistory conf = min(1, nTrackRaces/4) = 0 for the ENTIRE field and 15
+pct of the composite becomes a CONSTANT 50. Hypothesis (mine): a constant cannot rank anyone but it
+COMPRESSES the composite spread 15 pct, and against a FIXED caution-noise term a narrower spread means
+noise dominates more -> the board prices flatter than it should. Proposed fix: when an input has no
+coverage, redistribute its weight across the inputs that DO have data instead of filling with 50.
+HARNESS: 107 cup races, DEFAULT_WEIGHTS tracks only (Intermediate 65 + Short & Flat 42 -- road courses
+EXCLUDED because ROAD_COURSE_WEIGHTS already has trackHistory 0.00, so the effect cannot exist there;
+superspeedways excluded, different weight set). Leak-free (history from PRIOR races only by race_date,
+age weights 1.3/1.0/.75/.55/.4), reduced model (no practice: corr .35 / startPos .33 / track .15),
+MC 2000 sims, noise 16. Train 2022-24 (71) / test 2025-26 (36). Scored on the BETTING MARKETS.
+  ARM                          TRAIN win/t3/t5/t10 + favGap        TEST win/t3/t5/t10 + favGap
+  A baseline (shrink to 50)    25.84 / 68.6 / 103.5 / 167.0  +12.5   22.71 / 61.3 / 91.8 / 158.8  +2.2
+  B renorm trackHistory        26.03 / 69.4 / 105.3 / 171.0  +14.5   22.79 / 61.5 / 92.0 / 159.7  +2.7
+  C renorm corr AND track      26.25 / 70.2 / 106.8 / 174.3  +15.2   22.79 / 61.5 / 92.1 / 159.9  +2.9
+VERDICT: REJECTED. Renormalisation is WORSE on EVERY market in BOTH splits, and degrades MONOTONICALLY
+the more you renormalise. Ship nothing.
+MECHANISM (the finding worth keeping): the shrink-to-50 is an accidental REGULARISER. The model is
+OVERCONFIDENT at the top (train: favourite predicted 22.4 pct, favourites actually win 9.9 pct). The
+neutral fill compresses the spread, which FLATTENS the favourites and pulls that overconfidence back
+down. Remove it and favourites sharpen -- favPred climbs 22.4 -> 24.3 -> 25.1 and the gap WIDENS. The
+spread compression was diagnosed correctly; the SIGN was backwards. It is not costing calibration, it
+is BUYING it. Same lesson as the de-meaned car pools: 'contamination is doing predictive work'.
+CONSEQUENCE: North Wilkesboro (and every future debut track) runs on STOCK weights. A flat board at a
+track nobody has history at is CORRECT, not a bug. Do not 'fix' it.
+NOTE the equipment prior (#118) fixed the SAME neutral-50 fill for corrHistory (car-pooled fill, thin-
+driver corr .433 -> .518). It does NOT follow that trackHistory wants the same treatment -- corr's fill
+was replaced with REAL INFORMATION (car pools); this test replaced trackHistory's fill with NOTHING
+(reweighting). Substituting information helps; deleting shrinkage hurts.
+
+### PRE-RACE STANDARD (no grid loaded) -> LEAVE startPos AT FULL WEIGHT; do NOT use the rain-out toggle (2026-07-12)
+Operator question: what should a PRE sim do when qualifying has not run? With no grid, startPos is null
+for everyone -> neutral-filled to 50 -> 33 pct of the oval model becomes a constant. Same mechanism as
+above but TWICE the size. Options: keep 0.33 (status quo), rain-out toggle (0.12, redistribute 0.21),
+or drop startPos entirely. Because the fill is identical for every driver, the RANKING is the same in
+all three arms -- only the SPREAD (i.e. the confidence) changes. Pure calibration question.
+Same harness/splits as above:
+  ARM                       TRAIN win/t3/t5/t10 + favGap        TEST win/t3/t5/t10 + favGap
+  A keep startPos 0.33      26.03 / 68.5 / 100.6 / 161.4  +7.3    23.57 / 61.9 / 93.4 / 152.4  -9.0
+  B rain-out (0.12)         26.47 / 70.0 / 103.0 / 166.8 +12.3    23.54 / 63.4 / 96.6 / 159.7  -2.3
+  C drop startPos           26.80 / 71.3 / 105.1 / 170.9 +14.9    23.65 / 65.0 / 99.4 / 164.8  +1.0
+VERDICT: A. Keep startPos at full weight and let it neutral-fill. A wins EVERY placement market in BOTH
+splits; win Brier is a dead heat (23.57 vs 23.54). STANDARD: a pre-race sim with no grid needs NO
+setting changes -- run it stock.
+WHY THE RAIN-OUT TOGGLE IS THE WRONG TOOL (the distinction that matters):
+  - NO GRID (pre-quali): startPos is ABSENT -> constant 50 -> cannot mislead the ranking, only
+    compresses the spread. That compression is APPROPRIATE: you genuinely know less before qualifying,
+    so the board SHOULD be flatter.
+  - RAIN-OUT GRID: startPos is PRESENT but is NOISE (draw/metric, not speed) -> it actively CORRUPTS
+    the ranking because the model reads a lottery draw as speed. That is what the toggle is for.
+  Using the toggle pre-race SHARPENS a board that has LESS information. Exactly backwards.
+CAVEAT (live consequence): in the 2025-26 era the pre board runs UNDER-confident on the win market
+(favGap -9.0: predicts favourites win 18.8 pct, they actually win 27.8 pct -- note favReal is 7.0 pct in
+2022-24, the same parity-era split the lottery test found). Safe direction (you under-bet favourites,
+never over-bet them) but two live consequences: (1) you will rarely find value ON favourites pre-race,
+their fair line comes out too long and ev goes negative -- expected, not a bug; (2) BE SKEPTICAL OF
+LONGSHOT WIN FLAGS ON A PRE BOARD -- a flat board inflates tail probabilities and can manufacture fake
++EV at long prices. Live example, Atlanta post: Josh Berry +7500 and Stenhouse +5500 both flagged to
+WIN, finished P25/P23. The MINP tail guard catches the worst of it; pre-race win longshots still
+deserve an extra squint.
+
+### RACECRAFT -> 0 ON OVALS, the last survivor (2026-07-12, commit `75602460`)
+DEFAULT_WEIGHTS still carried raceCraft 0.02 -- pure inertia. raceCraft is ~97 pct correlated with
+driver_rating, sits on the permanent do-not-re-test list, and was already cut to 0 on road (2026-07-07)
+and superspeedways (2026-07-09). Now 0 on ovals too. buildSpeedScores divides by wTotal, so the four
+survivors renormalise over 0.98 and their RATIOS are UNCHANGED -- this is a ratio-preserving removal,
+not a rebalance. shortRunPace / tireFalloff / raceCraft are now 0 in EVERY weight set, so all three
+nudge controls were removed from the Sim Center weights panel (they could only mislead the operator).
+ACTIVE OVAL WEIGHTS: corrHistory .35 / longRunPace .15 / startPos .33 / trackHistory .15.
+
+### RECENCY WEIGHTING SWEEP -> we are NOT under-weighting recency; MORE recency is WORSE (2026-07-12)
+Trigger: North Wilkesboro pre board flagged Josh Berry at +153 pct edge (fair +3900, HR +10000) -- the
+SECOND straight longshot WIN flag on him (Atlanta post: +7500, finished P25). Operator: 'he has been
+terrible this season'. He is right about the form. What the model actually sees for Berry:
+  JOSH BERRY, Short & Flat group (corrHistory pool)
+    2023   2 races  avg rating 76.9   age wt 0.55    5 pct of his corr weight
+    2024  11 races  avg rating 76.2   age wt 0.75   35 pct
+    2025  10 races  avg rating 79.4   age wt 1.00   43 pct
+    2026   3 races  avg rating 71.6   age wt 1.30   17 pct
+    -> year-weighted corrAvgRating = 76.8
+  Full 2026 season (all tracks): 20 races, avg rating 53.4, avg finish 26.9.
+DIAGNOSIS (mine, and it was WRONG): age weights are applied PER RACE, not per season, so his collapsed
+2026 form carries only 17 pct of his rating while 2024-25 carry 78 pct -- recency 'diluted by sample
+count'. Proposed fixes: steepen the age curve, and/or season-normalise (each season contributes its MEAN
+so a 3-race season is not swamped by an 11-race one).
+SWEEP (same 107-race leak-free harness as the neutral-fill test; corr .35 / startPos .33 / track .15;
+MC 2000 x noise 16; train 2022-24 / test 2025-26; scored on the BETTING MARKETS):
+  SCHEME                                  TEST win / t3 / t5 / t10
+  D flat (no recency at all)              22.62 / 61.0 / 91.2 / 158.4   <- BEST
+  A current (1.3/1.0/.75/.55/.4)          22.71 / 61.2 / 91.5 / 158.4
+  B steeper (2.0/1.0/.50/.25/.12)         22.83 / 61.6 / 92.0 / 159.0
+  C steepest (3.0/1.0/.35/.12/.05)        22.94 / 62.0 / 92.6 / 159.7
+  E season-normalised (current age wts)   23.04 / 61.8 / 92.8 / 160.0
+  F season-normalised + steeper           23.25 / 62.4 / 93.9 / 161.3   <- WORST
+PERFECTLY MONOTONE: the more you weight recency, the worse it predicts, on EVERY market. Season-
+normalisation -- the direct fix for the Berry dilution -- is WORSE than the incumbent, and steepening it
+on top is the worst arm tested. BOTH hypotheses rejected.
+MECHANISM: driver_rating is NOISY per race. Averaging more races cuts variance. Recency weighting
+deliberately throws away effective sample size to chase freshness, and driver/team performance does not
+shift fast enough for that trade to pay -- the variance cost exceeds the staleness benefit. This is an
+INDEPENDENT corroboration of the 2026-07-11 recent-form-slope rejection, from the opposite direction:
+form is not the lever, and the corr pool is right to ignore it.
+VERDICT: SHIP NOTHING. Flat beats current by 0.4 pct relative -- inside noise, not worth touching a
+settled weight. The VALUE is the DIRECTION: do not add recency, do not season-normalise, do not reopen.
+DO NOT 'FIX' JOSH BERRY. His 76.8 pooled short-track rating is empirically the BETTER estimator than one
+leaning on his 3 bad 2026 short-track races. And he is not a model error: his 2026 SHORT-TRACK form
+(71.6, incl. Martinsville rating 93.7 / P10) is genuinely far better than his season-wide 53.4.
+
+### OPERATOR DOCTRINE -- LONGSHOT CONFIRMATION RULE (2026-07-12, user)
+'For longshots I need practice confirmation that the speed is actually there from someone like him who
+has not had much speed this year.' Correct, and the two tests above explain WHY it is structurally
+sound rather than merely cautious. Inventory what a PRE board actually knows about a driver:
+  corrHistory  -> a multi-year pooled rating that DELIBERATELY does not chase recent form (validated
+                  above: every attempt to weight recency harder made predictions WORSE).
+  trackHistory -> neutral for the whole field at a debut track (North Wilkesboro: zero cup races).
+  startPos     -> no grid yet. Zero information.
+  practice     -> NOT RUN YET. Zero information.
+=> A PRE BOARD HAS NO CURRENT-SPEED INFORMATION AT ALL. It is a pooled multi-year prior by construction
+(and that is CORRECT for ranking). So a driver whose speed has collapsed is still priced off what he was
+two seasons ago, and the model is DEFINITIONALLY BLIND to the disagreement. PRACTICE IS THE ONLY INPUT
+IN THE ENTIRE MODEL THAT REFLECTS THIS WEEK'S SPEED.
+This stacks with the pre-board calibration finding (same day): the pre board runs UNDER-confident on
+favourites (favGap -9), which mathematically pushes probability INTO THE TAIL -- inflating exactly the
+longshots that look tempting. Berry has now been flagged as a longshot WIN twice (Atlanta +7500 -> P25;
+North Wilkesboro +10000).
+RULE: (1) PRE board -> back only real contenders whose edge is structural (North Wilkesboro: Byron
++1600 vs +1438 fair). Do not take a 2-3 pct longshot off a pre board. (2) LONGSHOTS -> wait for
+practice, then bet off the POST board. You surrender some CLV; that is the CORRECT trade, because the
+pre-board tail probability is not reliable enough to be worth the closing-line value.
+Same category as the SS staking doctrine: an operator selection/staking rule, NOT a model change.
+
+### BRISTOL OUT OF SHORT & FLAT -> NO CONTAMINATION; leave it (2026-07-12)
+Operator: 'toss Bristol out of this track group, really dont think the correlation is there' (24-30 deg
+CONCRETE vs North Wilkesboro's 14 deg worn asphalt -- physically a different animal). NOTE this is a
+DIFFERENT question from the 2026-07-08 test, which asked 'does moving Bristol INTO Short & Flat help
+BRISTOL races?' (yes, +0.039 Spearman). This asks: does Bristol's presence CONTAMINATE THE OTHER short
+tracks -- i.e. is it poisoning the pool North Wilkesboro will draw on? Never tested.
+Same 107-race leak-free harness. Three schemes, scored by SUBSET:
+  SHORT & FLAT excluding Bristol (n=35)  <- the North Wilkesboro question
+    A Bristol IN (current)      win 25.30  t3 65.0  t5 95.4  t10 155.7
+    B Bristol isolated          win 25.20  t3 65.0  t5 95.7  t10 156.2
+    C Bristol -> Intermediate   win 25.20  t3 65.0  t5 95.7  t10 156.2
+  BRISTOL only (n=7)
+    A 21.90 / 63.1 / 92.1 / 159.3   B 22.02 / 63.4 / 95.6 / 160.0   C 20.85 / 63.8 / 91.9 / 161.6
+  INTERMEDIATE (n=65)
+    A 24.78 / 67.0 / 102.5 / 169.5   B same   C 24.74 / 66.9 / 102.1 / 168.9
+VERDICT: LEAVE BRISTOL WHERE IT IS. Removing it makes the win market 0.1 BETTER and t5/t10 0.3-0.5
+WORSE, with t3 identical -- ~0.3 pct relative, MIXED IN DIRECTION. That is noise, not contamination.
+Bristol-only (n=7) is far too thin to read; do not over-interpret its win-Brier flicker.
+WHY THE LEVER DOES NOT EXIST (the reusable insight): corrHistory pools DRIVER_RATING, and driver_rating
+is overwhelmingly 'WHO IS GOOD'. Good short-track drivers are good at Bristol AND Martinsville AND
+Richmond. The track-SPECIFIC component -- the part where banking and surface actually matter -- is small
+next to the general-skill component that transfers regardless. So shuffling which tracks are in the pool
+barely moves the ratings, because the ratings are mostly measuring the DRIVER, not the TRACK. Physical
+dissimilarity between tracks is REAL and still does not matter here. Third independent confirmation of
+'every single-track reassignment is noise (+-0.007)' (2026-07-08). The assignment lever stays CLOSED.
+North Wilkesboro's board is not limited by group composition -- it is limited by cup never having raced
+there.
+
+### PER-DRIVER VARIANCE / "CEILING" (heteroscedastic noise) -> REJECTED (2026-07-14)
+The hypothesis Fable parked and never tested. The sim applies ONE noise sigma to the whole field, so a
+volatile driver (Mayer type) and a metronome (Keselowski type) get identical spread around their
+composite. Give each driver his OWN sigma and, in theory, you fix a two-sided systematic error.
+
+IMPLEMENTATION (leak-free, 107-race harness, train 2022-24 / test 2025-26, NSIM 3000):
+  sd_i   = SD of driver_rating across that driver`s PRIOR in-group races (strictly before this race)
+  shrink = conf * sd_i + (1-conf) * field_mean_sd,  conf = min(1, n_prior/5)
+  noise_i = NOISE * (1 - k + k * (sd_i / mean_sd))     k swept 0 / 0.25 / 0.5 / 0.75 / 1.0
+  k=0 reproduces today`s uniform noise exactly. Scored win / t3 / t5 / t10 Brier + favGap.
+
+FALSIFIABLE PREDICTION (stated BEFORE the run): a high-variance driver has a fatter UPPER tail, so he
+should WIN more often but finish TOP-10 less often. If the ceiling signal is real, win Brier and t10
+Brier improve SIMULTANEOUSLY from opposite causes. If only one moves, it is noise.
+
+RESULT -- THE PREDICTION WAS FALSIFIED. The effect ran BACKWARDS, monotone in train AND test:
+  TEST (2025-26), Brier x1000, base NOISE 16, lower is better
+  k       win     t3     t5      t10
+  0      22.71   61.1   91.7    158.9
+  0.5    22.77   60.5   90.4    156.9
+  1.0    22.93   60.1   89.6    155.7
+  Win gets WORSE as drivers get personal sigmas. The place markets get better. Opposite of the theory.
+
+CONTROL 1 -- UNIFORM NOISE LADDER. The place-market gain is NOT a ceiling signal, it is a dispersion
+artefact (Jensen): heterogeneous sigmas raise effective field spread. Simply turning the uniform noise
+dial up reproduces the whole gain and BEATS it:
+  uniform NOISE 19, k=0      22.69   60.1   89.8   154.1   <- ties/beats k=1 on every market
+  k=1 real sigma, NOISE 16    22.93   60.1   89.6   155.7
+
+CONTROL 2 -- PERMUTATION. Same sigma multiset, randomly reassigned to the WRONG drivers (3 seeds).
+Permuted is worse than real sigma (t10 160-162 vs 155.7), so driver identity does carry a whisper of
+information. But the whisper is worth LESS than one click of the uniform noise dial. Swamped.
+
+CONTROL 3 -- JOINT 2-D GRID (k x NOISE), best-on-TRAIN noise per k, scored on TEST. This is the only
+apples-to-apples comparison, because k and NOISE are confounded:
+  market   k=0      k=0.5    k=1
+  win     22.83    23.03    23.28    <- k hurts, monotone
+  t10    149.8    149.1    148.9     <- k gains 0.9 (0.6 pct)
+At matched, tuned noise k=1 buys 0.6 pct on top-10 and pays 2.0 pct on win. That is not a signal, it is
+a dispersion knob with a bad exchange rate.
+
+VERDICT~ DO NOT SHIP. Keep one sigma for the field. Fable was right to park it. This is the 7th
+challenger rejected in the 2026-07-12/14 block (trackHistory renormalization, pre-race rain-out grid,
+recency re-weighting, season-normalization, Bristol out of Short & Flat, late-race lottery, per-driver
+DNF -- now per-driver variance).
+
+SPIN-OFF LEAD (worth chasing, NOT a result)~ every place market improved MONOTONICALLY as uniform noise
+rose, straight through NOISE 24, in BOTH train and test. This harness is feature-poor (no practice, no
+equipment prior) so its noise optimum does NOT transfer -- but it hints the live noise may have been
+tuned on win/MAE and left the TOP-3/5/10 markets UNDER-DISPERSED, which is precisely where most of the
+betting volume sits. Next~ per-market noise sweep on the FULL live model.
+
+### PER-MARKET NOISE SWEEP ON THE LIVE MODEL -> NO CHANGE; live noise 16 is correctly placed (2026-07-14)
+Follow-up to the spin-off lead from the per-driver-variance rejection above ("place markets look
+UNDER-dispersed; every one improved monotonically as noise rose"). That lead is now DEAD. It was an
+artefact. Two things were missing from the reduced harness and both mattered~
+  (1) DNF. Live runRaceSim does `dnf = Math.random() < dnfRate` and sorts DNFs to the bottom.
+      Cup Medium dnfRate = 0.15 -- a 15 pct per-driver knockout the reduced harness did not have AT ALL.
+      That is a large, speed-uncorrelated source of bottom-tail mass. Uniform noise was proxying for it.
+  (2) ERA POOLING. Train (2022-24) and test (2025-26) were being read as one regime. They are not.
+
+Re-ran with DNF wired in (mirrors live~ score = comp + gauss*noise, dnf sorted last), dnfRate swept
+0 / .05 / .15 / .25, noise 10..36, and the test set SPLIT BY SEASON. Cup, 107 races, NSIM 1500.
+
+HEADLINE~ THE NOISE OPTIMUM DRIFTS DOWNWARD OVER TIME. It is not a constant.
+  argmin noise, dnfRate .15 (live)
+  market   TRAIN(n71)   2025(n24)   2026(n12)
+  win        N32          N19         N13
+  t3         N25          N25         N16
+  t5         N25          N25         N16
+  t10        N25          N32         N19
+Tuning noise on TRAIN would have set it at 25-32. The CURRENT season wants 13-19. Train-selected noise
+is systematically TOO HIGH, and the older the training data the worse the overshoot.
+MECHANISM (hypothesis)~ the composite SHARPENS as history accumulates -- every driver has more prior
+in-group races, so the neutral-50 shrink fill (conf = min(1, n/4)) bites less and the speed score
+separates more. A sharper composite needs LESS noise. Early seasons are blurry and want more.
+
+CONSEQUENCE FOR THE LIVE SETTING~ Cup Medium noise = 16 sits essentially ON the 2026 optimum for t3 and
+t5 (both N16), one notch under t10 (N19), one notch over win (N13). It is well placed. DO NOT RETUNE.
+The "place markets are under-dispersed" story was TRAIN leaking its thin-history noise appetite into a
+pooled average. On 2026 alone the place markets want 16, which is exactly what we already run.
+
+REAL FINDING THAT SURVIVES -- 2026 favGap is strongly NEGATIVE~
+  favGap (+ = model OVERconfident on the favourite), dnfRate .15
+  N     TRAIN   2025    2026
+  13    13.7    10.5    -14.3
+  16     8.6     5.9    -19.8   <- live setting
+  19     5.9     2.5    -23.9
+  25     2.3    -6.5    -29.7
+In 2026 the top-projected driver WINS FAR MORE OFTEN than the sim says he will, and raising noise makes
+it worse. Corroborates the independently-logged pre-board finding (favGap -9). Chalk is live in 2026 and
+the sim is pushing probability into the tail that does not belong there -- which is precisely WHY
+pre-board longshots keep looking tempting and keep losing (Berry, twice). This REINFORCES the existing
+operator rule~ do not take a 2-3 pct longshot off a pre board.
+
+CAVEATS~ 2026 is only n=12 races -- the drift is directionally consistent across all four markets and
+all four dnfRates, but the 2026 LEVEL is not precise. Harness is DEFAULT oval weights, no practice /
+equipment prior, so absolute Brier is not comparable to the live sim. Do NOT port a noise number from
+this table. The DIRECTION (optimum falls as history accrues) is the result; the levels are not.
+
+NEXT (unresolved)~ if the noise optimum really is a function of composite sharpness, noise should scale
+with mean driver confidence rather than being a fixed preset. Do not build this on n=12. Revisit at
+~25 races of 2026.
+
+### DOCTRINE~ EXHIBITION / ALL-STAR RACES ARE EXCLUDED FROM THE MODEL (2026-07-14) -- SHIPPED
+Operator~ "Dover was run as an all star race this year with a reduced field size so its data is not
+something I want contaminating everything else since its its own animal." Correct, and now enforced in
+code rather than by memory.
+
+WHY (same argument that kept the North Wilkesboro All-Star OUT)~
+  1. REDUCED FIELD MECHANICALLY INFLATES driver_rating. All-Star fields are ~20 cars vs ~38. The rating
+     formula has percentile components (pct_top15_laps and friends) measured AGAINST THE FIELD. In a
+     20-car field the "top 15 pct of laps" is a far larger share of the grid, so EVERY driver`s rating
+     drifts up. It is not a real speed signal, it is a denominator artefact.
+  2. AVAILABILITY BIAS. The entry list is invitational (winners / past champs), so the sample is not a
+     random draw from the field we are actually simulating.
+  3. UNFALSIFIABLE. Non-points, different format, different tyre/aero packages. There is no clean way to
+     validate whether it helped, so it cannot earn its way in.
+
+HOW IT WAS FOUND~ operator said "there`s been 20 Cup races this year"; the harness reported n=12 for
+2026. The reconciliation~ 12 ovals + 4 superspeedway + 4 road = 20 POINTS races, +1 extra row = Dover.
+The oval harness was correct and complete all along. But the audit turned up two real defects~
+  (a) races id 399 (Dover 2026) was tagged correlation_group = Intermediate with 0 loop_data rows.
+      Inert TODAY only because nobody has loaded its loop data yet. The moment anyone did, a 20-car
+      All-Star field would have poured straight into the LARGEST correlation group we have.
+  (b) race_number 11 was used TWICE in 2026 Cup (Texas id 349 AND Dover id 399).
+
+THE TRAP -- READ THIS BEFORE "FIXING" IT~ flagging races.exhibition ALONE DOES NOT PROTECT THE MODEL.
+loop_data has NO exhibition column, and BOTH the sim and the LoopData page read loop_data by
+track_name + series WITHOUT ever joining races. A races-level flag is invisible to them. The guard must
+resolve races.exhibition -> a race_id list and exclude on loop_data.race_id.
+
+SHIPPED~
+  SQL (operator ran)~ ALTER TABLE races ADD COLUMN exhibition boolean NOT NULL DEFAULT false;
+                      UPDATE races SET exhibition = true, race_number = 0 WHERE id = 399;
+                      (race_number 0 is now the convention for non-points; it also clears the R11 dup)
+  src/lib/exhibitionGuard.js  NEW. getExhibitionRaceIds() (cached) + excludeExhibition(query, ids).
+                              SINGLE SOURCE OF TRUTH. Do not duplicate this logic.
+  SimulationCenter.js  guard applied to ALL FOUR contamination paths~ corrHistory pool, trackHistory
+                       pool, the caution-preset average, and the race-length/DNF estimate.
+  LoopData.js          guard applied to the track table, the correlation-group averages, and the
+                       driver-compare histories.
+
+NET EFFECT~ exhibition races can still be LOADED and VIEWED, but can never feed the model or the
+aggregate averages. Adding a future All-Star is now a one-row UPDATE, not a code change.
+
+STANDING RULE~ any non-points / reduced-field / invitational event gets exhibition = true AT LOAD TIME.
+This includes the Clash, the All-Star Race, and any future exhibition. Do NOT load the North Wilkesboro
+Cup All-Star as if it were a points race.
+
+### DNF RATE~ MEASURE IT, DO NOT BUCKET IT -- SHIPPED, BRIER-NEUTRAL (2026-07-14)
+NOT a model improvement. Shipped on measurement + operator-error grounds. Do NOT count it as a win.
+
+ORIGIN~ chasing the "sim under-rates its own favourite" lead. That lead LARGELY DIED (see below), but
+the hunt turned up a real defect in how dnfRate is chosen.
+
+FIRST~ THE FAVOURITE LEAD IS MOSTLY NOISE. Own the correction~
+  era          n    pWin(model)  actualWin   favGap    pTop4(model)  actualTop4  worstFinish
+  TRAIN 22-24  71   21.0         9.9         +11.2     53.8          38.0        P36
+  2025         24   26.8         20.8         +6.0     62.7          45.8        P35
+  2026         12   30.5         41.7        -11.2     65.4         100.0        P4
+The 2026 favGap of -11.2 is z = 0.84. NOISE. Over the well-sampled 95 races the model is OVER-confident
+on its favourite, not under. 2026 flips the sign on 12 races and means nothing on its own.
+Model-free check~ the sport did NOT get chalkier. Winner`s median prior-form rank~ 2022 9, 2023 6,
+2024 8, 2025 7, 2026 8. Winner in prior-form top-5~ 2026 = 35 pct, LOWER than 2023 (46) and 2025 (44).
+What actually changed is win CONCENTRATION (HHI .145 vs .090-.122 sample-controlled) -- one driver
+(Hamlin) took 5 of 20. That is a Hamlin season, NOT a regime change. Do not tune to it.
+The only stat with teeth was the favourite`s FLOOR~ top-4 in all 12 (z = 2.52, P = 0.006) -- and even
+that is post-hoc, and its sign contradicts train/2025. Treated as a hint, not a finding.
+
+THE HINT PAID OFF ANYWAY -- ACTUAL DNF RATES (loop_data 2022-26, exhibition excluded,
+DNF = completed < 90 pct of winner`s laps)~
+  series x group            n      rate    22-24   25-26
+  cup Short & Flat        1540    8.1     7.2     9.9
+  cup Road Course         1022    8.5     9.1     7.4
+  cup Intermediate        2405   12.7    12.8    12.5
+  cup Superspeedway       1083   18.4    17.8    19.4
+  oreilly Intermediate    1784   10.8    11.0    10.6
+  oreilly Short & Flat     986   13.4    15.6    10.3
+  oreilly Road Course      945   15.9    16.0    15.7
+  oreilly Superspeedway    797   22.0    21.8    22.1
+  trucks Short & Flat      915   13.3    10.5    19.8   (era-unstable)
+  trucks Intermediate     1205   14.0    13.1    15.0
+  trucks Road Course       425   17.6    17.9    17.5
+  trucks Superspeedway     390   18.7    21.1    15.8   (era-unstable)
+A 2.3x spread. Cup cells are stable across eras.
+
+REJECTED SUB-HYPOTHESIS~ "elite drivers DNF less, so the flat rate buries the favourite`s floor."
+FALSE as stated. Within track groups the tier gradient is weak and REVERSES~
+  group           elite(1-3)  strong  mid    back   tail(26+)
+  Intermediate      11.1       13.0   11.3   11.6   13.6    <- flat, no elite edge
+  Superspeedway     19.2       16.9   17.0   16.5   18.9    <- elite DNF the MOST (they run in the pack)
+  Short & Flat       4.1        5.9    4.5    7.8   11.6    <- real gradient only here
+  Road Course        6.2        4.4    6.3   10.4    7.4
+This is WHY Fable`s per-driver DNF test failed~ the effect is TRACK-TYPE CONDITIONAL and cancels in
+the pool. Do not retry per-driver DNF as a global term.
+
+THE REAL DEFECT~ the sim ALREADY measured the per-track DNF rate -- then THREW THE PRECISION AWAY by
+bucketing it into Low(.05) / Medium(.15) / High(.25)~
+    __di = avg < 0.10 ? 0 : avg < 0.20 ? 1 : 2
+Rounding error up to +/-5 pts~ cup Superspeedway measures 18.4 and was rounded DOWN to 15. Cup Short &
+Flat measures 8.1 and was rounded DOWN to 5. And when a track had NO history the code fell through to a
+hard-coded Medium (0.15) -- which is exactly the NORTH WILKESBORO case, where Cup has ZERO races. The
+sim was about to run NW at 15 pct attrition against a true short-track rate of 8.1 pct. ~2x too high,
+burying every contender`s floor.
+
+BACKTEST (107 Cup ovals, train 22-24 / test 25-26, NOISE RE-TUNED PER MODE -- the fair comparison,
+because dnf and noise are dispersion SUBSTITUTES and freezing noise rigs the test)~
+  market   flat15(old)   group-empirical   group+tier
+  win      23.01         23.01             23.00
+  t3       60.1          60.0              60.0
+  t5       89.0          88.9              88.9
+  t10     148.6         148.4             148.5
+DEAD NEUTRAL. Brier CANNOT distinguish these. The DNF rate was only ever acting as a noise substitute.
+Favourite`s top-5 calibration (which Brier barely sees)~ flat15 predicts 69.3 vs 72.2 actual (-2.9);
+group-empirical 71.8 vs 72.2 (-0.4). Directionally right, but n=36 and SE ~7.5 pts -- NOT significant,
+and NOT the justification.
+
+SHIPPED ANYWAY, and here is the honest reason~ dnfRate is a parameter we can MEASURE (6k+ driver-races
+per series) rather than guess. Using the measured value is free (Brier-neutral, proven above), removes
+a rounding artefact, and removes a real live error (North Wilkesboro). That is not overfitting; there
+is nothing to overfit to.
+
+CODE~ SimulationCenter.js
+  DNF_BY_GROUP + DNF_SERIES_MEAN + resolveDnfRate(series, group, trackAvg, nTrackRaces)
+  dnfRate is now CONTINUOUS~ trackAvg shrunk toward the group rate by conf = min(1, nTrackRaces/8),
+  clamped to [0.03, 0.30]. Low/Medium/High remain as MANUAL OVERRIDES only. UI shows the resolved
+  rate to 1dp and states its provenance ("measured from N prior races" vs "no track history -> group").
+  Resolved values~ NW cup 8.1 pct (was 15.0). Talladega cup ~19.0 (was 15.0). Bristol cup ~7.0 (was 5.0).
+
+### !! CORRECTION !! THE "SHRINK-TO-50 IS A LOAD-BEARING REGULARIZER" CLAIM IS FALSE (2026-07-14)
+RETRACTS the trackHistory zero-coverage renormalization entry from earlier the same day. That entry
+concluded renormalization was "worse on every market, monotone" and that the neutral-50 fill is an
+"accidental regularizer that flattens favourite overconfidence". BOTH CONCLUSIONS ARE WRONG.
+They were an artefact of a CONFOUNDED TEST.
+
+THE CONFOUND (discovered while testing DNF, same day)~ NOISE AND ANY DISPERSION CHANGE ARE SUBSTITUTES,
+AND BRIER CANNOT TELL THEM APART. Renormalizing WIDENS the composite spread (the neutral-50 fill pulls
+low-coverage drivers toward the middle; dropping the weight does not). Scored at FIXED noise, that extra
+spread reads as damage. It is not damage -- it is a dispersion change that the noise term should absorb.
+ANY test that alters spread while holding noise constant is RIGGED. The original test did exactly that.
+
+RE-AUDIT, noise RE-TUNED per mode (best N on TRAIN, scored on TEST 2025-26), DNF = group empirical~
+  trackHistory (weight 0.15)
+  market   fill50(current)  renorm0   renormFull        [train 22-24]
+  win       23.15           23.17     23.16
+  t3        60.0            60.3      60.3
+  t5        88.9            89.3      89.3
+  t10      148.6           148.5     148.6
+  ... and with the 2022 BURN-IN YEAR DROPPED (train 23-24), identical~ 23.15 / 23.17 / 23.16.
+
+  corrHistory (weight 0.35 -- the big one, also flagged load-bearing)
+  market   fill50          renorm0   renormFull
+  win       23.14           23.14     23.14
+  t3        60.2            60.2      60.2
+  t5        89.6            89.6      89.6
+  t10      149.6           149.6     149.5
+
+VERDICT~ DEAD NEUTRAL, both terms. The neutral-50 fill is NOT doing secret work. It is simply ONE OF
+SEVERAL EQUIVALENT ways to handle missing coverage. KEEP IT -- but keep it because it is SIMPLE, not
+because it is load-bearing. Anyone who believes the regularizer story will preserve neutral-fill in
+places where it is actively wrong. That is the damage this correction prevents.
+
+WHY corrHistory was always going to be inert~ coverage is 87.9 pct FULL, only 3.5 pct zero. The fill
+branch almost never fires. (trackHistory is the sparse one~ 25.5 pct zero, 49.4 pct thin.)
+
+### THE 2022 BURN-IN ARTEFACT -- READ BEFORE TRUSTING ANY TRAIN-SELECTED PARAMETER (2026-07-14)
+trackHistory ZERO-COVERAGE RATE BY YEAR, in the harness~
+  2022  75.7 pct   <-- the DATABASE STARTS in 2022, so 3/4 of drivers have NO prior track history
+  2023  10.0 pct
+  2024  18.8 pct
+  2025   6.1 pct
+  2026  14.0 pct
+2022 IS A BURN-IN YEAR. Its composite is mostly NEUTRAL FILL -- a state the live model NEVER sees.
+TRAIN = 2022-24 is therefore contaminated by a degenerate year, and a degenerate composite CRAVES NOISE.
+This is very likely the true cause of the "noise optimum drifts downward over time" finding logged
+earlier today (train wants N25-32, 2026 wants N13-19). I attributed it to "the composite sharpens as
+history accrues". The honest version is narrower~ the composite is GARBAGE IN 2022 BECAUSE THE DB HAD
+NO HISTORY YET, and that is a data-warmup artefact, not a property of the sport.
+CONSEQUENCE~ do NOT select noise (or any dispersion parameter) on a train set that includes 2022.
+It will always overshoot. Prefer train = 2023-24.
+STILL UNRESOLVED~ whether any real drift remains after dropping 2022. Do not claim one until tested.
+
+### SUPERSPEEDWAY HARNESS -- FIRST EVER. THE SS MODEL BARELY BEATS GUESSING. (2026-07-14)
+Every backtest before this one was OVALS ONLY (Intermediate + Short & Flat). Superspeedway and Road
+Course had NEVER been in a harness. Built the SS one~ Cup, Daytona/Talladega/Atlanta, 2022 burn-in
+dropped, train 2023-24 (n=12) / test 2025-26 (n=10). Live SS weights (corr .55 / trackHistory .30 /
+startPos .15). SMALL SAMPLE -- read every number below with that in mind.
+
+1) FABLE`S SS NOISE MULTIPLIER (cup x3.0) IS VALIDATED. Independently confirmed, no change.
+   noise   TEST win/t3/t5/t10            favGap
+   16      26.01  82.2  128.4  215.6      32.0    <- x1, no multiplier
+   40      24.00  70.3  109.5  185.3      12.5
+   48      23.98  69.6  108.3  183.3      10.4    <- LIVE (x3 x Medium). ON the optimum.
+   60      24.03  69.1  107.5  181.9       8.3
+   75      24.10  69.0  107.3  181.5       6.9    <- LIVE (x3 x High)
+   Train and test both bottom out at 40-48. Good call. LEAVE IT ALONE.
+
+2) !!! THE HEADLINE !!! AT NOISE 48 THE SS MODEL IS BARELY BETTER THAN A UNIFORM GUESS.
+                          win     t3     t5      t10
+   UNIFORM (no model)     24.63   70.1   110.4   188.8
+   SS model @ noise 48    23.98   69.6   108.3   183.3
+   improvement             0.65    0.5     2.1     5.5
+                          (2.6%)  (0.7%)  (1.9%)  (2.9%)
+   That is the WHOLE edge at superspeedways~ ~2-3 pct over literally assigning every car 1/n.
+   And note the circularity~ the x3 multiplier is "correct" PRECISELY BECAUSE pack racing is near-random.
+   Tuning noise correctly at SS means tuning the model into near-irrelevance. Both things are true.
+
+   OPERATOR DOCTRINE (this is the actionable part)~ A MODEL "EDGE" AT A SUPERSPEEDWAY IS MOSTLY NOISE.
+   Do not size up on model edge (ev/medge) at Daytona/Talladega/Atlanta -- there is almost no signal
+   behind it. This CORROBORATES and STRENGTHENS the existing SS staking doctrine.
+   IMPORTANT DISTINCTION~ this kills MODEL alpha at SS, NOT line-shop alpha. mev (soft-book detection)
+   is a property of the BOOKS, not the model, and is unaffected. Erik-Jones-type outlier-line plays
+   remain valid. What is dead is trusting the sim to tell you WHO is live at a pack track.
+
+3) THE SS DNF REVERSAL -> REJECTED (9th rejection). Elite drivers really do DNF MORE at SS (19.2 pct vs
+   16.5 pct for back-markers -- they run up front in the pack, where the Big One collects them). The
+   effect is REAL in the data and USELESS in the model~
+   mode      TEST win/t3/t5/t10          favGap   favT5 pred/act
+   flat15    23.98  69.6  108.3  183.3    10.4    34.9/20.0
+   emp184    23.96  69.6  108.2  183.0    10.3    34.5/20.0
+   tierSS    23.95  69.5  108.0  182.8    10.2    34.1/20.0   <- the measured reversal
+   placebo   23.97  69.7  108.3  183.2    10.4    35.0/20.0   <- SAME numbers, SCRAMBLED order
+   PLACEBO CONTROL~ the real reversal and a deliberately wrong-ordered version perform IDENTICALLY.
+   At a +/-48 shock, a 2.7-point DNF spread is invisible. Do not retry this.
+
+4) SS FAVOURITE~ flagged, NOT actionable. Model says the favourite wins 10.3 pct; he won 0 of 10.
+   Model says top-5 34.6 pct; he did it 2 of 10. favGap z = -1.07 -- n=10 has NO POWER. Directionally
+   the model over-rates SS chalk (opposite of the oval picture), but this CANNOT be acted on. Revisit
+   at ~30 SS races. DO NOT tune to it.
+
+STILL UNTESTED~ ROAD COURSE has never been in a harness either. Same gap.
+
+### ROAD COURSE HARNESS -- FIRST EVER. ROAD IS WHERE THE MODEL IS STRONGEST. (2026-07-14)
+Cup road, 2022 burn-in dropped, train 2023-24 (n=11) / test 2025-26 (n=10). SMALL SAMPLE.
+
+!!! HARNESS LIMITATION, STATE IT EVERY TIME~ PRACTICE PACE IS NOT IN ANY HARNESS. !!!
+practice_sessions distinct tracks by year~ cup 2022~0, 2023~0, 2024~10, 2025~14, 2026~17.
+PRACTICE DATA DOES NOT EXIST BEFORE 2024. It CANNOT go in a train=2023-24 harness. Of 27 cup road
+races, only 4 have practice pace (all 2026). So every harness today is corr + startPos + trackHistory,
+NOT the live model (which carries practice at 0.15 ovals / 0.25 road).
+NOTE ON THE NAME~ the weight key is still `longRunPace` but it is fed by practice_sessions.overall_avg
+-- i.e. PRACTICE PACE across all laps. The key name is a STALE MISNOMER. (srpTime = late_run_avg is
+still wired but its weight is 0.00 everywhere -- dead code.)
+MITIGATION~ the live model fills a missing practice value with neutral-50 and KEEPS the weight; the
+harness DROPS the weight and renormalises. The renormalisation re-audit (logged above) proves those two
+are DISPERSION-EQUIVALENT once noise is re-tuned. So the harness is a fair proxy for pre-2024 races.
+For 2025-26 test races that DO have practice, it is NOT the live model. Treat test numbers accordingly.
+
+1) THE CAUTION-PRESET AUTO-LOGIC IS EXCELLENT. Independently verified, all four groups~
+   group           avgCautions  preset -> live noise      harness optimum
+   Road Course        4.8       Low    -> 10              10       EXACT
+   Superspeedway      7.1       Medium -> 16 x3.0 = 48    40-48    EXACT
+   Intermediate       8.4       Medium -> 16              16       matches
+   Short & Flat       6.9       Medium -> 16              16       matches
+   Every group lands on its measured optimum. NO CHANGES. Do not touch the caution presets.
+
+2) ROAD IS THE MODEL`S STRONGEST GROUP BY A MILE. Test set, noise 10 (live)~
+                        win     t3     t5      t10
+   UNIFORM (no model)   25.85   73.3   115.1   194.9
+   road model @ N10     12.80   50.8    83.6   154.2
+   improvement          50.5%   30.7%   27.4%   20.9%
+   Compare SUPERSPEEDWAY, same measurement~ 2.6% / 0.7% / 1.9% / 2.9%.
+
+   >>> STAKING HIERARCHY (the actionable output of both harnesses) <<<
+   ROAD COURSE      model edge is HUGE      -- trust the sim, size up
+   INTERMEDIATE     model edge is REAL      -- normal sizing
+   SHORT & FLAT     model edge is REAL      -- normal sizing
+   SUPERSPEEDWAY    model edge is ~NOTHING  -- do not size on model edge; line-shop (mev) only
+
+3) TRAIN AND TEST WANT OPPOSITE NOISE AT ROAD -- AND THE CAUSE HAS A NAME~ SHANE VAN GISBERGEN.
+   noise   TRAIN win   TEST win
+   10      30.98       12.80    <- test LOVES low noise
+   25      25.56       17.35
+   40      25.00       20.84    <- train LOVES high noise
+   Perfect inversion. The model picks SVG as favourite in 8 of the 10 test road races and he WON 6
+   (Mexico, Chicago, Sonoma, Watkins Glen, Charlotte Roval 2025; Watkins Glen 2026). Train (2023-24)
+   had no dominant road ace -- Reddick was favourite and converted once -- so a blurry field wanted
+   noise. TRAIN-SELECTING ROAD NOISE ON 2023-24 WOULD PICK 40 AND COST 8 BRIER POINTS ON TEST.
+   The live setting (Low/10, from 4.8 avg cautions) is right for the RIGHT REASON~ road courses
+   genuinely have few cautions and low pack randomness. It is not luck that it matches.
+   CAUTION~ the test-set brilliance is ONE DRIVER. If SVG regresses or leaves, road win Brier will
+   deteriorate sharply. Do not read 12.80 as a durable property of the model.
+
+4) startPos AT ROAD~ model-free Pearson r(start, finish) = 0.448 on 794 obs 2023-26. The live comment
+   cites r=0.416 -- CONFIRMED, and it has if anything strengthened. The startPos weight sweep was
+   UNINFORMATIVE because train-selection picks N40 for every weight (see 3). Cannot resolve the road
+   startPos weight until there is a train set that is not SVG-inverted. LEAVE AT 0.15.
+
+STILL UNTESTED~ practice pace, in any harness, at any track type. Blocked on data (starts 2024).
+Earliest a practice-inclusive harness is possible~ train 2024-25 / test 2026. Thin but doable.
+
+### PRACTICE PACE IS REAL. AND A METHODOLOGY WARNING THAT ALMOST COST US. (2026-07-14)
+First ever validation of the practice input. Cup ovals, 47 races with practice coverage >=20 drivers
+(2024~15, 2025~20, 2026~12). practice = practice_sessions.overall_avg, LATEST session per driver,
+lower lap time = better. Missing -> neutral 50 (matches live).
+
+1) PRACTICE PACE CARRIES GENUINE INDEPENDENT SIGNAL. KEEP THE 0.15 WEIGHT.
+   Multiple regression, finish ~ f(all four inputs ranked within race), n = 1497 driver-races~
+     input             coef     SE      t       verdict
+     PRACTICE pace    0.1099  0.0271   4.06    SIGNIFICANT
+     corr history     0.2658  0.0482   5.51    SIGNIFICANT
+     start position   0.1951  0.0277   7.04    SIGNIFICANT
+     track history    0.0474  0.0478   0.99    not significant
+   partial r (practice | corr, start, track) = 0.104. It SURVIVES controlling for everything else.
+   MISATTRIBUTION CORRECTED (see below)~ I originally wrote that this "contradicts the older practice
+   edge is only 0.0003 note". IT DOES NOT. The 0.0003 figure is NOT a practice-edge measurement at all.
+   It is the SLEEPER RESIDUAL partial correlation from #114. Different quantity entirely. See the
+   correction entry at the end of this log.
+   Weight sweep (noise re-tuned, train 2024-25 / test 2026, n=12 test -- underpowered)~ raising the
+   weight to 0.30 or 0.50 is CLEARLY WORSE on every market. 0.15 is right. DO NOT RAISE IT.
+   Standalone predictive power (rank vs finish, 47 races)~ practice r=0.278, corr r=0.473,
+   startPos r=0.425, trackHistory r=0.405. Practice is the WEAKEST input -- but not a useless one.
+
+2) !!! METHODOLOGY WARNING -- I ALMOST KILLED trackHistory ON A COLLINEARITY ARTEFACT !!!
+   The regression above says trackHistory is NOT significant (t=0.99; and t=1.68 on 2025-26 alone,
+   t=1.82 on Intermediate). That looks like a 0.15 weight doing nothing. IT IS NOT.
+   BACKTEST, noise re-tuned, train 2023-24 / test 2025-26, 107 oval races~
+     wTrack   TEST win    t3      t5      t10
+     0.000    23.07       60.7    89.3    152.7   <- trackHistory OFF
+     0.075    22.96       60.4    89.0    151.3
+     0.150    22.89       60.2    88.7    150.3   <- LIVE
+     0.220    22.88       60.1    88.9    149.4
+   Dropping it is WORSE on EVERY market, MONOTONICALLY. It is earning its keep. KEEP 0.15.
+
+   WHY THE REGRESSION LIED~ corrHistory and trackHistory are THE SAME QUANTITY (driver_rating history)
+   sliced two ways -- one pooled by correlation group, one by exact track. They are heavily COLLINEAR.
+   Under collinearity OLS splits the credit between them and INFLATES BOTH STANDARD ERRORS, which
+   crushes the t-stat. NON-SIGNIFICANCE UNDER COLLINEARITY DOES NOT MEAN THE VARIABLE IS USELESS FOR
+   PREDICTION. It only means the credit cannot be cleanly ATTRIBUTED. The Monte Carlo does not care
+   about attribution -- it cares about the RANKING, and both terms together rank better than either.
+
+   >>> STANDING RULE~ NEVER drop a sim input on the strength of a regression t-stat. The inputs are
+   >>> collinear by construction. ALWAYS confirm in the harness with noise re-tuned. This is now the
+   >>> SECOND methodology trap found today (the first~ noise absorbs any dispersion change). <<<
+
+STILL UNTESTED~ practice pace in O`Reilly / Trucks (coverage is 1 and 3 tracks respectively -- not
+enough). Practice at road courses (4 races, all 2026). Both blocked on data.
+
+### PRACTICE EDGE -- THE PRECISE NUMBER (amends the entry above, same day 2026-07-14)
+The entry above led with the regression t-stat (4.06) and OVERCLAIMED. Operator asked the right
+question~ "what IS the practice edge if not 0.0003?" Here is the actual measured edge.
+
+PAIRED per-race Brier, practice ON (0.153) vs OFF (0.00), ALL 47 practice races, noise fixed at live 16.
+POSITIVE = practice HELPS. Brier x1000.
+  market   mean gain   SE      t       95% CI            verdict
+  win      -0.213     0.250   -0.85   [-0.70, 0.28]     NO EFFECT (slightly negative)
+  t3       +0.598     0.538    1.11   [-0.46, 1.65]     no effect detected
+  t5       +0.630     0.875    0.72   [-1.08, 2.35]     no effect detected
+  t10      +2.937     1.013    2.90   [ 0.95, 4.92]     HELPS  (~1.8 pct of a ~160 baseline)
+
+ON WIN, PRACTICE DOES NOTHING~ -0.21 +/- 0.25, indistinguishable from zero, if anything negative.
+(I originally tied this to the "0.0003" note. That was a MISATTRIBUTION -- see the correction at the
+end of this log. 0.0003 is the SLEEPER RESIDUAL from #114, not a practice-edge number.)
+
+THE RECONCILIATION (both things are true)~
+  - The regression signal IS real~ practice survives controlling for corr + startPos + trackHistory
+    (t=4.06, partial r=0.104, n=1497).
+  - But it converts ALMOST ENTIRELY INTO PLACE-MARKET ACCURACY, not win-market accuracy.
+  - Physically obvious in hindsight~ practice pace tells you WHO HAS A GOOD CAR (who avoids a bad day).
+    It does NOT tell you who WINS. Winning needs the tail; a good car only moves the body.
+
+OPERATOR RULE~ PRACTICE MATTERS FOR TOP-10 (and marginally t3/t5). IT DOES NOT MATTER FOR WIN.
+If you are pricing a win bet, practice pace should not change your mind. If you are pricing a top-10,
+it should. KEEP the 0.15 weight either way~ it costs nothing on win and pays ~1.8 pct on t10.
+DO NOT RAISE IT -- 0.30 and 0.50 are clearly worse on every market.
+
+### CLV TOOL EXISTS AND IS NOT BEING USED (2026-07-14)
+clv_log + the GradeCenter CLV tool were shipped 2026-07-09. Current contents~
+  16 rows TOTAL, all from ONE race (oreilly R21). mean CLV +0.24, SE 0.22, t=1.11.
+  positive CLV on 3 of 16 bets (19 pct).
+n=16 from a single race tells us NOTHING yet. But CLV is the ONLY instrument that measures the REAL
+model (equipment prior, crossover borrows, practice, the actual weights) rather than the stripped-down
+backtest harness. Every harness number in this log is a PROXY. CLV is not.
+ACTION~ run the CLV tool EVERY race week. It is already built. It just needs feeding.
+
+### PRACTICE DOMINANCE vs THE WIN MARKET -- UNRESOLVED, AND THE BLOCKER IS DATA (2026-07-14)
+Operator~ "I have spotted winners myself simply observing how good a car is in practice."
+That is a real hypothesis and it is NOT refuted by the earlier finding. Here is where it actually stands.
+
+THE DISTINCTION THAT MATTERS~ RANK vs MARGIN. My earlier test ranked drivers by practice pace within
+the race. RANK THROWS AWAY MARGIN. P1-by-0.004s and P1-by-three-tenths get the identical input. The
+operator`s eye is reading DOMINANCE, not rank -- and dominance is exactly the kind of thing that shows
+up in WIN and not in TOP-10, because winning needs the TAIL and a dominant car IS the tail.
+
+LOGISTIC MODELS, run SEPARATELY (rank and margin are collinear -- NEVER put both in one model; I did
+that first and margin came out with the WRONG SIGN, a pure collinearity artefact. Same trap as
+trackHistory. Twice in one day.) n=1366 driver-races, controls~ corr rank + start rank.
+  WIN  (40 events)
+    practice RANK        z = -1.43   not sig     logL -141.1
+    MARGIN, avg pace     z =  0.80   not sig     logL -141.8
+    MARGIN, BEST LAP     z =  1.52   not sig     logL -140.9   <- BEST FIT, CORRECT SIGN
+  TOP-5  (197 events)~ RANK z=-3.59 SIG (best fit). MARGIN pace z=2.54.
+  TOP-10 (392 events)~ RANK z=-3.95 SIG (best fit). MARGIN pace z=3.30.
+
+READ THIS CAREFULLY~ for the PLACE markets, RANK is the right representation and the sim already uses
+it. For WIN, BEST-LAP DOMINANCE leads (right sign, best fit) but does NOT reach significance on 40 win
+events. THAT IS NOT EVIDENCE AGAINST THE HYPOTHESIS. It is NO POWER. Different thing entirely.
+Note it is BEST-LAP margin, not avg-pace margin -- closer to what an eye reads~ "that car has speed
+nobody else has".
+
+POWER CALCULATION -- HOW MUCH DATA DO WE NEED?
+  z scales with sqrt(n). To take z=1.52 to z=2.6 needs (2.6/1.52)^2 = 2.93x the races.
+  47 x 2.93 = ~138 Cup oval races with practice.
+  Currently~ 47 with, 60 MISSING (2022~23, 2023~23, 2024~10, 2025~4). Backfilling all 60 -> 107 races,
+  which projects to z ~ 2.29. CLOSE, PROBABLY STILL SHORT on its own.
+  => BACKFILL THE 60 CUP OVAL RACES, *AND* LOAD O`REILLY + TRUCKS PRACTICE (currently 1 and 3 tracks).
+     The extra series add win events and let us test whether the effect is series-specific.
+  THEN re-run~ WIN ~ best_lap MARGIN + corr + startPos.
+
+REJECTED ALONG THE WAY (10th rejection)~ PRACTICE NORMALIZATION.
+normalizeArr is MIN-MAX, anchored on the single slowest car. Lap times are the most outlier-prone input
+we have (a broken practice run is SECONDS off, not tenths). Measured contamination~
+  mean scale eaten by the gap from P90 to the SLOWEST car~  32.7 pct
+  mean scale separating the FASTEST car from the MEDIAN~    39.6 pct
+  worst~ Indianapolis 2025 -- competitive field spans 0.77s, scale spans 4.4s, slowest car alone eats
+         83 pct of the 0-100 range. The real order is crushed into 17 pct of the scale.
+THE CONTAMINATION IS REAL. IT IS ALSO IMMATERIAL. Harness (noise re-tuned, train 24-25 / test 26)~
+  minmax(LIVE) 21.82 / z-score 21.79 / winsorize p5-p95 22.07 / rank 21.85  (win Brier)
+All within noise on every market. At a 15 pct weight, compressing the practice scale is just a slightly
+smaller effective weight, and the weight curve is FLAT there. No change. Do not retry.
+
+STATUS~ the operator`s observation is the most promising UNTESTED idea we have. It is blocked purely on
+sample size, and the fix is a DATA LOAD, not a model change.
+
+### CORRECTION~ WHAT "0.0003" ACTUALLY IS (2026-07-14)
+I misattributed this number TWICE today and then built a "retraction" on top of the misattribution.
+Correcting the record because Fable reads this log.
+
+0.0003 IS NOT A PRACTICE-EDGE MEASUREMENT.
+It is the SLEEPER RESIDUAL partial correlation from #114 (PRACTICE-EDGE AT SCALE, closed 2026-07-09)~
+  partial corr( sleeper edge , model residual ), both sides residualised on corr/start/practice = -0.0003
+MEANING~ the sleeper effect has NO RESIDUAL ALPHA. Not "practice is worthless".
+
+THE SLEEPER EFFECT ITSELF IS REAL AND WAS NEVER IN DOUBT. Re-confirmed today on the current data~
+  SLEEPERS (started outside top-10, practiced top-5)  n=117  P22.3 -> P16.4   GAINED +5.9
+  everyone else                                       n=1259 P18.3 -> P18.9   GAINED -0.6
+  (#114 measured +5.1 vs -0.5 on its sample. Consistent.)
+CASE~ Ross Chastain, Charlotte 2025 (Coca-Cola 600). Practice P1 by 0.177s -- biggest margin in the
+field. Started P40 (LAST). WON. Gained 39 places. He IS the sleeper term, textbook.
+
+WHY THERE IS STILL NOTHING TO SHIP~ practice pace and startPos are BOTH already model inputs, so
+"fast in practice + deep on the grid" ALREADY projects forward in the composite. The model prices the
+sleeper. The -0.0003 residual says there is nothing LEFT OVER to harvest. #114 was closed correctly.
+
+MY ERROR, FOR THE RECORD~ I first measured sleepers by ABSOLUTE FINISH (avg P18.3) and concluded the
+effect ran BACKWARDS. That was the wrong measurement -- cars starting deeper finish deeper, trivially.
+The correct measurement is POSITIONS GAINED. Operator caught it. ALWAYS measure sleeper effects as
+gain-vs-grid, never as absolute finish.
+
+THE PRACTICE FINDING FROM TODAY STANDS ON ITS OWN MEASUREMENT (it never depended on the 0.0003 note)~
+  practice pace~ NOTHING on win (-0.21 +/- 0.25). +2.9 Brier on top-10 (t=2.90). Keep 0.15, do not raise.
