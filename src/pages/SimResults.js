@@ -105,12 +105,12 @@ function MarketTables({ results, config }) {
     medge: "Model prob minus the sharp consensus, in points. The ONLY column that isolates model edge from line-shopping."
   }
   function GmTable({ rows, col1 }) {
-    const list = (rows || []).filter((r) => r.best != null)
+    const list = (rows || []).filter((r) => r.best != null).slice().sort((a, b) => (b.p || 0) - (a.p || 0)) // group markets: informational, sorted by model prob (2026-07-15)
     if (!list.length) return null
     return (
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem" }}>
         <thead><tr>
-          {[col1, "Model", "Fair", "DK", "FD", "HR", "Best", "Edge", "mev", "medge"].map((h, i) => (
+          {[col1, "Model", "Fair", "DK", "FD", "HR", "Best", "mev"].map((h, i) => (
             <th key={i} title={TIP[h] || ""} style={{ padding: "7px 6px", color: "#8a8a8a", fontSize: 11, fontWeight: 500, textAlign: i === 0 ? "left" : "right", borderBottom: "0.5px solid #333", cursor: TIP[h] ? "help" : "default" }}>{h}</th>
           ))}
         </tr></thead>
@@ -124,9 +124,7 @@ function MarketTables({ results, config }) {
               <td style={{ padding: "7px 6px", textAlign: "right", color: r.bb === "fd" ? "#3fb950" : mut }}>{fo(r.fd)}</td>
               <td style={{ padding: "7px 6px", textAlign: "right", color: r.bb === "hr" ? "#3fb950" : mut }}>{fo(r.hr)}</td>
               <td style={{ padding: "7px 6px", textAlign: "right", fontWeight: 700 }}>{fo(r.best)}</td>
-              <td style={{ padding: "7px 6px", textAlign: "right" }}>{r.ev == null ? "-" : <span style={{ background: r.ev >= 10 ? "#123d24" : "transparent", color: r.ev >= 10 ? "#3fb950" : mut, padding: "1px 7px", borderRadius: 4 }}>{(r.ev > 0 ? "+" : "") + r.ev}%</span>}</td>
               <td style={{ padding: "7px 6px", textAlign: "right", color: (r.mev != null && r.mev > 0) ? "#3fb950" : mut }}>{r.mev == null ? "-" : (r.mev > 0 ? "+" : "") + r.mev + "%"}</td>
-              <td style={{ padding: "7px 6px", textAlign: "right", color: r.medge == null ? mut : (r.medge > 0 ? "#3fb950" : "#e74c3c") }}>{r.medge == null ? "-" : (r.medge > 0 ? "+" : "") + r.medge}</td>
             </tr>
           ))}
         </tbody>
