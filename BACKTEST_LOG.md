@@ -1373,6 +1373,43 @@ into every published board's config -- future pre/post comparisons are auditable
 sim_grades save needed `alter table sim_grades add column config jsonb` (grader stores
 the config snapshot now).
 
+### HARNESS DISCIPLINE: 2022 BURN-IN (formalized 2026-07-14, user-prompted)
+The user flagged an unlogged "burn-in" concept (a claimed 2026-07-14 log entry titled "THE
+2022 BURN-IN ARTEFACT" does NOT exist in this file -- whichever chat wrote it never pushed;
+this section formalizes the idea from first principles + fresh measurement).
+MEASURED: 2022 target races grade at composite Spearman ~0.385-0.388 vs ~0.412 for 2023-24
+(intermediates, group-scoped, scheme-independent) -- early walk-forward races are predicted
+off nearly-empty pools and are LOW-QUALITY EVALUATION POINTS by construction. Since 2022
+always lands in TRAIN splits, this explains the recurring test>train pattern across our runs
+(decay 0.39/0.42, lottery Brier 26.7/23.8, DNF 24.2/21.9) -- structural, not suspicious.
+STANDING RULE: walk-forward harnesses EXCLUDE 2022 target races from SCORING (still used as
+history). Splits become clean-train 2023-24 vs test 2025-26. Applied from today.
+ADDENDUM to the decay rejection below: under the clean split, the intermediates train
+disagreement dissolves to a WASH (buckets 0.4124 vs 4mo 0.4115 vs 6mo 0.4133), test still
+favors decay (+0.017). Verdict unchanged (sparse-regime reversals still bar a global swap)
+but the revisit clause strengthens.
+
+### WRECK-DECONTAMINATED RATING POOLS -- promising in LUCK regimes, not shippable yet (2026-07-14)
+The untested estimator idea (motivating case: Caruth diagnosis 2026-07-09 -- his rt110
+Atlanta diluted by rt48/rt54.9 wrecks). Corr pools recomputed 3 ways: incumbent (all races),
+EXCL (drop rows where driver completed <90 pct of race laps -- 11.9 pct of all rows), DW03
+(down-weight wreck rows x0.3). Walk-forward, group-scoped, 2022 burn-in excluded, clean
+23-24 vs test 25-26, composite Spearman:
+- SUPERSPEEDWAY: EXCL wins BOTH splits -- clean 0.2014 vs 0.1990, test 0.1387 vs 0.1184
+  (+0.020, ~15 pct relative on the regime's weak signal). DW03 in between.
+- ROAD: both variants beat incumbent on both splits, modestly (excl +0.007 clean / +0.003
+  test; dw03 +0.004 / +0.005).
+- INTERMEDIATE + SHORT-FLAT: wash with sign flips (differences +-0.005, noise).
+MECHANISM (clean split along luck vs skill): at pack tracks and roads, wrecks are mostly
+COLLECTED (someone else's crash) -> wreck-race ratings are noise, removing sharpens. At
+intermediates/short tracks wrecks are more often CAUSED -> the low rating carries real
+information, deleting it costs what it cleans. Same lesson as the equipment de-meaning
+rejection: apparent contamination can be signal.
+VERDICT: DO NOT SHIP YET -- the SS gain rests on 10 test races. But this is the most
+promising estimator refinement tested (4/4 cells positive in luck regimes, documented prior
+case, sensible mechanism). REVISIT end of 2026 season with the fuller sample; candidate ship
+shape = wreck-EXCLUSION in corr pools at SS (and possibly road) ONLY, incumbent elsewhere.
+
 ### CONTINUOUS RECENCY DECAY vs YEAR BUCKETS -- REJECTED as global swap (2026-07-12)
 Estimator-refinement test (first of the "improve the measurement, not add terms" series):
 replace the year-bucket age weights (1.3/1.0/.75/.55/.4) with smooth exponential decay by
