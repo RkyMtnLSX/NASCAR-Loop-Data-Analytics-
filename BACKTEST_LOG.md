@@ -2429,3 +2429,40 @@ currently viable practice-side test on existing data. The still-live path is PRA
 (best-lap margin), which needs the ~60-race 2024 cup oval practice backfill of NEW races -- a
 different, unaffected workstream.
 
+
+### MANUFACTURER / GROUP MARKETS -> INFORMATIONAL ONLY; model-edge badges removed (2026-07-15, SHIPPED)
+Trigger: Top Chevrolet board flagged Cody Ware +145 pct (model 0.5 vs HR +50000), Stenhouse +124, Ty
+Dillon +109, Custer +104 -- while the actual contenders ran negative (Larson model 24 vs ~34 devigged
+market). Operator: "I think we are way off here."
+DIAGNOSIS -- three stacked problems, only the first cosmetic:
+1. TAIL ARITHMETIC (the Reaume case in an unguarded market). The 2026-07-09 MINP tail guard covers
+   win/t3/t5/t10 ONLY. Group markets had NO probability floor, so a 0.3pp sub-resolution disagreement
+   (Ware) rendered as +145 pct. Note the board's own medge column already said no-bet (-0.03) -- the
+   badge and the staking column contradicted each other.
+2. STRUCTURAL AMPLIFICATION. Group markets RENORMALIZE the documented pre-board favourite softness
+   (favGap -9) into the tail: a modest win-market miss on Larson becomes ~10pp inside a 17-car
+   Chevy-only subset, and every leaked point inflates the mid tier (Bowman +73 / McDowell +93 were
+   partly Larson-leak, not information about Bowman). A MINP floor CANNOT fix this -- the mid-tier
+   badges survive any sane floor. This market type is the worst possible surface for the model's one
+   known calibration weakness.
+3. NEVER VALIDATED + HUGE VIG. The value engine's record (Chicagoland 11/11, +88 pct ROI) was earned
+   on win/place contender flags. Group markets have ZERO graded history -- GradeCenter has no gmv path
+   at all (verified: zero refs) -- and DK's overround on this market summed to ~128 pct.
+DECISION (operator): INFORMATIONAL treatment, deliberately stronger than a floor.
+SHIPPED:
+  SimResults.js (commit 201d31d0): GmTable drops the Edge and medge columns entirely; keeps
+    Model / Fair / DK / FD / HR / Best / mev; rows now sorted by MODEL PROB desc (was ev desc, which
+    put the scrub tier on top). Display-time, so ALREADY-PUBLISHED boards clean themselves on deploy.
+  SimulationCenter.js (commit a7d4d5fc): __groupMarketValue publishes ev:null / medge:null; sort by
+    model prob. mev (de-vigged consensus vs best price -- model-free line-shop) is KEPT: it is the only
+    number on these boards with a defensible basis. Admin preview keeps its columns and renders dashes
+    for new publishes -- deliberate, signals suppression.
+  Deploy verified in bundle main.b1249648.js (new GmTable header present; the old header string
+  survives exactly once = the SC admin preview, by design).
+STANDING RULE: no model-edge display on ANY market until that market has a graded record. If group
+markets are ever to be bettable: (1) wire gmv into GradeCenter first, (2) accrue a season of grades,
+(3) then decide. Same discipline that earned the win/place badges their credibility.
+NOTE ON THE MODEL: the tail numbers themselves were defensible (Ware 0.5 pct is a fine estimate). The
+failure was PRESENTATION -- converting sub-tail-resolution disagreements into buy signals -- compounded
+by pre-board favourite softness. No model change shipped; nothing here contradicts noise 16 or any
+validated setting.
