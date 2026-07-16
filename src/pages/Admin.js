@@ -1899,6 +1899,54 @@ export default function Admin() {
     if (!practiceRaceNum || !parseInt(practiceRaceNum)) { setUploadStatus({ type: 'error', message: 'Enter the Race # (season round R#) before uploading - sessions and laps join on it.' }); return }
     setUploading(true)
     setUploadStatus(null)
+    // ---- UPLOAD GUARDS (2026-07-16): confirm dialogs for the three dropdown/race# mistake modes ----
+    try {
+      const rn = parseInt(practiceRaceNum)
+      // guard 1: registry check - does this (series, year, track, race#) exist? Never silently stub.
+      const { data: trackRaces } = await supabase.from('races').select('race_number')
+        .eq('year', year).eq('series', series).eq('track_name', trackName)
+      const { data: rnRaces } = await supabase.from('races').select('track_name')
+        .eq('year', year).eq('series', series).eq('race_number', rn)
+      const exactMatch = (trackRaces || []).some(r => String(r.race_number) === String(rn))
+      if (!exactMatch) {
+        const opts = (trackRaces || []).map(r => 'R' + r.race_number).join(', ') || 'none'
+        const other = (rnRaces || []).map(r => r.track_name).join(', ') || 'no race'
+        const ok = window.confirm('No ' + series + ' ' + year + ' race found for ' + trackName + ' R' + rn + '.\n' +
+          trackName + ' races that year: ' + opts + '.\n' +
+          'R' + rn + ' in the registry is: ' + other + '.\n\nUpload anyway? (creates a stub race)')
+        if (!ok) { setUploading(false); setUploadStatus({ type: 'error', message: 'Upload cancelled (registry mismatch).' }); return }
+      }
+      // guard 2: overwrite check - replacing an existing session requires explicit confirmation
+      const { data: existSess } = await supabase.from('practice_sessions').select('id')
+        .eq('series', series).eq('year', year).eq('track_name', trackName)
+        .eq('race_number', rn).eq('session_number', sessionNum)
+      if ((existSess || []).length) {
+        const ok = window.confirm('A ' + series + ' ' + year + ' ' + trackName + ' R' + rn + ' Session ' + sessionNum +
+          ' upload already exists (' + existSess.length + ' drivers). REPLACE it?')
+        if (!ok) { setUploading(false); setUploadStatus({ type: 'error', message: 'Upload cancelled (session already exists).' }); return }
+      }
+      // guard 3: lap-time sanity - do these laps look like this track?
+      const newLaps = []
+      ;((preview.parsed && preview.parsed.drivers) || []).forEach(d => ((d.laps || d.lapTimes || []) ).forEach(v => { const x = typeof v === 'object' ? v.time : v; if (x > 0) newLaps.push(x) }))
+      if (!newLaps.length) (preview.graded || []).forEach(d => { const b = d.bestLap || d.best_lap; if (b > 0) newLaps.push(b) })
+      if (newLaps.length >= 30) {
+        newLaps.sort((a, b) => a - b)
+        const newMed = newLaps[Math.floor(newLaps.length / 2)]
+        const { data: histLaps } = await supabase.from('practice_laps').select('lap_time')
+          .eq('track_name', trackName).gt('lap_time', 0).limit(1000)
+        const h = (histLaps || []).map(l => l.lap_time).sort((a, b) => a - b)
+        if (h.length >= 200) {
+          const histMed = h[Math.floor(h.length / 2)]
+          const ratio = newMed / histMed
+          if (ratio < 0.85 || ratio > 1.15) {
+            const ok = window.confirm('LAP-TIME CHECK: this file\'s median lap is ' + newMed.toFixed(2) + 's, but laps at ' +
+              trackName + ' historically run ~' + histMed.toFixed(2) + 's. Wrong track selected?\n\nUpload anyway?')
+            if (!ok) { setUploading(false); setUploadStatus({ type: 'error', message: 'Upload cancelled (lap times do not match track).' }); return }
+          }
+        }
+      }
+    } catch (guardErr) { /* guards must never block uploads on their own errors */ }
+    // ---- end guards ----
     try {
       let raceId = null
       const { data: raceMatches } = await supabase
