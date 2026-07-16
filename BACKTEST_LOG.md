@@ -2886,3 +2886,24 @@ TEST DESIGN NOW AVAILABLE (no more data needed)~ CROSS-SERIES SPLIT -- select th
 weight (.15/.25/.35) on TRUCKS 2026 (7 races), score on O'REILLY 2026 (10 races). Leak-free by
 construction (different series, different drivers/trucks). Low power (7/10) but honest; 2025 sheet
 backfills for either series upgrade it whenever the operator finds them.
+
+### LOWER-SERIES PRACTICE WEIGHT SWEEP (cross-series split) -> KEEP 0.15; the 2x raw signal does NOT cash at the composite (2026-07-16)
+The test the two backfills unlocked. Design~ select practice weight (.15/.25/.35, other weights
+rescaled to keep sum) and noise (16/19/23/27) per market on TRUCKS 2026 (7 oval races), score on
+O'REILLY 2026 (10 oval races). Leak-free by construction (disjoint series). Paired seeds, NSIM 2000,
+group-empirical DNF per series.
+TRAIN (trucks)~ place markets prefer MORE practice (w.35 best on t3/t5/t10), win prefers LESS (w.15) --
+the cup pattern (practice is a PLACE signal) reappears in trucks.
+TEST (oreilly), train-picked (weight,noise) per market~
+  win~ pick w.15 -> 21.65; raising weight is MONOTONE WORSE on test (21.65 / 21.87 / 22.26). KEEP .15.
+  t10~ pick w.35@N19 -> 123.5 vs 124.4 at w.15 (-0.7 pct, and monotone -1.9 pct at N16). CONFIRMS.
+  t3~  pick w.35 -> 56.8 vs 56.3 at w.15. CONTRADICTS its own train pick.
+  t5~  pick w.35 -> 84.1 vs 83.2 at w.15. CONTRADICTS.
+VERDICT~ SHIP NOTHING. Only t10 wants more practice weight cross-series; t3/t5 flip sign out of
+sample and win is monotone against. The ~2x raw Spearman does NOT translate to composite gains --
+EXACTLY the pre-logged caveat~ wide equipment spread lifts ALL inputs (corr pools are stronger in the
+lower series too), so practice's MARGINAL value is already priced at 0.15. The borrowed cup weight is
+now a VALIDATED setting for trucks + oreilly, not a hand-me-down.
+CAVEATS~ 7 train / 10 test races, one season, reduced harness (no equipment prior). UPGRADE PATH~
+operator backfills 2025 truck/oreilly practice (no lineups needed -- loop_data carries start_position)
+-> within-series train(2025)/test(2026) re-run. Trigger~ ~15 oval sessions per series in 2025.
