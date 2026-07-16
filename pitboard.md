@@ -826,6 +826,12 @@ Full evidence in BACKTEST_LOG.md (2026-07-15 entries). For the handoff:
 - **Team-correlated noise, step 1 measured (no sim change):** org-level residual ICC 0.106 (2023-26,
   p 0.000; SS 0.217, road 0.00); manufacturer-beyond-org ZERO (p 0.61). Prototype spec + gates parked
   in BACKTEST_LOG + task list; best picked up before a superspeedway weekend.
+- **tracks.display_group (NEW column, user-run SQL) + LoopData.js commit `8e56385e`:** public comp-track
+  display now groups by `display_group` (fallback: correlation_group_label). Bristol AND Dover display as
+  'High-Banked Concrete'; flat tracks display without them. THE SIM STILL POOLS BY correlation_group_label —
+  display_group is optics only, never a model input. Companion backtest same day: the "Bristol discount"
+  lambda sweep REJECTED (flat pooling won its 3rd test; see BACKTEST_LOG). LoopData.js changed again
+  2026-07-15: REFRESH BEFORE EDITING.
 - Long-run column backfill (late_run_avg / long_run) declared DEAD (structural nulls, operator call) --
   sustained-pace win test blocked; practice-dominance backfill of NEW 2024 races is the live path
   (operator loading practice sessions now).
