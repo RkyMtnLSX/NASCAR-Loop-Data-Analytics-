@@ -192,6 +192,7 @@ export default function QualifyingCenter({ isSubscriber }) {
   const [simConfig, setSimConfig] = useState(null)
   const [qualData, setQualData] = useState([])
   const [corrTracks, setCorrTracks] = useState([])
+  const [dispLabel, setDispLabel] = useState(null)
   const [entryList, setEntryList] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -222,9 +223,14 @@ export default function QualifyingCenter({ isSubscriber }) {
 
       const { data: trackRows } = await supabase
         .from('tracks')
-        .select('name')
-        .eq('correlation_group_label', cfg.correlation_label)
-      const unsortedTracks = (trackRows || []).map(function(t) { return t.name })
+        .select('name, display_group, correlation_group_label')
+      // DISPLAY grouping (2026-07-15): comp columns use tracks.display_group (fallback to
+      // correlation_group_label). Sim pooling and qualFormat stay on correlation_label.
+      const allTrk = trackRows || []
+      const featuredTrk = allTrk.find(function(t) { return t.name === cfg.track_name })
+      const dispKey = (featuredTrk && (featuredTrk.display_group || featuredTrk.correlation_group_label)) || cfg.correlation_label
+      setDispLabel(dispKey)
+      const unsortedTracks = allTrk.filter(function(t) { return (t.display_group || t.correlation_group_label) === dispKey }).map(function(t) { return t.name })
       const localCorrYear = cfg.correlation_year || new Date().getFullYear()
       const { data: raceDateRows } = await supabase
         .from('races')
@@ -494,7 +500,7 @@ export default function QualifyingCenter({ isSubscriber }) {
         <div>
           <h1 className="page-title" style={{ margin: 0 }}>Qualifying Center</h1>
           <p className="page-subtitle" style={{ margin: '4px 0 0' }}>
-            Cup Series &middot; {config.track_name} &middot; {config.correlation_label}
+            Cup Series &middot; {config.track_name} &middot; {dispLabel || config.correlation_label}
             {(function() {
               const fmtInfo = QUAL_FORMAT_LABELS[fmt]
               return (
@@ -598,7 +604,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                   })}
                   {corrCols.length > 0 && (
                     <th colSpan={corrCols.length} style={Object.assign({}, thStyle, { borderLeft: '2px solid var(--border)', color: 'var(--text-secondary)' })}>
-                      {config.correlation_label} &middot; {show2025 ? '2025/' : ''}{corrYear}
+                      {dispLabel || config.correlation_label} &middot; {show2025 ? '2025/' : ''}{corrYear}
                     </th>
                   )}
                 </tr>
