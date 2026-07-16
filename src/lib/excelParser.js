@@ -13,15 +13,18 @@ export function parsePracticeExcel(file, series = 'cup') {
         const workbook = XLSX.read(data, { type: 'array' })
         const sheetNames = workbook.SheetNames
         let sheetName = sheetNames[0]
+        // case-insensitive substring aliases (2026-07-16): sheets are named by broadcasters, not by us.
+        // 'NOAPS' = NASCAR O'Reilly Auto Parts Series (the alias that broke Darlington oreilly backfill).
         const seriesSheetMap = {
-          cup:     ['CUP', 'Cup', 'cup'],
-          oreilly: ['OREILLY', 'OReilly', 'oreilly', 'NXS', 'XFINITY', 'Xfinity', 'Final Practice'],
-          xfinity: ['XFINITY', 'Xfinity', 'xfinity', 'NXS'],
-          trucks:  ['TRUCKS', 'Trucks', 'trucks', 'NCWTS'],
+          cup:     ['cup'],
+          oreilly: ['oreilly', "o'reilly", 'noaps', 'nxs', 'xfinity', 'final practice'],
+          xfinity: ['xfinity', 'nxs', 'noaps'],
+          trucks:  ['truck', 'ncwts', 'craftsman'],
         }
         const candidates = seriesSheetMap[series] || []
         for (const candidate of candidates) {
-          if (sheetNames.includes(candidate)) { sheetName = candidate; break }
+          const hit = sheetNames.find(function (n) { return String(n).toLowerCase().indexOf(candidate) !== -1 })
+          if (hit) { sheetName = hit; break }
         }
         const worksheet = workbook.Sheets[sheetName]
         const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 })
