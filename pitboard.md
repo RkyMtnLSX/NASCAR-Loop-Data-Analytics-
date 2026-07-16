@@ -814,6 +814,22 @@ backtest (see BACKTEST_LOG 2026-07-11): configured nudges give 46-59% P10-P90 co
 80% target; recommended config values 9/9/10/9 (oval/short/SS/road), SQL-only change,
 user's call pending.
 
+### 2026-07-15 — group markets informational + team-correlation measured (SHIPPED code)
+Full evidence in BACKTEST_LOG.md (2026-07-15 entries). For the handoff:
+- **Group markets (Top Chevrolet/Ford/Toyota, Winning Mfr/Team) are INFORMATIONAL ONLY.**
+  SimResults.js (commit `201d31d0`): GmTable dropped the Edge + medge columns, keeps mev; rows sorted
+  by model prob (was ev). Display-time, so published boards clean themselves. SimulationCenter.js
+  (commit `a7d4d5fc`): __groupMarketValue publishes ev:null / medge:null; admin preview shows dashes
+  (deliberate). STANDING RULE: no model-edge display on ANY market without a graded record; re-entry
+  path is gmv -> GradeCenter -> accrue a season -> decide. Both files changed 2026-07-15: REFRESH
+  BEFORE EDITING.
+- **Team-correlated noise, step 1 measured (no sim change):** org-level residual ICC 0.106 (2023-26,
+  p 0.000; SS 0.217, road 0.00); manufacturer-beyond-org ZERO (p 0.61). Prototype spec + gates parked
+  in BACKTEST_LOG + task list; best picked up before a superspeedway weekend.
+- Long-run column backfill (late_run_avg / long_run) declared DEAD (structural nulls, operator call) --
+  sustained-pace win test blocked; practice-dominance backfill of NEW 2024 races is the live path
+  (operator loading practice sessions now).
+
 ### 2026-07-14 — model-integrity day (SHIPPED code + a big cleanup of the record)
 Full evidence for everything here is in BACKTEST_LOG.md (2026-07-14 entries). Summary for the handoff:
 
