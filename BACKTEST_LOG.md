@@ -2793,3 +2793,19 @@ DECISION UNCHANGED~ NOT shipped. The pre-registered #55 confirmatory (new 2026 r
 remains the gate, now with better priors~ chalk confound weakened, aggregate favours best5, one
 contrary season on record. If #55 passes, ship best5 (or the 50/50 blend) as THE practice input --
 no era/tire conditioning (see correction above).
+
+### ADDENDUM: the 2024 best5 wash is NOT explained by thin sessions (2026-07-16)
+Operator (reasonably): "I dont think our 2024 practice database is as full as 2025 and 2026." Tested
+the mechanical version of that excuse -- if 2024 sessions were short, best5 (5 of N laps) converges on
+overall_avg and CANNOT differentiate, making the wash inevitable and uninformative. MEASURED:
+  year   median laps/driver   best5-vs-overall within-session agreement (Spearman)
+  2024        26                    0.662
+  2025        34                    0.568
+  2026        24                    0.621
+2024 drivers ran MORE laps than 2026, and the metrics disagreed comparably in all three years. The
+convergence excuse is FALSE -- best5 had full room to win in 2024 and did not.
+WHAT SURVIVES of the concern~ COVERAGE SELECTION. Only 12 of 36 races of 2024 are loaded, chosen by
+sheet availability, not at random. A hand-picked third of a season is a weak arm -- keep 2024 as
+genuine neutral-contrary evidence, weighted accordingly, not dismissed.
+(Also within-session agreement ~0.57-0.66 everywhere is itself informative~ best5 and overall_avg
+genuinely rank drivers DIFFERENTLY in every era -- these are two distinct signals, not variants.)
