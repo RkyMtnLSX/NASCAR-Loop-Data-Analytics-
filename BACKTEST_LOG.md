@@ -2569,3 +2569,30 @@ DOCTRINE (restating, because this is the third market this week)~ pre-board win 
 pre-information placeholders, not opinions. Do not bet the favorite gap in either direction off a pre
 board; judge the model vs market AFTER P and Q load. Expect Heim to rise sharply post-P&Q (48 pct of
 weight lights up; his quali/practice should be elite).
+
+### !! CORRECTION !! THE NW TRUCK EQ OVERRIDES ARE NOT STALE -- DO NOT SHIP THE AUTO-RESET GUARD (2026-07-16)
+RETRACTS point 4 of the Heim entry directly above. I called the persisted eq overrides a "process bug"
+(stale Lime Rock leftovers) and recommended auto-clearing eq_overrides/rear_overrides on weekend-config
+change. WRONG on both. Operator explains they are DELIBERATE, SEASON-LONG number-swap corrections:
+  - Heim now drives the 5, previously fielded for a weak driver -> infl 0 so the polluted car pool
+    cannot drag him.
+  - Garcia now drives the 98 -- MAJESKI's old number in a pure number swap, not a team move -> infl 0.5
+    because Garcia must not inherit Majeski's elite car history wholesale.
+  - Majeski now drives the 88, previously a weak driver's number -> infl 0, same logic as Heim.
+These are correct patches for a REAL structural limitation~ the equipment prior pools BY CAR NUMBER,
+same-series (SimulationCenter task-118 code, line ~790). Car numbers do not carry equipment identity
+across driver swaps within/between orgs -- the operator understands the fleet better than the key does.
+STANDING GUIDANCE (replaces the retracted recommendation):
+  1. eq_overrides PERSIST BY DESIGN and must NEVER be auto-cleared. An auto-reset would silently destroy
+     season-long operator judgments every week. DO NOT SHIP IT.
+  2. The right guard is VISIBILITY, not deletion~ the sim/publish flow should surface active overrides
+     for review (it already stamps them into config; a review chip at run time would complete this).
+  3. Note the asymmetry~ infl overrides on RICH-history drivers (Heim, Majeski) are harmless insurance
+     (the prior's thin-history fill barely touches them); the ones doing real work are on thin-history
+     drivers (Garcia 0.5, Annunziata 0.05) -- these deserve a weekly glance, by the operator, manually.
+STRUCTURAL FIX CANDIDATE (unranked, not urgent)~ key the equipment pool by ORGANIZATION instead of car
+number (orgs survive number swaps; entry_list carries org for 2026 all series; historical car->org maps
+needed for 2022-25 -- built for cup 2026-07-15, trucks/oreilly would need their own). The modal-car
+blend already mitigates the driver side; the org key would fix the car side. Overrides remain the
+mechanism until then. Points 1-3 of the Heim entry (noise 23 stands; Bristol wreck immaterial;
+pre-board input darkness is the gap) are UNCHANGED.
