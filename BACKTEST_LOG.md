@@ -2653,3 +2653,33 @@ betting markets, noise re-tuned per arm; plus a WITHIN-DRIVER version (same driv
 career age) to separate real improvement from composition bias. If it clears, first pool-side change
 since the equipment prior. If it dies, the pre-board doctrine covers the residue (do not fade young
 breakouts off multi-year pools; the market prices trajectory and we do not).
+
+### CAREER-STAGE TRAJECTORY TERM -> REJECTED IN WALK-FORWARD; the gradient is real BACKWARD and unbettable FORWARD (2026-07-16, resolves the PRELIMINARY above; task #53 closed)
+CONTROL 1 (composition bias) -- PASSED, confound DEAD. Rebuilt the diagnostic with a FINISH-ONLY pool
+(prior = age-weighted mean finish rank pct, zero driver_rating content, so no laps-led flattery):
+  <40 starts +19.7 (t 6.6) / 40-80 +11.6 (t 8.1) / 80-120 -2.9 / 120+ -6.4.
+  Identical gradient. Young drivers genuinely finish better than their own past finishes predict.
+CONTROL 2 (the decisive one) -- WALK-FORWARD, FAILED. Uplift term comp_i += k * shape(bucket), shape
+from the diagnostic (+1.0 / +0.5 / -0.15 / -0.26), k swept 0/3/6/9/12, joint k x noise grid (noise
+re-tuned per k per market on train 2023-24), scored on TEST 2025-26, 107 cup non-SS ovals, paired seeds:
+  GLOBAL~ k=0 best or tied on every market; test win 23.10 (k0) -> 23.18 (k12) MONOTONE WORSE;
+  t10 147.9 -> 149.9. No optimum anywhere inside the sweep.
+  SUBPOPULATION-SCOPED (young rows ONLY, n=299 test driver-races -- the fair lens, no 25:1 dilution)~
+  young win 3.28 -> 3.30 -> 3.32, young t10 77.2 -> 77.7 -> 79.0 for k 0/3/6. THE UPLIFT MAKES THE
+  YOUNG DRIVERS' OWN PREDICTIONS WORSE.
+WHY A t=7 BACKWARD SIGNAL HAS ZERO FORWARD VALUE -- SURVIVORSHIP, exactly as flagged in the preliminary:
+retrospectively, the young drivers still generating rows are the ones who improved (the others lost
+their rides and exited the sample), so the backward average is +20 pct of field. Prospectively you
+cannot know WHICH kid is the improver, so a uniform uplift adds signal for the improvers and equal
+noise for the rest -- and nets negative. The gradient is a property of the SAMPLE, not of any
+identifiable driver standing in front of you.
+VERDICT~ SHIP NOTHING. 4th non-stationarity fix rejected (global recency, season-norm, form slope, now
+career-conditional uplift). The pool's refusal to chase is now tested from every direction we can
+construct.
+WHAT SURVIVES AS DOCTRINE~ (1) Model numbers on <80-career-start drivers are LOW-CONFIDENCE in a way
+the sim cannot fix -- the market prices trajectory using information (which kid is real) that is not in
+loop data. Do NOT fade young breakouts at model fair (Hocevar +3471 vs +700 is an unresolvable
+disagreement, not an edge either way). (2) Do not lay veterans purely because the pool loves them --
+the 120+ bucket runs -5 pct vs pool, but the same survivorship logic caps what a term can capture.
+(3) Candidate PRODUCT change (display, not model)~ flag <80-start drivers' rows on public boards as
+trajectory-uncertain, same spirit as the group-market suppression. Operator's call.
