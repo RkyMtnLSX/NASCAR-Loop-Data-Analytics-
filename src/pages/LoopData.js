@@ -10,6 +10,7 @@ const SERIES_OPTIONS = [
 ]
 
 const TRACK_ABBR = {
+  'North Wilkesboro Speedway': 'NWB',
 'Las Vegas Motor Speedway': 'LV',
 'Homestead-Miami Speedway': 'HOM',
 'Texas Motor Speedway': 'TEX',
