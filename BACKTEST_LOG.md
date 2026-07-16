@@ -2809,3 +2809,16 @@ sheet availability, not at random. A hand-picked third of a season is a weak arm
 genuine neutral-contrary evidence, weighted accordingly, not dismissed.
 (Also within-session agreement ~0.57-0.66 everywhere is itself informative~ best5 and overall_avg
 genuinely rank drivers DIFFERENTLY in every era -- these are two distinct signals, not variants.)
+
+### #55 DECISION RULE, FIXED BEFORE THE DATA (2026-07-16, operator + Fable)
+To close the "best5 or the blend" ambiguity in the promotion entry -- the shipping rule is now
+PRE-SPECIFIED and no other outcome may be chosen after seeing the confirmatory numbers:
+  1. If BEST5 PURE passes all three registered predictions on the new races (win Brier improves,
+     t10 improves, t3/t5 cost <= ~2 pct rel) -> SHIP BEST5 PURE as the practice input.
+  2. If best5 improves win/t10 but BLOWS the t3/t5 cap -> ship the 50/50 BLEND only if the blend
+     itself passes all three. (Rationale: within-session agreement between the metrics is only
+     0.57-0.66 -- they are distinct signals; the blend may keep the incumbent's place accuracy while
+     capturing best5's win signal.)
+  3. Anything else -> NOTHING SHIPS; entry gets its tombstone.
+No alpha tuning, no new arms, no era/tire conditioning, no post-hoc subsetting. Trigger: ~18 cup oval
+practice races of 2026 (currently 12).
