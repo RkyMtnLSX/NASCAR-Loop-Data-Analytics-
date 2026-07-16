@@ -2503,3 +2503,36 @@ driver markets must NOT degrade, and the JOINT-event calibration must improve --
 needed (e.g. how often the model's top-ranked Chevy actually finishes top Chevy, independent vs
 correlated). Ship only if both hold. Either way group markets stay INFORMATIONAL until graded (see
 doctrine entry above).
+
+### WITHIN-GROUP TRACK-SIMILARITY WEIGHTING (the "Bristol discount" lambda) -> REJECTED; flat pooling wins a THIRD time (2026-07-15)
+Operator, still stuck on Bristol in Short & Flat (competition comps NW off Phoenix/Martinsville/Iowa/
+Richmond/Loudon; "if we show Bristol as a comp people are going to laugh"): proposed the CONTINUOUS
+version of removal -- weight cross-subtype races (Bristol <-> flat) by lambda instead of the tested 0/1.
+lambda 1 = current flat pool, lambda 0 = full removal. Swept 0 / .25 / .5 / .75 / 1.
+METHOD: leak-free reduced harness, cup SHORT & FLAT target races only (42: 2022 = burn-in history only,
+train/select 2023-24 n=20, test 2025-26 n=13), corr .35 / start .33 / track .15, neutral-50 shrink
+fills, DNF 8.1 pct (group empirical), NSIM 1500. PAIRED RANDOM DRAWS (race-seeded, identical across
+lambda and noise) so lambda differences are exact, not MC flicker. Noise RE-TUNED per lambda per market
+(dispersion-substitute rule).
+TEST at train-selected noise:
+  lambda   win     t3     t5      t10
+  0.00    22.44   58.5   85.7   142.5
+  0.25    22.62   58.5   84.9   141.4
+  0.50    22.27   59.0   84.7   141.6
+  0.75    22.31   58.9   84.6   141.6
+  1.00    22.33   58.4   84.2   141.7   <- current flat pool: best or tied on t3 AND t5
+No monotone structure anywhere; win flickers 0.35 wide with no ordering; train winners scatter across
+lambda by market (0 / .25 / 0 / .75) -- classic noise-fitting.
+THE DECISIVE CUT -- FLAT-TRACK TARGETS ONLY (the North Wilkesboro question), fixed noise, paired draws:
+  win 22.45-22.48 across the ENTIRE lambda dial (total spread 0.03); t5 84.8 at every lambda;
+  t10 137.4-137.7; t3 lambda=1 59.6 BEST vs lambda=0 60.4 WORST.
+Discounting Bristol does not help the flat tracks AT ALL, and full removal is the worst arm on t3.
+VERDICT: SHIP NOTHING. Flat pooling survives its THIRD independent test (discrete move-out 2026-07-12,
+contamination check 2026-07-12, continuous discount today). Companion measurement (same day): excluding
+Bristol moves the median driver's short-flat rating only 1.7 pts, but real movers exist -- Ty Gibbs
+-6.6, Hocevar -4.4, Larson -3.7 vs Logano +5.8, Byron +5.7, Berry +3.3. Those per-driver differences
+CANCEL at the market level; the paired test proves the dial does nothing on flat-track boards.
+DOCTRINE UNCHANGED: among defensible groupings, pool composition is not a lever -- driver_rating
+measures the DRIVER. The Bristol OPTICS concern is legitimate and is being handled at DISPLAY level
+only (proposed display_group column so public LoopData never shows Bristol as a flat-track comp);
+the model does not change for optics.
