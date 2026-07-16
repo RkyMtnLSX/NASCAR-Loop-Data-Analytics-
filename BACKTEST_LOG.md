@@ -2683,3 +2683,36 @@ disagreement, not an edge either way). (2) Do not lay veterans purely because th
 the 120+ bucket runs -5 pct vs pool, but the same survivorship logic caps what a term can capture.
 (3) Candidate PRODUCT change (display, not model)~ flag <80-start drivers' rows on public boards as
 trajectory-uncertain, same spirit as the group-market suppression. Operator's call.
+
+### CUP RINGERS IN TRUCKS: floor is REAL and underpriced (places), win is NOT -- cross-series borrow HOLD (2026-07-16)
+Trigger: Hocevar TRUCK NW pre-board 3.1 pct win / proj P17.8 vs DK +700. (NB the earlier Hocevar
+decomposition same day used his CUP pool by mistake -- truck board pools trucks-only. His TRUCK
+short-flat pool: 2023 Niece elite year (NW 121.3/P4, Richmond 121.1/WIN) at 0.55 age weight, nothing
+2024-25 (moved up), one 2026 Bristol cameo. And the operator's fresh 2022 truck season load LOWERS him
+102.3 -> 96.0 -- his teenage 2022 avg ~81. Republish will price him WORSE.)
+DIAGNOSTIC 1 (raw resid): ringers (>=10 cup races same season) resid -17.6 (t 3.7) -- but this is a
+CEILING ARTIFACT (drivers predicted at rank 1 can only under-deliver). Do not read it raw.
+DIAGNOSTIC 2 (matched by pool-predicted rank, the fair lens, trucks ovals 2023-26):
+  pool rank   ringers                      non-ringers
+  1-3   n26   win 19.2 / t5 38.5 / avg 12.5    win 18.2 / t5 50.3 / avg 9.4
+  4-8   n13   win  0.0 / t5 38.5 / avg  8.5    win  3.8 / t5 29.5 / avg 12.3
+  9-15  n9    win 11.1 / t5 55.6 / avg  9.0    win  1.6 / t5 15.4 / avg 15.2
+=> Mid/low-ranked ringers finish like top-3 cars (FLOOR massively underpriced) but won 1 of 22.
+   Top-ranked ringers (Busch/Chastain type) win at the same rate as truck aces with a WORSE floor.
+CLASS-STRENGTH OFFSET (needed for any cross-series borrow; naive max(truck,cup) is INERT because cup
+ratings run on a harder scale): same driver-year, >=3 races both series, <=2024 only (no test leakage):
+mean truck-minus-cup rating = +28.9 (n 13; Heim +70, Busch +51/+30, Z.Smith +56/+50; noisy, SD ~23).
+HARNESS (borrow = if cupPool+29 > truckPool, blend by phi; 77 truck oval races, train 23-24 / test
+25-26, paired seeds, N23):
+  TEST ringer-scoped, phi 0 -> 0.5 -> 1:  R_t10 270.7 -> 262.6 -> 255.7 (-5.5 pct, monotone)
+                                          R_t5 234.7 -> 232.0 -> 230.5 (-1.8 pct)
+                                          R_t3 flat; R_win 94.2 -> 95.7 (WORSE +1.6 pct)
+  Global: t10/t5 slightly better, win slightly worse. Train agrees on t5/t10 direction.
+VERDICT: HOLD, do not ship yet. The borrow (phi 1, offset +29) demonstrably fixes the ringer FLOOR on
+place markets and slightly damages win -- consistent with the matched diagnostic (floor real, win not).
+45 test rows is thin, the offset is noisy, and one composite drives all markets so the win cost is
+real. RE-TEST at end of 2026 (more ringer rows accrue every truck weekend a cup driver moonlights).
+OPERATOR GUIDANCE FOR NW (actionable now): Hocevar's WIN number (~3 pct) is roughly RIGHT per matched
+evidence (mid-rank ringers 1/22) -- DK +700 is retail narrative, not value. His TOP-5/TOP-10 board
+numbers are TOO LOW -- matched ringers at his slot run avg P8.5-9.0 with 38-56 pct t5. If books hang
+plus-money t5/t10 lines on ringers priced off stale truck pools, THAT is the bet. Same logic: Bell.
