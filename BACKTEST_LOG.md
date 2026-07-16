@@ -2771,3 +2771,25 @@ world)~ (1) win Brier improves, (2) t10 improves, (3) t3/t5 cost <= ~2 pct rel. 
 it wins as THE input; if it only wins in chalk conditions, it dies at the re-test.
 LESSON (again)~ the operator's domain knowledge falsified in one sentence a mechanism two AI sessions
 had built into the record. Check rule-change claims against the person who watches the races.
+
+### BEST5 EXTENSION: composite A/B run on 2025 AND 2024 (operator asked the right question) (2026-07-16)
+Operator: "did you test it on 2025 races?" The Spearman runs had 2024-25; the COMPOSITE A/B (the bar
+that matters) had only been run on 2026. Now run on all three seasons, same pipeline, paired seeds,
+noise 13/16/19, corr .35/start .33/track .15/practice .15:
+  2025 (16 races)~ BEST5 SWEEPS ALL FOUR MARKETS at all noises. win 21.59 vs 21.91 (N16), t3 57.3 vs
+    57.7, t5 86.9 vs 87.7, t10 160.8 vs 161.2; favourite won 7/16 vs 5/16.
+    => THE CHALK CONFOUND IS BADLY WOUNDED~ 2025 was NOT a chalk year and the win gain replicates.
+    => the t3/t5 cost seen in 2026 does NOT replicate in 2025 -- likely 2026 noise, drop it from the
+       registered predictions? NO -- predictions stay as written; note only.
+  2024 (12 races)~ WASH, slight lean AGAINST~ win 26.48 vs 26.36 (+0.5 pct rel worse), t3 slightly
+    worse, t5 slightly better, t10 slightly worse; favourite 1/12 vs 2/12.
+THREE-SEASON AGGREGATE (40 races)~ model favourite won 14/40 (best5) vs 11/40 (overall); win Brier
+better in 2025+2026 (28 races, consistent at every noise), neutral-negative in 2024 (12).
+READ~ real and strengthening but not unanimous -- 2024 keeps it honest (and 12-race year-slices flip
+signs easily; see the favGap sign flip at n=12). Alternatives for the 2024 wash~ thin early practice
+coverage, or a genuine time trend (practice formats/car maturity), or 2025-26 luck. Cannot distinguish
+at this n.
+DECISION UNCHANGED~ NOT shipped. The pre-registered #55 confirmatory (new 2026 races, ~6 weekends)
+remains the gate, now with better priors~ chalk confound weakened, aggregate favours best5, one
+contrary season on record. If #55 passes, ship best5 (or the 50/50 blend) as THE practice input --
+no era/tire conditioning (see correction above).
