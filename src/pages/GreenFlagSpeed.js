@@ -226,6 +226,8 @@ export default function GreenFlagSpeed() {
   const typeOf = (track) => {
     if (/atlanta|echopark/i.test(track || '')) return 'Superspeedway'
     if (typeMap[track]) return typeMap[track]
+    const __base = (track || '').replace(/\s*\([^)]*\)\s*$/, '').trim()
+    if (typeMap[__base]) return typeMap[__base]
     const s = (track || '').toLowerCase()
     if (s.includes('road course') || s.includes('street') || s.includes('circuit') || s.includes('sonoma') || s.includes('watkins') || s.includes('road america') || s.includes('mid-ohio') || s.includes('lime rock') || s.includes('portland') || s.includes('roval')) return 'Road Course'
     if (s.includes('dirt') || s.includes('coliseum') || s.includes('bowman gray') || s.includes('wilkesboro') || s.includes('bristol') || s.includes('martinsville') || s.includes('richmond') || s.includes('iowa') || s.includes('milwaukee') || s.includes('knoxville')) return 'Other'
