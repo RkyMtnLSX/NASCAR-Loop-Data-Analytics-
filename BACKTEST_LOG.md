@@ -2596,3 +2596,30 @@ needed for 2022-25 -- built for cup 2026-07-15, trucks/oreilly would need their 
 blend already mitigates the driver side; the org key would fix the car side. Overrides remain the
 mechanism until then. Points 1-3 of the Heim entry (noise 23 stands; Bristol wreck immaterial;
 pre-board input darkness is the gap) are UNCHANGED.
+
+### PROJECTED START POSITIONS FOR PRE BOARDS -> REJECTED, DEAD NEUTRAL; the grid's value is unprojectable (2026-07-16)
+Follow-up to the Heim case. Operator: "are pre-race simulations essentially worthless unless we start
+projecting start positions?" Tested the honest version: fill pre-board startPos with each driver's
+PRIOR GROUP-SCOPED AVERAGE START (qualifying-skill history, min 3 prior races, 96 pct coverage) instead
+of the neutral fill. This is NOT circular (quali history is a distinct signal from race rating).
+METHOD: 107 cup non-SS ovals, leak-free, corr .35 / start .33 / track .15, group-empirical DNF
+(SF 8.1 / Int 12.7), NSIM 1200, paired race seeds across arms, noise re-tuned per arm per market
+(train 2023-24, test 2025-26, 2022 burn-in history only).
+TEST at train-selected noise:
+  arm                     win     t3     t5      t10     fav model vs actual
+  NEUTRAL (current)      23.90   62.2   93.4   151.5      13.1 / 22.2
+  PROJECTED (quali hist) 23.94   62.2   93.5   152.1      15.3 / 19.4
+  TRUE GRID (reference)  23.10   59.8   89.2   147.9      17.7 / 30.6
+VERDICT: PROJECTED IS DEAD NEUTRAL vs the blank fill -- identical on every market (win +0.04, t3 tie,
+t5/t10 marginally worse). SHIP NOTHING.
+WHY (the reusable insight): prior average start is mostly the SAME quantity as corrHistory -- good
+drivers qualify well -- so the composite already contains it; the residual "pure quali skill" component
+is too small to move a betting market. Same collinearity graveyard as trackHistory-vs-corr, laps-run,
+best-stint. Meanwhile the TRUE grid is worth a LOT (win -0.8, t3 -2.4, t5 -4.2, t10 -3.6; favorite hit
+rate 22 -> 31): the grid's information is THIS-WEEK CAR SPEED, which cannot be projected from history
+BY CONSTRUCTION. Identical lesson to practice-is-the-only-current-speed-input.
+DOCTRINE SETTLED: pre boards are not broken and cannot be "fixed" -- their compression IS the honest
+representation of what is knowable pre-weekend. Their job is CLV capture on structural contender edges
+(the Majeski case), full stop. The pre->post gap is the price of information that only Friday's track
+sessions can deliver. Quantified: ~0.8 win Brier / ~9pp favorite hit rate between blank grid and real
+grid on 2025-26 cup ovals.
