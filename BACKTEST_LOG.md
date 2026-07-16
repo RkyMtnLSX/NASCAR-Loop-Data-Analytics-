@@ -2867,3 +2867,22 @@ contradicts the cup best5 candidate. Cross-series verdict waits on sample.
 GATE FOR BOTH~ operator backfills 2025 TRUCK OVALS next (-> ~15-20 races). Then~ practice weight sweep
 for trucks (train 2025 / test 2026, weights .15/.25/.35, noise re-tuned per arm, all four markets) AND
 the truck best5 A/B on the full sample. Do not touch the truck weight before that test.
+
+### O'REILLY PRACTICE VALIDATION: ~2x CUP, CONFIRMING THE TRUCKS -- the finding is LOWER-SERIES-WIDE (2026-07-16)
+Operator backfilled 10 O'Reilly 2026 oval sessions (37-41 drivers each, race numbers clean). Same
+replica~ per-race Spearman vs finish, latest session~
+  R4 Phoenix .532/.400  R5 Vegas .121/.280  R6 Darlington .453/.720  R7 Martinsville .078/.150
+  R8 Rockingham .470/.560  R9 Bristol .771/.706  R12 Texas .590/.641  R14 Dover .480/.459
+  R17 Pocono .514/.439  R20 Chicagoland .670/.596        (overall_avg / best5)
+  MEANS~ overall 0.468, best5 0.495 (best5 wins 5/10 -- ANOTHER WASH; best5 remains a cup-only signal).
+HEADLINE, now TWICE-CONFIRMED~ practice signal in the lower series runs ~0.47-0.50 vs cup's ~0.26-0.30.
+Two independent series, same magnitude -> the equipment-spread mechanism holds (wide machinery gaps ->
+20 minutes of track time photographs the field). The 0.15 practice weight borrowed from cup is now
+SUSPECT-LOW for BOTH trucks and O'Reilly.
+CAVEAT (before anyone sweeps weights on this)~ wider true spread lifts ALL signals -- corr pools are
+stronger in the lower series too. The sweep must answer the MARGINAL question at the betting markets
+with noise re-tuned, not compare raw Spearmans.
+TEST DESIGN NOW AVAILABLE (no more data needed)~ CROSS-SERIES SPLIT -- select the lower-series practice
+weight (.15/.25/.35) on TRUCKS 2026 (7 races), score on O'REILLY 2026 (10 races). Leak-free by
+construction (different series, different drivers/trucks). Low power (7/10) but honest; 2025 sheet
+backfills for either series upgrade it whenever the operator finds them.
