@@ -60,7 +60,7 @@ function HeatMapView({ rows, byYear, series }) {
   const yrIdx = {}
   const finalLabels = races.map(r => {
     if (byYear) { const y = String(r.year); yrIdx[y] = (yrIdx[y] || 0) + 1; return { ...r, label: yrTotal[y] > 1 ? y + ' (' + yrIdx[y] + ')' : y } }
-    const s = shortTrackName(r.track); trackIdx[s] = (trackIdx[s] || 0) + 1; return { ...r, label: trackTotal[s] > 1 ? s + ' ' + trackIdx[s] : s }
+    const s = shortTrackName(r.track); const yy = String(r.year).slice(-2); const k = s + '|' + yy; trackIdx[k] = (trackIdx[k] || 0) + 1; return { ...r, label: trackTotal[s] > 1 ? s + ' ' + trackIdx[k] + ' ' + yy : s }
   })
   const driverMap = new Map()
     const carMap = new Map()
