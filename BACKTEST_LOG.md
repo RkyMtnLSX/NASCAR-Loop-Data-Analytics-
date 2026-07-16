@@ -2623,3 +2623,33 @@ representation of what is knowable pre-weekend. Their job is CLV capture on stru
 (the Majeski case), full stop. The pre->post gap is the price of information that only Friday's track
 sessions can deliver. Quantified: ~0.8 win Brier / ~9pp favorite hit rate between blank grid and real
 grid on 2025-26 cup ovals.
+
+### PRELIMINARY -- CAREER-STAGE TRAJECTORY: young drivers systematically BEAT their pool rating (2026-07-16)
+NOT A RESULT YET. A diagnostic that survived its first two controls and now needs the full harness.
+Trigger: operator, on Hocevar cup NW pre-board FMV +3471 vs DK +700 ("we are doing something wrong").
+Observation that motivated it: Berry (collapsing veteran) runs BELOW the model while Hocevar (ascending
+sophomore) runs ABOVE the market's read of our number -- SAME failure, opposite signs, i.e.
+NON-STATIONARITY. The global recency fix for this was rejected TWICE (recency sweep, form slope) because
+it paid a variance cost on ~30 stationary veterans to chase ~5 changing drivers. The UNTESTED version is
+CONDITIONAL: trajectory adjustment only where trajectories exist (early careers).
+DIAGNOSTIC (cup non-SS ovals 2024-26, n=2092 driver-races, leak-free prior = group-scoped age-weighted
+pool WITH the live shrink, STRICT >=8 prior in-group races so thin-sample regression-to-mean cannot
+produce it; resid = predicted rank pct minus actual rank pct, >0 = beat the pool):
+  career starts (since 2022)    n     mean resid    t
+  < 40                          81     +20.1       6.5
+  40 - 80                      450     +10.1       7.2
+  80 - 120                     914      -3.0      -2.8
+  120+                         647      -5.3      -4.3
+MONOTONE by career stage, enormous t. Hocevar specifically: 2025 resid -6.8 (ran below pool), 2026
++6.9 on n=12 (running above it) -- the market's 7-1 prices the turn, the pool is designed to lag it.
+TWO CONFOUNDS STILL ALIVE (why this is not shipped, and must not be until they die):
+  1. SURVIVORSHIP: rookies who keep their rides are exactly the ones who improved; the failed ones exit
+     the sample. Inflates young-bucket outperformance by construction.
+  2. RATING-COMPOSITION BIAS: driver_rating rewards laps led / fastest laps. Veterans DOMINATE races ->
+     rating overstates their finish (Larson 2025-26 resid = -24, the extreme case). Youngsters rarely
+     lead -> rating understates them. This produces a career-stage gradient WITHOUT any improvement.
+DECISIVE TEST (task #53): career-stage uplift term fitted on train 2023-24, walk-forward 2025-26, four
+betting markets, noise re-tuned per arm; plus a WITHIN-DRIVER version (same driver's resid vs his own
+career age) to separate real improvement from composition bias. If it clears, first pool-side change
+since the equipment prior. If it dies, the pre-board doctrine covers the residue (do not fade young
+breakouts off multi-year pools; the market prices trajectory and we do not).
