@@ -2907,3 +2907,26 @@ now a VALIDATED setting for trucks + oreilly, not a hand-me-down.
 CAVEATS~ 7 train / 10 test races, one season, reduced harness (no equipment prior). UPGRADE PATH~
 operator backfills 2025 truck/oreilly practice (no lineups needed -- loop_data carries start_position)
 -> within-series train(2025)/test(2026) re-run. Trigger~ ~15 oval sessions per series in 2025.
+
+### TRUCKS WITHIN-SERIES: weight 0.15 confirmed a THIRD time; best5 REPLICATES the cup win signal (2026-07-16, operator backfilled trucks 2025)
+Operator loaded trucks 2025 practice (11 usable oval sessions after integrity audit; zero registry
+orphans except Phoenix R25 -- the 2025 truck FINALE is missing from loop_data entirely, uploader
+stubbed races id 433 with the CORRECT race number; operator to run Phoenix 2025 truck loop through
+Load New Race to adopt the stub). Cross-year lap-time sanity: all clean.
+1. WEIGHT SWEEP, the proper within-series design (train trucks 2025 n=11 / test trucks 2026 n=7,
+   weights .15/.25/.35 rescaled, noise 16-27 per arm, paired seeds):
+   TRAIN prefers w.15 on win/t3/t10 (win 25.43/25.46/25.63 monotone); only t5 marginally likes .25.
+   TEST win at N19: 21.54 / 21.85 / 22.14 -- MONOTONE AGAINST raising weight, identical shape to the
+   cross-series and cup sweeps. VERDICT: KEEP 0.15. Three independent designs (cup 07-14, cross-series
+   07-16, within-series 07-16) all agree: the win market pays for every extra point of practice weight,
+   the place gains are small, one composite serves all markets. THREAD CLOSED absent structural change.
+2. TRUCKS BEST5 COMPOSITE A/B (18 races, w.15, N19+N23, paired seeds) -- the cup pattern REPLICATES:
+   WIN better in ALL FOUR cells~ 2025: 25.19 vs 25.43 (N19), 25.39 vs 25.54 (N23);
+                                  2026: 21.33 vs 21.54, 22.18 vs 22.44. (~1 pct rel, consistent.)
+   t10 better 3 of 4; t3/t5 wash. The earlier trucks Spearman wash concealed this; the composite is
+   the bar. BEST5 WIN-MARKET TALLY across series/years~ cup25 YES, cup26 YES, cup24 wash,
+   trucks25 YES, trucks26 YES. First genuine cross-series replication.
+   DISCIPLINE~ #55 (cup, ~18 races, pre-registered) still decides the cup input per its fixed rule --
+   this entry does NOT unlock early shipping. But the prior just moved a lot. If #55 passes, trucks
+   adopt with this entry as their evidence; O'Reilly gets its composite A/B when the operator's NOAPS
+   2025 backfill (in progress) lands.
