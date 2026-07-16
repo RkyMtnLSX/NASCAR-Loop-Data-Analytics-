@@ -2841,3 +2841,29 @@ CONSEQUENCES~
 Same session also per operator~ NO best5/Peak-Speed display column on the report card (users will not
 care). The best5 plumbing, if built, is BACKEND ONLY (stored column + upload computation + backfill)
 so a #55 pass flips the sim input in one line.
+
+### FIRST-EVER TRUCK PRACTICE VALIDATION: the signal is ~2x CUP's (2026-07-16, operator backfill)
+Operator backfilled 2026 truck OVAL practice (7 sessions~ Darlington R4, Rockingham R5, Bristol R6,
+Texas R7, Dover R9, Nashville R11, Michigan R12; 33-38 drivers each; race numbers all CORRECT -- no
+default-1 issue in this batch). Per-race Spearman of practice metric vs finish, latest session,
+same replica as the cup runs~
+  race            n    overall_avg   best5
+  R4 Darlington   33     0.354       0.438
+  R5 Rockingham   34     0.803       0.773   <- practice nearly WAS the race
+  R6 Bristol      35     0.330       0.278
+  R7 Texas        31     0.304       0.446
+  R9 Dover        35     0.511       0.530
+  R11 Nashville   35     0.554       0.533
+  R12 Michigan    33     0.575       0.504
+  MEAN                   0.490       0.500   (cup benchmark ~0.26-0.30)
+FINDING 1 -- TRUCK PRACTICE IS ROUGHLY TWICE THE SIGNAL OF CUP PRACTICE. Plausible mechanism~ truck
+equipment spread >> cup parity, so 20 minutes of track time separates the field far more. CONSEQUENCE~
+the truck sim's practice weight (0.15) is BORROWED FROM CUP and may be materially UNDERWEIGHTED --
+potentially the largest available truck-sim improvement. NOT actioned~ n=7, no train/test split
+possible within 2026 alone, and weight changes must clear the full-composite betting-market bar with
+noise re-tuned (dispersion rule).
+FINDING 2 -- best5 vs overall in trucks~ WASH at n=7 (0.500 vs 0.490, 3/7 races). Neither confirms nor
+contradicts the cup best5 candidate. Cross-series verdict waits on sample.
+GATE FOR BOTH~ operator backfills 2025 TRUCK OVALS next (-> ~15-20 races). Then~ practice weight sweep
+for trucks (train 2025 / test 2026, weights .15/.25/.35, noise re-tuned per arm, all four markets) AND
+the truck best5 A/B on the full sample. Do not touch the truck weight before that test.
