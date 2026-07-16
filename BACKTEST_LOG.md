@@ -2930,3 +2930,21 @@ Load New Race to adopt the stub). Cross-year lap-time sanity: all clean.
    this entry does NOT unlock early shipping. But the prior just moved a lot. If #55 passes, trucks
    adopt with this entry as their evidence; O'Reilly gets its composite A/B when the operator's NOAPS
    2025 backfill (in progress) lands.
+
+### O'REILLY WITHIN-SERIES (operator's NOAPS 2025 backfill): weight thread FULLY CLOSED; best5 MISSES here (2026-07-16)
+Cleanest backfill batch yet (15 usable 2025 oval sessions, zero orphans/stubs/lap mismatches -- the new
+uploader guards + operator care). Train 2025 n=15 / test 2026 n=10, same harness, paired seeds.
+1. WEIGHT SWEEP -- 4th independent confirmation, the strongest~ train selects w0.15 on ALL FOUR markets;
+   test win curve monotone against raising (21.99 / 22.21 / 22.50 at N19); t3/t5 worse, t10 marginal.
+   PRACTICE WEIGHT 0.15 IS NOW CONFIRMED IN EVERY SERIES BY EVERY DESIGN (cup sweep 07-14, cross-series,
+   trucks-within, oreilly-within). CLOSED. Do not reopen without structural change.
+2. BEST5 COMPOSITE A/B -- O'REILLY SAYS NO. Win Brier WORSE in all four cells~
+   2025: 23.43 vs 23.32 (N19), 23.43 vs 23.35 (N23); 2026: 22.38 vs 21.99, 22.62 vs 22.32.
+   t3/t5 worse in 2026; t10 flat. UPDATED CROSS-SERIES TALLY for best5 on the WIN market~
+   cup24 wash / cup25 YES / cup26 YES / trucks25 YES / trucks26 YES / oreilly25 no / oreilly26 NO.
+   4 yes, 1 wash, 2 no. The trucks replication is now bracketed by an oreilly ANTI-replication of
+   comparable size. Candidate explanations (none testable tonight)~ oreilly practice programs differ
+   (more quali-sim vs race-trim mix), field composition, or plain noise at 10-15 races per cell.
+DISCIPLINE~ #55 (cup pre-registered) still decides the CUP input, unchanged. If it passes, adoption is
+now SERIES-SPECIFIC on each series' own evidence~ trucks would adopt (2 seasons supporting), O'Reilly
+would NOT (2 seasons opposing). No blanket rollout. The mixed tally is exactly why the gate exists.
