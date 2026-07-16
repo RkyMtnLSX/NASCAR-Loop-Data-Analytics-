@@ -2716,3 +2716,37 @@ OPERATOR GUIDANCE FOR NW (actionable now): Hocevar's WIN number (~3 pct) is roug
 evidence (mid-rank ringers 1/22) -- DK +700 is retail narrative, not value. His TOP-5/TOP-10 board
 numbers are TOO LOW -- matched ringers at his slot run avg P8.5-9.0 with 38-56 pct t5. If books hang
 plus-money t5/t10 lines on ringers priced off stale truck pools, THAT is the bet. Same logic: Bell.
+
+### #47 RE-RUN: BEST-5 IN THE MULTI-SET ERA -- CONFIRMED AND PROMOTED; first practice variant to touch the WIN market (2026-07-16)
+The 2026-07-10 watch item, re-run at its pre-set trigger (~20 cup races of 2026; 12 have practice).
+DATA HYGIENE FOUND ON THE WAY~ most 2026 practice_laps rows carry race_number = 1 (column default --
+they were uploaded before the loader had a Race# field). Joined tolerantly by (year, track) since no
+2026 track has hosted twice yet. REPAIR SQL eventually; the Race#-guard era makes new uploads correct.
+SPEARMAN RE-RUN (40 cup oval practice races, latest session, replica overall 0.256 vs stored ~0.26)~
+              ALL(40)   2024-25(28)   2026(12)
+  overall_avg  0.256      0.243        0.286
+  best5        0.300      0.269        0.375   <- gap GREW from +0.042 (n10) to +0.089 (n12)
+  filt-103     0.244      0.247        0.238   <- filt-103 candidate FADED; drop it
+  Sign test 2026~ 7/12 races favor best5 (weak alone; the magnitude carries the result).
+  CAVEAT~ in THIS replica best5 also edges the incumbent in 2024-25 (+0.026), where the 07-10 test had
+  it losing (-0.025). The era-CONTRAST is methodology-sensitive; the 2026 advantage is robust.
+FULL-COMPOSITE A/B (the real bar; 12 races 2026, corr .35/start .33/track .15/practice .15, paired
+seeds, noise 13/16/19, group-empirical DNF; practice input swapped overall_avg -> best5)~
+  market   overall(N16)   best5(N16)   direction at ALL THREE noises
+  win        21.55          21.06      best5 BETTER (~2-3.5 pct rel)   <- !!
+  t10       127.5          126.8       best5 better
+  t5         78.6           79.8       best5 worse (~1.5 pct)
+  t3         53.0           54.1       best5 worse (~2 pct)
+  FAVORITE~ best5's top pick WON 6/12 races vs 4/12 for overall (favM identical ~29 -- it picks BETTER
+  favourites, not more confident ones).
+WHY THIS MATTERS~ practice pace was validated 07-14 as a PLACE-ONLY signal (nothing on win). best5 is
+the first practice variant to move the WIN market -- consistent with the practice-DOMINANCE hypothesis
+arriving through a side door: under the 2026 multi-tire-set rule everyone gets fresh rubber, so peak
+laps become apples-to-apples and peak speed is what wins races.
+VERDICT~ DO NOT SHIP ON n=12. PROMOTED to top model candidate with a PRE-REGISTERED confirmatory
+re-test at ~18 cup practice races of 2026 (roughly 6 more weekends). REGISTERED PREDICTIONS (written
+BEFORE the data)~ (1) win Brier improves, (2) t10 improves, (3) t3/t5 cost stays <= ~2 pct rel.
+ARMS~ best5 pure, and a 50/50 best5/overall blend of the practice input (blend may keep the place
+accuracy; alpha is NOT to be tuned on the test set). If predictions hold -> ship ERA-CONDITIONED
+practice input (overall_avg pre-2026 / best5 or blend for multi-set-era sessions).
+filt-103 is CLOSED (faded to 0.238 in the era it was supposed to help).
