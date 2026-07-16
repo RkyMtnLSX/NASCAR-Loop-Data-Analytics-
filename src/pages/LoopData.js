@@ -653,6 +653,7 @@ const [allCorrData, setAllCorrData] = useState([])
 const [corrAvailableYears, setCorrAvailableYears] = useState([])
 const [corrSelectedYears, setCorrSelectedYears] = useState([])
 const [corrNames, setCorrNames] = useState([])
+const [corrDispLabel, setCorrDispLabel] = useState(null)
 const [corrRaceDateMap, setCorrRaceDateMap] = useState({})
 const [hasEntryList, setHasEntryList] = useState(false)
 const [loading, setLoading] = useState(true)
@@ -735,9 +736,15 @@ if (cancelled) return
 setMainRows(groupByDriver(trackData || [], entryMap, cfg.track_years, null))
 
 const { data: correlated, error: corrTrackErr } = await supabase
-.from('tracks').select('name').eq('correlation_group_label', cfg.correlation_label)
+.from('tracks').select('name, display_group, correlation_group_label')
 if (corrTrackErr) throw corrTrackErr
-const corrNameList = (correlated || []).map(t => t.name)
+// DISPLAY grouping (2026-07-15): public comp list uses tracks.display_group with fallback to
+// correlation_group_label. The SIM still pools by correlation_group_label - display only.
+const allTrk = correlated || []
+const featuredTrk = allTrk.find(t => t.name === cfg.track_name)
+const dispKey = (featuredTrk && (featuredTrk.display_group || featuredTrk.correlation_group_label)) || cfg.correlation_label
+const corrNameList = allTrk.filter(t => (t.display_group || t.correlation_group_label) === dispKey).map(t => t.name)
+setCorrDispLabel(dispKey)
 if (cancelled) return
 setCorrNames(corrNameList)
 
@@ -837,7 +844,7 @@ const corrRows = corrSelectedYears.length > 0
 const mainTitle = config
 ? config.track_label + ' Averages ' + config.track_years.slice().sort().join('-')
 : 'Track Averages'
-const corrLabelDisplay = config ? (series === 'cup' ? config.correlation_label : config.correlation_label === '670hp Package' ? 'Intermediates' : config.correlation_label) : ''
+const corrLabelDisplay = corrDispLabel || (config ? (series === 'cup' ? config.correlation_label : config.correlation_label === '670hp Package' ? 'Intermediates' : config.correlation_label) : '')
   const corrTitle = config ? corrLabelDisplay + ' Averages' : 'Correlated Track Averages'
 const corrSubtitle = corrNames.length ? corrNames.slice().sort().join(' / ') : null
 
