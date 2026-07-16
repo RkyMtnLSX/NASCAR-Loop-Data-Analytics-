@@ -207,12 +207,14 @@ export function __marketValue(winTxt, t10Txt, fdTxt, hrTxt, drivers) {
         found.sort(function (a, b) { return a[0] - b[0]; });
         found.forEach(function (f) { if (seq.indexOf(f[1]) < 0) seq.push(f[1]); });
       });
-      return seq.length === 3 ? seq : ['win', 't3', 't5'];
+      return seq.length ? seq : ['win', 't3', 't5'];   // 1, 2, or 3 markets; fallback only if none
     };
-    var d1 = parseDK(winTxt, 3), d2 = parseDK(t10Txt, 1);
-    var dk = { win: {}, t3: {}, t5: {}, t10: {} };
     var __dkOrder = detectDkOrder(winTxt);
-    Object.keys(d1).forEach(function (k) { __dkOrder.forEach(function (mk, ci) { dk[mk][k] = d1[k][ci]; }); });
+    // DK may post FEWER markets than 3 (e.g. Race Winner only, early in the week). Parse exactly as
+    // many columns per driver as there are detected market headers, so a winner-only page still parses.
+    var d1 = parseDK(winTxt, __dkOrder.length), d2 = parseDK(t10Txt, 1);
+    var dk = { win: {}, t3: {}, t5: {}, t10: {} };
+    Object.keys(d1).forEach(function (k) { __dkOrder.forEach(function (mk, ci) { if (d1[k][ci] != null) dk[mk][k] = d1[k][ci]; }); });
     Object.keys(d2).forEach(function (k) { dk.t10[k] = d2[k][0]; });
     var books = { dk: dk, fd: parseSect(fdTxt, FDh), hr: parseSect(hrTxt, HRh) };
     var MKS = [['win', 1, 'winPct'], ['t3', 3, 'top3Pct'], ['t5', 5, 'top5Pct'], ['t10', 10, 'top10Pct']];
