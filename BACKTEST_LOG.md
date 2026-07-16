@@ -2822,3 +2822,22 @@ PRE-SPECIFIED and no other outcome may be chosen after seeing the confirmatory n
   3. Anything else -> NOTHING SHIPS; entry gets its tombstone.
 No alpha tuning, no new arms, no era/tire conditioning, no post-hoc subsetting. Trigger: ~18 cup oval
 practice races of 2026 (currently 12).
+
+### STANDING CAVEAT: TRACK-STATE / GROUP BIAS IN ALL PRACTICE METRICS (2026-07-16, operator)
+Operator: best laps are partly created by favourable track conditions -- the first car on track
+typically gains from the green track, and when practice splits into groups A/B, one group gets a track
+advantage. TRUE, and currently UNMEASURABLE~ practice_group is empty in every upload (checked all
+years) and practice_laps carry no wall-clock/session-order, so neither correction nor quantification is
+possible with present data.
+CONSEQUENCES~
+  1. The bias hits BOTH metrics~ a driver whose whole session sits in the good window is flattered on
+     overall_avg exactly as on best5. It is a SHARED error floor on the practice input, not a tiebreak
+     between the candidates -- and one more reason practice weight caps at 0.15.
+  2. FIX-FORWARD (free if the source sheets show it)~ populate practice_group at upload. After a
+     season of labels, within-group normalization becomes testable. If sheets lack group info, the
+     confound is irreducible; do not attempt to infer groups from lap ordering (not stored).
+  3. Nobody should later "discover" a session-order artefact and treat it as new -- it is known,
+     operator-identified, and priced into the practice input's weight ceiling.
+Same session also per operator~ NO best5/Peak-Speed display column on the report card (users will not
+care). The best5 plumbing, if built, is BACKEND ONLY (stored column + upload computation + backfill)
+so a #55 pass flips the sim input in one line.
