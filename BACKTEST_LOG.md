@@ -2750,3 +2750,24 @@ ARMS~ best5 pure, and a 50/50 best5/overall blend of the practice input (blend m
 accuracy; alpha is NOT to be tuned on the test set). If predictions hold -> ship ERA-CONDITIONED
 practice input (overall_avg pre-2026 / best5 or blend for multi-set-era sessions).
 filt-103 is CLOSED (faded to 0.238 in the era it was supposed to help).
+
+### !! CORRECTION !! THE "MULTI-SET ERA" MECHANISM FOR BEST5 IS FALSE -- operator falsified it (2026-07-16)
+AMENDS both the 2026-07-10 watch item and the #47 RE-RUN entry directly above. Both attributed best5's
+advantage to "the 2026 multiple-tire-set rules change." THE PREMISE IS WRONG. Operator (who manually
+fact-checked every tire allocation from Jayski): NASCAR issues ONE practice set ~95 pct of the time,
+past AND future. The tire_sets labels agree~ 2026 is 15-of-17 single-set; 2025 16-of-18; 2024 10-of-12.
+There is no era. There are ~5 outlier weekends total (Chicagoland -- the race that spawned the metric
+debate -- is one of them). An "era-conditioned input" would condition on ~1 race a year. DEAD FRAMING.
+WHAT SURVIVES~ the NUMBERS, now mechanism-less~ best5 2026 Spearman 0.375 vs 0.286 (n=12), full-
+composite A/B win Brier -2 to -3.5 pct rel at all noises, model favourite won 6/12 vs 4/12. All real
+measurements. But an UNEXPLAINED signal ranks below an explained one, and there is a LIVE CONFOUND~
+2026 is the chalk year (HHI .145, Hamlin 5/20). best5 sharpens favourites; in a year where favourites
+win, a favourite-sharpening metric scores well WITHOUT being better in general. If that is the story,
+best5 will not generalize.
+REFRAMED CONFIRMATORY TEST (task #55, predictions UNCHANGED because they were mechanism-agnostic)~
+straight input-swap question on NEW 2026 oval practice races (nearly all single-set, i.e. the real
+world)~ (1) win Brier improves, (2) t10 improves, (3) t3/t5 cost <= ~2 pct rel. Arms~ best5 pure +
+50/50 blend, alpha never tuned on test. NO era-conditioning in any shipped version -- if best5 wins,
+it wins as THE input; if it only wins in chalk conditions, it dies at the re-test.
+LESSON (again)~ the operator's domain knowledge falsified in one sentence a mechanism two AI sessions
+had built into the record. Check rule-change claims against the person who watches the races.
