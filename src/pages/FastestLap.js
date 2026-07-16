@@ -274,7 +274,7 @@ export default function FastestLap({ isSubscriber }) {
       // Exclude exhibition races (Duels / Clash / All-Star / Open) - half-size fields, not comparable
       const cleanData = (data || []).filter(r => !/duel|clash|all.?star/i.test(r.race_name || ''))
       const dm = await __getDispMap(supabase)
-      const scoped = tt === 'All' ? cleanData : cleanData.filter(r => (dm[r.track] || __LEGACY_TYPE_GROUP[r.track_type] || 'Other') === tt)
+      const scoped = tt === 'All' ? cleanData : cleanData.filter(r => (dm[(r.track || '').replace(/\s*\([^)]*\)\s*$/, '').trim()] || __LEGACY_TYPE_GROUP[r.track_type] || 'Other') === tt)
       setAllRows(scoped)
       const seen = new Set(); const raceList = []
       ;scoped.forEach(r => { const key=r.race_name+'|'+r.race_date; if(!seen.has(key)){seen.add(key);raceList.push({name:r.race_name,date:r.race_date})} })
