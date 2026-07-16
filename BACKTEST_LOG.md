@@ -2536,3 +2536,36 @@ DOCTRINE UNCHANGED: among defensible groupings, pool composition is not a lever 
 measures the DRIVER. The Bristol OPTICS concern is legitimate and is being handled at DISPLAY level
 only (proposed display_group column so public LoopData never shows Bristol as a flat-track comp);
 the model does not change for optics.
+
+### THE HEIM CASE (trucks NW pre-board) + TRUCK SHORT-FLAT NOISE SLICE OF #115 (2026-07-15/16)
+Operator: NW trucks pre-board has Heim FMV +835 (model 10.7 pct win) vs market +225/+230 (~27 devig);
+"we are way off considering how elite he has been." Forensics on the published board (sim_results
+b454b779, PRE stage), decomposed cause by cause:
+1. NOT noise 23. First truck short-flat noise sweep ever run (26 races 2023-26, train 23-24 n~18 /
+   test 25-26 n~8, reduced harness, DNF 13.3, paired seeds):
+     train win Brier~ N16 24.27 / N19 24.21 / N23 24.27 (flat); t3/t5/t10 best N16.
+     test (n~8, weak)~ prefers HIGHER noise, contradicting train.
+     FAVORITE CALIBRATION AT N23 ON TEST~ model 24.6 vs actual 25.0 -- DEAD ON.
+   VERDICT~ no clean evidence to retune truck short-flat noise; N23 defensible. #115 remains open for
+   intermediates/SS but this slice is NOT the Heim explanation. Do not port numbers; reduced harness.
+2. NOT the Bristol wreck (alone). Heim's ONLY 2026 short-flat race is Bristol P30 (rating 78.5), which
+   drags his pool to a TIE with Eckes (118.8 vs 118.8). But dropping that race moves the age-weighted
+   pool only ~+1 pt -- 25-race pools do not move on one race. Wreck-decontamination (#48) would not
+   close this gap. (His NW trackHistory is elite: 125.6/P6 2023, 140.8/WIN 2024, 130.7/P17 2025 --
+   and it IS lifting him; he leads the board.)
+3. THE ACTUAL MECHANISM~ PRE-BOARD INPUT DARKNESS. lineup 'none' -> startPos (0.33) carries zero
+   information; practice not run -> longRunPace (0.15) neutral. HALF the composite weight is dark, the
+   live half (corr 0.35 + track 0.15) is min-max compressed, and at noise 23 the top of a 39-truck
+   field lands ~10-11 pct mechanically. The harness shows the SAME model with real grids puts the
+   favorite at ~24-25 pct -- which is the market's number for Heim. The market is pricing the
+   post-information favorite; the pre board is pricing a fog. Both are internally consistent.
+4. PROCESS BUG FOUND (real, fix regardless)~ STALE EQUIPMENT OVERRIDES. The NW board carries Lime Rock
+   road-course eq decisions via featured_weekend persistence~ Heim 0, Majeski 0, Eckes 1, Garcia 0.5,
+   Annunziata 0.05. Heim/Majeski/Eckes are history-rich (equipment prior inert -> harmless), but
+   Garcia 0.5 and Annunziata 0.05 are thin-history drivers being actively dampened at NW by LAST
+   WEEK'S ROAD judgments. RECOMMENDATION~ clear eq_overrides + rear_overrides automatically whenever
+   weekend config track/race# changes (auto-reset guard, not yet shipped).
+DOCTRINE (restating, because this is the third market this week)~ pre-board win numbers are
+pre-information placeholders, not opinions. Do not bet the favorite gap in either direction off a pre
+board; judge the model vs market AFTER P and Q load. Expect Heim to rise sharply post-P&Q (48 pct of
+weight lights up; his quali/practice should be elite).
