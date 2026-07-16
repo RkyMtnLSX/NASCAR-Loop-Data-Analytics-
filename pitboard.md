@@ -826,7 +826,7 @@ Full evidence in BACKTEST_LOG.md (2026-07-15 entries). For the handoff:
 - **Team-correlated noise, step 1 measured (no sim change):** org-level residual ICC 0.106 (2023-26,
   p 0.000; SS 0.217, road 0.00); manufacturer-beyond-org ZERO (p 0.61). Prototype spec + gates parked
   in BACKTEST_LOG + task list; best picked up before a superspeedway weekend.
-- **tracks.display_group (NEW column, user-run SQL) + LoopData.js commit `8e56385e`:** public comp-track
+- **tracks.display_group (NEW column, user-run SQL) + FOUR pages converted** — LoopData `8e56385e`, QualifyingCenter `a60544ca`, GreenFlagSpeed `7c386784`, FastestLap `ca49e625` (FL filter chips are now display groups, scoped client-side): public comp-track
   display now groups by `display_group` (fallback: correlation_group_label). Bristol AND Dover display as
   'High-Banked Concrete'; flat tracks display without them. THE SIM STILL POOLS BY correlation_group_label —
   display_group is optics only, never a model input. Companion backtest same day: the "Bristol discount"
