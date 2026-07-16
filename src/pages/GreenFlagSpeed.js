@@ -183,9 +183,9 @@ export default function GreenFlagSpeed() {
   const [selectedTrack, setSelectedTrack] = useState('')
 
   useEffect(() => {
-    supabase.from('tracks').select('name, correlation_group_label').then(({ data }) => {
+    supabase.from('tracks').select('name, display_group, correlation_group_label').then(({ data }) => { // display grouping 2026-07-15
       const m = {}
-      ;(data || []).forEach(t => { m[t.name] = t.correlation_group_label || 'Other' })
+      ;(data || []).forEach(t => { m[t.name] = t.display_group || t.correlation_group_label || 'Other' })
       setTypeMap(m)
     })
   }, [])
