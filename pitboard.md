@@ -814,6 +814,22 @@ backtest (see BACKTEST_LOG 2026-07-11): configured nudges give 46-59% P10-P90 co
 80% target; recommended config values 9/9/10/9 (oval/short/SS/road), SQL-only change,
 user's call pending.
 
+### 2026-07-16 — practice uploader guards + parser aliases (SHIPPED); phantom-race repairs
+- **Admin.js commit \`1011d3e7\` — three confirm guards on practice upload** (all triggered by real operator
+  incidents same night): (1) REGISTRY MISMATCH — no silent stub races; dialog shows the track's real race
+  numbers AND what that race# actually is ("R13 in the registry is: Michigan International Speedway");
+  (2) OVERWRITE — replacing an existing session (same series/year/track/R#/session) requires explicit
+  confirm; (3) LAP-TIME SANITY — file's median lap vs the track's historical laps, ±15 pct window (catches
+  Bristol laps uploaded as Darlington). Guards fail-open on their own errors. Admin.js changed: REFRESH.
+- **excelParser.js \`6d613324\`** — sheet matching is now case-insensitive substring with aliases
+  (NOAPS/NCWTS/Craftsman/NXS); 'NOAPS' broke the O'Reilly Darlington backfill. excelParser changed: REFRESH.
+- **Data repairs (browser REST, verified)**: deleted Bristol-laps-as-Darlington trucks 2025 R20 session;
+  re-homed trucks 2025 Bristol R20→R6 (race id 311) and Charlotte R13→Michigan R13 (lap-time forensics:
+  38.7s laps ≠ Charlotte); DELETED phantom races id 430, 432 (created by the pre-guard stub path).
+- **Research (see BACKTEST_LOG 07-16)**: truck + O'Reilly practice validated ~2x cup raw signal; weight
+  sweep says KEEP 0.15 (cross-series, win monotone against raising); best5 wash in both lower series.
+  2025 truck practice now ~15 sessions (operator backfill) — within-series weight re-run possible soon.
+
 ### 2026-07-15 — group markets informational + team-correlation measured (SHIPPED code)
 Full evidence in BACKTEST_LOG.md (2026-07-15 entries). For the handoff:
 - **Group markets (Top Chevrolet/Ford/Toyota, Winning Mfr/Team) are INFORMATIONAL ONLY.**
