@@ -2,10 +2,20 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 
 const YEARS = ['2022', '2023', '2024', '2025', '2026']
-const TRACK_TYPES = ['All', 'Short Track', 'Superspeedway', 'Intermediate', 'Road Course']
+const TRACK_TYPES = ['All', 'Short & Flat Tracks', 'High-Banked Concrete', 'Superspeedway', 'Intermediate', 'Road Course'] // display groups (2026-07-15)
 const MEDAL = { 1: '\uD83E\uDD47', 2: '\uD83E\uDD48', 3: '\uD83E\uDD49' }
 const MEDAL_BG = { 1: 'rgba(255,215,0,0.15)', 2: 'rgba(192,192,192,0.15)', 3: 'rgba(205,127,50,0.15)' }
-const TRACK_TYPE_COLORS = { 'Short Track': '#2D6A4F', 'Superspeedway': '#6A0572', 'Intermediate': '#1B4F72', 'Road Course': '#7B3F00', 'Other': '#555' }
+const TRACK_TYPE_COLORS = { 'Short & Flat Tracks': '#2D6A4F', 'High-Banked Concrete': '#4A4E69', 'Short Track': '#2D6A4F', 'Superspeedway': '#6A0572', 'Intermediate': '#1B4F72', 'Road Course': '#7B3F00', 'Other': '#555' }
+let __dispMapCache = null
+async function __getDispMap(sb) {
+  if (__dispMapCache) return __dispMapCache
+  const { data } = await sb.from('tracks').select('name, display_group, correlation_group_label')
+  const m = {}
+  ;(data || []).forEach(t => { m[t.name] = t.display_group || t.correlation_group_label || 'Other' })
+  __dispMapCache = m
+  return m
+}
+const __LEGACY_TYPE_GROUP = { 'Short Track': 'Short & Flat Tracks', 'Superspeedway': 'Superspeedway', 'Intermediate': 'Intermediate', 'Road Course': 'Road Course' }
 const sectionHead = { fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }
 const stickyHead = { position: 'sticky', left: 0, zIndex: 3, background: 'var(--bg-elevated)', textAlign: 'left', padding: '10px 16px', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap', borderBottom: '1px solid var(--border)', borderRight: '1px solid var(--border)', minWidth: 180 }
 const numHead = { padding: '10px 12px', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', textAlign: 'right', whiteSpace: 'nowrap', borderBottom: '1px solid var(--border)', background: 'var(--bg-elevated)' }
@@ -254,7 +264,7 @@ export default function FastestLap({ isSubscriber }) {
       const data = []
       for (let pg = 0; pg < 20; pg++) {
         let q = supabase.from('fastest_laps').select('*').in('year', yrs).order('race_date').order('rank').range(pg * 1000, pg * 1000 + 999)
-        if (tt !== 'All') q = q.eq('track_type', tt)
+        // track-type scoping is now client-side via display groups (2026-07-15)
         const res = await q
         if (res.error) { err = res.error; break }
         data.push(...(res.data || []))
@@ -263,9 +273,11 @@ export default function FastestLap({ isSubscriber }) {
       if (err) throw err
       // Exclude exhibition races (Duels / Clash / All-Star / Open) - half-size fields, not comparable
       const cleanData = (data || []).filter(r => !/duel|clash|all.?star/i.test(r.race_name || ''))
-      setAllRows(cleanData)
+      const dm = await __getDispMap(supabase)
+      const scoped = tt === 'All' ? cleanData : cleanData.filter(r => (dm[r.track] || __LEGACY_TYPE_GROUP[r.track_type] || 'Other') === tt)
+      setAllRows(scoped)
       const seen = new Set(); const raceList = []
-      ;cleanData.forEach(r => { const key=r.race_name+'|'+r.race_date; if(!seen.has(key)){seen.add(key);raceList.push({name:r.race_name,date:r.race_date})} })
+      ;scoped.forEach(r => { const key=r.race_name+'|'+r.race_date; if(!seen.has(key)){seen.add(key);raceList.push({name:r.race_name,date:r.race_date})} })
       setRaces(raceList)
       if (raceList.length) setSelectedRace(raceList[raceList.length-1].name)
     } catch(e) { setError(e.message) } finally { setLoading(false) }
