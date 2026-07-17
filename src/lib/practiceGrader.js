@@ -153,7 +153,7 @@ export function trendLabel(slope) {
 // ── Main grading function ─────────────────────────────────────
 // Input:  array of { driver, start, lapData: { '1': 53.4, '2': 53.6, ... } }
 // Output: array sorted by composite score, each driver has rank + grade
-export function gradePracticeSession(drivers) {
+export function gradePracticeSession(drivers, priorRatings) {
   const MIN_LAPS = 3
   const wavg = (arr, vf, wf) => { let sv = 0, sw = 0; arr.forEach(r => { const v = vf(r); if (v == null) return; const w = wf(r); sv += v * w; sw += w }); return sw ? sv / sw : null }
   const rnd = (x, p) => x == null ? null : Math.round(x * p) / p
@@ -232,7 +232,37 @@ export function gradePracticeSession(drivers) {
   // 41 cup oval races: avgPace50/bl50 = 0.326 (test 0.325) vs allLaps50/bl50 = 0.310 (test
   // 0.304). The 2026-07-04 selection sweep never tested THIS pairing (avgPace was only tried
   // with bestStint). SIM INPUT UNCHANGED: overall_avg stays (calibration, see BACKTEST_LOG).
-  const apS = rankScale('avgPace'), alS = rankScale('overallAvg'), blS = rankScale('bestLap')
+  // GRADE-SIDE GROUP CONDITION CORRECTION (SHIPPED 2026-07-16; grade bar 0.372->0.404 monotone,
+  // sim composite bar 24/24 -- see BACKTEST_LOG). When A/B groups AND prior corr ratings are supplied,
+  // the RANKING runs on condition-corrected copies (__gc*) of the metrics: fit metric ~ prior rating
+  // within the session (quality control), subtract each group's centered median residual (track state).
+  // STORED metric fields stay RAW -- the sim applies its own correction at sim time (no double count).
+  // Fail-open: any missing piece -> gc copies equal raw -> identical grades.
+  let gc = false
+  if (priorRatings) {
+    const gmed = arr => { const s = [...arr].sort((p, q) => p - q); return s[Math.floor(s.length / 2)] }
+    const correctKey = (key, gcKey) => {
+      gradable.forEach(d => { d[gcKey] = d[key] })
+      const fit = gradable.filter(d => d[key] != null && d.group && priorRatings[d.driver] != null)
+      const gs = [...new Set(fit.map(d => d.group))]
+      if (gs.length < 2 || fit.length < 20) return false
+      const x = fit.map(d => priorRatings[d.driver]), y = fit.map(d => d[key])
+      const n = x.length, mx = x.reduce((a, b) => a + b, 0) / n, my = y.reduce((a, b) => a + b, 0) / n
+      let sxy = 0, sxx = 0
+      for (let i = 0; i < n; i++) { sxy += (x[i] - mx) * (y[i] - my); sxx += (x[i] - mx) * (x[i] - mx) }
+      const bb = sxx ? sxy / sxx : 0, a0 = my - bb * mx
+      const offs = {}
+      gs.forEach(g0 => { offs[g0] = gmed(fit.filter(d => d.group === g0).map(d => d[key] - (a0 + bb * priorRatings[d.driver]))) })
+      const center = gs.reduce((a, g0) => a + offs[g0], 0) / gs.length
+      gradable.forEach(d => { if (d[key] != null && d.group && offs[d.group] != null) d[gcKey] = d[key] - (offs[d.group] - center) })
+      return true
+    }
+    const c1 = correctKey('avgPace', '__gcAvgPace')
+    const c2 = correctKey('bestLap', '__gcBestLap')
+    const c3 = correctKey('overallAvg', '__gcOverallAvg')
+    gc = c1 || c2 || c3
+  }
+  const apS = rankScale(gc ? '__gcAvgPace' : 'avgPace'), alS = rankScale(gc ? '__gcOverallAvg' : 'overallAvg'), blS = rankScale(gc ? '__gcBestLap' : 'bestLap')
   const scored = gradable.map(d => {
     const pace = apS.has(d) ? apS.get(d) : (alS.has(d) ? alS.get(d) : 50)
     const bl = blS.has(d) ? blS.get(d) : 50
