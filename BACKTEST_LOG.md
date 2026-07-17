@@ -3088,3 +3088,26 @@ re-run BOTH bars (grade Spearman + composite markets), ship the grader-level cor
 it is a no-op on unlabeled sessions by construction, so blast radius is only the group weekends.
 NOTE~ this correction, if shipped, applies BEFORE metric storage -> cleans grades AND sim inputs
 (overall_avg, best5, blend) in one place.
+
+### !! SHIPPED !! BEST5 IS THE SIM PRACTICE INPUT FOR CUP + TRUCKS (2026-07-16, operator decision)
+OPERATOR CALL, EXPLICITLY SUPERSEDING THE #55 PRE-REGISTERED GATE~ "lets go with best 5 and ship the
+changes to the sim now. lets not wait I think weve seen enough. we went as far back as we could with
+all the practice data we have." He is right that the retrospective well is dry~ every year-series with
+practice data has been tested at the composite level (cup 24/25/26, trucks 25/26, oreilly 25/26), the
+blend was measured (exact midpoint), and the group-contamination concern was resolved (fair to both
+arms). Evidence at ship time~ win-market tally 4 yes / 1 wash / 2 no; favourites 14/40 vs 11/40;
+outcome-regression convergence (best-lap rank z -2.43 win, -3.91 t10); known cost ~1 Brier t3/t5 in
+cup 2026 only (did not replicate in 2025).
+SHIPPED (bundle main.987b9eaa.js)~
+  practiceGrader.js `409e5c72`~ computes best5 (mean of 5 fastest laps, latest session) for ALL series;
+    stored on every upload from now on.
+  Admin.js `74c799de`~ stores practice_sessions.best5 (SQL column operator-run).
+  SimulationCenter.js `c5d34fa1`~ lrpTime ~ best5 for cup+trucks, FALLBACK overall_avg when best5 null;
+    O'REILLY STAYS overall_avg (its own two seasons said no). config now stamps practiceMetric on every
+    published board -- the live-verification hook.
+LIVE VERIFICATION (replaces #55's role)~ weekly grading now accrues the shipped model's record with
+practiceMetric stamped per board. REVIEW at ~6 graded cup/truck boards~ if win-market grades degrade
+vs the season's pre-ship baseline, REVERT is the one lrpTime line.
+NOTE~ sessions uploaded BEFORE this ship have best5 NULL -> sims on them use the fallback (identical to
+pre-ship behaviour). Friday uploads onward carry best5 natively. Re-upload any current-week session to
+activate best5 for it immediately.
