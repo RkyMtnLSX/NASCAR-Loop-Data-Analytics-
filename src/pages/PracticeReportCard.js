@@ -49,6 +49,15 @@ export default function PracticeReportCard({ isSubscriber }) {
       }
 
       const unique = allSessions.slice(0, 1)
+      // Double-visit tracks share (year, track, session) — resolve the LATEST upload's race_number so
+      // the card never interleaves two races' batches (Phoenix oreilly 2025 R4/R33 incident, 2026-07-17).
+      for (const s of unique) {
+        const { data: rn } = await supabase.from('practice_sessions')
+          .select('race_number, created_at').eq('series', s.series).eq('year', s.year)
+          .eq('track_name', s.track_name).eq('session_number', s.session_number)
+          .order('created_at', { ascending: false }).limit(1)
+        s.race_number = rn && rn.length ? rn[0].race_number : null
+      }
       setSessions(unique)
       if (unique.length > 0) setSelected(unique[0].key)
       setLoading(false)
@@ -71,6 +80,7 @@ export default function PracticeReportCard({ isSubscriber }) {
         .eq('year', session.year)
         .eq('track_name', session.track_name)
         .eq('session_number', session.session_number)
+        .eq('race_number', session.race_number)
         .order('practice_score', { ascending: false, nullsFirst: false })
 
       if (error) { setError(error.message); setLoading(false); return }
@@ -124,7 +134,7 @@ export default function PracticeReportCard({ isSubscriber }) {
                 borderColor:  selected === s.key ? 'var(--accent)60'     : 'var(--border)',
               }}
             >
-              {s.track_name} {s.year} &middot; S{s.session_number}
+              {s.track_name} {s.year}{s.race_number != null ? ' \u00B7 R' + s.race_number : ''} &middot; S{s.session_number}
             </button>
           ))}
         </div>
