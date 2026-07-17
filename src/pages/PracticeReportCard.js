@@ -81,6 +81,18 @@ export default function PracticeReportCard({ isSubscriber }) {
   }, [selected, sessions])
 
   const visibleRows = isSubscriber ? rows : rows.slice(0, 10)
+  // HEATMAP (2026-07-17, operator request): tint pace cells vs the session spread. Green fast, red slow.
+  const __heat = (key) => {
+    const vals = visibleRows.map(r => r[key]).filter(v => v != null && v > 0)
+    if (vals.length < 5) return () => ({})
+    const mn = Math.min(...vals), mx = Math.max(...vals), rg = (mx - mn) || 1
+    return (v) => {
+      if (v == null || v <= 0) return {}
+      const x = Math.max(0, Math.min(1, (v - mn) / rg))
+      return { background: 'hsla(' + Math.round(120 * (1 - x)) + ', 60%, 40%, 0.25)' }
+    }
+  }
+  const heatBL = __heat('best_lap'), heatAP = __heat('avg_pace'), heatAL = __heat('overall_avg'), heatLR = __heat('long_run')
   const blurred     = !isSubscriber && rows.length > 10
 
   // Check if this session has group or car number data
@@ -174,13 +186,12 @@ export default function PracticeReportCard({ isSubscriber }) {
                   <th className="th-tip" data-tip="Starting position for this race.">Start</th>
                   <th className="th-tip" data-tip="Overall practice grade (percentile of the field), from Avg Pace 50% + Best Lap 50% (v3). On sessions with A/B practice groups, the ranking corrects for track-state differences between groups (a driver's speed is judged against what cars of his caliber ran in HIS group's conditions; 2026-07-16).">Grade</th>
                   <th className="th-tip" data-tip="Letter-aligned score: A+ 97-100, A 93-96.9 ... F 40-59.9. The session's top car is always 100.">Score</th>
-                  <th className="th-tip" data-tip="Graded (clean) laps / total laps. Laps beyond 8% of the session median are excluded from grading.">Graded Laps</th>
+                  <th className="th-tip" data-tip="Single fastest lap of the session - raw one-lap speed.">Best Lap</th>
                   <th className="th-tip" data-tip="Average of each run's average lap time - each run weighted equally, so one short outlier run can swing it. Lower is faster.">Avg Pace</th>
                   <th className="th-tip" data-tip="Simple average of every clean lap - each lap weighted equally, so a short outlier run barely moves it. Lower is faster.">All Laps</th>
-                  <th className="th-tip" data-tip="Fastest single run's average lap time - peak sustained pace. Lower is faster.">Best Stint</th>
+                  <th className="th-tip" data-tip="Number of separate runs (stints) the driver made in the session."># Stints</th>
                   <th className="th-tip" data-tip="Length-weighted pace over runs of 10+ laps - worn-tire, long-run speed.">Long Run</th>
-                  <th className="th-tip" data-tip="Lap-time consistency within runs (std dev). Lower is more repeatable.">Consistency</th>
-                  <th className="th-tip" data-tip="Single fastest lap of the session - raw one-lap speed.">Best Lap</th>
+                  <th className="th-tip" data-tip="Graded (clean) laps / total laps. Laps beyond 8% of the session median are excluded from grading.">Graded Laps</th>
                 </tr>
               </thead>
               <tbody>
@@ -220,15 +231,14 @@ export default function PracticeReportCard({ isSubscriber }) {
                       <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
                         {d.practice_score?.toFixed(1) || '-'}
                       </td>
+                      <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent)', ...heatBL(d.best_lap) }}>{d.best_lap?.toFixed(3) || '-'}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)', ...heatAP(d.avg_pace) }}>{d.avg_pace?.toFixed(3) || '-'}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', ...heatAL(d.overall_avg) }}>{d.overall_avg?.toFixed(3) || '-'}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>{d.num_stints ?? '-'}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', ...heatLR(d.long_run) }}>{d.long_run?.toFixed(3) || <span style={{ fontSize: '0.7rem', padding: '1px 5px', borderRadius: 4, background: '#4a3a12', color: '#e0b64f' }}>low conf</span>}</td>
                       <td style={{ fontFamily: 'var(--font-mono)' }}>{(() => { let n = null; try { n = JSON.parse(d.notes || 'null') } catch (e) { n = null }
                         const gl = n && n.gl != null ? n.gl : null
                         return <span>{gl != null ? gl + '/' : ''}{d.total_laps ?? '-'}</span> })()}</td>
-                      <td style={{ fontFamily: 'var(--font-mono)' }}>{d.avg_pace?.toFixed(3) || '-'}</td>
-                      <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>{d.overall_avg?.toFixed(3) || '-'}</td>
-                      <td style={{ fontFamily: 'var(--font-mono)' }}>{d.best_stint?.toFixed(3) || '-'}</td>
-                      <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>{d.long_run?.toFixed(3) || <span style={{ fontSize: '0.7rem', padding: '1px 5px', borderRadius: 4, background: '#4a3a12', color: '#e0b64f' }}>low conf</span>}</td>
-                      <td style={{ fontFamily: 'var(--font-mono)' }}>{d.consistency?.toFixed(3) || '-'}</td>
-                      <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent)' }}>{d.best_lap?.toFixed(3) || '-'}</td>
                     </tr>
                   )
                 })}
