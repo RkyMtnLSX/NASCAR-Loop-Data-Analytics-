@@ -1983,6 +1983,7 @@ export default function Admin() {
         practice_group: d.group || null,
         total_laps: d.totalLaps,
         best_lap: d.bestLap,
+        best5: d.best5 != null ? d.best5 : null,
         overall_avg: d.overallAvg,
         late_run_avg: d.lateRunAvg,
         trend_slope: d.trendSlope,
