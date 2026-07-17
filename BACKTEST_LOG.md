@@ -3067,3 +3067,24 @@ No arm dominates; the choice is a risk slider~
   BLEND~ half the gain, half the cost.
   OVERALL~ incumbent, best t3 in 2026 only.
 DECISION~ operator's, task #58. All three options now fully measured on identical races and seeds.
+
+### REFINED GROUP CORRECTION (quality-controlled) -- IT WORKS; monotone dose-response; hold for sample (2026-07-16)
+The naive median-alignment failed (see 9-session entry). The refined version~ within each labeled
+session, fit best_lap/avg_pace ~ prior corr rating (leak-free priors), take each GROUP's median
+RESIDUAL as the condition offset (quality removed by construction -- handles elite-cars-in-A), correct
+only that. Grade bar (Spearman vs finish, same 9 sessions, prior-covered drivers only)~
+  correction strength lambda~   0 (raw)   0.5     0.75    1.0 (full)
+  mean grade Spearman~          0.372     0.384   0.395   0.404     <- MONOTONE, full strength best
+  Per race (raw -> refined)~ Darlington .338->.571, Phoenix .319->.434, Bristol .215->.303,
+  Vegas .382->.457, Texas .336->.390 improve; Charlotte/Kansas/Michigan mild losses; POCONO .711->.508
+  remains the adverse outlier (condition gap measured -0.496s B-favoured even after quality control --
+  either 2026 form beyond priors, or a real mid-session condition shift e.g. weather; unresolved).
+CONDITION GAPS after quality control are physically believable~ Phoenix +0.143s / Darlington +0.101 /
+Texas +0.097 (A-track advantage); Kansas -0.141 (B); others small.
+VERDICT~ VALIDATED-PRELIMINARY, DO NOT SHIP YET~ n=9, one adverse outlier, lambda=1 partially selected
+on the evaluation set (it was also the a-priori default), and the composite/sim bar is untested.
+SHIP PATH~ accumulate ~4-6 more labeled sessions (NW onward; sheets carry groups when NASCAR splits),
+re-run BOTH bars (grade Spearman + composite markets), ship the grader-level correction if it holds --
+it is a no-op on unlabeled sessions by construction, so blast radius is only the group weekends.
+NOTE~ this correction, if shipped, applies BEFORE metric storage -> cleans grades AND sim inputs
+(overall_avg, best5, blend) in one place.
