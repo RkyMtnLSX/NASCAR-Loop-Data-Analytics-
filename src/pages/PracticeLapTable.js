@@ -90,9 +90,22 @@ export default function PracticeLapTable({ isSubscriber }) {
         const normName = n => n.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\./g,'').replace(/\s+/g,' ').replace(/\s*jr\s*$/i,'').trim()
         const carMap = {}
         ;(entryData || []).forEach(e => { carMap[normName(e.driver_name)] = e.car_number })
+        // CAR FALLBACK (2026-07-17): loop_data carries car numbers for completed races -- covers
+        // sessions whose sheets lacked a Car column and weeks with no entry list loaded.
+        let loopCarMap = {}
+        try {
+          const { data: loopCars } = await supabase
+            .from('loop_data')
+            .select('driver_name, car_number')
+            .eq('series', selectedSession.series)
+            .eq('year', selectedSession.year)
+            .eq('track_name', selectedSession.track_name)
+            .not('car_number', 'is', null)
+          ;(loopCars || []).forEach(e => { if (!loopCarMap[normName(e.driver_name)]) loopCarMap[normName(e.driver_name)] = e.car_number })
+        } catch (e2) {}
         const merged = (data || []).map(row => ({
           ...row,
-          car_number: row.car_number || carMap[normName(row.driver_name)] || null
+          car_number: row.car_number || carMap[normName(row.driver_name)] || loopCarMap[normName(row.driver_name)] || null
         }))
         setRows(merged)
       })
