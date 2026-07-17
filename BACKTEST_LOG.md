@@ -2948,3 +2948,27 @@ uploader guards + operator care). Train 2025 n=15 / test 2026 n=10, same harness
 DISCIPLINE~ #55 (cup pre-registered) still decides the CUP input, unchanged. If it passes, adoption is
 now SERIES-SPECIFIC on each series' own evidence~ trucks would adopt (2 seasons supporting), O'Reilly
 would NOT (2 seasons opposing). No blanket rollout. The mixed tally is exactly why the gate exists.
+
+### PRACTICE-DOMINANCE INTERIM (task #52 trigger CROSSED early via lower-series backfills) -- the signal is REAL; the "margin beats rank" half is NOT (2026-07-16)
+The operator's backfills put the pooled sample over the pre-set ~75-race interim threshold months ahead
+of schedule~ 86 oval practice races across THREE series (cup ~43 / trucks 18 / oreilly 25), n=2,563
+driver-races, 76 WIN EVENTS (vs 40 at the 07-14 cup-only attempt). Design replicated~ win logistic,
+controls corr rank + start rank + series dummies, rank and margin fitted SEPARATELY (collinearity rule).
+  encoding of practice BEST LAP          z (practice term)   logL
+  RANK (within race)                        -2.43            -258.2   <- best fit
+  MARGIN, z-scored within race              -2.21            -258.8
+  MARGIN, pooled-standardized               -2.09            -259.0
+  (controls~ corr z ~ -6.2, start z ~ -3.6/-3.7 across all three)
+FINDING 1 -- THE SIGNAL IS REAL. Best-lap practice speed carries WIN-market information beyond history
+and grid, significant in EVERY encoding (p < .05). The 07-14 "no power" verdict resolves the right way~
+z grew 1.52 -> 2.1-2.4 as the sample doubled, exactly what a true effect does and noise does not.
+FINDING 2 -- THE DOMINANCE FRAMING IS WEAKENED. Margin does NOT beat rank~ plain best-lap RANK is the
+best-fitting carrier at this power. "P1 by three tenths vs P1 by nothing" adds no measurable win
+information over "P1". The operator's eye may still read margin, but the data says the eye's edge is
+in reading BEST-LAP SPEED AT ALL (which overall_avg dilutes), not the gap size.
+CONVERGENCE NOTE (the practical upshot)~ the sim-side implementation of this exact signal ALREADY EXISTS
+in the pipeline -- best5 (#55). best5 is a best-lap-family metric; its composite win gains in cup+trucks
+are the Brier-level expression of this regression's z. These are ONE thread now, not two. #55's
+pre-registered cup gate + series-specific adoption rule remain the decision mechanism.
+DECISIVE RE-RUN~ at ~130+ pooled races (projected z ~ 2.6+; ~1-2 months at three sessions/week), or
+moot if #55 resolves first. Task #52 updated.
