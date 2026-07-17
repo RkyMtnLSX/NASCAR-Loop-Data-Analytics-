@@ -1886,7 +1886,54 @@ export default function Admin() {
     setUploadStatus(null)
     try {
       const parsed = await parsePracticeExcel(f, series)
-      const graded = gradePracticeSession(parsed.drivers)
+      // GRADE-SIDE GROUP CORRECTION (2026-07-16): when the sheet carries A/B groups, fetch leak-free
+      // prior corr ratings so the grader can rank on condition-corrected metrics. Fail-open: any error
+      // -> priors null -> grades identical to uncorrected.
+      let gcPriors = null
+      try {
+        if (parsed.drivers.some(dd => dd.group)) {
+          const normN = s => String(s || '').toLowerCase().replace(/[^a-z]/g, '')
+          const { data: trkRow } = await supabase.from('tracks').select('correlation_group_label').eq('name', trackName).single()
+          if (trkRow && trkRow.correlation_group_label) {
+            const { data: gTracks } = await supabase.from('tracks').select('name').eq('correlation_group_label', trkRow.correlation_group_label)
+            const gNames = (gTracks || []).map(tt => tt.name)
+            const { data: gRaces } = await supabase.from('races').select('id, race_date, year').eq('series', series).in('track_name', gNames)
+            let cutoff = null
+            const rn = parseInt(practiceRaceNum)
+            if (rn) {
+              const { data: rr } = await supabase.from('races').select('race_date').eq('series', series).eq('year', year).eq('track_name', trackName).eq('race_number', rn)
+              if (rr && rr.length && rr[0].race_date) cutoff = rr[0].race_date
+            }
+            const dateOf = {}
+            ;(gRaces || []).forEach(rr2 => { dateOf[rr2.id] = rr2.race_date })
+            const okIds = (gRaces || []).filter(rr2 => !cutoff || (rr2.race_date && rr2.race_date < cutoff)).map(rr2 => rr2.id)
+            let lrows = [], off0 = 0
+            while (okIds.length) {
+              const res = await supabase.from('loop_data').select('driver_name, driver_rating, year, race_id').eq('series', series).in('race_id', okIds).order('id').range(off0, off0 + 999)
+              if (res.error || !res.data) break
+              lrows = lrows.concat(res.data)
+              if (res.data.length < 1000) break
+              off0 += 1000
+            }
+            const AGEW = { 2026: 1.3, 2025: 1.0, 2024: 0.75, 2023: 0.55, 2022: 0.4 }
+            const acc = {}
+            lrows.forEach(lr => {
+              if (lr.driver_rating == null) return
+              const k = normN(lr.driver_name)
+              const w = AGEW[lr.year] || 0.3
+              if (!acc[k]) acc[k] = { s: 0, w: 0, n: 0 }
+              acc[k].s += w * lr.driver_rating; acc[k].w += w; acc[k].n++
+            })
+            gcPriors = {}
+            parsed.drivers.forEach(dd => {
+              const a = acc[normN(dd.driver)]
+              if (a && a.n >= 3) gcPriors[dd.driver] = a.s / a.w
+            })
+            if (Object.keys(gcPriors).length < 20) gcPriors = null
+          }
+        }
+      } catch (gcErr) { gcPriors = null }
+      const graded = gradePracticeSession(parsed.drivers, gcPriors)
       setPreview({ parsed, graded })
     } catch (err) {
       setUploadStatus({ type: 'error', message: err.message })
