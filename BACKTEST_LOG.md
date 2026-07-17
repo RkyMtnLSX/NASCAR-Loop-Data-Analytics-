@@ -3126,3 +3126,18 @@ holds corr priors + practice rows; correct prac values when practice_group prese
 NO-OP whenever labels are absent). Grade-side (report card) needs priors at upload time -- separate,
 later. Ship/hold = operator's call; the logged hold-for-more-sessions plan remains the conservative
 default, the 24/24 uniformity is the case for shipping now.
+
+### !! SHIPPED !! GROUP CONDITION CORRECTION, SIM-SIDE (2026-07-16, operator; second model change of the day)
+SimulationCenter `cc0e12e1`, bundle main.344a1ecc.js. __groupConditionCorrect(drivers) runs before
+setRawDrivers~ when fetched practice rows carry A/B practice_group labels, fits lrpTime ~ corrAvgRating
+within the session (leak-free quality control), subtracts each group's centered median residual (the
+track-state component). NO-OP when labels absent / one group / field < 20. Applies to whatever practice
+metric feeds lrpTime (best5 now, per the earlier ship).
+EVIDENCE AT SHIP~ grade bar +0.032 Spearman monotone in lambda; composite bar 24/24 cells; mechanism
+measured (metric-formula group sorting + track-state offsets up to 1.2 pct, sign varies by session).
+Caveats accepted by operator~ n=9 labeled sessions, lambda 1 partially selected in-sample. LIVE
+VERIFICATION rides the same practiceMetric-stamped grading loop as best5; labeled weekends only.
+REPORT CARD UNCHANGED~ grade-side correction (which WOULD re-rank condition-flattered grades, per
+operator's question) is a separate validated-pending project -- needs priors at upload time.
+OPERATOR LABELING PLAN~ forward labels priority (live benefit + verification); historical backfills
+casual (sharpen the ~15-session lambda re-check).
