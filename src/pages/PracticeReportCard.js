@@ -88,15 +88,16 @@ export default function PracticeReportCard({ isSubscriber }) {
       // CAR FALLBACK (2026-07-17): sheets often lack a Car column -> practice_sessions.car_number null.
       // loop_data carries car numbers for completed races; merge for DISPLAY only.
       try {
-        if (!out.some(r => r.car_number)) {
+        if (!out.some(r => r.car_number) || !out.some(r => r.qualifying_position != null)) {
           const nn = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\./g, '').replace(/\s+/g, ' ').trim()
           const { data: lc } = await supabase.from('loop_data')
-            .select('driver_name, car_number')
+            .select('driver_name, car_number, start_position')
             .eq('series', session.series).eq('year', session.year)
-            .eq('track_name', session.track_name).not('car_number', 'is', null)
+            .eq('track_name', session.track_name)
           const m = {}
-          ;(lc || []).forEach(e => { if (!m[nn(e.driver_name)]) m[nn(e.driver_name)] = e.car_number })
-          if (Object.keys(m).length) out = out.map(r => ({ ...r, car_number: r.car_number || m[nn(r.driver_name)] || null }))
+          const ms = {}
+          ;(lc || []).forEach(e => { const k = nn(e.driver_name); if (e.car_number != null && !m[k]) m[k] = e.car_number; if (e.start_position != null && ms[k] == null) ms[k] = e.start_position })
+          out = out.map(r => ({ ...r, car_number: r.car_number || m[nn(r.driver_name)] || null, qualifying_position: r.qualifying_position != null ? r.qualifying_position : (ms[nn(r.driver_name)] != null ? ms[nn(r.driver_name)] : null) }))
         }
       } catch (e2) {}
       setRows(out)
