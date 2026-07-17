@@ -814,6 +814,17 @@ backtest (see BACKTEST_LOG 2026-07-11): configured nudges give 46-59% P10-P90 co
 80% target; recommended config values 9/9/10/9 (oval/short/SS/road), SQL-only change,
 user's call pending.
 
+### 2026-07-17 — report card redesign + SITE-DOWN incident (both resolved)
+- **INCIDENT**: the build after commit 3ab2dfae shipped WITHOUT Vercel env vars → "supabaseUrl is
+  required" at module init → ENTIRE SITE blank (~10 min). NOT a code regression. HOTFIX \`7ca533b4\`:
+  src/lib/supabase.js now has hardcoded fallbacks for the (public) URL + anon key — builds are immune
+  to env-var loss permanently. OPERATOR TODO: check Vercel project env settings (REACT_APP_SUPABASE_URL
+  / _ANON_KEY) — something removed or unscoped them.
+- **Report card redesign** (\`3ab2dfae\`, operator spec): Best Stint → # Stints (num_stints); Consistency
+  removed (corr −0.03); column order now # | Car | Driver | Group | Start | Grade | Score | Best Lap |
+  Avg Pace | All Laps | # Stints | Long Run | Graded Laps; heat-tint on the four pace columns scaled to
+  session spread (green fast → red slow, hsla alpha 0.25). PracticeReportCard.js changed — REFRESH.
+
 ### 2026-07-16 (night) — GROUP CONDITION CORRECTIONS SHIPPED, sim-side AND grade-side
 Both validated same day (grade bar 0.372→0.404 monotone; sim composite 24/24 cells). Details in BACKTEST_LOG.
 - **Sim-side** (SimulationCenter \`cc0e12e1\`): \`__groupConditionCorrect(drivers)\` before setRawDrivers —
