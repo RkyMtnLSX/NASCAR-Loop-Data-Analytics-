@@ -84,7 +84,22 @@ export default function PracticeReportCard({ isSubscriber }) {
         .order('practice_score', { ascending: false, nullsFirst: false })
 
       if (error) { setError(error.message); setLoading(false); return }
-      setRows(data || [])
+      let out = data || []
+      // CAR FALLBACK (2026-07-17): sheets often lack a Car column -> practice_sessions.car_number null.
+      // loop_data carries car numbers for completed races; merge for DISPLAY only.
+      try {
+        if (!out.some(r => r.car_number)) {
+          const nn = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\./g, '').replace(/\s+/g, ' ').trim()
+          const { data: lc } = await supabase.from('loop_data')
+            .select('driver_name, car_number')
+            .eq('series', session.series).eq('year', session.year)
+            .eq('track_name', session.track_name).not('car_number', 'is', null)
+          const m = {}
+          ;(lc || []).forEach(e => { if (!m[nn(e.driver_name)]) m[nn(e.driver_name)] = e.car_number })
+          if (Object.keys(m).length) out = out.map(r => ({ ...r, car_number: r.car_number || m[nn(r.driver_name)] || null }))
+        }
+      } catch (e2) {}
+      setRows(out)
       setLoading(false)
     }
     loadRows()
