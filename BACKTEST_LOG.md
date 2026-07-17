@@ -2988,3 +2988,27 @@ on every market -- the dominance-gap framing loses uniformly, not just at win.
 CROSS-INSTRUMENT AGREEMENT~ this outcome-regression silhouette (win + t10 yes, t3/t5 weak) MATCHES the
 best5 composite A/B silhouette in cup and trucks. Two unrelated instruments agree on WHERE in the
 finish order best-lap information lives. Strongest form of corroboration we have for the #55 candidate.
+
+### FIRST GREEN-TRACK MEASUREMENT: the group offset is REAL, MATERIAL, and NOT CONSTANT (2026-07-16)
+Chain completed same night~ operator identified the confound, parser gap found and fixed (Group column
+was advertised in the UI and mapped in Admin but NEVER parsed -- commit dd27c1ba), report card group
+chips were pre-built and dormant, operator re-uploaded 3 group-bearing cup 2026 sheets.
+MEASUREMENT (median laps by practice group, A runs first)~
+  session          nA/nB   bestLap offset (B vs A)   overall offset   top-10 best laps in A
+  Darlington R6    19/18        +0.32 pct               +0.87 pct          8 of 10
+  Bristol R8       19/18        +0.28 pct               +0.17 pct          7 of 10
+  Charlotte R13    20/19        -0.15 pct (REVERSED)    -0.31 pct          5 of 10
+VERDICTS~
+1. The operator's green-track claim is CONFIRMED in 2 of 3 sessions and the effect is MATERIAL~
+   0.3 pct of a lap is ~0.09s at Darlington vs typical 0.02-0.05s gaps between adjacent practice
+   ranks -- group membership alone can move a driver 2-5 practice positions.
+2. THE SIGN FLIPS (Charlotte) -> the correction must be PER-SESSION (shift by that session's own
+   measured A-B median offset), never a fixed rule. Track evolution cuts both ways.
+3. BEST5 IS THE MOST GROUP-CONTAMINATED METRIC~ 8/10 fastest Darlington laps came from one group.
+   The operator's HOLD on the best5 ship (task #58) is vindicated -- part of best5's edge could be
+   group luck. Group-corrected best5 is now the ship candidate.
+NEXT~ operator accumulates ~8-10 group-labeled sessions -> validation~ (a) group-corrected GRADE vs raw
+on Spearman-vs-finish (grade bar), (b) group-corrected best5 vs raw best5 vs overall_avg on the
+composite betting markets (sim bar). Those two tests decide the grade change AND the held ship.
+NOTE~ groups exist only where the source sheets carry them; many weekends are single-group -- the
+correction is a no-op there by construction.
