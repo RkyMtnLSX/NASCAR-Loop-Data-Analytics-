@@ -37,6 +37,7 @@ export function parsePracticeExcel(file, series = 'cup') {
         const driverColIndex = headers.findIndex(h => h.toLowerCase() === 'driver')
         const startColIndex  = headers.findIndex(h => h.toLowerCase() === 'start' || h.toLowerCase() === 'spos' || h.toLowerCase() === 'pos')
         const carColIndex     = headers.findIndex(h => { const l = h.toLowerCase(); return l === 'car' || l === 'car #' || l === 'car#' || l === '#' })
+        const groupColIndex = headers.findIndex(h => { const l = h.toLowerCase(); return l === 'group' || l === 'grp' || l === 'practice group' })
         if (driverColIndex === -1) { reject(new Error('Could not find Driver column')); return }
         // Find lap columns. Header may be plain numeric ('1','2') or lap-prefixed in ANY case
         const lapColumns = []
@@ -66,7 +67,8 @@ export function parsePracticeExcel(file, series = 'cup') {
               if (!isNaN(time) && time > 10 && time < 500) lapData[String(lapNum)] = time
             }
           }
-          if (Object.keys(lapData).length > 0) drivers.push({ driver: driverName, carNumber, start: startPos, lapData })
+          const group = groupColIndex !== -1 ? (String(row[groupColIndex] || '').trim().toUpperCase() || null) : null
+          if (Object.keys(lapData).length > 0) drivers.push({ driver: driverName, carNumber, start: startPos, group, lapData })
         }
         if (drivers.length === 0) { reject(new Error('No valid driver data found')); return }
         resolve({ drivers, sheetName, totalDrivers: drivers.length })
