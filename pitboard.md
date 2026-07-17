@@ -814,6 +814,18 @@ backtest (see BACKTEST_LOG 2026-07-11): configured nudges give 46-59% P10-P90 co
 80% target; recommended config values 9/9/10/9 (oval/short/SS/road), SQL-only change,
 user's call pending.
 
+### 2026-07-16 (night) — GROUP CONDITION CORRECTIONS SHIPPED, sim-side AND grade-side
+Both validated same day (grade bar 0.372→0.404 monotone; sim composite 24/24 cells). Details in BACKTEST_LOG.
+- **Sim-side** (SimulationCenter \`cc0e12e1\`): \`__groupConditionCorrect(drivers)\` before setRawDrivers —
+  removes the track-state component of lrpTime when fetched practice rows carry practice_group. Fit
+  lrpTime ~ corrAvgRating within session, subtract centered group median residual. NO-OP without labels.
+- **Grade-side** (practiceGrader \`a9a6029b\`, Admin \`dbdf15e5\`): gradePracticeSession(drivers, priorRatings)
+  — Admin fetches leak-free priors when the sheet has groups; grader RANKS on corrected copies (__gc*);
+  STORED METRICS STAY RAW (sim corrects its own copy — never double-correct). Fail-open everywhere.
+  Grades recompute on (re-)upload only, per standing rule.
+- THREE files changed again tonight: SimulationCenter, practiceGrader, Admin — REFRESH BEFORE EDITING.
+- λ re-check at ~15 labeled sessions; operator labels groups forward (sheets carry them when NASCAR splits).
+
 ### 2026-07-16 (late) — BEST5 SHIPPED as sim practice input, cup+trucks (operator decision)
 Full evidence + decision record in BACKTEST_LOG (SHIPPED entry + the day's ~15 practice entries). Summary:
 - **Sim practice input (lrpTime) = practice_sessions.best5 for cup + trucks**, fallback overall_avg when
