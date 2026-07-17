@@ -164,7 +164,7 @@ export function gradePracticeSession(drivers) {
     const allTimes = allLaps.map(([, t]) => t)
     const totalLaps = allTimes.length
     if (totalLaps === 0) {
-      return { ...dr, stints: 0, longestStint: 0, totalLaps: 0, overallAvg: null, lateRunAvg: null, bestLap: null, trendSlope: null, consistency: null, avgPace: null, bestStint: null, longRun: null, inc: true }
+      return { ...dr, stints: 0, longestStint: 0, totalLaps: 0, overallAvg: null, lateRunAvg: null, bestLap: null, best5: null, trendSlope: null, consistency: null, avgPace: null, bestStint: null, longRun: null, inc: true }
     }
     const runStats = stints.map(st => {
       const times = st.map(([, t]) => t)
@@ -190,10 +190,11 @@ export function gradePracticeSession(drivers) {
     const shortTimes = stints.filter(st => st.length <= 4).flatMap(st => st.map(([, t]) => t))
     const lateRunAvg = shortTimes.length ? _avg(shortTimes) : null
     const bestLap = Math.min(...allTimes)
+    const best5 = _avg(aSrt.slice(0, Math.min(5, aSrt.length))) // SHIPPED 2026-07-16: sim practice input (cup+trucks)
     const longest = gradableRuns.length ? Math.max(...gradableRuns.map(r => r.len)) : 0
 
     if (totalLaps < MIN_LAPS || avgPace == null) {
-      return { ...dr, stints: stints.length, longestStint: longest, totalLaps, overallAvg: rnd(overallAvg, 1000), lateRunAvg: rnd(lateRunAvg, 1000), bestLap: rnd(bestLap, 1000), trendSlope: rnd(falloff, 10000), consistency: rnd(consistency, 1000), avgPace: null, bestStint: null, longRun: null, inc: true }
+      return { ...dr, stints: stints.length, longestStint: longest, totalLaps, overallAvg: rnd(overallAvg, 1000), lateRunAvg: rnd(lateRunAvg, 1000), bestLap: rnd(bestLap, 1000), best5: rnd(best5, 1000), trendSlope: rnd(falloff, 10000), consistency: rnd(consistency, 1000), avgPace: null, bestStint: null, longRun: null, inc: true }
     }
     // Report-card extras via notes JSON (2026-07-10, no schema change):
     // gl = graded laps (within 8 pct of session median); fr = estimated fresh runs
@@ -209,7 +210,7 @@ export function gradePracticeSession(drivers) {
       __prior = __prior == null ? bb : Math.min(__prior, bb)
     })
     return { ...dr, stints: stints.length, longestStint: longest, totalLaps,
-      overallAvg: rnd(overallAvg, 1000), lateRunAvg: rnd(lateRunAvg, 1000), bestLap: rnd(bestLap, 1000),
+      overallAvg: rnd(overallAvg, 1000), lateRunAvg: rnd(lateRunAvg, 1000), bestLap: rnd(bestLap, 1000), best5: rnd(best5, 1000),
       trendSlope: rnd(falloff, 10000), consistency: rnd(consistency, 1000),
       avgPace: rnd(avgPace, 1000), bestStint: rnd(bestStint, 1000), longRun: rnd(longRun, 1000),
       notes: JSON.stringify({ gl: __graded, fr: __fresh }), inc: false }
