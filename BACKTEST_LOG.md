@@ -3158,3 +3158,37 @@ re-uploaded; the preview shows the corrected ranking at file-select time.
 VALIDATION carried~ grade bar +0.032 Spearman monotone (264d9d6b), sim composite 24/24 (f2267c17).
 LIVE REVIEW~ rides the labeled-weekend grading loop with the sim-side correction; lambda re-check at
 ~15 labeled sessions still stands.
+
+### REVIEW RECIPE -- BEST5 LIVE VERIFICATION (self-contained; executable by ANY session or the operator alone) (2026-07-16)
+The operator may lose Fable access. This recipe is the complete review; no other context needed.
+TRIGGER~ >= 6 graded CUP or TRUCK boards published after 2026-07-17 (these carry config.practiceMetric
+= 'best5'). O'Reilly boards are NOT part of this review (they still run overall_avg by design).
+DATA~ sim_grades rows (one per graded board)~ columns series, stage, graded_at, metrics, ev_flags, roi,
+config. The practiceMetric stamp lives in the board's config json (sim_grades.config; if absent there,
+join sim_results by sim_id and read sim_results.config). Boards WITHOUT the stamp are PRE-SHIP.
+COMPARISON (prefer stage 'post' boards -- the model's real face)~
+  cohort A~ pre-ship cup+truck boards (graded before 2026-07-17, no practiceMetric stamp)
+  cohort B~ post-ship cup+truck boards (practiceMetric ~ 'best5')
+  compare per cohort~ (1) win-market results in roi json (roi.win.profit / roi.win.bets) and any
+  win/t10 Brier fields present in metrics json; (2) exwin ROI as the place-market check.
+OPERATOR-RUNNABLE SQL (Supabase SQL editor)~
+  SELECT series, stage, graded_at, config->>'practiceMetric' AS pm,
+         roi->'win' AS win_roi, roi->'exwin' AS exwin_roi, metrics
+  FROM sim_grades
+  WHERE series IN ('cup','trucks')
+  ORDER BY graded_at;
+DECISION RULE (fixed now, from the pre-registered predictions)~
+  PASS~ cohort B win-market results >= cohort A's (Brier lower and/or win ROI not worse), t10 same-or-
+        better, exwin ROI within ~2 pct rel of cohort A. -> best5 stays; log the review.
+  FAIL~ cohort B win-market clearly worse across >= 6 post boards. -> REVERT~ in SimulationCenter.js
+        find the line containing "lrpTime:" and "prac.best5" and replace with~
+        lrpTime:       prac ? parseFloat(prac.overall_avg)    || null : null,
+        (one line; also remove or keep the practiceMetric stamp -- keep, set to 'overall_avg').
+        Log the reversion referencing this entry.
+  SMALL N HONESTY~ 6 boards is a screen, not a proof -- only act on CLEAR degradation; re-review at 12.
+GROUP-CORRECTION REVIEW RIDES ALONG~ among cohort B, compare boards from GROUP-LABELED weekends vs
+unlabeled (labels visible in practice_sessions.practice_group for that race). Same pass/fail logic;
+revert ~ remove the __groupConditionCorrect(drivers) call in SimulationCenter (one line).
+LAMBDA RE-CHECK~ at ~15 labeled sessions total, re-run the refined-correction validation (design in the
+2026-07-16 entries~ fit metric ~ prior corr rating within session, group median residual, grade Spearman
++ composite bars). If lambda 1 no longer optimal, adjust in __groupConditionCorrect.
