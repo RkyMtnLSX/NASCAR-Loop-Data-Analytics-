@@ -51,10 +51,19 @@ export default function PracticeLapTable({ isSubscriber }) {
 
     supabase
       .rpc('get_practice_sessions', { p_series: series })
-      .then(({ data, error: err }) => {
+      .then(async ({ data, error: err }) => {
         if (cancelled) return
         if (err) { setError(err.message); return }
         const unique = (data || []).slice(0, 1).map(row => ({ ...row, key: `${row.year}|${row.track_name}|${row.session_number}` }))
+        // Double-visit tracks: resolve the LATEST upload's race_number so two races at the same
+        // (year, track) never interleave (Martinsville oreilly 2025 R7+R32 incident, 2026-07-17).
+        for (const s of unique) {
+          const { data: rn } = await supabase.from('practice_sessions')
+            .select('race_number, created_at').eq('series', s.series).eq('year', s.year)
+            .eq('track_name', s.track_name).eq('session_number', s.session_number)
+            .order('created_at', { ascending: false }).limit(1)
+          s.race_number = rn && rn.length ? rn[0].race_number : null
+        }
         setSessions(unique)
         if (unique.length > 0) setSelectedSession(unique[0])
       })
@@ -75,6 +84,7 @@ export default function PracticeLapTable({ isSubscriber }) {
       .eq('year', selectedSession.year)
       .eq('track_name', selectedSession.track_name)
       .eq('session_number', selectedSession.session_number)
+      .eq('race_number', selectedSession.race_number)
       .order('lap_number', { ascending: true })
       .limit(50000)
       .then(async ({ data, error: err }) => {
@@ -228,7 +238,7 @@ export default function PracticeLapTable({ isSubscriber }) {
                   borderColor: selectedSession?.key === s.key ? 'var(--accent)60' : 'var(--border)',
                 }}
               >
-                {s.track_name} {s.year} — S{s.session_number}
+                {s.track_name} {s.year}{s.race_number != null ? ' \u00B7 R' + s.race_number : ''} — S{s.session_number}
               </button>
             ))}
           </div>
