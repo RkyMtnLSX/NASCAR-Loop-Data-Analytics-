@@ -3141,3 +3141,20 @@ REPORT CARD UNCHANGED~ grade-side correction (which WOULD re-rank condition-flat
 operator's question) is a separate validated-pending project -- needs priors at upload time.
 OPERATOR LABELING PLAN~ forward labels priority (live benefit + verification); historical backfills
 casual (sharpen the ~15-session lambda re-check).
+
+### !! SHIPPED !! GRADE-SIDE GROUP CORRECTION -- the report card now re-ranks condition-flattered grades (2026-07-16, third model-adjacent ship of the day)
+practiceGrader `a9a6029b` + Admin `dbdf15e5`, bundle main.d87e3697.js.
+HOW IT WORKS~ when an uploaded sheet carries A/B groups, Admin fetches LEAK-FREE prior corr ratings for
+the parsed drivers (group-scoped, age-weighted, races strictly before the uploaded race's date when the
+Race# resolves -- proper for backfills too), passes them to gradePracticeSession. The grader ranks the
+composite on condition-corrected COPIES (__gcAvgPace/__gcBestLap/__gcOverallAvg~ fit metric ~ prior
+within session, subtract each group's centered median residual). STORED METRICS STAY RAW -- the sim
+applies its own identical correction at sim time; no double counting. FAIL-OPEN everywhere~ any error,
+missing priors (<20 matched), single group, or unlabeled sheet -> grades identical to uncorrected.
+EFFECT~ exactly the operator's ask~ a driver who graded A because his group had the favourable track
+comes down; a driver punished by the slow-track group comes up -- per session, only where labels exist.
+Grades recompute ON UPLOAD (standing rule)~ existing stored grades change only when a session is
+re-uploaded; the preview shows the corrected ranking at file-select time.
+VALIDATION carried~ grade bar +0.032 Spearman monotone (264d9d6b), sim composite 24/24 (f2267c17).
+LIVE REVIEW~ rides the labeled-weekend grading loop with the sim-side correction; lambda re-check at
+~15 labeled sessions still stands.
