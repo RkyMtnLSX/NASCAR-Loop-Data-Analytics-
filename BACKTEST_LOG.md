@@ -3041,3 +3041,14 @@ VERDICTS~
    redundant with corr history. Do not chase as an input without a residual test.
 CREDIT~ the entire thread -- groups exist, A runs first, sheets carry them -- is operator field
 knowledge. Fifth operator-driven correction/discovery of the day.
+
+### ADDENDUM (operator): practice groups are assigned by THE METRIC FORMULA (2026-07-16)
+Closes the assignment question. Consequences~
+1. Confirms the 8.4-position finish gap mechanism~ metric sorts by performance; better-metric half runs
+   LATER (group B). Group A first = the slower-metric cars on the greenest track.
+2. Group membership is a DETERMINISTIC function of pre-race data the model already holds -> it can
+   never be an input (redundant BY CONSTRUCTION, stronger than the residual-test presumption).
+3. The refined condition-correction is now FULLY SPECIFIED~ expected group gap ~ computable from
+   metric-implied quality (the site already computes metric scores for rain-out lineups);
+   TRACK-STATE OFFSET ~ measured group gap MINUS metric-implied gap. Correct only that residual.
+   Runs when labeled-session count supports it; no estimation step needed.
