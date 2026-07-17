@@ -3052,3 +3052,18 @@ Closes the assignment question. Consequences~
    metric-implied quality (the site already computes metric scores for rain-out lineups);
    TRACK-STATE OFFSET ~ measured group gap MINUS metric-implied gap. Correct only that residual.
    Runs when labeled-session count supports it; no estimation step needed.
+
+### THE 50/50 BLEND, MEASURED (operator asked "use both as weights?") -- it is the midpoint, exactly (2026-07-16)
+Three-arm cup composite A/B (overall / best5 / blend as two half-weight inputs 0.075+0.075), 40 races,
+paired seeds, N16. WIN Brier by year (overall / blend / best5)~
+  2024~ 26.36 / 26.40 / 26.48   (wash year -- all arms tied within noise)
+  2025~ 21.91 / 21.73 / 21.59   (best5 sweeps ALL markets; blend second everywhere)
+  2026~ 21.55 / 21.18 / 20.87   (best5 best on win/t10; t3/t5 cost ~1.0 for best5, ~0.5 for blend)
+Favourites picked correctly across 40 races~ overall 11, blend 14, best5 14.
+READ~ linear algebra delivered as promised -- the blend is the midpoint on every market in every year.
+It halves best5's win gain AND halves its only cost (2026 t3/t5, which does not replicate in 2025).
+No arm dominates; the choice is a risk slider~
+  PURE BEST5~ maximum win-market gain (the model's strategic weakness), small place cost in one year.
+  BLEND~ half the gain, half the cost.
+  OVERALL~ incumbent, best t3 in 2026 only.
+DECISION~ operator's, task #58. All three options now fully measured on identical races and seeds.
