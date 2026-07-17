@@ -693,7 +693,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
           })(),
           (() => {
             let q = supabase.from('practice_sessions')
-              .select('driver_name, overall_avg, best5, late_run_avg, trend_slope, practice_score, session_number, qualifying_position')
+              .select('driver_name, overall_avg, best5, practice_group, late_run_avg, trend_slope, practice_score, session_number, qualifying_position')
               .eq('series', s)
               .eq('track_name', cfg.track_name)
               .eq('year', cfg.race_year || new Date().getFullYear())
@@ -854,6 +854,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
               startPos:      qual && qual.qualifying_position ? parseFloat(qual.qualifying_position) : (prac && prac.qualifying_position ? parseFloat(prac.qualifying_position) : null),
               qualTime:      qual ? parseFloat(qual.lap_time)       || null : null,
               lrpTime:       prac ? ((series !== 'oreilly' && parseFloat(prac.best5)) || parseFloat(prac.overall_avg) || null) : null, // SHIPPED 2026-07-16: best5 for cup+trucks (log 4-1-2 + regression); oreilly keeps overall_avg per its own evidence; falls back when best5 null
+              practiceGroup: prac ? (prac.practice_group || null) : null,
               srpTime:       prac ? parseFloat(prac.late_run_avg)   || null : null,
               trendSlope:    prac ? parseFloat(prac.trend_slope)    || null : null,
               practiceScore: prac ? parseFloat(prac.practice_score) || null : null,
@@ -889,7 +890,8 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
         }
         setLineupState(__lnSrc)
 
-        setRawDrivers(drivers)
+        __groupConditionCorrect(drivers) // group condition correction (2026-07-16): no-op without A/B labels
+      setRawDrivers(drivers)
       } catch (e) {
         if (!cancelled) setError(e.message)
       } finally {
@@ -1661,6 +1663,33 @@ function BmTable({ data, col1 }) {
 // Top-{Make} needs the JOINT matrix (who is the best finisher of that make in each sim);
 // it CANNOT be derived from marginal win%.
 // ---------------------------------------------------------------------------
+// GROUP CONDITION CORRECTION (SHIPPED 2026-07-16; validation log f2267c17: grade bar 0.372->0.404,
+// composite bar 24/24 cells). When the fetched practice session carries A/B groups, remove the
+// TRACK-STATE component of lrpTime: fit lrpTime ~ corrAvgRating within the session (quality control,
+// leak-free -- corrAvgRating is prior races only), take each group's median residual as its condition
+// offset, subtract the centered offset. NO-OP when labels are absent, groups < 2, or field too thin.
+export function __groupConditionCorrect(drivers) {
+  const withG = drivers.filter(d => d.lrpTime != null && d.practiceGroup && d.corrAvgRating != null)
+  const gset = [...new Set(withG.map(d => d.practiceGroup))]
+  if (gset.length < 2 || withG.length < 20) return drivers
+  const x = withG.map(d => d.corrAvgRating), y = withG.map(d => d.lrpTime)
+  const n = x.length
+  const mx = x.reduce((a, b) => a + b, 0) / n, my = y.reduce((a, b) => a + b, 0) / n
+  let sxy = 0, sxx = 0
+  for (let i = 0; i < n; i++) { sxy += (x[i] - mx) * (y[i] - my); sxx += (x[i] - mx) * (x[i] - mx) }
+  const b = sxx ? sxy / sxx : 0, a0 = my - b * mx
+  const med = arr => { const s = [...arr].sort((p, q) => p - q); return s[Math.floor(s.length / 2)] }
+  const offs = {}
+  gset.forEach(gg => { offs[gg] = med(withG.filter(d => d.practiceGroup === gg).map(d => d.lrpTime - (a0 + b * d.corrAvgRating))) })
+  const center = gset.reduce((a, gg) => a + offs[gg], 0) / gset.length
+  drivers.forEach(d => {
+    if (d.lrpTime != null && d.practiceGroup && offs[d.practiceGroup] != null) {
+      d.lrpTime = d.lrpTime - (offs[d.practiceGroup] - center)
+    }
+  })
+  return drivers
+}
+
 export function __groupMarketValue(dkTxt, fdTxt, hrTxt, drivers, posMatrix, simN) {
   try {
     var rows = drivers || [];
