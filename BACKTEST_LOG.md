@@ -3111,3 +3111,18 @@ vs the season's pre-ship baseline, REVERT is the one lrpTime line.
 NOTE~ sessions uploaded BEFORE this ship have best5 NULL -> sims on them use the fallback (identical to
 pre-ship behaviour). Friday uploads onward carry best5 natively. Re-upload any current-week session to
 activate best5 for it immediately.
+
+### GROUP CORRECTION, COMPOSITE BAR: PASSES -- corrected best5 beats raw in ALL 24 CELLS (2026-07-16, night 2)
+Completes the two-bar validation the refined-correction entry required. Same 9 labeled races, shipped
+config (best5 practice input), paired seeds, quality-controlled condition correction (lam 1) applied to
+best5 values before normalization~
+  N16~  raw win 20.33 / t3 54.4 / t5 75.0 / t10 125.0
+   corrected win 20.29 / t3 54.1 / t5 74.5 / t10 124.2
+  Same uniform direction at N13 and N19 -- corrected wins EVERY market at EVERY noise (24/24 cells);
+  favourite hit 5/9 both arms. Gains small (0.2-0.9 pct rel) but with zero contrary cells.
+STATE OF THE CORRECTION~ grade bar +0.032 Spearman (monotone in lambda), composite bar 24/24 -- both
+instruments agree at n=9. Implementation note~ the natural home is SIM-SIDE (SimulationCenter already
+holds corr priors + practice rows; correct prac values when practice_group present -- ~20 lines,
+NO-OP whenever labels are absent). Grade-side (report card) needs priors at upload time -- separate,
+later. Ship/hold = operator's call; the logged hold-for-more-sessions plan remains the conservative
+default, the 24/24 uniformity is the case for shipping now.
