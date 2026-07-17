@@ -2972,3 +2972,19 @@ are the Brier-level expression of this regression's z. These are ONE thread now,
 pre-registered cup gate + series-specific adoption rule remain the decision mechanism.
 DECISIVE RE-RUN~ at ~130+ pooled races (projected z ~ 2.6+; ~1-2 months at three sessions/week), or
 moot if #55 resolves first. Task #52 updated.
+
+### ADDENDUM to the dominance interim: ALL FOUR MARKETS (2026-07-16)
+Same pooled sample (2,563 driver-races, 3 series), same controls, rank and margin fitted separately~
+  market  events   rank z   margin z     (corr z / start z for scale)
+  win       76     -2.43    -2.21        (-6.1 / -3.6)
+  t3       227     -1.69    -1.60        (-9.8 / -5.8)   <- NOT significant
+  t5       377     -2.58    -2.22        (-11.3 / -7.6)
+  t10      746     -3.91    -3.71        (-13.9 / -7.4)
+READS~ (1) t10 is best-lap info's stronghold, as always. (2) The U-SHAPE~ win clears significance on
+just 76 events while t3 FAILS on 227. Mechanism visible in the corr column~ podiums are the most
+history-predictable outcome (corr z -9.8), so practice has nothing left to add at t3; WHICH elite car
+wins is the question history cannot answer and this-week peak speed partially can. (3) Rank >= margin
+on every market -- the dominance-gap framing loses uniformly, not just at win.
+CROSS-INSTRUMENT AGREEMENT~ this outcome-regression silhouette (win + t10 yes, t3/t5 weak) MATCHES the
+best5 composite A/B silhouette in cup and trucks. Two unrelated instruments agree on WHERE in the
+finish order best-lap information lives. Strongest form of corroboration we have for the #55 candidate.
