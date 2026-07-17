@@ -3012,3 +3012,32 @@ on Spearman-vs-finish (grade bar), (b) group-corrected best5 vs raw best5 vs ove
 composite betting markets (sim bar). Those two tests decide the grade change AND the held ship.
 NOTE~ groups exist only where the source sheets carry them; many weekends are single-group -- the
 correction is a no-op there by construction.
+
+### GROUP VALIDATION AT 9 SESSIONS: the offset is mostly CAR QUALITY, not track state -- naive correction REJECTED; best5 hold RESOLVED (2026-07-16)
+Operator re-uploaded 9 group-labeled cup 2026 sessions (Phoenix R4, Vegas R5, Darlington R6, Bristol R8,
+Kansas R9, Texas R11, Charlotte R13, Michigan R15, Pocono R16; balanced ~19/18 splits).
+OFFSETS (B vs A best-lap medians)~ mean ~ -0.18 pct i.e. ZERO on average, but HUGE variance both ways~
+  A faster~ Darlington +0.32, Vegas +0.31, Bristol +0.28, Texas +0.17
+  B faster~ Pocono -1.21 (0/10 top laps in A), Kansas -0.79 (1/10), Michigan -0.42, Charlotte -0.15, Phoenix -0.14
+THE DECISIVE MEASUREMENT~ GROUP B OUTFINISHES GROUP A BY 8.4 POSITIONS (avg finish 14.62 vs 22.99,
+n=156/155, consistent in ALL NINE races). Groups are PERFORMANCE-SORTED (faster half runs later), so
+the measured lap offset ~ (real quality gap) + (track-state effect), inseparable at session level.
+NAIVE CORRECTION (align group medians per session) -- REJECTED BY THE GRADE BAR~
+  grade Spearman vs finish~ raw 0.381 vs corrected 0.353 (corrected wins only 4/9).
+  PERFECT FAILURE PATTERN~ correction HELPED at all four A-faster tracks (Darlington 0.381->0.586!) and
+  HURT at all five B-faster tracks (Pocono 0.731->0.469). Reading~ where A (the slower cars) ran faster,
+  a REAL track-state effect had overpowered the quality gap -> correcting helps; where B was faster the
+  offset was mostly their genuine speed -> correcting erases signal.
+VERDICTS~
+1. DO NOT ship any group correction now. Group chips remain DISPLAY-ONLY (still valuable~ users can see
+   who practiced in the compromised window).
+2. REFINED CORRECTION = future candidate~ estimate each group's EXPECTED gap from driver quality (corr
+   priors), correct only the RESIDUAL (condition part). Needs more labeled sessions; design logged here.
+3. BEST5 HOLD (task #58) RESOLVED~ in every composite A/B, best5 and overall_avg were computed from the
+   SAME contaminated laps -- the comparison was fair and the contamination cost is already inside
+   best5's measured record (4 yes / 1 wash / 2 no + regression convergence). Tonight's finding explains
+   noise in that record; it does not change it. Ship decision returns to the operator as-is.
+4. Group membership itself predicts finish (8.4 positions) but is quality-sorted -> almost certainly
+   redundant with corr history. Do not chase as an input without a residual test.
+CREDIT~ the entire thread -- groups exist, A runs first, sheets carry them -- is operator field
+knowledge. Fifth operator-driven correction/discovery of the day.
