@@ -814,6 +814,20 @@ backtest (see BACKTEST_LOG 2026-07-11): configured nudges give 46-59% P10-P90 co
 80% target; recommended config values 9/9/10/9 (oval/short/SS/road), SQL-only change,
 user's call pending.
 
+### 2026-07-16 (late) — BEST5 SHIPPED as sim practice input, cup+trucks (operator decision)
+Full evidence + decision record in BACKTEST_LOG (SHIPPED entry + the day's ~15 practice entries). Summary:
+- **Sim practice input (lrpTime) = practice_sessions.best5 for cup + trucks**, fallback overall_avg when
+  null; **O'Reilly stays overall_avg** (its own 2 seasons opposed). SimulationCenter `c5d34fa1` — REFRESH.
+- practiceGrader `409e5c72` computes best5 (mean of 5 fastest laps) on every upload, all series; Admin
+  `74c799de` stores it (SQL column user-run). Both files changed — REFRESH BEFORE EDITING.
+- Every published board's config now stamps **practiceMetric** — use it when grading/auditing.
+- Pre-ship sessions have best5 NULL (fallback = old behaviour); uploads from Friday carry it natively.
+- LIVE VERIFICATION: review at ~6 graded cup/truck boards; revert = one lrpTime line.
+- Same day, also settled: practice weight 0.15 confirmed in all series (4 designs); 50/50 blend measured
+  (exact midpoint, not chosen); groups are metric-formula-sorted (B outfinishes A by 8.4 pos); naive group
+  correction REJECTED, quality-controlled version VALIDATED-PRELIMINARY (0.372→0.404, held for ~4-6 more
+  labeled sessions); group chips live on the report card.
+
 ### 2026-07-16 — practice uploader guards + parser aliases (SHIPPED); phantom-race repairs
 - **Admin.js commit \`1011d3e7\` — three confirm guards on practice upload** (all triggered by real operator
   incidents same night): (1) REGISTRY MISMATCH — no silent stub races; dialog shows the track's real race
