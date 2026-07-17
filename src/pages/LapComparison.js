@@ -130,12 +130,26 @@ export default function LapComparison({ isSubscriber }) {
         .eq('track_name', selectedSession.track_name)
       const entryMap = {}
       for (const e of (entryData || [])) { entryMap[e.driver_name] = e.car_number }
+      // CAR FALLBACK (2026-07-17): loop_data carries car numbers for completed races -- covers
+      // sessions whose sheets lacked a Car column and weeks with no entry list loaded.
+      const __nn = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\./g, '').replace(/\s+/g, ' ').trim()
+      const loopMap = {}
+      try {
+        const { data: loopCars } = await supabase
+          .from('loop_data')
+          .select('driver_name, car_number')
+          .eq('series', selectedSession.series)
+          .eq('year', selectedSession.year)
+          .eq('track_name', selectedSession.track_name)
+          .not('car_number', 'is', null)
+        for (const e of (loopCars || [])) { if (!loopMap[__nn(e.driver_name)]) loopMap[__nn(e.driver_name)] = e.car_number }
+      } catch (e2) {}
 
       // Group by driver
       const map = {}
       for (const row of (data || [])) {
         if (!map[row.driver_name]) {
-          map[row.driver_name] = { driver_name: row.driver_name, car_number: row.car_number || entryMap[row.driver_name] || null, starting_position: row.starting_position, laps: [] }
+          map[row.driver_name] = { driver_name: row.driver_name, car_number: row.car_number || entryMap[row.driver_name] || loopMap[__nn(row.driver_name)] || null, starting_position: row.starting_position, laps: [] }
         }
         map[row.driver_name].laps.push({ lap: row.lap_number, time: row.lap_time })
       }
