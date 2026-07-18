@@ -260,12 +260,16 @@ export function gradePracticeSession(drivers, priorRatings) {
     const c1 = correctKey('avgPace', '__gcAvgPace')
     const c2 = correctKey('bestLap', '__gcBestLap')
     const c3 = correctKey('overallAvg', '__gcOverallAvg')
-    gc = c1 || c2 || c3
+    const c4 = correctKey('best5', '__gcBest5') // SHIPPED 2026-07-17: grade speed half
+    gc = c1 || c2 || c3 || c4
   }
-  const apS = rankScale(gc ? '__gcAvgPace' : 'avgPace'), alS = rankScale(gc ? '__gcOverallAvg' : 'overallAvg'), blS = rankScale(gc ? '__gcBestLap' : 'bestLap')
+  const apS = rankScale(gc ? '__gcAvgPace' : 'avgPace'), alS = rankScale(gc ? '__gcOverallAvg' : 'overallAvg'), blS = rankScale(gc ? '__gcBestLap' : 'bestLap'), b5S = rankScale(gc ? '__gcBest5' : 'best5')
   const scored = gradable.map(d => {
     const pace = apS.has(d) ? apS.get(d) : (alS.has(d) ? alS.get(d) : 50)
-    const bl = blS.has(d) ? blS.get(d) : 50
+    // SHIPPED 2026-07-17: speed half is best5 (mean of 5 fastest laps; bestLap fallback).
+    // Backtest, 70 labeled sessions: finish corr cup .320->.338, oreilly .492->.522,
+    // trucks .482->.491; per-session W47/L23 vs bestLap half (see BACKTEST_LOG).
+    const bl = b5S.has(d) ? b5S.get(d) : (blS.has(d) ? blS.get(d) : 50)
     return { ...d, composite: Math.round((pace * 0.50 + bl * 0.50) * 10) / 10 }
   })
   scored.sort((a, b) => b.composite - a.composite)
