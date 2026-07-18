@@ -1506,15 +1506,16 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
                       { key: 'top10Pct',      label: 'Top10%',   title: 'Top 10 finish probability' },
                       { key: 'dnfPct',        label: 'DNF%',     title: 'DNF probability' },
                       ...(showBreakdown ? [
-                        { key: null, label: 'Hist',  sortable: false, title: 'Corr. history score' },
-                        { key: null, label: 'LRP',   sortable: false, title: 'Long run pace score' },
-                        { key: null, label: 'SRP',   sortable: false, title: 'Short run pace score' },
-                        { key: null, label: 'Start', sortable: false, title: 'Starting pos score' },
-                        { key: null, label: 'Fall',  sortable: false, title: 'Tire falloff score' },
-                        { key: null, label: 'RC',    sortable: false, title: 'Race craft score (avg quality pass %)' },
-                        { key: null, label: 'Track', sortable: false, title: 'Specific track history score' },
+                        // zero-weight columns hidden per active profile (2026-07-18)
+                        { key: null, label: 'Hist',  sortable: false, title: 'Corr. history score', wkey: 'corrHistory' },
+                        { key: null, label: 'LRP',   sortable: false, title: 'Long run pace score', wkey: 'longRunPace' },
+                        { key: null, label: 'SRP',   sortable: false, title: 'Short run pace score', wkey: 'shortRunPace' },
+                        { key: null, label: 'Start', sortable: false, title: 'Starting pos score', wkey: 'startPos' },
+                        { key: null, label: 'Fall',  sortable: false, title: 'Tire falloff score', wkey: 'tireFalloff' },
+                        { key: null, label: 'RC',    sortable: false, title: 'Race craft score (avg quality pass %)', wkey: 'raceCraft' },
+                        { key: null, label: 'Track', sortable: false, title: 'Specific track history score', wkey: 'trackHistory' },
                         { key: 'speedScore', label: 'Speed', title: 'Composite speed score' },
-                      ] : []),
+                      ].filter(c => !c.wkey || (weights[c.wkey] || 0) > 0) : []),
                     ].map((col, ci) => (
                       <th key={ci} title={col.title}
                         onClick={() => col.sortable !== false && col.key && handleSort(col.key)}
@@ -1603,7 +1604,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
 
                         {showBreakdown && (
                           <>
-                            {['corr', 'lrp', 'srp', 'sp', 'fall', 'rc', 'track'].map(k => (
+                            {[['corr','corrHistory'],['lrp','longRunPace'],['srp','shortRunPace'],['sp','startPos'],['fall','tireFalloff'],['rc','raceCraft'],['track','trackHistory']].filter(pp => (weights[pp[1]] || 0) > 0).map(pp => pp[0]).map(k => (
                               <td key={k} style={{ padding: '7px 10px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                                 {row.scores?.[k] != null ? row.scores[k] : '--'}
                               </td>
