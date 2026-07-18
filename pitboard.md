@@ -1205,3 +1205,8 @@ the same market differently by series/section; keep header regexes loose + keep 
 
 - Sim corr-pool + track-history fetches select loop_data by track_name/series WITHOUT checking races.exhibition. Exhibition races have ~20-car fields -> field-relative metrics (rating, pct top15, avg position) are inflated/incomparable and would leak into sim pools.
 - Fastest Laps already filters exhibitions; sim fetches do not. Add the guard BEFORE any All-Star loop PDF is loaded. Until then: exhibitions stay out of the DB entirely (current state — e.g. Bell's 2025 NW All-Star win is deliberately absent; it informed an operator eq_override instead).
+
+
+## 2026-07-18 — UI: score breakdown hides zero-weight columns (e9d6bfd8)
+
+- Sim Center breakdown table (headers + row cells) now filters columns by the ACTIVE profile's weights — SRP/Fall/RC vanish under DEFAULT_WEIGHTS (all 0.00 there), reappear under road/SS profiles that use them. Purely display; scores/composite unchanged. Both render sites keyed to the same wkey map (corrHistory/longRunPace/shortRunPace/startPos/tireFalloff/raceCraft/trackHistory) — keep them in sync if weights profiles gain new terms.
