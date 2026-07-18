@@ -28,10 +28,10 @@ function __parseFinish(txt, board) {
   return { actualMap, matched, unmatched }
 }
 
-function __gradeRace(board, actualMap, preOwned) {
+function __gradeRace(board, actualMap, preOwned, dkActMap) {
   const dec = a => a > 0 ? a / 100 + 1 : 100 / Math.abs(a) + 1
   const Ncut = { win: 1, t3: 3, t5: 5, t10: 10 }
-  const rows = board.map(d => ({ name: d.driver_name, car: String(d.car_number), pf: d.proj_finish, win: d.win_pct, t3: d.top3_pct, t5: d.top5_pct, t10: d.top10_pct, mv: d.mv, act: actualMap[String(d.car_number)] })).filter(d => d.act != null)
+  const rows = board.map(d => ({ name: d.driver_name, car: String(d.car_number), pf: d.proj_finish, win: d.win_pct, t3: d.top3_pct, t5: d.top5_pct, t10: d.top10_pct, mv: d.mv, dkp: d.proj_dk != null ? d.proj_dk : null, dka: dkActMap ? dkActMap[String(d.car_number)] : null, act: actualMap[String(d.car_number)] })).filter(d => d.act != null)
   const n = rows.length
   const spearman = (a, b) => { const rk = x => { const idx = x.map((v, i) => [v, i]).sort((p, q) => p[0] - q[0]); const r = Array(x.length); idx.forEach((p, i) => r[p[1]] = i + 1); return r }; const ra = rk(a), rb = rk(b); let d2 = 0; for (let i = 0; i < a.length; i++) d2 += (ra[i] - rb[i]) * (ra[i] - rb[i]); return +(1 - 6 * d2 / (a.length * (a.length * a.length - 1))).toFixed(3) }
   const act = rows.map(r => r.act)
@@ -39,6 +39,15 @@ function __gradeRace(board, actualMap, preOwned) {
   const ind = N => rows.map(r => r.act <= N ? 1 : 0)
   const brier = (probs, ii) => +(probs.reduce((s, p, i) => s + (p / 100 - ii[i]) * (p / 100 - ii[i]), 0) / n).toFixed(4)
   const metrics = { n: n, mae: mae, spearman_pf: spearman(rows.map(r => r.pf), act), win_brier: brier(rows.map(r => r.win), ind(1)), top3_brier: brier(rows.map(r => r.t3), ind(3)), top5_brier: brier(rows.map(r => r.t5), ind(5)), top10_brier: brier(rows.map(r => r.t10), ind(10)) }
+  // DK projection accuracy (2026-07-18): only when loop-data actuals available
+  const __dkRows = rows.filter(r => r.dkp != null && r.dka != null)
+  if (__dkRows.length >= 10) {
+    const dn = __dkRows.length
+    const mp = __dkRows.reduce((s, r) => s + r.dkp, 0) / dn, ma2 = __dkRows.reduce((s, r) => s + r.dka, 0) / dn
+    let nu = 0, da = 0, db = 0
+    __dkRows.forEach(r => { nu += (r.dkp - mp) * (r.dka - ma2); da += (r.dkp - mp) * (r.dkp - mp); db += (r.dka - ma2) * (r.dka - ma2) })
+    metrics.dk = { n: dn, mae: +(__dkRows.reduce((s, r) => s + Math.abs(r.dkp - r.dka), 0) / dn).toFixed(2), bias: +(mp - ma2).toFixed(2), corr: +(nu / Math.sqrt(da * db)).toFixed(3), spearman: spearman(__dkRows.map(r => -r.dkp), __dkRows.map(r => -r.dka)) }
+  }
   const prec = (key, N) => rows.slice().sort((a, b) => b[key] - a[key]).slice(0, N).filter(d => d.act <= N).length
   metrics.prec = { win: prec('win', 1), t3: prec('t3', 3), t5: prec('t5', 5), t10: prec('t10', 10) }
   const evFlags = []
@@ -229,7 +238,7 @@ export default function GradeCenter() {
       if (!target) { setPrev(null); setMsg('Multiple races at this track/year (R' + raceRows.map(r => r.race_number).join(', R') + ') and none match the board R' + row.race_number + '. Fix the race # first.'); return }
     }
     if (!target) { setPrev(null); setMsg('No race row found for ' + row.track_name + ' ' + row.race_year + ' (' + series + '). Load the race in Admin first.'); return }
-    const res = await supabase.from('loop_data').select('driver_name, finish_position').eq('race_id', target.id)
+    const res = await supabase.from('loop_data').select('driver_name, finish_position, start_position, laps_led, fastest_laps').eq('race_id', target.id)
     let laps = res.data || []
     if (!laps.length) { setPrev(null); setMsg('No loop data found for ' + row.track_name + ' ' + row.race_year + ' (' + series + '). Load it in Admin, or paste the finish above.'); return }
     const nrm = s => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/g, ' ').split(' ').filter(Boolean).join(' ')
@@ -237,9 +246,15 @@ export default function GradeCenter() {
     row.results.forEach(d => { byName[nrm(d.driver_name)] = String(d.car_number) })
     const actualMap = {}
     laps.forEach(l => { const car = byName[nrm(l.driver_name)]; if (car && l.finish_position != null) actualMap[car] = l.finish_position })
+    // DK ACTUALS (2026-07-18): same scoring as the sim's proj_dk — finish pts + place diff + led*0.25 + fastest*0.45
+    const __dkTbl = [0,45,42,41,40,39,38,37,36,35,34,32,31,30,29,28,27,26,25,24,23,21,20,19,18,17,16,15,14,13,12,10,9,8,7,6,5,4,3,2,1]
+    const dkActMap = {}
+    laps.forEach(l => { const car = byName[nrm(l.driver_name)]; if (!car || l.finish_position == null) return
+      const fin = parseFloat(l.finish_position); const st = parseFloat(l.start_position) || fin
+      dkActMap[car] = (fin <= 40 ? __dkTbl[fin] : 0) + (st - fin) + (parseFloat(l.laps_led) || 0) * 0.25 + (parseFloat(l.fastest_laps) || 0) * 0.45 })
     if (Object.keys(actualMap).length < 3) { setPrev(null); setMsg('Could not match loop-data drivers to the published sim.'); return }
     const __preOwned2 = gradeStage === 'post' ? await __preOwnedFlags(series, row) : null
-    const g = __gradeRace(row.results, actualMap, __preOwned2)
+    const g = __gradeRace(row.results, actualMap, __preOwned2, dkActMap)
     if (row.race_number != null) setRaceNum(String(row.race_number))
     setPrev({ metrics: g.metrics, evFlags: g.evFlags, roi: g.roi, detail: g.detail, parsed: { actualMap: actualMap }, simId: row.id, track: row.track_name, year: row.race_year, config: row.config })
     setMsg('Imported ' + Object.keys(actualMap).length + ' finishes from loop data.')
