@@ -1301,3 +1301,10 @@ the same market differently by series/section; keep header regexes loose + keep 
 - **NEW SOURCE QUIRK (h): the archived feed can contain a DIFFERENT EVENT'S stops under a race id.** trucks 2022 R15 Mid-Ohio carried Cup drivers' stops; oreilly 2023 R13 Portland carried the ARCA support race. Pattern: standalone weekends (no Cup present) at one-off venues. DETECTION: the loader's name-join check (0% names vs loop_data despite ~56% coincidental car overlap). REMEDY: both races' rows DELETED (123 + 143); treat like no-feed venues. Any future load reporting name-join near 0% = wrong event, purge it.
 - **REGISTRY GAP found during accounting: oreilly (Xfinity) 2022 season is entirely absent from the races table** — cup 2022 (36) and trucks 2022 (21) exist, oreilly starts 2023. Pre-existing loop-data-era gap, now task #65: load 2022 oreilly loop PDFs, then pit backfill --year 2022 --series oreilly.
 - Usable pit corpus after purge: **367 races, 73,923 stops** across 4+ seasons, 3 series. Task #46 (pit-crew signal test) is UNBLOCKED.
+
+
+## 2026-07-18 — SHIPPED: pit crew term v1-0.06 (8bab6b69) — task #46 CLOSED as PASSED
+
+- Sim now fetches pit_stops (current season, series, 4-tire, timed) at load; median box_time per car (>= 5 stops) -> pitScores (lower better) -> 0.06 weight in ALL profiles. 'Pit' column in breakdown. Config stamps pitCrew: 'v1-0.06'.
+- Evidence: crew signal + and significant in all 3 series and all 4 track groups, pooled t 7.54 over 9,813 driver-races, leak-free walk-forward, residual to corr prior. Weight from sweep plateau (0.15-0.25 share) shrunk to 0.06.
+- OPERATOR WEEKLY: run the pit .bat after each race (with the loop PDF) or the crew medians stop updating (fail-open to neutral).
