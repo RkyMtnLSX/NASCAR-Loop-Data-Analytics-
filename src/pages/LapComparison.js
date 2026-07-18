@@ -4,6 +4,30 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts'
 
+// Best consecutive n-lap average (NASCAR practice-sheet style). Runs split on lap-number gaps
+// (pit/filtered laps break a run). Returns null when no run has n consecutive laps.
+const bestNAvg = (laps, n) => {
+  if (!laps || laps.length < n) return null
+  const runs = []
+  let run = []
+  laps.forEach(l => {
+    if (run.length && l.lap !== run[run.length - 1].lap + 1) { runs.push(run); run = [] }
+    run.push(l)
+  })
+  if (run.length) runs.push(run)
+  let best = null
+  runs.forEach(r => {
+    if (r.length < n) return
+    let sum = 0
+    for (let i = 0; i < r.length; i++) {
+      sum += r[i].time
+      if (i >= n) sum -= r[i - n].time
+      if (i >= n - 1) { const avg = sum / n; if (best === null || avg < best) best = avg }
+    }
+  })
+  return best
+}
+
 const SERIES_COLOR = { cup: 'var(--series-cup)', oreilly: 'var(--series-oreilly)', xfinity: 'var(--series-oreilly)', trucks: 'var(--series-trucks)' }
 const SERIES_TABS = [
   { value: 'cup',    label: 'Cup Series' },
@@ -444,7 +468,7 @@ CREATE INDEX ON practice_laps (series, year, track_name, session_number);`}</pre
                       <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: '0.92rem' }}>
                         <thead>
                           <tr>
-                            {['Driver','Group','Start','Laps','Best','Avg'].map(h => (
+                            {['Driver','Group','Start','Laps','Best','Avg','5 Lap Avg','10 Lap Avg','15 Lap Avg'].map(h => (
                               <th key={h} style={{ padding: '6px 12px', textAlign: h === 'Driver' ? 'left' : 'right', color: 'var(--text-secondary)', fontWeight: 600, borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>{h}</th>
                             ))}
                           </tr>
@@ -470,6 +494,7 @@ CREATE INDEX ON practice_laps (series, year, track_name, session_number);`}</pre
                                 <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{times.length}</td>
                                 <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--accent)', fontWeight: 600 }}>{fmtTime(best)}</td>
                                 <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{fmtTime(avg)}</td>
+                                {[5, 10, 15].map(n => { const v = bestNAvg(d.laps, n); return (<td key={n} style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>{v != null ? fmtTime(v) : '--'}</td>) })}
                                 
                               </tr>
                             )
