@@ -1234,3 +1234,10 @@ the same market differently by series/section; keep header regexes loose + keep 
 
 - Every loop-data grade now stores metrics.dk (n/mae/bias/corr/spearman) — proj_dk vs actual DK from loop rows (same scoring formula both sides). SQL peek: SELECT series, graded_at, metrics->'dk' FROM sim_grades ORDER BY graded_at;
 - Retro: only 2 graded boards exist, both Atlanta SS — bias ~ 0 (good level), corr ~ 0 (wreck lottery). Judge DK accuracy by track type as data accrues.
+
+
+## 2026-07-18 — SHIPPED: CLV tracking (06d5be47 + 30b50e2a)
+
+- New table odds_snapshots (operator ran SQL; RLS public read/insert). Sim Center auto-snapshots every distinct odds paste. Grade Center stores metrics.clv (plays/playsAvgPct/playsPosPct/fieldAvgPct/fieldN) using the last pre-race snapshot cluster as the close.
+- HABIT: final odds paste + Run at green flag ~ official close (no publish needed).
+- SQL peek: SELECT series, graded_at, metrics->'clv', metrics->'dk' FROM sim_grades ORDER BY graded_at;
