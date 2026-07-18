@@ -157,10 +157,23 @@ export default function LapComparison({ isSubscriber }) {
       } catch (e2) {}
 
       // Group by driver
+      // Practice groups for this session (A/B split weekends) — display only
+      let __grpMap = {}
+      try {
+        const { data: __gps } = await supabase
+          .from('practice_sessions')
+          .select('driver_name, practice_group')
+          .eq('series', selectedSession.series)
+          .eq('year', selectedSession.year)
+          .eq('track_name', selectedSession.track_name)
+          .eq('session_number', selectedSession.session_number)
+          .eq('race_number', selectedSession.race_number)
+        ;(__gps || []).forEach(g => { if (g.practice_group) __grpMap[__nn((g.driver_name || '').trim())] = g.practice_group })
+      } catch (e) {}
       const map = {}
       for (const row of (data || [])) {
         if (!map[row.driver_name]) {
-          map[row.driver_name] = { driver_name: row.driver_name, car_number: row.car_number || entryMap[row.driver_name] || loopMap[__nn(row.driver_name)] || null, starting_position: (row.starting_position != null ? row.starting_position : loopStart[__nn(row.driver_name)]), laps: [] }
+          map[row.driver_name] = { driver_name: row.driver_name, car_number: row.car_number || entryMap[row.driver_name] || loopMap[__nn(row.driver_name)] || null, starting_position: (row.starting_position != null ? row.starting_position : loopStart[__nn(row.driver_name)]), laps: [], practice_group: __grpMap[__nn(row.driver_name)] || null }
         }
         map[row.driver_name].laps.push({ lap: row.lap_number, time: row.lap_time })
       }
@@ -431,7 +444,7 @@ CREATE INDEX ON practice_laps (series, year, track_name, session_number);`}</pre
                       <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: '0.92rem' }}>
                         <thead>
                           <tr>
-                            {['Driver','Start','Laps','Best','Avg','Late Run Avg (last 25%)'].map(h => (
+                            {['Driver','Group','Start','Laps','Best','Avg'].map(h => (
                               <th key={h} style={{ padding: '6px 12px', textAlign: h === 'Driver' ? 'left' : 'right', color: 'var(--text-secondary)', fontWeight: 600, borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>{h}</th>
                             ))}
                           </tr>
@@ -443,8 +456,6 @@ CREATE INDEX ON practice_laps (series, year, track_name, session_number);`}</pre
                             const times = d.laps.map(l => l.time)
                             const best = Math.min(...times)
                             const avg = times.reduce((s, t) => s + t, 0) / times.length
-                            const lateCount = Math.max(1, Math.ceil(times.length * 0.25))
-                            const late = times.slice(-lateCount).reduce((s, t) => s + t, 0) / lateCount
                             return (
                               <tr key={name} style={{ background: idx % 2 === 0 ? 'var(--bg-surface)' : 'var(--bg-elevated)' }}>
                                 <td style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -452,15 +463,14 @@ CREATE INDEX ON practice_laps (series, year, track_name, session_number);`}</pre
                                   {d.car_number && ((series === 'cup' || series === 'oreilly' || series === 'trucks') ? <img src={(series === 'cup' ? '/car-numbers/' : series === 'oreilly' ? '/car-numbers-oreilly/' : '/car-numbers-trucks/') + (({'133':'33'})[String(d.car_number)] || d.car_number) + '.png'} alt={'#' + d.car_number} style={{ height: 28, marginRight: 6, verticalAlign: 'middle' }} onError={(e)=>{e.target.style.display='none'}} /> : <span style={{ marginRight: 6, fontFamily: 'var(--font-mono)', fontSize: '0.88rem', color: 'var(--text-muted)', fontWeight: 600 }}>{'#' + d.car_number}</span>)}
                                   <span style={{ fontWeight: 500 }}>{name}</span>
                                 </td>
+                                <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', fontWeight: 600 }}>{d.practice_group || '--'}</td>
                                 <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: '#f59e0b', fontWeight: 600 }}>
                                   {d.starting_position ? `P${d.starting_position}` : '--'}
                                 </td>
                                 <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{times.length}</td>
                                 <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--accent)', fontWeight: 600 }}>{fmtTime(best)}</td>
                                 <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{fmtTime(avg)}</td>
-                                <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: late < avg ? 'hsl(120,60%,50%)' : 'hsl(0,60%,50%)' }}>
-                                  {fmtTime(late)}
-                                </td>
+                                
                               </tr>
                             )
                           })}
