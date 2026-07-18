@@ -1310,3 +1310,20 @@ the same market differently by series/section; keep header regexes loose + keep 
 - OPERATOR WEEKLY: run the pit .bat after each race (with the loop PDF) or the crew medians stop updating (fail-open to neutral).
 
 - ADDENDUM (9ab31870): Pit Crew stepper added to the Sim Admin weights row — the term was active via DEFAULT_WEIGHTS but the hand-built stepper list lacked a control. GOTCHA for future terms: adding a weight to the profiles does NOT surface it in the admin UI — the stepper array (~line with 'Corr. Track History') must be updated separately, plus the breakdown wkey arrays (two sites).
+
+
+## 2026-07-18 — SESSION CAPSTONE (marathon ends; operator near Fable cap until 07-21). READ THIS FIRST, NEXT SESSION.
+
+**MODEL STATE (every published board stamps these in config):** practiceMetric best5 (cup+trucks; oreilly overall_avg) / poolScope series-only / borrowMode pairing-first / recencyCw 3 minors, 2 cup / pitCrew v1-0.06 (all profiles) / eqOverrides + weights + lineup also stamped. Grader v4 (avgPace50/best5-50, all series, group-corrected). DNQ filter live (no start position + real lineup = out of sim field).
+
+**SELF-GRADING LEDGER (all automatic once operator grades a race in Grade Center):** sim_grades.metrics has briers (win/t3/t5/t10), spearman_pf, mae, prec, dk {mae,bias,corr,spearman}, clv {plays,playsAvgPct,playsPosPct,fieldAvgPct} (clv populates from odds_snapshots — began 07-18, first full row expected week of 07-20). One query shows everything: SELECT series, stage, graded_at, config, metrics, roi FROM sim_grades ORDER BY graded_at;
+
+**OPERATOR WEEKLY RITUAL:** practice sheet upload (Fri) -> odds pastes auto-snapshot (paste freshest + Run once at green flag = closing line) -> post-race: loop PDF -> PIT_BACKFILL_2026.bat -> grade both boards in Grade Center. Everything downstream updates itself.
+
+**REVIEW QUEUE (task numbers = session task list, details in BACKTEST_LOG):** #55 best5 live verification at ~6 graded cup/truck boards — COUNTER: 1/6 (NW trucks R15, strong row: spearman .696, +13.3u on 4 flags, flagged 11-1 winner). pitCrew v1 review rides the same counter (v2 candidates logged: per-series 0.05/0.06/0.08 + SS upside). #52 dominance re-run at ~75 practice-backfill races. #54 ringer borrow 3-way (raw vs +29 vs pairing-first) end of 2026. #48 wreck-excluded pools end of 2026. #45 rookie SS fill. #51 correlated-noise prototype (before next SS). #40 entry-manager replace-driver. #56 label practice groups on split weekends. #63 exhibition guard BEFORE any All-Star loop load. #64 RLS tighten before go-live. #65 oreilly 2022 loop backfill (then pit --year 2022 --series oreilly).
+
+**STANDING OPERATOR CHORES (repeated because still open):** ROTATE THE GITHUB TOKEN (in these docs since 07-15 — long overdue). Check Vercel env vars (REACT_APP_SUPABASE_* — hardcoded fallbacks in src/lib/supabase.js are load-bearing since the 07-17 outage). OneDrive: nascar_data set to always-keep-on-device after the Errno-22 capture crash (v3 aux writes now fail-soft).
+
+**COLLABORATION PROTOCOL (unchanged, it works):** GET fresh before PUT; append-only on both docs; corrections are new entries; verify builds via commit status + minification-surviving string literals; sync local Handoff copies after every push; model changes gated behind backtests (bar examples all through this log); operator judgment goes in dials/overrides (stamped), never silently into code.
+
+This was the 07-15 -> 07-18 marathon: best5 shipped end-to-end (sim, grader, live-verified), cup-leak regression found+fixed, pairing borrow, minor-series recency, DNQ filter, DK + CLV tracking built, pit telemetry pipeline (scraper: operator; data layer: parallel session; signal test + ship: same day, t 7.54), first live grade cashed a flagged 11-1 winner. The docs are the memory. Trust them.
