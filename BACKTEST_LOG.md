@@ -3295,3 +3295,16 @@ BOTH signals are stronger for thin-history drivers (their quality spread is wide
 **Accrual note:** thin band n=417 only; the elevated practice coef (0.177) is worth a re-look when truck/oreilly practice sessions accrue (pair with #52-style re-runs).
 
 **Bell postscript:** with this, every principled path to lifting him has been tested tonight: cup leak (fixed, real bug), borrow translation (pairing-first shipped), track-history shrink target (rejected), adaptive practice weight (rejected). The sim's number stands on evidence; residual disagreement with market consensus is inside-view information -> operator override channel.
+
+
+---
+
+## 2026-07-18 — PRACTICE WEIGHT RE-SWEEP UNDER BEST5: 0.15 RECONFIRMED (operator catch)
+
+**Operator question:** the 0.15 practice weight was closed BEFORE best5 replaced overall_avg as the input — a better signal could justify a bigger weight. Legitimate gap: the best5 promotion tests held weight fixed.
+
+**Design:** walk-forward corr priors (as in tonight's other tests) + best5 percentiles; two-term predictor (1-w)*corrPct + w*b5Pct, w swept 0.10-0.50; per-race Spearman vs finish. Deployed corr:practice 0.35:0.15 = practice share 0.30.
+
+**Results (avg Spearman by practice share):** cup (40 races) flat plateau .15-.35 (~.446-.449, peak .20, deployed .30 -> .447); trucks (24) plateau .20-.35 (~.524-.526, deployed .30 -> .525, at optimum); oreilly (24) peaks at .15 (.609 vs deployed-share .602 — slightly practice-LIGHT preference, consistent with all prior oreilly evidence). All series degrade sharply past .40.
+
+**Verdict:** better input raised the whole curve, did not move the optimum. 0.15 stands for cup+trucks under best5. Oreilly hint (lighter practice) noted but oreilly's sim input is overall_avg anyway — no action. Caveat: two-term proxy (start/track omitted), same design class as the original closure. Weight question CLOSED again, now metric-consistent.
