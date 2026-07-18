@@ -3223,3 +3223,20 @@ Per-session head-to-head v1 vs v0: **W47 / L23** (sign test z ~ 2.9, p ~ 0.004).
 **Shipped (commit 24584c71, bundle verified via __gcBest5 literal):** practiceGrader.js — speed half of the composite ranks best5 (fallback chain b5S -> blS -> 50 for short sessions); group condition correction extended with correctKey('best5','__gcBest5') so A/B sessions correct the ranked copy; STORED metrics stay raw (sim still applies its own correction — no double count). Report card subtitle + Grade tooltip updated to v4 wording (commit 8c27bd7b). Best Lap COLUMN unchanged (still displays raw fastest lap).
 
 **Operator action:** re-upload North Wilkesboro trucks practice (uploaded pre-ship) to regrade under v4. Older stored grades regrade only on re-upload.
+
+
+---
+
+## 2026-07-17 — !! BUG FIX !! CORR POOL CUP LEAK (regression from b2c916e8, 2026-07-08)
+
+**Symptom (operator):** NW trucks post board had Hocevar at 6.8% win (fair +1371) vs market +450/+700, despite P2 start and best5 rank 3 in practice.
+
+**Root cause:** commit b2c916e8 ("Wire crossover borrow into corr rating", 07-08) widened the corr-pool loop fetch to include cup AND changed the base-pool filter to (series ~ own OR series ~ cup). Intended design: cup history enters ONLY via the explicit crossover_borrows table (1 active row: Chase Elliott, forced by operator). Actual behavior since 07-08: raw cup rows at corr-group tracks silently blended into EVERY driver's base pool — rating, avgFin, AND winConv (cup wins counted toward truck win conversion, e.g. Bell).
+
+**Case study (NW trucks, Short & Flat pool):** Hocevar truck-only pool 96.2 (won Richmond '23, 4th NW '23, ratings 116-122) vs cup short-flat 73.7 across 28 rows at 1.3-2.0x recency weights -> blended 78.8 fed to sim (below Honeycutt 83.9). Rockingham NOT in pool (initially suspected, exonerated). Market +700 ~ the pool you get with the #54 borrow offset (+29 on cup rows -> 101.2), i.e. the market was pricing the correctly-translated number. NOTE: raw-cup contamination is NOT a valid borrow — it applies offset 0 (wrong per #54 research) and fires on unforced drivers.
+
+**Fix (4e92f3d6, bundle verified):** baseRows filter back to OWN-SERIES ONLY. Fetch still includes cup (needed for srcRows), explicit borrow path unchanged (srcRating computed from rows by source series, blend per crossover_borrows). Config now stamps poolScope: 'series-only' on every published board (live-verification hook alongside practiceMetric).
+
+**Blast radius:** trucks/oreilly boards published 07-08 -> 07-17 with cup-crossover drivers in field. Cup boards unaffected (filter was a no-op there). Sim_grades from that window: practice-grade side unaffected (grader does not use corr pools' cup rows... grader priors DO use corr-group loop_data via Admin gcPriors fetch — that fetch is series-scoped, verified unaffected). Operator re-ran + republished NW trucks post board same night.
+
+**Open question rolled into #54:** the market-aligned Hocevar number under offset +29 is one more data point that the borrow translation is roughly right for win markets — but Elliott (+29 would say ~12% vs market ~6%) cuts the other way. Re-test on schedule.
