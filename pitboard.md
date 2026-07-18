@@ -1228,3 +1228,9 @@ the same market differently by series/section; keep header regexes loose + keep 
 - Corr pools: current-season age weight 3.0 for trucks/oreilly, 2.0 cup (validated W82/L56 p~.03). ALL age ladders now RELATIVE (were frozen to 2026 — would break in 2027). Config stamps recencyCw.
 - Sim field: entries with no start position (qualifying OR practice-sheet grid) are dropped once >= 20 starts exist. DNQs/no-shows can no longer receive sim placements. No marking needed — null start IS the marker.
 - Operator re-runs + republishes NW trucks board after these (field should drop to 36).
+
+
+## 2026-07-18 — SHIPPED: DK accuracy metrics in Grade Center (77c6b4db)
+
+- Every loop-data grade now stores metrics.dk (n/mae/bias/corr/spearman) — proj_dk vs actual DK from loop rows (same scoring formula both sides). SQL peek: SELECT series, graded_at, metrics->'dk' FROM sim_grades ORDER BY graded_at;
+- Retro: only 2 graded boards exist, both Atlanta SS — bias ~ 0 (good level), corr ~ 0 (wreck lottery). Judge DK accuracy by track type as data accrues.
