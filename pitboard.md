@@ -1241,3 +1241,55 @@ the same market differently by series/section; keep header regexes loose + keep 
 - New table odds_snapshots (operator ran SQL; RLS public read/insert). Sim Center auto-snapshots every distinct odds paste. Grade Center stores metrics.clv (plays/playsAvgPct/playsPosPct/fieldAvgPct/fieldN) using the last pre-race snapshot cluster as the close.
 - HABIT: final odds paste + Run at green flag ~ official close (no publish needed).
 - SQL peek: SELECT series, graded_at, metrics->'clv', metrics->'dk' FROM sim_grades ORDER BY graded_at;
+
+
+## 2026-07-18 — pit_stops DATA LAYER built (NASCAR raw telemetry; loader is Python, runs on operator's machine)
+
+- **NEW TABLE `pit_stops`** (DDL: `pit_stops_schema.sql`, user-run) — raw per-stop NASCAR pit telemetry
+  from cf.nascar.com `cacher/live/series_{s}/{race}/live-pit-data.json` (verified populated 2018+;
+  we ingest 2022+ only per era rules). One row per stop: race_id (FK->races), nascar_race_id, series/
+  year/track_name/race_number (denormalized FROM the races registry, so canonical by construction),
+  car_number (text, matches loop_data), driver_name, nascar_driver_id, **organization** (weekend-feed
+  team_name — CREW KEY = car+organization+season; crews belong to the car, not the driver), crew_chief,
+  manufacturer, pit_box, lap (vehicle lap at entry), leader_lap, **flag_state** (pit_in_flag_status:
+  1=green, 2=yellow, 8=warmup) + flag_state_out + green_flag bool, pit_stop_type, tires_changed +
+  lf/lr/rf/rr, **box_time** (pit_stop_duration), pit_road_time (total_duration), in/out_travel,
+  pit_in/out_race_time, pit_in/out_rank, positions_gained_lost, prev/next_lap_time, created_at.
+  RLS public read + insert/delete (loader needs delete-then-insert; tighten under #83).
+  Unique backstop: (series, year, race_number, car_number, lap, coalesce(pit_in_race_time,-1)).
+- **LOADER `pitboard_pit_backfill.py`** (root; needs network -> runs on the operator's machine, NOT
+  a serverless/Admin.js path — the source is NASCAR's API, not a paste). DRIVEN FROM THE `races`
+  REGISTRY: year>=2022 + exhibition IS NOT TRUE + series in (cup/oreilly/trucks) -> era floor and
+  exhibition exclusion are inherited, race_number is the season R# by construction. Registry row ->
+  NASCAR race id match: race_date +/-1 day first (doubleheader same-day disambiguated by track), then
+  canonical-track positional fallback (EchoPark->Atlanta alias map included). Weekend-feed provides
+  the car->team_name/crew_chief/driver_id/pit_box map + race_type_id guard (!=1 -> skip). Idempotent:
+  DELETE by race_id then INSERT. Usage: `--year 2026` (default) / `--year all` (2022-26) / `--series
+  trucks` / `--race-id N` / `--dry-run`. Prints per-race row counts + join-match rate vs loop_data
+  (car_number match pct + normalized-name match pct, GradeCenter-style normalization incl (P)/(i)
+  suffix stripping) and lists unmatched registry races for manual resolution.
+- **DATA QUIRKS found while probing the source** (all verified live 2026-07-18): (a) NASCAR uses -1
+  (and 0 for prev/next_lap_time) as not-populated sentinels — loader stores NULL, so box-time medians
+  are never poisoned; an in-progress stop's row exists with -1s and gets backfilled by NASCAR within
+  seconds. (b) prev/next_lap_time are uniformly 0 before ~2022 (not needed — we start at 2022 anyway).
+  (c) pre-race/warm-up pit visits appear with flag_state=8 and lap<=2 — kept raw; analysis filters
+  green_flag AND lap>0. (d) pit feed persists for ALL races 2018+ (checked 2018/19/20/21/22/23/24/25/26)
+  — the "live" path is an archive, not a rolling feed. (e) pit_box (stall number) is in the weekend
+  feed — free confounder input for later stop-time analysis (stall position affects in/out travel).
+  (f) the archived feed can contain LITERAL DUPLICATE stop rows (same car/lap/pit_in_race_time —
+  hit live on cup 2026 R2; Daytona R1 was clean). The unique index caught it (23505); loader now
+  dedupes per key before insert, keeping the most-complete twin, and logs the dropped count.
+  (g) COVERAGE GAP, confirmed at the source: NASCAR publishes NO pit feed at venues without
+  pit-road timing loops — 2026: Rockingham (oreilly R8 + trucks R5), Grand Prix of St. Petersburg
+  street course (trucks R3), Lime Rock Park (trucks R14). 403 at the CDN, not a match failure
+  (verified 2026-07-18). Those races legitimately have zero pit_stops rows; expect the same at
+  new/street/small venues in other seasons. NOTE NASCAR's track_name for St. Pete is
+  "Grand Prix of St. Petersburg" (vs canonical "Streets of St. Petersburg") — date matching
+  covers it, but add a TRACK_ALIASES entry if a name-fallback match is ever needed.
+- **SCOPE HELD**: data layer only — nothing wired into the sim, weights, or any model input. Target
+  metric (median green-flag 4-tire box_time per car per season + consistency) is SUPPORTED by the
+  schema but NOT computed. Next: main session runs the pit-crew signal re-test (task #46) against
+  this table + pit_crew_race (pitcrewrank.com, Cup-only) as the cross-check source.
+- Relationship to `pit_crew_race`: complementary, NOT a replacement. pcr = trimmed/z-scored 4-tire
+  summary per car per race (Cup only, their methodology); pit_stops = raw every-stop telemetry, all
+  three series, with flag state + tires + travel splits. Validate one against the other on Cup races.
