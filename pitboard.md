@@ -1293,3 +1293,11 @@ the same market differently by series/section; keep header regexes loose + keep 
 - Relationship to `pit_crew_race`: complementary, NOT a replacement. pcr = trimmed/z-scored 4-tire
   summary per car per race (Cup only, their methodology); pit_stops = raw every-stop telemetry, all
   three series, with flag state + tires + travel splits. Validate one against the other on Cup races.
+
+
+## 2026-07-18 — pit_stops FULL HISTORY loaded (2022-2026) + two wrong-event feeds purged
+
+- Operator ran the loader with --year all: **369 races, 74,189 stops** loaded; accounting closes perfectly (369 loaded + 21 no-feed venues = all 390 registry races in scope; 0 unmatched). Coverage: cup 36/35/36/36/20 (2022-26), oreilly 32/32/30/20 (2023-26), trucks 20/18/20/22/12.
+- **NEW SOURCE QUIRK (h): the archived feed can contain a DIFFERENT EVENT'S stops under a race id.** trucks 2022 R15 Mid-Ohio carried Cup drivers' stops; oreilly 2023 R13 Portland carried the ARCA support race. Pattern: standalone weekends (no Cup present) at one-off venues. DETECTION: the loader's name-join check (0% names vs loop_data despite ~56% coincidental car overlap). REMEDY: both races' rows DELETED (123 + 143); treat like no-feed venues. Any future load reporting name-join near 0% = wrong event, purge it.
+- **REGISTRY GAP found during accounting: oreilly (Xfinity) 2022 season is entirely absent from the races table** — cup 2022 (36) and trucks 2022 (21) exist, oreilly starts 2023. Pre-existing loop-data-era gap, now task #65: load 2022 oreilly loop PDFs, then pit backfill --year 2022 --series oreilly.
+- Usable pit corpus after purge: **367 races, 73,923 stops** across 4+ seasons, 3 series. Task #46 (pit-crew signal test) is UNBLOCKED.
