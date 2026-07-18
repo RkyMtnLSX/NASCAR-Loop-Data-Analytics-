@@ -1308,3 +1308,5 @@ the same market differently by series/section; keep header regexes loose + keep 
 - Sim now fetches pit_stops (current season, series, 4-tire, timed) at load; median box_time per car (>= 5 stops) -> pitScores (lower better) -> 0.06 weight in ALL profiles. 'Pit' column in breakdown. Config stamps pitCrew: 'v1-0.06'.
 - Evidence: crew signal + and significant in all 3 series and all 4 track groups, pooled t 7.54 over 9,813 driver-races, leak-free walk-forward, residual to corr prior. Weight from sweep plateau (0.15-0.25 share) shrunk to 0.06.
 - OPERATOR WEEKLY: run the pit .bat after each race (with the loop PDF) or the crew medians stop updating (fail-open to neutral).
+
+- ADDENDUM (9ab31870): Pit Crew stepper added to the Sim Admin weights row — the term was active via DEFAULT_WEIGHTS but the hand-built stepper list lacked a control. GOTCHA for future terms: adding a weight to the profiles does NOT surface it in the admin UI — the stepper array (~line with 'Corr. Track History') must be updated separately, plus the breakdown wkey arrays (two sites).
