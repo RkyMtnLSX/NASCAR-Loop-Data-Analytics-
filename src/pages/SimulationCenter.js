@@ -1416,6 +1416,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
                 { key: 'longRunPace',  label: 'Practice Pace (All Laps)' },
                 { key: 'startPos',     label: 'Starting Position' },
               { key: 'trackHistory', label: 'Track History' },
+                { key: 'pitCrew',      label: 'Pit Crew' },
               ].map(({ key, label }) => (
                 <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: 5, minWidth: 130 }}>
                   <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{label}</div>
