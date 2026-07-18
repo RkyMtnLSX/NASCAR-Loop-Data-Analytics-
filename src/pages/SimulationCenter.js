@@ -10,6 +10,7 @@ const SERIES_TABS = [
 ]
 
 export const DEFAULT_WEIGHTS = {
+  pitCrew:      0.06, // SHIPPED 2026-07-18: task #46 passed (crew t~7.5 pooled, + in all series/track groups; weight from sweep plateau shrunk ~30% — BACKTEST_LOG)
   corrHistory:  0.35,
   longRunPace:  0.15,
   shortRunPace: 0.00,
@@ -24,6 +25,7 @@ export const DEFAULT_WEIGHTS = {
 // (Hemric P32->2nd, Grala P16->3rd at San Diego 2026). raceCraft (quality pass %) added:
 // captures meaningful passing in traffic, correlates with road/street course survival.
 export const ROAD_COURSE_WEIGHTS = {
+  pitCrew:      0.06, // SHIPPED 2026-07-18: task #46 passed (crew t~7.5 pooled, + in all series/track groups; weight from sweep plateau shrunk ~30% — BACKTEST_LOG)
   corrHistory:  0.60,  // race craft 0.25 folded here 2026-07-07 (Cup + 8-race truck road sweep: raceCraft redundant w/ rating)
   longRunPace:  0.25,  // CONSOLIDATED 2026-07-12: absorbs shortRun+falloff (practice total unchanged at 0.25)  // fewer laps at road courses, still useful
   shortRunPace: 0.00,  // folded out - redundant w/ LRP (validated on cup ovals 2026-07-02; truck road c7980361)  // near-redundant with LRP when stints are short
@@ -39,7 +41,8 @@ const ROAD_COURSE_TRACKS = [
   'coronado', 'mexico', 'lime rock',
 ]
 
-export const SUPERSPEEDWAY_WEIGHTS = {   // Daytona / Talladega / Atlanta - pack racing (no practice; start near-noise)
+export const SUPERSPEEDWAY_WEIGHTS = {
+  pitCrew:      0.06, // SHIPPED 2026-07-18: task #46 passed (crew t~7.5 pooled, + in all series/track groups; weight from sweep plateau shrunk ~30% — BACKTEST_LOG)   // Daytona / Talladega / Atlanta - pack racing (no practice; start near-noise)
   corrHistory:  0.55,  // SS-group avg rating - main pack skill signal (+0.05 from cut raceCraft)
   longRunPace:  0.00,  // practice useless at pack tracks (and absent)
   shortRunPace: 0.00,
@@ -54,6 +57,7 @@ export const SUPERSPEEDWAY_WEIGHTS = {   // Daytona / Talladega / Atlanta - pack
 // drivers whose avg driver_rating is inflated by consistency. Leak-free O'Reilly SS backtest:
 // winner-market hit rate 16% -> 42% vs rating-only; matches FanDuel Hill +260 / Love +500.
 export const ONEILLY_SUPERSPEEDWAY_WEIGHTS = {
+  pitCrew:      0.06, // SHIPPED 2026-07-18: task #46 passed (crew t~7.5 pooled, + in all series/track groups; weight from sweep plateau shrunk ~30% — BACKTEST_LOG)
   corrHistory:   0.45,
   longRunPace:   0.00,
   shortRunPace:  0.00,
@@ -64,7 +68,8 @@ export const ONEILLY_SUPERSPEEDWAY_WEIGHTS = {
   winConversion: 0.20,
 }
 
-export const TRUCK_ROAD_WEIGHTS = {   // Trucks road courses (2026-07-07, 9-race sweep): startPos leans higher than Cup, raceCraft 0
+export const TRUCK_ROAD_WEIGHTS = {
+  pitCrew:      0.06, // SHIPPED 2026-07-18: task #46 passed (crew t~7.5 pooled, + in all series/track groups; weight from sweep plateau shrunk ~30% — BACKTEST_LOG)   // Trucks road courses (2026-07-07, 9-race sweep): startPos leans higher than Cup, raceCraft 0
   corrHistory:  0.55,
   longRunPace:  0.25,
   shortRunPace: 0.00,
@@ -292,6 +297,7 @@ function buildSpeedScores(drivers, weights) {
   const trackRatingScores = normalizeArr(drivers.map(d => d.trackAvgRating), false) // higher = better
   const trackFinishScores = normalizeArr(drivers.map(d => d.trackAvgFinish), true)
   const winConvScores     = normalizeArr(drivers.map(d => d.corrWinConv),    false)  // lower = better
+  const pitScores = normalizeArr(drivers.map(d => d.pitCrewTime), true) // lower box time = better crew (task #46)
 
   // EQUIPMENT PRIOR (task 118): map equipment ratings onto the SAME min-max axis as corrAvgRating
   const __crVals = drivers.map(d => d.corrAvgRating).filter(v => v != null && !isNaN(v))
@@ -305,6 +311,7 @@ function buildSpeedScores(drivers, weights) {
     corrHistory:  weights.corrHistory  / wTotal,
     longRunPace:  weights.longRunPace  / wTotal,
     shortRunPace: weights.shortRunPace / wTotal,
+    pitCrew:      (weights.pitCrew || 0) / wTotal,
     startPos:     weights.startPos     / wTotal,
     tireFalloff:  weights.tireFalloff  / wTotal,
     raceCraft:    (weights.raceCraft    || 0) / wTotal,
@@ -353,6 +360,7 @@ function buildSpeedScores(drivers, weights) {
     const fl  = fallScores[i]  ?? 50
     const rc  = raceCraftScores[i] ?? 50
     const wc  = winConvScores[i]   ?? 50
+    const pit = pitScores[i] ?? 50
 
     const speedScore =
       c   * w.corrHistory  +
@@ -362,7 +370,8 @@ function buildSpeedScores(drivers, weights) {
       fl  * w.tireFalloff +
     rc  * w.raceCraft  +
       t   * w.trackHistory +
-      wc  * w.winConversion
+      wc  * w.winConversion +
+      pit * w.pitCrew
 
     return {
       ...d,
@@ -375,6 +384,7 @@ function buildSpeedScores(drivers, weights) {
         fall: Math.round(fl),
         rc:   Math.round(rc),
         win:  Math.round(wc),
+        pit:  Math.round(pit),
         track: Math.round(t),
       },
     }
@@ -738,6 +748,21 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
           loopRows = ld || []
         }
 
+        // PIT CREW (2026-07-18, task #46 PASSED): current-season median 4-tire box time per car.
+        // Requires >= 5 timed stops; nulls fall to neutral 50. Data: pit_stops (raw NASCAR
+        // telemetry via operator's loader). Raw seconds — never compared across series.
+        let __crewMap = {}
+        try {
+          const __cyy = cfg.race_year || new Date().getFullYear()
+          const { data: __pits } = await supabase.from('pit_stops')
+            .select('car_number, box_time')
+            .eq('series', s).eq('year', __cyy).eq('tires_changed', 4)
+            .not('box_time', 'is', null).gt('lap', 0).limit(20000)
+          const __byCar = {}
+          ;(__pits || []).forEach(p => { const c = String(p.car_number || '').trim(); if (c && p.box_time != null) (__byCar[c] = __byCar[c] || []).push(parseFloat(p.box_time)) })
+          Object.keys(__byCar).forEach(c => { const a = __byCar[c].sort((x, y) => x - y); if (a.length >= 5) __crewMap[c] = a.length % 2 ? a[(a.length - 1) / 2] : (a[a.length / 2 - 1] + a[a.length / 2]) / 2 })
+        } catch (e) {}
+
         // Specific track history
         let trackRows = []
         const { data: trData } = await __noEx(supabase
@@ -879,6 +904,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
               qualTime:      qual ? parseFloat(qual.lap_time)       || null : null,
               lrpTime:       prac ? ((series !== 'oreilly' && parseFloat(prac.best5)) || parseFloat(prac.overall_avg) || null) : null, // SHIPPED 2026-07-16: best5 for cup+trucks (log 4-1-2 + regression); oreilly keeps overall_avg per its own evidence; falls back when best5 null
               practiceGroup: prac ? (prac.practice_group || null) : null,
+              pitCrewTime:   __crewMap[String(e.car_number || '').trim()] || null, // task #46
               srpTime:       prac ? parseFloat(prac.late_run_avg)   || null : null,
               trendSlope:    prac ? parseFloat(prac.trend_slope)    || null : null,
               practiceScore: prac ? parseFloat(prac.practice_score) || null : null,
@@ -1073,7 +1099,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
       race_year:  config.race_year || new Date().getFullYear(),
       race_number: raceNumMap[series] ? parseInt(raceNumMap[series]) : null,
       stage: simStage,
-      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'pairing-first', recencyCw: (series === 'cup' ? 2 : 3), gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
+      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'pairing-first', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
       results: simResults.map(d => ({
         driver_name:  d.name,
         car_number:   d.carNumber,
@@ -1551,6 +1577,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
                         { key: null, label: 'Start', sortable: false, title: 'Starting pos score', wkey: 'startPos' },
                         { key: null, label: 'Fall',  sortable: false, title: 'Tire falloff score', wkey: 'tireFalloff' },
                         { key: null, label: 'RC',    sortable: false, title: 'Race craft score (avg quality pass %)', wkey: 'raceCraft' },
+                        { key: null, label: 'Pit', sortable: false, title: 'Pit crew score (season median 4-tire box time)', wkey: 'pitCrew' },
                         { key: null, label: 'Track', sortable: false, title: 'Specific track history score', wkey: 'trackHistory' },
                         { key: 'speedScore', label: 'Speed', title: 'Composite speed score' },
                       ].filter(c => !c.wkey || (weights[c.wkey] || 0) > 0) : []),
@@ -1642,7 +1669,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
 
                         {showBreakdown && (
                           <>
-                            {[['corr','corrHistory'],['lrp','longRunPace'],['srp','shortRunPace'],['sp','startPos'],['fall','tireFalloff'],['rc','raceCraft'],['track','trackHistory']].filter(pp => (weights[pp[1]] || 0) > 0).map(pp => pp[0]).map(k => (
+                            {[['corr','corrHistory'],['lrp','longRunPace'],['srp','shortRunPace'],['sp','startPos'],['fall','tireFalloff'],['rc','raceCraft'],['pit','pitCrew'],['track','trackHistory']].filter(pp => (weights[pp[1]] || 0) > 0).map(pp => pp[0]).map(k => (
                               <td key={k} style={{ padding: '7px 10px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                                 {row.scores?.[k] != null ? row.scores[k] : '--'}
                               </td>
