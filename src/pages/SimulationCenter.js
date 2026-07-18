@@ -899,14 +899,14 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
           })
           .filter(Boolean)
 
-        // DNQ FILTER (2026-07-18): once a real lineup exists (>= 20 qualifiers), entry_list drivers
-        // with no qualifying row did not make the race (e.g. Huffman/Hill DNQ, NW trucks) — drop them
-        // from the sim field. Pre-qualifying sims (no lineup yet) keep every entry.
-        const __hasQual = d => { const q = qualMap.get(normalizeName(d.name)); return !!(q && q.qualifying_position) }
-        if (drivers.filter(__hasQual).length >= 20) {
-          for (let __i = drivers.length - 1; __i >= 0; __i--) if (!__hasQual(drivers[__i])) drivers.splice(__i, 1)
+        // DNQ FILTER (2026-07-18 v2): once a real lineup exists (>= 20 drivers with a start position
+        // from qualifying_results OR the practice sheet), entries with NO start position are not in
+        // the race (DNQ or no-show: Huffman/Hill/Schafer, NW trucks) — drop them from the sim field.
+        // Pre-lineup sims (few/no starts known) keep every entry.
+        const __hasStart = d => d.startPos != null && !isNaN(parseFloat(d.startPos))
+        if (drivers.filter(__hasStart).length >= 20) {
+          for (let __i = drivers.length - 1; __i >= 0; __i--) if (!__hasStart(drivers[__i])) drivers.splice(__i, 1)
         }
-
 
         // Lineup-state badge: what does startPos actually use for this run?
         const __lnQ = drivers.filter(d => { const q = qualMap.get(normalizeName(d.name)); return q && q.qualifying_position }).length
