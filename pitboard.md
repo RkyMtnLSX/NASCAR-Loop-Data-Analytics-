@@ -1185,3 +1185,10 @@ the same market differently by series/section; keep header regexes loose + keep 
 - PracticeReportCard.js (8c27bd7b): subtitle + Grade tooltip now say Best 5 Laps / v4. Best Lap COLUMN still shows the raw single fastest lap (display only).
 - GOTCHA: grades stored before this ship (incl. the 2026 North Wilkesboro trucks upload made just before it) are v3 grades — they only regrade on RE-UPLOAD. Operator is re-uploading NW trucks.
 - Rejected for the formula (tested): consistency (zero signal, hurts as 3rd component), best_stint (dominated), 3-way blends (dilution). long_run is promising but only 4 sessions store it — revisit at ~20+.
+
+
+## 2026-07-17 (night) — BUG FIX: corr-pool cup leak (4e92f3d6)
+
+- Since b2c916e8 (07-08), cup loop rows at corr-group tracks silently entered EVERY driver's base pool (rating/avgFin/winConv) in trucks + oreilly sims. Intended design (and operator's mental model): cup enters ONLY via crossover_borrows (currently: Chase Elliott, weight 1, forced).
+- Fixed: baseRows ~ own-series rows only. Explicit borrow path unchanged. Config stamps poolScope: 'series-only' on published boards.
+- GOTCHA for graders/reviewers: trucks/oreilly boards published 07-08 -> 07-17 carry contaminated pools where cup-crossover drivers raced (Hocevar NW case: pool 78.8 vs true 96.2). Treat their grades accordingly in #55-style reviews (check config.poolScope — absent means pre-fix).
