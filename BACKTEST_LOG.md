@@ -3365,3 +3365,33 @@ Published post board (16:10 UTC; stamps: best5 / series-only / pairing-first / c
 **Interpretation doctrine:** CLV converges far faster than ROI (~dozens of races, not hundreds). playsAvgPct persistently > 0 -> published edges beat the close -> real edge even through result variance. playsAvgPct ~ <= 0 with positive fieldAvg -> our flags are the market's steam, not ahead of it. OPERATOR HABIT: paste freshest odds + Run one final time at the green flag (no publish needed) — that snapshot is the official close.
 
 **Coverage note:** snapshots begin 2026-07-18; NW trucks R15 will have a thin closing record (post-ship pastes only). First fully-covered weekend is next week.
+
+
+---
+
+## 2026-07-18 — !! SHIPPED !! PIT CREW TERM (task #46 PASSED — first new validated model input since best5)
+
+**Six years of waiting on pitcrewranks ends here.** Test run same-day on the operator's fresh raw-telemetry corpus (pit_stops: 367 usable races, 73,923 stops, 2022-2026, all 3 series).
+
+**Design (leak-free walk-forward):** crew metric = median 4-tire box_time per CAR per SEASON from strictly prior races (>= 5 timed stops; delete-then-insert corpus; raw seconds, never pooled across series). Within-race percentile vs finish percentile, residual to the walk-forward corr prior. 9,813 driver-races.
+
+**Signal test (OLS finishPct ~ corrPct + crewPct):**
+
+| cut | n | crew coef | t | corr coef | t |
+|---|---|---|---|---|---|
+| cup | 4,982 | 0.068 | 3.93 | 0.356 | 20.7 |
+| trucks | 1,758 | 0.103 | 3.85 | 0.440 | 16.4 |
+| oreilly | 3,073 | 0.142 | 5.44 | 0.391 | 15.0 |
+| Short-Flat | 2,728 | 0.052 | 2.28 | 0.515 | 22.4 |
+| Intermediate | 4,430 | 0.107 | 5.27 | 0.394 | 19.4 |
+| Superspeedway | 1,085 | **0.111** | 2.80 | 0.068 | 1.7 |
+| Road | 1,570 | 0.092 | 3.41 | 0.383 | 14.2 |
+| POOLED | 9,813 | 0.095 | **7.54** | 0.386 | 30.6 |
+
+Positive and significant EVERYWHERE. Headline: at superspeedways the crew term is STRONGER than driver history — pit road is a skill expression that survives the plate lottery (dovetails with the ringer-floor and SS-noise findings).
+
+**Weight sweep (per-race Spearman, crew share of the corr+crew pair):** plateau at 0.15-0.25 in all three series (cup best 0.20, trucks 0.15, oreilly 0.25); head-to-head share-0.2 vs 0: W171/L136 (p ~ .046). Fitted OLS ratio 0.095/0.386 ~ 0.25 agrees. Implied sim weight ~ 0.085; SHIPPED AT 0.06 (deliberate ~30% first-season shrink, winConv precedent).
+
+**Shipped (8bab6b69, bundle verified):** SimulationCenter — pitCrew: 0.06 in ALL FIVE weight profiles (signal significant in every group; renormalized via wTotal so ratios of other terms unchanged); sim-time fetch computes current-season median 4-tire box_time per car from pit_stops (>= 5 stops, else neutral 50); new 'Pit' breakdown column (auto-hides if weight zeroed); config stamps pitCrew: 'v1-0.06'. Crew keyed by CAR — ringers correctly inherit the truck team's crew.
+
+**Review hooks:** boards stamp pitCrew version; #55-style live check applies. SS weight upside (their 0.111 vs flat 0.06) is a deliberate conservatism — revisit with the ringer/SS items end of 2026. NOTE pit_stops must stay loaded weekly (operator runs the .bat post-race) or current-season medians go stale — falls back to neutral harmlessly if not.
