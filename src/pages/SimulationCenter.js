@@ -712,6 +712,22 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
           ;(__brws || []).forEach(b => { __borrowMap[normalizeName((b.driver_name || '').trim())] = { src: b.source_series, w: Math.max(0, Math.min(1, parseFloat(b.blend_weight))) } })
         } catch (e) {}
         const __borrowSeries = [...new Set(Object.values(__borrowMap).map(b => b.src))]
+        // PAIRING-FIRST BORROW (2026-07-17, operator-directed): a ringer's current-season rows in THIS
+        // series (driver-x-equipment measured jointly, e.g. Bell in the 62) beat translated cup ratings.
+        // Requires >= 2 current-season rows; otherwise the raw-cup srcRows fallback below applies.
+        let __pairMap = {}
+        try {
+          if (Object.keys(__borrowMap).length) {
+            const __py = cfg.race_year || new Date().getFullYear()
+            const { data: __prs } = await supabase.from('loop_data').select('driver_name, driver_rating').eq('series', s).eq('year', __py)
+            ;(__prs || []).forEach(r => {
+              const __pn = normalizeName((r.driver_name || '').trim())
+              if (!__borrowMap[__pn]) return
+              const __rt = parseFloat(r.driver_rating)
+              if (!isNaN(__rt)) (__pairMap[__pn] = __pairMap[__pn] || []).push(__rt)
+            })
+          }
+        } catch (e) {}
         let loopRows = []
         if (corrNames.length) {
           const { data: ld } = await __noEx(supabase
@@ -771,7 +787,11 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
             const rRows = baseRows.filter(r => r.rating !== null)
             let avgRating = rRows.length > 0 ? rRows.reduce((a, r) => a + r.rating * yrWt(r.yr), 0) / wsum(rRows) : null
             const bw = __borrowMap[name]
-            if (bw) {
+            if (bw && (__pairMap[name] || []).length >= 2) {
+              const __pp = __pairMap[name]
+              const pairRating = __pp.reduce((a, v) => a + v, 0) / __pp.length
+              avgRating = (avgRating == null) ? pairRating : (1 - bw.w) * avgRating + bw.w * pairRating
+            } else if (bw) {
               const srcRows = rows.filter(r => r.sr === bw.src && r.rating !== null)
               if (srcRows.length) {
                 const srcRating = srcRows.reduce((a, r) => a + r.rating * yrWt(r.yr), 0) / wsum(srcRows)
@@ -1015,7 +1035,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
       race_year:  config.race_year || new Date().getFullYear(),
       race_number: raceNumMap[series] ? parseInt(raceNumMap[series]) : null,
       stage: simStage,
-      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
+      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'pairing-first', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
       results: simResults.map(d => ({
         driver_name:  d.name,
         car_number:   d.carNumber,
