@@ -3192,3 +3192,34 @@ revert ~ remove the __groupConditionCorrect(drivers) call in SimulationCenter (o
 LAMBDA RE-CHECK~ at ~15 labeled sessions total, re-run the refined-correction validation (design in the
 2026-07-16 entries~ fit metric ~ prior corr rating within session, group median residual, grade Spearman
 + composite bars). If lambda 1 no longer optimal, adjust in __groupConditionCorrect.
+
+
+---
+
+## 2026-07-17 — !! SHIPPED !! GRADE COMPOSITE SPEED HALF: bestLap -> best5 (ALL THREE SERIES)
+
+**Question (operator):** sim now uses best5 — should the report card grade off best5 too? And is best5 better than overall_avg? Anything else worth adding to the grade formula?
+
+**Design:** 70 labeled sessions (23 cup / 23 oreilly / 24 trucks; every practice session with a completed race and >=15 drivers matched to finish). best5 computed from practice_laps (mean of 5 fastest laps, all laps considered) for the 96 sessions predating the best5 column. Metric = per-session Spearman(grade order, race finish order), averaged by series. Stored avg_pace/best_lap/overall_avg used as-is (raw, matching what the grader ranks pre-correction).
+
+**Composites (avg Spearman vs finish):**
+
+| variant | cup | oreilly | trucks |
+|---|---|---|---|
+| v0 CURRENT: avgPace50/bestLap50 | 0.320 | 0.492 | 0.482 |
+| v1 SHIPPED: avgPace50/best5-50 | **0.338** | **0.522** | **0.491** |
+| v2 best5-50/overallAvg50 | 0.335 | 0.518 | 0.502 |
+| v4 ap+b5+oa thirds | 0.321 | 0.512 | 0.498 |
+| v5 ap+b5+consistency thirds | 0.283 | 0.455 | 0.423 |
+
+Per-session head-to-head v1 vs v0: **W47 / L23** (sign test z ~ 2.9, p ~ 0.004). v2 is a statistical tie with v1 (W50/L20 vs v0) — not enough to justify dropping the avgPace component; one-metric swap kept.
+
+**Singles (avg Spearman):** best5 is the strongest single practice metric: cup .332 / oreilly .508 / trucks .484, beating bestLap everywhere (.295/.454/.467) and overall_avg in cup+oreilly (.280/.476; trucks tie at .492). Flyer-lap noise is the mechanism: best5 is the same speed signal with 5x the laps.
+
+**Rejected candidates:** consistency (lap stdev) has ZERO standalone signal (-0.007/.004/.055) and actively hurts as a third component (W16/L54) — validates its earlier removal from the display. best_stint dominated by best5 everywhere. Three-way blends dilute (b5 and oa overlap). long_run promising (0.405 with n=4 cup sessions) but far too thin — REVISIT when ~20+ sessions store it.
+
+**Doctrine note:** oreilly IMPROVES under best5 for GRADING even though the sim kept overall_avg there. No conflict: sim adoption was judged on win-market ROI, grading on finish correlation — different objectives, different winners. Grade uses best5 in ALL THREE series.
+
+**Shipped (commit 24584c71, bundle verified via __gcBest5 literal):** practiceGrader.js — speed half of the composite ranks best5 (fallback chain b5S -> blS -> 50 for short sessions); group condition correction extended with correctKey('best5','__gcBest5') so A/B sessions correct the ranked copy; STORED metrics stay raw (sim still applies its own correction — no double count). Report card subtitle + Grade tooltip updated to v4 wording (commit 8c27bd7b). Best Lap COLUMN unchanged (still displays raw fastest lap).
+
+**Operator action:** re-upload North Wilkesboro trucks practice (uploaded pre-ship) to regrade under v4. Older stored grades regrade only on re-upload.
