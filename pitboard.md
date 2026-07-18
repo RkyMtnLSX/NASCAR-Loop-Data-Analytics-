@@ -1199,3 +1199,9 @@ the same market differently by series/section; keep header regexes loose + keep 
 - crossover_borrows path only: forced-borrow drivers with >= 2 current-season own-series loop rows use the mean rating of THOSE rows as srcRating (Bell: 109.7 from 4 races in the 62) instead of raw untranslated cup. No pairing rows -> old raw-cup fallback (Elliott). Config stamps borrowMode: 'pairing-first'.
 - NOT backtest-validated; operator-directed. #54 (end 2026) now compares: raw cup vs +29 offset vs pairing-first.
 - Operator re-ran + republished NW trucks board after this ship.
+
+
+## 2026-07-18 — GOTCHA: do NOT load exhibition (All-Star) loop data yet (task #63)
+
+- Sim corr-pool + track-history fetches select loop_data by track_name/series WITHOUT checking races.exhibition. Exhibition races have ~20-car fields -> field-relative metrics (rating, pct top15, avg position) are inflated/incomparable and would leak into sim pools.
+- Fastest Laps already filters exhibitions; sim fetches do not. Add the guard BEFORE any All-Star loop PDF is loaded. Until then: exhibitions stay out of the DB entirely (current state — e.g. Bell's 2025 NW All-Star win is deliberately absent; it informed an operator eq_override instead).
