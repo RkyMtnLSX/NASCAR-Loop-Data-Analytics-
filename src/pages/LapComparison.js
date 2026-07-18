@@ -468,7 +468,7 @@ CREATE INDEX ON practice_laps (series, year, track_name, session_number);`}</pre
                       <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: '0.92rem' }}>
                         <thead>
                           <tr>
-                            {['Driver','Group','Start','Laps','Best','Avg','5 Lap Avg','10 Lap Avg','15 Lap Avg'].map(h => (
+                            {['Driver','Group','Start','Laps','Best','Overall Avg','5 Lap Avg','10 Lap Avg','15 Lap Avg'].map(h => (
                               <th key={h} style={{ padding: '6px 12px', textAlign: h === 'Driver' ? 'left' : 'right', color: 'var(--text-secondary)', fontWeight: 600, borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>{h}</th>
                             ))}
                           </tr>
