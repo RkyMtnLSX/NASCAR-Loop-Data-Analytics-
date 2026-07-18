@@ -1221,3 +1221,10 @@ the same market differently by series/section; keep header regexes loose + keep 
 ## 2026-07-18 — UI: Comparison tool adds 5/10/15 lap averages (2245b026)
 
 - Three new columns right of Avg: best CONSECUTIVE 5/10/15-lap averages (NASCAR practice-sheet convention). bestNAvg splits laps into runs on lap-number gaps (pit/filtered laps break runs), sliding-window best within runs, '--' when no run is long enough. NOTE: intentionally different from the sim's best5 (5 FASTEST laps, any order).
+
+
+## 2026-07-18 — SHIPPED: minor-series recency cw3 (042a4dd4) + DNQ start-position filter (a4cab1f0)
+
+- Corr pools: current-season age weight 3.0 for trucks/oreilly, 2.0 cup (validated W82/L56 p~.03). ALL age ladders now RELATIVE (were frozen to 2026 — would break in 2027). Config stamps recencyCw.
+- Sim field: entries with no start position (qualifying OR practice-sheet grid) are dropped once >= 20 starts exist. DNQs/no-shows can no longer receive sim placements. No marking needed — null start IS the marker.
+- Operator re-runs + republishes NW trucks board after these (field should drop to 36).
