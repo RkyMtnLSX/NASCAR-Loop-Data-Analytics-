@@ -3395,3 +3395,18 @@ Positive and significant EVERYWHERE. Headline: at superspeedways the crew term i
 **Shipped (8bab6b69, bundle verified):** SimulationCenter — pitCrew: 0.06 in ALL FIVE weight profiles (signal significant in every group; renormalized via wTotal so ratios of other terms unchanged); sim-time fetch computes current-season median 4-tire box_time per car from pit_stops (>= 5 stops, else neutral 50); new 'Pit' breakdown column (auto-hides if weight zeroed); config stamps pitCrew: 'v1-0.06'. Crew keyed by CAR — ringers correctly inherit the truck team's crew.
 
 **Review hooks:** boards stamp pitCrew version; #55-style live check applies. SS weight upside (their 0.111 vs flat 0.06) is a deliberate conservatism — revisit with the ringer/SS items end of 2026. NOTE pit_stops must stay loaded weekly (operator runs the .bat post-race) or current-season medians go stale — falls back to neutral harmlessly if not.
+
+
+---
+
+## 2026-07-18 — FIRST LIVE GRADE OF THE NEW-MODEL ERA: NW trucks R15 (winner: Chandler Smith — flagged and CASHED)
+
+**#55 counter starts: graded board 1 of ~6.** The stamp chain works live — the post grade carries practiceMetric best5 / poolScope series-only / borrowMode pairing-first / recencyCw 3 (pit crew shipped after this board published; first pit-stamped board is next).
+
+**Pre (Wed, pre-overhaul) vs Post (race-day, all of today's ships):** spearman_pf .608 -> .696, projFin MAE 7.44 -> 6.24, win Brier .0256 -> .0254, t3 .0721 -> .0681, t10 .1539 -> .1470 (t5 only pre-favoring cell .1114 vs .1172). Every structural change shipped today made the same board better against the same race.
+
+**ROI — the discipline story:** pre board flagged 24 plays into soft midweek prices: -19.75u (-82%). Post board, against sharp post-quali prices, flagged FOUR: +13.3u (+332%), anchored by Chandler Smith WIN at book +1200 — the board's largest stated disagreement vs both the market (~7%) and the competitor MC (3.0% w/ inflated DNF; our 10.3% via the track-history term: he won NW 2025). Operator beat the board's price and got +1400. One race proves nothing; a flagged 11-1 winner is still a hell of a first row.
+
+**DK accuracy, first short-track reading:** corr .536 / spearman .512 / MAE 15.0 / bias +0.31 (n35). Confirms the Atlanta near-zero corr was SS variance, not model failure — on a short track the DK projections rank the field properly with near-perfect level calibration. Competitor's missing fast-lap engine remains a standing DFS edge.
+
+**CLV: absent this race (expected)** — snapshots began mid-afternoon; first full CLV row accrues next weekend once the paste-Run-at-green habit is in effect.
