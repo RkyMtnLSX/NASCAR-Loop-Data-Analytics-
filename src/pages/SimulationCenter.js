@@ -994,6 +994,33 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
     }
   }
 
+  // ODDS SNAPSHOTS (2026-07-18): every distinct odds paste is captured to odds_snapshots — the last
+  // one before the race IS the closing line (operator re-sims up to green flag). Grade Center computes
+  // CLV from published-board odds vs the final snapshot. Debounced 4s, deduped by content hash.
+  const __snapHash = React.useRef('')
+  useEffect(() => {
+    if (!rawDrivers.length || !config) return
+    const txts = [oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt]
+    if (!txts.some(x => (x || '').trim())) return
+    const h = series + '|' + txts.map(x => (x || '').length + ':' + (x || '').slice(0, 60)).join('|')
+    if (h === __snapHash.current) return
+    const tmr = setTimeout(async () => {
+      try {
+        const mvSnap = __marketValue(oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt, rawDrivers)
+        const rows = []
+        Object.keys(mvSnap || {}).forEach(nm => {
+          ;['win', 't3', 't5', 't10'].forEach(mk => {
+            const m = mvSnap[nm] && mvSnap[nm][mk]
+            if (!m) return
+            ;['dk', 'fd', 'hr'].forEach(bk => { if (m[bk] != null) rows.push({ series: series, track_name: config.track_name, race_year: config.race_year || new Date().getFullYear(), race_number: raceNumMap[series] ? parseInt(raceNumMap[series]) : null, driver_name: nm, market: mk, book: bk, odds: m[bk] }) })
+          })
+        })
+        if (rows.length >= 10) { await supabase.from('odds_snapshots').insert(rows); __snapHash.current = h }
+      } catch (e) {}
+    }, 4000)
+    return () => clearTimeout(tmr)
+  }, [oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt, rawDrivers, series, config, raceNumMap]) // eslint-disable-line
+
   const handleRun = () => {
     setRunning(true)
     setSimResults(null)
