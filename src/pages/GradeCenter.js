@@ -255,6 +255,40 @@ export default function GradeCenter() {
     if (Object.keys(actualMap).length < 3) { setPrev(null); setMsg('Could not match loop-data drivers to the published sim.'); return }
     const __preOwned2 = gradeStage === 'post' ? await __preOwnedFlags(series, row) : null
     const g = __gradeRace(row.results, actualMap, __preOwned2, dkActMap)
+    // CLV (2026-07-18): closing line = last odds snapshot cluster for this race; CLV compares the
+    // odds stamped on the published board (bettable at publish) vs the close, same book per play.
+    try {
+      let __sq = supabase.from('odds_snapshots').select('driver_name, market, book, odds, captured_at')
+        .eq('series', series).eq('track_name', row.track_name).eq('race_year', row.race_year)
+      if (row.race_number != null) __sq = __sq.eq('race_number', row.race_number)
+      const { data: __snaps } = await __sq.order('captured_at', { ascending: false }).limit(2000)
+      if (__snaps && __snaps.length) {
+        const __cut = new Date(new Date(__snaps[0].captured_at).getTime() - 10 * 60 * 1000)
+        const __close = {}
+        __snaps.filter(s2 => new Date(s2.captured_at) >= __cut).forEach(s2 => {
+          const k = nrm(s2.driver_name) + '|' + s2.market + '|' + s2.book
+          if (!(k in __close)) __close[k] = s2.odds
+        })
+        const __dec = a => a > 0 ? a / 100 + 1 : 100 / Math.abs(a) + 1
+        const __plays = [], __field = []
+        row.results.forEach(d => {
+          const mvv = d.mv || {}
+          ;['win', 't3', 't5', 't10'].forEach(mk => {
+            const m = mvv[mk]
+            if (!m || !m.bb || m.best == null) return
+            const c = __close[nrm(d.driver_name) + '|' + mk + '|' + m.bb]
+            if (c == null) return
+            const clvPct = +(((__dec(m.best) / __dec(c)) - 1) * 100).toFixed(2)
+            __field.push(clvPct)
+            if (m.ev != null && m.ev > 0) __plays.push(clvPct)
+          })
+        })
+        if (__field.length >= 10 && g && g.metrics) {
+          const __avg = a => a.reduce((x, y) => x + y, 0) / a.length
+          g.metrics.clv = { plays: __plays.length, playsAvgPct: __plays.length ? +__avg(__plays).toFixed(2) : null, playsPosPct: __plays.length ? +((__plays.filter(v => v > 0).length / __plays.length) * 100).toFixed(1) : null, fieldAvgPct: +__avg(__field).toFixed(2), fieldN: __field.length }
+        }
+      }
+    } catch (e) {}
     if (row.race_number != null) setRaceNum(String(row.race_number))
     setPrev({ metrics: g.metrics, evFlags: g.evFlags, roi: g.roi, detail: g.detail, parsed: { actualMap: actualMap }, simId: row.id, track: row.track_name, year: row.race_year, config: row.config })
     setMsg('Imported ' + Object.keys(actualMap).length + ' finishes from loop data.')
