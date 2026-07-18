@@ -3317,3 +3317,21 @@ BOTH signals are stronger for thin-history drivers (their quality spread is wide
 **Recency (Honeycutt case):** current-season weight in CORR pools swept 1.5-6.0 in the walk-forward harness. Trucks rise monotonically to ~4.0 (.512 -> .517), oreilly mildly agrees (.495 -> .496), cup mildly prefers LESS (.394 at 1.5). Head-to-head trucks+oreilly cw4 vs cw2: W82/L56 T60 (p ~ .03). SHIPPED cw = 3.0 for trucks+oreilly (middle of plateau, avoids the 4.0 peak), cup stays 2.0. Mechanism: winter ride churn makes minor-series history decay faster. ALSO: all three age ladders (corr, car/equipment, track) were frozen to "yr >= 2026" — would silently misweight in 2027; converted to RELATIVE ages (identical behavior today; matches how every backtest computed them). Car + track ladders keep cw 2.0 (untested for the bump). Config stamps recencyCw (2 cup / 3 minors). NOTE: barely moves Honeycutt himself (1 short-flat 2026 row) — fleet calibration, not a single-driver fix. Honeycutt market verdict logged: DK +600 rich (misattribution: the "fast #11 at NW" 2023-25 was Corey Heim driving it — led 75/66/162 laps; Heim now in the #5), FD +850 ~ fair-if-you-buy-the-breakout, our +1718 too long; truth ~ +1000; no bet.
 
 **DNQ filter (Huffman/Timmy Hill/Schafer case):** sim field was ALL entry_list rows — DNQ'd/no-show entries kept getting simulated placements. v1 keyed on qualifying_results (wrong: NW trucks has ZERO quali rows; lineup lives in practice_sessions.qualifying_position — "practice fallback"). v2 SHIPPED: once >= 20 drivers have a start position from ANY source, drivers with NO start position are dropped from the sim field. Catches marked DNQs (null start) AND forgotten ones (Schafer: entry_list only, no practice row). Pre-lineup sims unaffected (few/no starts known -> keep all).
+
+
+---
+
+## 2026-07-18 — PRE-RACE BASELINE: NW trucks R15 — four forecasters on the record
+
+Published post board (16:10 UTC; stamps: best5 / series-only / pairing-first / cw3; equipment-infl dials: Bell 1.5, Honeycutt 1.5, Eckes 1.0, Garcia 0.5, Queen 0.5, Annunziata 0.05, Heim/Majeski/Riggs/Hocevar 0 — operator-tuned equipment-delta influence, ride-changers up, established rides muted) vs competitor Monte Carlo (Google Sheet) vs market:
+
+| driver | PitBoard win% | competitor win% | market implied% |
+|---|---|---|---|
+| Heim P4 | 17.9 (our fav) | 10.1 | 22.2 |
+| Riggs P1 | 13.2 | 25.7 (their fav) | 16.7 |
+| C. Smith P9 | 10.3 | 3.0 | 6.7 |
+| Hocevar P2 | 9.8 | 14.5 | 15.4 |
+| Bell P3 | 9.8 (fair +920) | 6.4 | 23.3 |
+| Honeycutt P7 | 6.8 | 4.5 | 14.3 |
+
+**Convergent skepticism:** two independent sims both far UNDER market on Bell (9.8/6.4 vs 23.3) and Honeycutt (6.8/4.5 vs 14.3) — the market premium on those two is narrative (name tax + #11-truck misattribution), not model-recoverable signal. **Structural contrasts:** competitor more concentrated (top-3 win share 50.3% vs our 41.4%), their bet ~ Riggs dominance (46.6 proj laps led from pole); our bet ~ Heim + C. Smith (track history: Smith won NW '25 — they price him 3.0% with 18.6% DNF). Boards agree broadly otherwise (win rank corr .718, projFin .722, laps-led budgets 235 vs 238 of ~250). Their DK projections ~40% below ours on identical finish/led — likely different/incomplete DK scoring, not a race-model difference. **Race result grades: our board, their board, the books, and the operator dial settings.**
