@@ -3337,3 +3337,16 @@ Published post board (16:10 UTC; stamps: best5 / series-only / pairing-first / c
 **Convergent skepticism:** two independent sims both far UNDER market on Bell (9.8/6.4 vs 23.3) and Honeycutt (6.8/4.5 vs 14.3) — the market premium on those two is narrative (name tax + #11-truck misattribution), not model-recoverable signal. **Structural contrasts:** competitor more concentrated (top-3 win share 50.3% vs our 41.4%), their bet ~ Riggs dominance (46.6 proj laps led from pole); our bet ~ Heim + C. Smith (track history: Smith won NW '25 — they price him 3.0% with 18.6% DNF). Boards agree broadly otherwise (win rank corr .718, projFin .722, laps-led budgets 235 vs 238 of ~250). Their DK projections ~40% below ours on identical finish/led — likely different/incomplete DK scoring, not a race-model difference. **Race result grades: our board, their board, the books, and the operator dial settings.**
 
 **DK gap DIAGNOSED (addendum):** both boards define DK as avg points scored per sim (ours: dkFinishPts + placeDiff + led*0.25 + fastLaps*0.45). The ~40% gap is their FASTEST-LAP engine: their sheet projects ~0.05 fast laps per driver (~1 lap total across 36 trucks) vs the ~250 that must be scored (112.5 DK pts field-wide). Heim reconciles exactly: our 53.6 minus our 18.3 fast-lap pts ~ 35 ~ their 32.4. Their DFS projections systematically underweight dominators at short tracks; ours distributes the full fast-lap budget (235-250 laps). Competitive edge noted for the DFS product.
+
+
+---
+
+## 2026-07-18 — !! SHIPPED !! DK PROJECTION ACCURACY TRACKING (77c6b4db) + first retro readings
+
+**Operator ask:** compare projected DK scores to actuals every race. Verified both sides use the same definition first (avg DK per sim: finish pts + place diff + led*0.25 + fastest*0.45; place table 45/42/41...).
+
+**Shipped (GradeCenter.js):** loop-data grading path now computes actual DK per driver (widened select to start/led/fastest laps) and stores metrics.dk ~ { n, mae, bias, corr, spearman } in every sim_grades row. Paste-finish path skips DK (no lap data). Threshold n >= 10 matched drivers.
+
+**Retro baseline (only 2 completed boards, BOTH superspeedways):** oreilly Atlanta R21: corr -0.224, MAE 23.1, bias +1.2. cup Atlanta R20: corr 0.167, MAE 20.0, bias +0.5. Read: level calibration good (bias ~ 0), ordering destroyed by SS wreck lottery — expected worst case; NOT representative. NW trucks R15 will be the first intermediate/short-track reading via the new automatic path.
+
+**Review guidance for future sessions:** track dk.corr and dk.bias by track type as grades accrue; SS races will drag corr toward 0 regardless of model quality — judge short/intermediate tracks separately. Competitor context (same day): their DK projections omit fastest-lap points entirely (~0.05 laps/driver projected) — our full fast-lap budget is a structural DFS edge worth protecting.
