@@ -117,7 +117,7 @@ export default function PracticeReportCard({ isSubscriber }) {
     <div className="page">
       <div className="page-header">
         <h1 className="page-title">Practice Report Cards</h1>
-        <p className="page-subtitle">Grades weighted 50/50 on Avg Pace (run-aware) &amp; Best Lap speed &middot; track-state corrected on A/B group sessions &middot; scores aligned to letter bands</p>
+        <p className="page-subtitle">Grades weighted 50/50 on Avg Pace (run-aware) &amp; Best 5 Laps speed &middot; track-state corrected on A/B group sessions &middot; scores aligned to letter bands</p>
       </div>
 
       {/* Series tabs */}
@@ -198,7 +198,7 @@ export default function PracticeReportCard({ isSubscriber }) {
                   <th className="left">Driver</th>
                   {hasGroup && <th style={{ width: 60 }}>Group</th>}
                   <th className="th-tip" data-tip="Starting position for this race.">Start</th>
-                  <th className="th-tip" data-tip="Overall practice grade (percentile of the field), from Avg Pace 50% + Best Lap 50% (v3). On sessions with A/B practice groups, the ranking corrects for track-state differences between groups (a driver's speed is judged against what cars of his caliber ran in HIS group's conditions; 2026-07-16).">Grade</th>
+                  <th className="th-tip" data-tip="Overall practice grade (percentile of the field), from Avg Pace 50% + Best 5 Laps 50% (v4, avg of 5 fastest laps; falls back to Best Lap on short sessions). On sessions with A/B practice groups, the ranking corrects for track-state differences between groups (a driver's speed is judged against what cars of his caliber ran in HIS group's conditions; 2026-07-16).">Grade</th>
                   <th className="th-tip" data-tip="Letter-aligned score: A+ 97-100, A 93-96.9 ... F 40-59.9. The session's top car is always 100.">Score</th>
                   <th className="th-tip" data-tip="Single fastest lap of the session - raw one-lap speed.">Best Lap</th>
                   <th className="th-tip" data-tip="Average of each run's average lap time - each run weighted equally, so one short outlier run can swing it. Lower is faster.">Avg Pace</th>
