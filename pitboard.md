@@ -1216,3 +1216,8 @@ the same market differently by series/section; keep header regexes loose + keep 
 
 - Dropped "Late Run Avg (last 25%)" column + its computation.
 - Added "Group" column left of Start: fetches practice_sessions (driver_name, practice_group) for the selected session (series/year/track/session/race_number scoped), merged by normalized name onto the lap-table drivers. Shows '--' when the session has no groups (e.g. NW trucks 2026). Display only.
+
+
+## 2026-07-18 — UI: Comparison tool adds 5/10/15 lap averages (2245b026)
+
+- Three new columns right of Avg: best CONSECUTIVE 5/10/15-lap averages (NASCAR practice-sheet convention). bestNAvg splits laps into runs on lap-number gaps (pit/filtered laps break runs), sliding-window best within runs, '--' when no run is long enough. NOTE: intentionally different from the sim's best5 (5 FASTEST laps, any order).
