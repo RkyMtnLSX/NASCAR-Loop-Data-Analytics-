@@ -3272,3 +3272,26 @@ Per-session head-to-head v1 vs v0: **W47 / L23** (sign test z ~ 2.9, p ~ 0.004).
 **Caveats logged:** thin-track subset is mostly rookies/part-timers, not cup ringers specifically (ringers too rare to isolate); elite over-prediction partly reflects finish-position wreck asymmetry (elites lose more percentile to DNFs than they can gain), not purely track-newness — a controlled comparison vs thick-track elites would be needed before building any "newness penalty" term. Not pursued tonight.
 
 **Doctrine note (Bell, NW 2026):** the outside view (base rates) sides with the sim's skepticism about elite-form/thin-track drivers, against market consensus. Operator eq_override remains the channel for inside-view information (All-Star win, equipment) — with the season ledger (market vs sim vs override) as the eventual judge. Config stamps (practiceMetric, poolScope, borrowMode, eqOverrides) make all three auditable per board.
+
+
+---
+
+## 2026-07-18 — ADAPTIVE PRACTICE WEIGHT (thin-history drivers): REJECTED — ratio is constant
+
+**Hypothesis (operator-motivated, Bell/NW):** practice should carry MORE weight for drivers with thin corr history (practice ~ most of the real information about them). Would lift elite-practice/thin-history drivers via evidence.
+
+**Design:** leak-free walk-forward corr priors (own-series group pools, >= 3 prior races, age-weighted) joined to practice best5 percentiles and finish percentiles across all labeled sessions (2,810 driver-races in races with >= 15 qualified drivers). Pooled 2-var OLS finishPct ~ b5Pct + corrPct, split by corr-history depth.
+
+**Results:**
+
+| history band | n | practice coef | corr coef | ratio corr:practice |
+|---|---|---|---|---|
+| thin (<8 corr races) | 417 | 0.177 | 0.509 | 2.88 |
+| mid (8-24) | 884 | 0.125 | 0.419 | 3.35 |
+| thick (25+) | 1,509 | 0.136 | 0.391 | 2.87 |
+
+BOTH signals are stronger for thin-history drivers (their quality spread is wider), but the corr:practice RATIO — what the weights encode — is essentially constant (2.88 vs 2.87 thin vs thick). Reallocating weight from corr to practice for thin drivers trades the stronger signal for the weaker one. The global fixed ratio is validated; adaptivity adds nothing. (Deployed 0.35/0.15 ~ 2.33 is modestly practice-heavier than fitted ~2.9 — other composite terms absorb the difference; no change recommended.)
+
+**Accrual note:** thin band n=417 only; the elevated practice coef (0.177) is worth a re-look when truck/oreilly practice sessions accrue (pair with #52-style re-runs).
+
+**Bell postscript:** with this, every principled path to lifting him has been tested tonight: cup leak (fixed, real bug), borrow translation (pairing-first shipped), track-history shrink target (rejected), adaptive practice weight (rejected). The sim's number stands on evidence; residual disagreement with market consensus is inside-view information -> operator override channel.
