@@ -773,7 +773,9 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
         })
         const corrAvgMap = new Map(
           Object.entries(loopByDriver).map(([name, rows]) => {
-            const yrWt = yr => yr >= 2026 ? 2.0 : yr === 2025 ? 1.3 : yr === 2024 ? 0.9 : yr === 2023 ? 0.6 : 0.4
+            // 2026-07-18: relative-age weights (matches backtest harness; frozen-2026 ladder would break in 2027).
+            // Minor-series current-season bump 2.0 -> 3.0 (trucks+oreilly W82/L56 vs cw2, p ~ .03; cup keeps 2.0 — BACKTEST_LOG).
+            const yrWt = yr => { const dd = ((cfg && cfg.race_year) || new Date().getFullYear()) - yr; return dd <= 0 ? (s === 'cup' ? 2.0 : 3.0) : dd === 1 ? 1.3 : dd === 2 ? 0.9 : dd === 3 ? 0.6 : 0.4 }
             // FIX 2026-07-17: own-series rows ONLY. b2c916e8 (07-08, borrow wiring) accidentally let cup rows
             // into EVERY driver's base pool (rating, avgFin, winConv) — cup enters ONLY via crossover_borrows.
             const baseRows = rows.filter(r => r.sr === s)
@@ -824,7 +826,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
         })
         const carAvgMap = new Map(
           Object.entries(loopByCar).map(([car, rows]) => {
-            const yrWt = yr => yr >= 2026 ? 2.0 : yr === 2025 ? 1.3 : yr === 2024 ? 0.9 : yr === 2023 ? 0.6 : 0.4
+            const yrWt = yr => { const dd = ((cfg && cfg.race_year) || new Date().getFullYear()) - yr; return dd <= 0 ? 2.0 : dd === 1 ? 1.3 : dd === 2 ? 0.9 : dd === 3 ? 0.6 : 0.4 } // relative-age (2026-07-18); cw2 here (untested for bump)
             const wsumC = rows.reduce((a, r) => a + yrWt(r.yr), 0)
             const avgRating = rows.length ? rows.reduce((a, r) => a + r.rating * yrWt(r.yr), 0) / wsumC : null
             return [car, { avgRating, n: rows.length }]
@@ -845,7 +847,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
         })
         const trackAvgMap = new Map(
           Object.entries(trackByDriver).map(([tname, trows]) => {
-            const yrWt = yr => yr >= 2026 ? 2.0 : yr === 2025 ? 1.3 : yr === 2024 ? 0.9 : yr === 2023 ? 0.6 : 0.4
+            const yrWt = yr => { const dd = ((cfg && cfg.race_year) || new Date().getFullYear()) - yr; return dd <= 0 ? 2.0 : dd === 1 ? 1.3 : dd === 2 ? 0.9 : dd === 3 ? 0.6 : 0.4 } // relative-age (2026-07-18); cw2 here (untested for bump)
             const totalWt = trows.reduce((acc, r) => acc + yrWt(r.yr), 0)
             const avgFin = trows.reduce((acc, r) => acc + r.fin * yrWt(r.yr), 0) / totalWt
             const rRows  = trows.filter(r => r.rating != null)
@@ -1035,7 +1037,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
       race_year:  config.race_year || new Date().getFullYear(),
       race_number: raceNumMap[series] ? parseInt(raceNumMap[series]) : null,
       stage: simStage,
-      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'pairing-first', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
+      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'pairing-first', recencyCw: (series === 'cup' ? 2 : 3), gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
       results: simResults.map(d => ({
         driver_name:  d.name,
         car_number:   d.carNumber,
