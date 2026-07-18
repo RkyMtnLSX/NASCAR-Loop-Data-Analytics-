@@ -3240,3 +3240,18 @@ Per-session head-to-head v1 vs v0: **W47 / L23** (sign test z ~ 2.9, p ~ 0.004).
 **Blast radius:** trucks/oreilly boards published 07-08 -> 07-17 with cup-crossover drivers in field. Cup boards unaffected (filter was a no-op there). Sim_grades from that window: practice-grade side unaffected (grader does not use corr pools' cup rows... grader priors DO use corr-group loop_data via Admin gcPriors fetch — that fetch is series-scoped, verified unaffected). Operator re-ran + republished NW trucks post board same night.
 
 **Open question rolled into #54:** the market-aligned Hocevar number under offset +29 is one more data point that the borrow translation is roughly right for win markets — but Elliott (+29 would say ~12% vs market ~6%) cuts the other way. Re-test on schedule.
+
+
+---
+
+## 2026-07-17 — !! SHIPPED !! PAIRING-FIRST BORROW (operator-directed calibration, 5755e02a)
+
+**Context:** post cup-leak fix, Bell sat 5th on the NW trucks board (fair +1182) vs FD +340. Diagnosis: his borrow (w=1) substituted RAW cup short-flat rating 101.2 for his truck evidence — no series translation. But blanket +29 offset overshoots (Elliott counterexample) and #54 win-validation is still HOLD.
+
+**What shipped instead — pairing evidence:** when a FORCED borrow driver has >= 2 current-season rows in the sim's own series, srcRating ~ mean driver_rating of those rows (driver x equipment measured jointly), overriding the raw-cup path. Fallback unchanged otherwise. Fires ONLY inside crossover_borrows (operator-gated; 2 active drivers). Config stamps borrowMode: 'pairing-first'.
+
+**Evidence for the design (62 truck case):** Halmar #62 without Bell 2022-26: ratings 30-92, avg fin 20s (Slimp 32-38, Bodine 44, Roper 30). Bell in it 2026: n4, avg rating 109.7, fins 6/1/5/6 (Bristol WIN). Org-history equipment terms are structurally wrong here — the operator's insight: elite ringer arrival CAUSES equipment effort (endogenous). Pairing rows sidestep the decomposition entirely.
+
+**Expected effects:** Bell srcRating 101.2 -> 109.7 (Majeski/Riggs tier, NOT favorite — pairing data does not support the raw +29's 130.2). Elliott: only 1 career truck row -> rule doesn't fire -> unchanged. Everyone else: unchanged.
+
+**Honest status: NOT backtest-validated** — operator-directed, low blast radius (borrow-gated), replaces a known-mistranslated input with directly-relevant measurements. Full ringer-borrow validation (incl. this design vs +29 offset vs raw) stays queued as #54, end of 2026. Market note logged: truck win markets shade cup stars short (name tax) — FD +340 on Bell is part fair price, part public-money shading; fair likely between +340 and the old +1182.
