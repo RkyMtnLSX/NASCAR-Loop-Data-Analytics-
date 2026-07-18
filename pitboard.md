@@ -1210,3 +1210,9 @@ the same market differently by series/section; keep header regexes loose + keep 
 ## 2026-07-18 — UI: score breakdown hides zero-weight columns (e9d6bfd8)
 
 - Sim Center breakdown table (headers + row cells) now filters columns by the ACTIVE profile's weights — SRP/Fall/RC vanish under DEFAULT_WEIGHTS (all 0.00 there), reappear under road/SS profiles that use them. Purely display; scores/composite unchanged. Both render sites keyed to the same wkey map (corrHistory/longRunPace/shortRunPace/startPos/tireFalloff/raceCraft/trackHistory) — keep them in sync if weights profiles gain new terms.
+
+
+## 2026-07-18 — UI: Practice Comparison Tool table rework (267b51f7)
+
+- Dropped "Late Run Avg (last 25%)" column + its computation.
+- Added "Group" column left of Start: fetches practice_sessions (driver_name, practice_group) for the selected session (series/year/track/session/race_number scoped), merged by normalized name onto the lap-table drivers. Shows '--' when the session has no groups (e.g. NW trucks 2026). Display only.
