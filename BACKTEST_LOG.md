@@ -3350,3 +3350,18 @@ Published post board (16:10 UTC; stamps: best5 / series-only / pairing-first / c
 **Retro baseline (only 2 completed boards, BOTH superspeedways):** oreilly Atlanta R21: corr -0.224, MAE 23.1, bias +1.2. cup Atlanta R20: corr 0.167, MAE 20.0, bias +0.5. Read: level calibration good (bias ~ 0), ordering destroyed by SS wreck lottery — expected worst case; NOT representative. NW trucks R15 will be the first intermediate/short-track reading via the new automatic path.
 
 **Review guidance for future sessions:** track dk.corr and dk.bias by track type as grades accrue; SS races will drag corr toward 0 regardless of model quality — judge short/intermediate tracks separately. Competitor context (same day): their DK projections omit fastest-lap points entirely (~0.05 laps/driver projected) — our full fast-lap budget is a structural DFS edge worth protecting.
+
+
+---
+
+## 2026-07-18 — !! SHIPPED !! CLV TRACKING (odds snapshots 06d5be47 + grade metrics 30b50e2a)
+
+**Problem (operator):** re-simming up to race time means repasting odds; each paste overwrote the last, so no record of the closing line -> no CLV measurement on published edges.
+
+**Insight:** the operator's habit IS the capture mechanism — the last paste before green flag ~ the close. Ship: stop discarding pastes.
+
+**Shipped:** (1) SimulationCenter — every distinct odds paste inserts a timestamped snapshot to odds_snapshots (new table, SQL run by operator): driver x market (win/t3/t5/t10) x book (dk/fd/hr), debounced 4s, deduped by content hash, keyed to series/track/year/race#. (2) GradeCenter — grading now fetches the LAST snapshot cluster (10-min window ending at the newest row) as the closing line and stores metrics.clv ~ { plays (count of +EV flags at publish), playsAvgPct (avg CLV% on those plays, published best-book odds vs same-book close), playsPosPct (share beating the close), fieldAvgPct, fieldN }.
+
+**Interpretation doctrine:** CLV converges far faster than ROI (~dozens of races, not hundreds). playsAvgPct persistently > 0 -> published edges beat the close -> real edge even through result variance. playsAvgPct ~ <= 0 with positive fieldAvg -> our flags are the market's steam, not ahead of it. OPERATOR HABIT: paste freshest odds + Run one final time at the green flag (no publish needed) — that snapshot is the official close.
+
+**Coverage note:** snapshots begin 2026-07-18; NW trucks R15 will have a thin closing record (post-ship pastes only). First fully-covered weekend is next week.
