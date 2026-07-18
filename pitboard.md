@@ -1192,3 +1192,10 @@ the same market differently by series/section; keep header regexes loose + keep 
 - Since b2c916e8 (07-08), cup loop rows at corr-group tracks silently entered EVERY driver's base pool (rating/avgFin/winConv) in trucks + oreilly sims. Intended design (and operator's mental model): cup enters ONLY via crossover_borrows (currently: Chase Elliott, weight 1, forced).
 - Fixed: baseRows ~ own-series rows only. Explicit borrow path unchanged. Config stamps poolScope: 'series-only' on published boards.
 - GOTCHA for graders/reviewers: trucks/oreilly boards published 07-08 -> 07-17 carry contaminated pools where cup-crossover drivers raced (Hocevar NW case: pool 78.8 vs true 96.2). Treat their grades accordingly in #55-style reviews (check config.poolScope — absent means pre-fix).
+
+
+## 2026-07-17 (late night) — PAIRING-FIRST BORROW SHIPPED (5755e02a)
+
+- crossover_borrows path only: forced-borrow drivers with >= 2 current-season own-series loop rows use the mean rating of THOSE rows as srcRating (Bell: 109.7 from 4 races in the 62) instead of raw untranslated cup. No pairing rows -> old raw-cup fallback (Elliott). Config stamps borrowMode: 'pairing-first'.
+- NOT backtest-validated; operator-directed. #54 (end 2026) now compares: raw cup vs +29 offset vs pairing-first.
+- Operator re-ran + republished NW trucks board after this ship.
