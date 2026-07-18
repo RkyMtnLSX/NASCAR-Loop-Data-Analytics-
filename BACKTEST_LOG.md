@@ -3255,3 +3255,20 @@ Per-session head-to-head v1 vs v0: **W47 / L23** (sign test z ~ 2.9, p ~ 0.004).
 **Expected effects:** Bell srcRating 101.2 -> 109.7 (Majeski/Riggs tier, NOT favorite — pairing data does not support the raw +29's 130.2). Elliott: only 1 career truck row -> rule doesn't fire -> unchanged. Everyone else: unchanged.
 
 **Honest status: NOT backtest-validated** — operator-directed, low blast radius (borrow-gated), replaces a known-mistranslated input with directly-relevant measurements. Full ringer-borrow validation (incl. this design vs +29 offset vs raw) stays queued as #54, end of 2026. Market note logged: truck win markets shade cup stars short (name tax) — FD +340 on Bell is part fair price, part public-money shading; fair likely between +340 and the old +1182.
+
+
+---
+
+## 2026-07-18 — TRACK-HISTORY SHRINK TARGET: shrink-to-corr REJECTED (keep neutral-50)
+
+**Hypothesis:** the track-history term shrinks thin samples toward field-neutral 50; shrinking toward the driver's own corr score seemed more coherent ("absent track evidence, assume he's as good as at similar tracks"). Would have lifted strong drivers with thin track history (Bell/NW archetype).
+
+**Design:** leak-free chronological walk over all loop_data (14,287 rows, 3 series, 2022-2026). Per race: corr prior (own-series group pool, >= 3 prior races, age-weighted) + track prior; composite at deployed weight ratio (corr .35 / track .20 renormalized); tConf ~ min(1, nTrack/4) exactly as shipped. V0 shrinks track term to field mean, V1 to driver's corr prior. Scored per-race Spearman vs finish (348 races) + pooled percentile analysis on thin-track (nTrack < 4) drivers.
+
+**Results:** V1 ahead by noise-level margins everywhere: cup .390 -> .391, trucks .512 -> .513, oreilly .492 -> .495; race head-to-head W155/L125 (p ~ .07). Thin-subset pooled corr .474 -> .476. Below every bar we ship on.
+
+**The decisive cut — calibration on ELITE-corr + thin-track driver-races (n=2,041):** predicted finish percentile ~ .14 under BOTH variants; ACTUAL mean finish percentile .342. The composite already over-predicts strong drivers at unfamiliar tracks, and shrink-to-corr makes it MORE aggressive (.139 vs .142) — wrong direction. Mirror on weak-corr side (predicted .88, actual .69). Neutral-50 is a partial correction for genuine regression-to-field at unfamiliar tracks, not a lazy default. KEEP AS IS.
+
+**Caveats logged:** thin-track subset is mostly rookies/part-timers, not cup ringers specifically (ringers too rare to isolate); elite over-prediction partly reflects finish-position wreck asymmetry (elites lose more percentile to DNFs than they can gain), not purely track-newness — a controlled comparison vs thick-track elites would be needed before building any "newness penalty" term. Not pursued tonight.
+
+**Doctrine note (Bell, NW 2026):** the outside view (base rates) sides with the sim's skepticism about elite-form/thin-track drivers, against market consensus. Operator eq_override remains the channel for inside-view information (All-Star win, equipment) — with the season ledger (market vs sim vs override) as the eventual judge. Config stamps (practiceMetric, poolScope, borrowMode, eqOverrides) make all three auditable per board.
