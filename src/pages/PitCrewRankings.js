@@ -5,21 +5,34 @@ const SEASON = 2026
 const MIN_STOPS = 3        // crews with fewer timed stops are hidden (too noisy)
 const LOWN = 5             // below this, sample is flagged as thin
 const SERIES = [{ v: 'cup', label: 'Cup' }, { v: 'oreilly', label: "O'Reilly" }, { v: 'trucks', label: 'Trucks' }]
+const SERIES_COLOR = { cup: 'var(--series-cup)', oreilly: 'var(--series-oreilly)', trucks: 'var(--series-trucks)' }
 const MEDAL = { 0: '\uD83E\uDD47', 1: '\uD83E\uDD48', 2: '\uD83E\uDD49' }
+const __CAR_ALIAS = { '133': '33' }
 
 const median = (arr) => {
   const b = [...arr].sort((a, b) => a - b), n = b.length
   return n % 2 ? b[(n - 1) / 2] : (b[n / 2 - 1] + b[n / 2]) / 2
 }
 
+function CarNum({ car, series }) {
+  if (!car) return null
+  const dir = series === 'oreilly' ? '/car-numbers-oreilly/' : series === 'trucks' ? '/car-numbers-trucks/' : '/car-numbers/'
+  return (
+    <img src={dir + (__CAR_ALIAS[String(car)] || car) + '.png'} alt={'#' + car}
+      style={{ height: 22, marginRight: 8, verticalAlign: 'middle' }}
+      onError={(e) => { const t = e.target; if (!t.dataset.retried) { t.dataset.retried = '1'; t.src = t.src + (t.src.indexOf('?') >= 0 ? '&r=' : '?r=') + Date.now() } else { t.style.display = 'none' } }} />
+  )
+}
+
 const wrap = { maxWidth: 940, margin: '0 auto', padding: '24px 16px 60px' }
 const h1 = { fontSize: '1.5rem', fontWeight: 700, margin: '0 0 4px' }
 const sub = { fontSize: '0.9rem', color: 'var(--text-secondary)', margin: '0 0 20px', lineHeight: 1.5 }
-const toggleWrap = { display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap' }
-const th = (active) => ({ padding: '8px 12px', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase',
-  letterSpacing: '0.05em', color: active ? 'var(--accent)' : 'var(--text-secondary)', borderBottom: '1px solid var(--border)',
-  cursor: 'pointer', whiteSpace: 'nowrap', userSelect: 'none' })
-const td = { padding: '9px 12px', fontSize: '0.9rem', borderBottom: '1px solid var(--border)' }
+const th = (o) => ({ padding: '9px 14px', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase',
+  letterSpacing: '0.05em', color: o.active ? 'var(--accent)' : 'var(--text-secondary)',
+  borderBottom: '1px solid var(--border)', cursor: o.sortable ? 'pointer' : 'default',
+  whiteSpace: 'nowrap', userSelect: 'none', textAlign: o.align || 'center' })
+const td = (align) => ({ padding: '9px 14px', fontSize: '0.9rem', borderBottom: '1px solid var(--border)',
+  textAlign: align || 'center', whiteSpace: 'nowrap' })
 
 export default function PitCrewRankings() {
   const [series, setSeries] = useState('cup')
@@ -76,15 +89,18 @@ export default function PitCrewRankings() {
         Crews with fewer than {MIN_STOPS} timed stops are hidden; a &ldquo;thin&rdquo; tag marks fewer than {LOWN}.
       </p>
 
-      <div style={toggleWrap}>
-        {SERIES.map((s) => (
-          <button key={s.v} onClick={() => setSeries(s.v)} style={{
-            padding: '7px 16px', borderRadius: 8, fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer',
-            border: '1px solid var(--border)',
-            background: series === s.v ? 'var(--accent)' : 'var(--bg-elevated)',
-            color: series === s.v ? '#111' : 'var(--text-secondary)',
-          }}>{s.label}</button>
-        ))}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap' }}>
+        {SERIES.map((s) => {
+          const active = series === s.v
+          return (
+            <button key={s.v} onClick={() => setSeries(s.v)} style={{
+              padding: '7px 18px', borderRadius: 6, border: '1px solid var(--border)',
+              background: active ? SERIES_COLOR[s.v] : 'var(--bg-surface)',
+              color: active ? (s.v === 'trucks' ? '#111' : '#fff') : 'var(--text-secondary)',
+              fontWeight: active ? 600 : 400, fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.15s',
+            }}>{s.label}</button>
+          )
+        })}
       </div>
 
       {loading ? (
@@ -96,25 +112,30 @@ export default function PitCrewRankings() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
-                <th style={th(false)}>#</th>
-                <th style={{ ...th(false), textAlign: 'left' }}>Car</th>
-                <th style={{ ...th(false), textAlign: 'left' }}>Organization</th>
-                <th style={{ ...th(false), textAlign: 'left' }}>Driver</th>
-                <th style={th(sort === 'median')} onClick={() => setSort('median')}>Median (s)</th>
-                <th style={th(sort === 'iqr')} onClick={() => setSort('iqr')}>Consistency</th>
-                <th style={th(sort === 'n')} onClick={() => setSort('n')}>Stops</th>
+                <th style={th({ align: 'center' })}>#</th>
+                <th style={th({ align: 'left' })}>Car</th>
+                <th style={th({ align: 'left' })}>Organization</th>
+                <th style={th({ align: 'left' })}>Driver</th>
+                <th style={th({ align: 'center', sortable: true, active: sort === 'median' })} onClick={() => setSort('median')}>Median (s)</th>
+                <th style={th({ align: 'center', sortable: true, active: sort === 'iqr' })} onClick={() => setSort('iqr')}>Consistency</th>
+                <th style={th({ align: 'center', sortable: true, active: sort === 'n' })} onClick={() => setSort('n')}>Stops</th>
               </tr>
             </thead>
             <tbody>
               {sorted.map((c, i) => (
                 <tr key={c.car + c.org} style={{ background: i % 2 ? 'transparent' : 'var(--bg-elevated)' }}>
-                  <td style={{ ...td, textAlign: 'center', fontWeight: 700 }}>{MEDAL[i] || (i + 1)}</td>
-                  <td style={{ ...td, fontWeight: 700 }}>#{c.car}</td>
-                  <td style={td}>{c.org || '\u2014'}</td>
-                  <td style={{ ...td, color: 'var(--text-secondary)' }}>{c.driver || '\u2014'}</td>
-                  <td style={{ ...td, textAlign: 'center', fontWeight: 700 }}>{c.median.toFixed(2)}</td>
-                  <td style={{ ...td, textAlign: 'center', color: 'var(--text-secondary)' }}>{c.iqr.toFixed(2)}</td>
-                  <td style={{ ...td, textAlign: 'center' }}>
+                  <td style={{ ...td('center'), fontWeight: 700 }}>{MEDAL[i] || (i + 1)}</td>
+                  <td style={td('left')}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                      <CarNum car={c.car} series={series} />
+                      <span style={{ fontWeight: 700 }}>#{c.car}</span>
+                    </span>
+                  </td>
+                  <td style={td('left')}>{c.org || '\u2014'}</td>
+                  <td style={{ ...td('left'), color: 'var(--text-secondary)' }}>{c.driver || '\u2014'}</td>
+                  <td style={{ ...td('center'), fontWeight: 700 }}>{c.median.toFixed(2)}</td>
+                  <td style={{ ...td('center'), color: 'var(--text-secondary)' }}>{c.iqr.toFixed(2)}</td>
+                  <td style={td('center')}>
                     {c.n}{c.n < LOWN && <span style={{ marginLeft: 6, fontSize: '0.68rem', color: 'var(--text-secondary)', border: '1px solid var(--border)', borderRadius: 4, padding: '1px 5px' }}>thin</span>}
                   </td>
                 </tr>
