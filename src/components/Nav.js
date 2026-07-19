@@ -11,6 +11,7 @@ const LOOP_LINKS = [
   { path: '/loop-data',       label: 'Loop Data' },
   { path: '/fastest-laps',    label: 'Fastest Laps' },
   { path: '/green-flag-speed', label: 'Green Flag Speed' },
+  { path: '/pit-crew-rankings', label: 'Pit Crew Rankings' },
 ]
 
 const SIM_LINKS = [
