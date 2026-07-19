@@ -32,7 +32,7 @@ const th = (o) => ({ padding: '9px 14px', fontSize: '0.72rem', fontWeight: 700, 
   borderBottom: '1px solid var(--border)', cursor: o.sortable ? 'pointer' : 'default',
   whiteSpace: 'nowrap', userSelect: 'none', textAlign: o.align || 'center' })
 const td = (align) => ({ padding: '9px 14px', fontSize: '0.9rem', borderBottom: '1px solid var(--border)',
-  textAlign: align || 'center', whiteSpace: 'nowrap' })
+  textAlign: align || 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' })
 
 export default function PitCrewRankings() {
   const [series, setSeries] = useState('cup')
@@ -109,7 +109,16 @@ export default function PitCrewRankings() {
         <p style={{ color: 'var(--text-secondary)' }}>No 4-tire stops yet for this series in {SEASON}.</p>
       ) : (
         <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 10 }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+            <colgroup>
+              <col style={{ width: 50 }} />
+              <col style={{ width: 68 }} />
+              <col />
+              <col />
+              <col style={{ width: 96 }} />
+              <col style={{ width: 118 }} />
+              <col style={{ width: 84 }} />
+            </colgroup>
             <thead>
               <tr>
                 <th style={th({ align: 'center' })}>#</th>
