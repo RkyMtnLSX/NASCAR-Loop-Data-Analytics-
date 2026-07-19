@@ -115,9 +115,8 @@ export default function PracticeReportCard({ isSubscriber }) {
           const stints = []; let cur = [laps[0]]
           for (let i = 1; i < laps.length; i++) { if (laps[i][0] === laps[i - 1][0] + 1) cur.push(laps[i]); else { stints.push(cur); cur = [laps[i]] } }
           stints.push(cur)
-          const longest = stints.slice().sort((a, b) => b.length - a.length || _avgArr(a) - _avgArr(b))[0] || []
-          function _avgArr(s) { const v = s.map(x => x[1]); return v.reduce((p, q) => p + q, 0) / v.length }
-          ;[10, 15, 20].forEach(N => { if (longest.length >= N) { const seg = longest.slice(0, N).map(x => x[1]); res['avg' + N] = seg.reduce((p, q) => p + q, 0) / seg.length } })
+          // earliest run of at least N green laps = freshest-tire long run (stints already in lap order)
+          ;[10, 15, 20].forEach(N => { const run = stints.find(s => s.length >= N); if (run) { const seg = run.slice(0, N).map(x => x[1]); res['avg' + N] = seg.reduce((p, q) => p + q, 0) / seg.length } })
           return res
         }
         out = out.map(r => ({ ...r, ...__lapAvgs(__byDrv[r.driver_name] || []) }))
@@ -139,7 +138,7 @@ export default function PracticeReportCard({ isSubscriber }) {
     <div className="page">
       <div className="page-header">
         <h1 className="page-title">Practice Report Cards</h1>
-        <p className="page-subtitle">Grades weighted 50/50 on Avg Pace (run-aware) &amp; Best 5 Laps speed &middot; track-state corrected on A/B group sessions &middot; scores aligned to letter bands</p>
+        <p className="page-subtitle">Practice performance ranked as a percentile of the field</p>
       </div>
 
       {/* Series tabs */}
