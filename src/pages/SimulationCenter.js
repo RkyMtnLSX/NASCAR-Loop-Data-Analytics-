@@ -206,6 +206,8 @@ export function __marketValue(winTxt, t10Txt, fdTxt, hrTxt, drivers) {
       var seq = [];
       (txt || '').split('\n').forEach(function (raw) {
         var l = raw.toLowerCase(), found = [];
+        var __hdr = l.replace(/race\s*-?\s*winner/g, ' ').replace(/top\s*-?\s*\d+\s*finish/g, ' ').replace(/top\s*-?\s*\d+/g, ' ').replace(/\bfinish\b/g, ' ').replace(/\bto win\b/g, ' ').replace(/\bwinner\b/g, ' ').replace(/\boutright\b/g, ' ').replace(/[^a-z0-9]+/g, '').trim();
+        if (__hdr) return;
         var m5 = /top\s*-?\s*5/.exec(l);            if (m5) found.push([m5.index, 't5']);
         var m3 = /top\s*-?\s*3/.exec(l);            if (m3) found.push([m3.index, 't3']);
         var mw = /race\s*winner|outright|(^|\s)winner(\s|$)/.exec(l); if (mw) found.push([mw.index, 'win']);
