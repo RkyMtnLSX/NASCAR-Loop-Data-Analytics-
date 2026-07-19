@@ -115,8 +115,12 @@ export default function PracticeReportCard({ isSubscriber }) {
           const stints = []; let cur = [laps[0]]
           for (let i = 1; i < laps.length; i++) { if (laps[i][0] === laps[i - 1][0] + 1) cur.push(laps[i]); else { stints.push(cur); cur = [laps[i]] } }
           stints.push(cur)
-          // earliest run of at least N green laps = freshest-tire long run (stints already in lap order)
-          ;[10, 15, 20].forEach(N => { const run = stints.find(s => s.length >= N); if (run) { const seg = run.slice(0, N).map(x => x[1]); res['avg' + N] = seg.reduce((p, q) => p + q, 0) / seg.length } })
+          // NASCAR method: best (fastest) average over N consecutive laps within a single run
+          ;[5, 10, 15, 20, 25, 30].forEach(N => {
+            let best = null
+            for (const s of stints) { const tt = s.map(x => x[1]); if (tt.length < N) continue; for (let i = 0; i + N <= tt.length; i++) { let sum = 0; for (let j = 0; j < N; j++) sum += tt[i + j]; const a = sum / N; if (best === null || a < best) best = a } }
+            if (best !== null) res['best' + N] = best
+          })
           return res
         }
         out = out.map(r => ({ ...r, ...__lapAvgs(__byDrv[r.driver_name] || []) }))
@@ -129,6 +133,10 @@ export default function PracticeReportCard({ isSubscriber }) {
 
   const visibleRows = isSubscriber ? rows : rows.slice(0, 10)
   const blurred     = !isSubscriber && rows.length > 10
+  const _heatKeys = ['best5', 'best10', 'best15', 'best20', 'best25', 'best30']
+  const _heatStats = {}
+  _heatKeys.forEach(k => { const v = rows.map(r => r[k]).filter(x => x != null); _heatStats[k] = v.length ? { min: Math.min(...v), max: Math.max(...v) } : null })
+  const heatBg = (val, k) => { const s = _heatStats[k]; if (val == null || !s || s.max === s.min) return 'transparent'; const tn = (val - s.min) / (s.max - s.min); return 'hsla(' + (120 * (1 - tn)) + ', 60%, 42%, 0.30)' }
 
   // Check if this session has group or car number data
   const hasGroup     = rows.some(r => r.practice_group)
@@ -225,10 +233,12 @@ export default function PracticeReportCard({ isSubscriber }) {
                   <th className="th-tip" data-tip="Average of each run's average lap time - each run weighted equally, so one short outlier run can swing it. Lower is faster.">Avg Pace</th>
                   <th className="th-tip" data-tip="Simple average of every clean lap - each lap weighted equally, so a short outlier run barely moves it. Lower is faster.">All Laps</th>
                   <th className="th-tip" data-tip="Number of separate runs (stints) the driver made in the session."># Stints</th>
-                  <th className="th-tip" data-tip="Length-weighted pace over runs of 10+ laps - worn-tire, long-run speed.">Long Run</th>
-                   <th className="th-tip" data-tip="Average of the first 10 laps of the car's longest green run (raw pace, nothing removed).">10-Lap</th>
-                   <th className="th-tip" data-tip="Average of the first 15 laps of the car's longest green run (raw pace, nothing removed).">15-Lap</th>
-                   <th className="th-tip" data-tip="Average of the first 20 laps of the car's longest green run (raw pace, nothing removed).">20-Lap</th>
+                  <th className="th-tip" data-tip="Best 5 consecutive laps (fastest 5-lap run average).">5-Lap</th>
+                   <th className="th-tip" data-tip="Best 10 consecutive laps.">10-Lap</th>
+                   <th className="th-tip" data-tip="Best 15 consecutive laps.">15-Lap</th>
+                   <th className="th-tip" data-tip="Best 20 consecutive laps.">20-Lap</th>
+                   <th className="th-tip" data-tip="Best 25 consecutive laps.">25-Lap</th>
+                   <th className="th-tip" data-tip="Best 30 consecutive laps. Blank = no run this long. Times climbing left-to-right = the car falls off on long runs.">30-Lap</th>
                   <th className="th-tip" data-tip="Representative green-flag laps used in grading versus total laps run.">Graded Laps</th>
                 </tr>
               </thead>
@@ -273,10 +283,12 @@ export default function PracticeReportCard({ isSubscriber }) {
                       <td style={{ fontFamily: 'var(--font-mono)' }}>{d.avg_pace?.toFixed(3) || '-'}</td>
                       <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>{d.overall_avg?.toFixed(3) || '-'}</td>
                       <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>{d.num_stints ?? '-'}</td>
-                      <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>{d.long_run?.toFixed(3) || <span style={{ fontSize: '0.7rem', padding: '1px 5px', borderRadius: 4, background: '#4a3a12', color: '#e0b64f' }}>low conf</span>}</td>
-                       <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>{d.avg10 ? d.avg10.toFixed(3) : '-'}</td>
-                       <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>{d.avg15 ? d.avg15.toFixed(3) : '-'}</td>
-                       <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>{d.avg20 ? d.avg20.toFixed(3) : '-'}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', background: heatBg(d.best5, 'best5') }}>{d.best5 ? d.best5.toFixed(2) : '-'}</td>
+                       <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', background: heatBg(d.best10, 'best10') }}>{d.best10 ? d.best10.toFixed(2) : '-'}</td>
+                       <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', background: heatBg(d.best15, 'best15') }}>{d.best15 ? d.best15.toFixed(2) : '-'}</td>
+                       <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', background: heatBg(d.best20, 'best20') }}>{d.best20 ? d.best20.toFixed(2) : '-'}</td>
+                       <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', background: heatBg(d.best25, 'best25') }}>{d.best25 ? d.best25.toFixed(2) : '-'}</td>
+                       <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', background: heatBg(d.best30, 'best30') }}>{d.best30 ? d.best30.toFixed(2) : '-'}</td>
                       <td style={{ fontFamily: 'var(--font-mono)' }}>{(() => { let n = null; try { n = JSON.parse(d.notes || 'null') } catch (e) { n = null }
                         const gl = n && n.gl != null ? n.gl : null
                         return <span>{gl != null ? gl + '/' : ''}{d.total_laps ?? '-'}</span> })()}</td>
