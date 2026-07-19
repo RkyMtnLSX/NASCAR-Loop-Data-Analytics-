@@ -31,14 +31,14 @@ export default function PitCrewRankings() {
     let cancelled = false
     setLoading(true)
     ;(async () => {
-      // green-flag 4-tire timed stops only = the crew-skill signal
+      // all timed 4-tire stops (green + caution): lower series pit mostly under yellow
       let all = [], from = 0
       for (;;) {
         const { data, error } = await supabase
           .from('pit_stops')
           .select('car_number, organization, driver_name, box_time')
           .eq('series', series).eq('year', SEASON)
-          .eq('green_flag', true).eq('tires_changed', 4)
+          .eq('tires_changed', 4)
           .not('box_time', 'is', null)
           .range(from, from + 999)
         if (error || !data) break
@@ -71,7 +71,7 @@ export default function PitCrewRankings() {
     <div style={wrap}>
       <h1 style={h1}>Pit Crew Rankings</h1>
       <p style={sub}>
-        Ranked by <strong>median green-flag 4-tire pit stop</strong> (box time, seconds) &mdash; lower is faster.
+        Ranked by <strong>median 4-tire pit stop</strong> (box time, seconds) &mdash; lower is faster.
         {' '}{SEASON} season, within series. Consistency = interquartile range of box times (lower = steadier).
         Crews with fewer than {MIN_STOPS} timed stops are hidden; a &ldquo;thin&rdquo; tag marks fewer than {LOWN}.
       </p>
@@ -90,7 +90,7 @@ export default function PitCrewRankings() {
       {loading ? (
         <p style={{ color: 'var(--text-secondary)' }}>Loading pit data\u2026</p>
       ) : sorted.length === 0 ? (
-        <p style={{ color: 'var(--text-secondary)' }}>No qualifying green-flag 4-tire stops yet for this series in {SEASON}.</p>
+        <p style={{ color: 'var(--text-secondary)' }}>No 4-tire stops yet for this series in {SEASON}.</p>
       ) : (
         <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 10 }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
