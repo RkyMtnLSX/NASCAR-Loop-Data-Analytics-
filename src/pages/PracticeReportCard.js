@@ -100,6 +100,28 @@ export default function PracticeReportCard({ isSubscriber }) {
           out = out.map(r => ({ ...r, car_number: r.car_number || m[nn(r.driver_name)] || null, qualifying_position: r.qualifying_position != null ? r.qualifying_position : (ms[nn(r.driver_name)] != null ? ms[nn(r.driver_name)] : null) }))
         }
       } catch (e2) {}
+      // 10/15/20-lap sustained averages from raw practice_laps (display only, falloff included)
+      try {
+        const { data: __pl } = await supabase.from('practice_laps')
+          .select('driver_name, lap_number, lap_time')
+          .eq('series', session.series).eq('year', session.year)
+          .eq('track_name', session.track_name).eq('session_number', session.session_number)
+        const __byDrv = {}
+        ;(__pl || []).forEach(l => { const k = l.driver_name; (__byDrv[k] = __byDrv[k] || []).push([+l.lap_number, +l.lap_time]) })
+        const __lapAvgs = (arr) => {
+          const laps = arr.filter(([n, tt]) => !isNaN(n) && !isNaN(tt) && tt > 10 && tt < 1200).sort((a, b) => a[0] - b[0])
+          const res = {}
+          if (!laps.length) return res
+          const stints = []; let cur = [laps[0]]
+          for (let i = 1; i < laps.length; i++) { if (laps[i][0] === laps[i - 1][0] + 1) cur.push(laps[i]); else { stints.push(cur); cur = [laps[i]] } }
+          stints.push(cur)
+          const longest = stints.slice().sort((a, b) => b.length - a.length || _avgArr(a) - _avgArr(b))[0] || []
+          function _avgArr(s) { const v = s.map(x => x[1]); return v.reduce((p, q) => p + q, 0) / v.length }
+          ;[10, 15, 20].forEach(N => { if (longest.length >= N) { const seg = longest.slice(0, N).map(x => x[1]); res['avg' + N] = seg.reduce((p, q) => p + q, 0) / seg.length } })
+          return res
+        }
+        out = out.map(r => ({ ...r, ...__lapAvgs(__byDrv[r.driver_name] || []) }))
+      } catch (e3) {}
       setRows(out)
       setLoading(false)
     }
@@ -198,14 +220,17 @@ export default function PracticeReportCard({ isSubscriber }) {
                   <th className="left">Driver</th>
                   {hasGroup && <th style={{ width: 60 }}>Group</th>}
                   <th className="th-tip" data-tip="Starting position for this race.">Start</th>
-                  <th className="th-tip" data-tip="Overall practice grade (percentile of the field), from Avg Pace 50% + Best 5 Laps 50% (v4, avg of 5 fastest laps; falls back to Best Lap on short sessions). On sessions with A/B practice groups, the ranking corrects for track-state differences between groups (a driver's speed is judged against what cars of his caliber ran in HIS group's conditions; 2026-07-16).">Grade</th>
+                  <th className="th-tip" data-tip="Overall practice grade — each car's practice performance ranked as a percentile of the field.">Grade</th>
                   <th className="th-tip" data-tip="Letter-aligned score: A+ 97-100, A 93-96.9 ... F 40-59.9. The session's top car is always 100.">Score</th>
                   <th className="th-tip" data-tip="Single fastest lap of the session - raw one-lap speed.">Best Lap</th>
                   <th className="th-tip" data-tip="Average of each run's average lap time - each run weighted equally, so one short outlier run can swing it. Lower is faster.">Avg Pace</th>
                   <th className="th-tip" data-tip="Simple average of every clean lap - each lap weighted equally, so a short outlier run barely moves it. Lower is faster.">All Laps</th>
                   <th className="th-tip" data-tip="Number of separate runs (stints) the driver made in the session."># Stints</th>
                   <th className="th-tip" data-tip="Length-weighted pace over runs of 10+ laps - worn-tire, long-run speed.">Long Run</th>
-                  <th className="th-tip" data-tip="Graded (clean) laps / total laps. Laps beyond 8% of the session median are excluded from grading.">Graded Laps</th>
+                   <th className="th-tip" data-tip="Average of the first 10 laps of the car's longest green run (raw pace, nothing removed).">10-Lap</th>
+                   <th className="th-tip" data-tip="Average of the first 15 laps of the car's longest green run (raw pace, nothing removed).">15-Lap</th>
+                   <th className="th-tip" data-tip="Average of the first 20 laps of the car's longest green run (raw pace, nothing removed).">20-Lap</th>
+                  <th className="th-tip" data-tip="Representative green-flag laps used in grading versus total laps run.">Graded Laps</th>
                 </tr>
               </thead>
               <tbody>
@@ -250,6 +275,9 @@ export default function PracticeReportCard({ isSubscriber }) {
                       <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>{d.overall_avg?.toFixed(3) || '-'}</td>
                       <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>{d.num_stints ?? '-'}</td>
                       <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>{d.long_run?.toFixed(3) || <span style={{ fontSize: '0.7rem', padding: '1px 5px', borderRadius: 4, background: '#4a3a12', color: '#e0b64f' }}>low conf</span>}</td>
+                       <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>{d.avg10 ? d.avg10.toFixed(3) : '-'}</td>
+                       <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>{d.avg15 ? d.avg15.toFixed(3) : '-'}</td>
+                       <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>{d.avg20 ? d.avg20.toFixed(3) : '-'}</td>
                       <td style={{ fontFamily: 'var(--font-mono)' }}>{(() => { let n = null; try { n = JSON.parse(d.notes || 'null') } catch (e) { n = null }
                         const gl = n && n.gl != null ? n.gl : null
                         return <span>{gl != null ? gl + '/' : ''}{d.total_laps ?? '-'}</span> })()}</td>
