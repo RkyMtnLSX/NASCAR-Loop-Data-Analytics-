@@ -14,6 +14,7 @@ import PracticeAudit      from './pages/PracticeAudit'
 import QualifyingAudit    from './pages/QualifyingAudit'
 import FastestLap         from './pages/FastestLap'
 import GreenFlagSpeed     from './pages/GreenFlagSpeed'
+import PitCrewRankings   from './pages/PitCrewRankings'
 import QualifyingCenter   from './pages/QualifyingCenter'
 import SimulationCenter   from './pages/SimulationCenter'
 import GradeCenter        from './pages/GradeCenter'
@@ -142,6 +143,7 @@ export default function App() {
         <Route path="/qualifying-audit"  element={<QualifyingAudit />} />
         <Route path="/fastest-laps"       element={<FastestLap />} />
             <Route path="/green-flag-speed"   element={<GreenFlagSpeed />} />
+          <Route path="/pit-crew-rankings"  element={<PitCrewRankings />} />
         <Route path="/qualifying"         element={<QualifyingCenter isSubscriber={isSubscriber} />} />
         <Route path="/simulation-center"  element={isAdmin ? <SimulationCenter isSubscriber={isSubscriber} /> : <AdminGate />} />
         <Route path="/grade-center"     element={isAdmin ? <GradeCenter /> : <AdminGate />} />
