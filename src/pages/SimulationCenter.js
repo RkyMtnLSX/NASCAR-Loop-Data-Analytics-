@@ -409,14 +409,25 @@ function runRaceSim(drivers, simConfig) {
   const posMatrix      = new Int16Array(numSims * n)
 
   for (let sim = 0; sim < numSims; sim++) {
-    const scored = drivers.map((d, i) => ({
-      i,
-      score: d.speedScore + gaussNoise() * noiseWidth,
-      dnf:   Math.random() < dnfRate,
-    }))
+    const scored = drivers.map((d, i) => {
+      let effLap = 0
+      const __ld = d.lapsDown || 0
+      if (__ld > 0) {
+        let __rec = 0
+        for (let __c = 0; __c < cautionPreset.value; __c++) if (Math.random() < 0.06) __rec++
+        effLap = Math.max(0, __ld - __rec)
+      }
+      return {
+        i,
+        score: d.speedScore + gaussNoise() * noiseWidth,
+        dnf:   Math.random() < dnfRate,
+        effLap,
+      }
+    })
 
     scored.sort((a, b) => {
       if (a.dnf !== b.dnf) return a.dnf ? 1 : -1
+      if (a.effLap !== b.effLap) return a.effLap - b.effLap
       return b.score - a.score
     })
 
@@ -596,6 +607,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
   const [lineupState, setLineupState]       = useState('none')
   const [weights, setWeights]               = useState(DEFAULT_WEIGHTS)
   const [rainOut, setRainOut] = useState(false)
+  const [lapsDownOverrides, setLapsDownOverrides] = useState({})
   const [cautionPreset, setCautionPreset]   = useState(CAUTION_PRESETS[1])
   const [dnfPreset, setDnfPreset]           = useState(DNF_PRESETS[1])
   const [numSims, setNumSims]               = useState(10000)
@@ -1006,8 +1018,9 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
         ...d,
         equipScale: eqOverrides[d.name] != null ? eqOverrides[d.name] : 1,
         startPos: rearOverrides[d.name] ? __rearPos : d.startPos,
+        lapsDown: lapsDownOverrides[d.name] || 0,
       })), __applyRainOut(weights, rainOut))
-    }, [rawDrivers, weights, rainOut, eqOverrides, rearOverrides]
+    }, [rawDrivers, weights, rainOut, eqOverrides, rearOverrides, lapsDownOverrides]
   )
 
   function handleLogin(e) {
@@ -1405,6 +1418,27 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
                       <option value="">+ send driver to rear...</option>
                       {withStart.map(d => <option key={d.name} value={d.name}>{d.name} (P{d.startPos})</option>)}
                       {noStart.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
+                    </select>
+                  </div>
+                </div>
+              )
+            })()}
+            {(() => {
+              const ldNames = Object.keys(lapsDownOverrides).filter(n => lapsDownOverrides[n] > 0)
+              const avail = rawDrivers.filter(d => !lapsDownOverrides[d.name]).sort((a, b) => (a.startPos || 999) - (b.startPos || 999))
+              return (
+                <div style={{ margin: '10px 0', padding: '10px 14px', border: '1px solid var(--border)', borderRadius: 6 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Laps down <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: 11 }}>(penalty / pass-through - finishes behind the lead lap; ~6%/caution to earn a lap back). Click the count to cycle 1/2/3.</span></div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                    {ldNames.map(n => (
+                      <span key={n} style={{ padding: '2px 10px', borderRadius: 999, border: '1px solid var(--border)', background: 'rgba(120,90,220,0.14)', color: '#b79cff', fontSize: 12 }}>
+                        {n} <span onClick={() => setLapsDownOverrides(o => ({ ...o, [n]: (o[n] % 3) + 1 }))} style={{ cursor: 'pointer', fontWeight: 700, margin: '0 4px' }}>{lapsDownOverrides[n]}L</span>
+                        <span onClick={() => setLapsDownOverrides(o => { const c = { ...o }; delete c[n]; return c })} style={{ cursor: 'pointer', fontWeight: 700 }}>x</span>
+                      </span>
+                    ))}
+                    <select value="" onChange={e => { const v = e.target.value; if (v) setLapsDownOverrides(o => ({ ...o, [v]: 2 })) }} style={{ padding: '4px 8px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text-secondary)', fontSize: 12 }}>
+                      <option value="">+ start a driver laps down...</option>
+                      {avail.map(d => <option key={d.name} value={d.name}>{d.name}{d.startPos ? ' (P' + d.startPos + ')' : ''}</option>)}
                     </select>
                   </div>
                 </div>
