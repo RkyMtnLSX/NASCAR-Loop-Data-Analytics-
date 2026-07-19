@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 
 const YEARS = ['2022', '2023', '2024', '2025', '2026']
-const TRACK_TYPES = ['All', 'Short & Flat Tracks', 'High-Banked Concrete', 'Superspeedway', 'Intermediate', 'Road Course'] // display groups (2026-07-15)
+const TRACK_TYPES = ['All', 'Short & Flat Tracks', 'High-Banked Concrete', 'Superspeedway', 'Intermediate', 'Road Course', 'All-Star'] // display groups (2026-07-15)
 const MEDAL = { 1: '\uD83E\uDD47', 2: '\uD83E\uDD48', 3: '\uD83E\uDD49' }
 const MEDAL_BG = { 1: 'rgba(255,215,0,0.15)', 2: 'rgba(192,192,192,0.15)', 3: 'rgba(205,127,50,0.15)' }
 const TRACK_TYPE_COLORS = { 'Short & Flat Tracks': '#2D6A4F', 'High-Banked Concrete': '#4A4E69', 'Short Track': '#2D6A4F', 'Superspeedway': '#6A0572', 'Intermediate': '#1B4F72', 'Road Course': '#7B3F00', 'Other': '#555' }
@@ -273,8 +273,9 @@ export default function FastestLap({ isSubscriber }) {
       if (err) throw err
       // Exclude exhibition races (Duels / Clash / All-Star / Open) - half-size fields, not comparable
       const cleanData = (data || []).filter(r => !/duel|clash|all.?star/i.test(r.race_name || ''))
+      const exhibData = (data || []).filter(r => /duel|clash|all.?star/i.test(r.race_name || ''))
       const dm = await __getDispMap(supabase)
-      const scoped = tt === 'All' ? cleanData : cleanData.filter(r => (dm[(r.track || '').replace(/\s*\([^)]*\)\s*$/, '').trim()] || __LEGACY_TYPE_GROUP[r.track_type] || 'Other') === tt)
+      const scoped = tt === 'All-Star' ? exhibData : tt === 'All' ? cleanData : cleanData.filter(r => (dm[(r.track || '').replace(/\s*\([^)]*\)\s*$/, '').trim()] || __LEGACY_TYPE_GROUP[r.track_type] || 'Other') === tt)
       setAllRows(scoped)
       const seen = new Set(); const raceList = []
       ;scoped.forEach(r => { const key=r.race_name+'|'+r.race_date; if(!seen.has(key)){seen.add(key);raceList.push({name:r.race_name,date:r.race_date})} })
