@@ -63,13 +63,22 @@ export default function PitCrewRankings() {
       const crews = {}
       all.forEach((r) => {
         const key = r.car_number + '|' + (r.organization || '?')
-        ;(crews[key] = crews[key] || { car: r.car_number, org: r.organization, driver: r.driver_name, t: [] }).t.push(+r.box_time)
-        crews[key].driver = r.driver_name || crews[key].driver
+        const c = (crews[key] = crews[key] || { car: r.car_number, org: r.organization, dc: {}, t: [] })
+        c.t.push(+r.box_time)
+        const dn = (r.driver_name || '').trim()
+        if (dn) c.dc[dn] = (c.dc[dn] || 0) + 1
       })
+      // crew = car + team, so a rotating driver lineup stays ONE crew. Normalize name
+      // markers (leading *, trailing (i)/#) so one driver is not miscounted as several.
+      const cleanName = (n) => n.replace(/^\*\s*/, '').replace(/\s*\(i\)\s*$/i, '').replace(/\s*#\s*$/, '').trim().toLowerCase()
       const out = Object.values(crews).filter((c) => c.t.length >= MIN_STOPS).map((c) => {
         const b = [...c.t].sort((a, b) => a - b)
         const q1 = b[Math.floor(b.length * 0.25)], q3 = b[Math.floor(b.length * 0.75)]
-        return { car: c.car, org: c.org, driver: c.driver, median: median(c.t), iqr: q3 - q1, n: c.t.length }
+        const names = Object.keys(c.dc)
+        const distinct = new Set(names.map(cleanName))
+        const rotating = distinct.size > 1
+        const driver = rotating ? 'Rotating' : (names.sort((a, b) => c.dc[b] - c.dc[a])[0] || '')
+        return { car: c.car, org: c.org, driver: driver, rotating: rotating, median: median(c.t), iqr: q3 - q1, n: c.t.length }
       })
       setRows(out)
       setLoading(false)
@@ -136,7 +145,7 @@ export default function PitCrewRankings() {
                   <td style={{ ...td('center'), fontWeight: 700 }}>{MEDAL[i] || (i + 1)}</td>
                   <td style={td('left')}><CarNum car={c.car} series={series} /></td>
                   <td style={td('left')}>{c.org || '\u2014'}</td>
-                  <td style={{ ...td('left'), color: 'var(--text-secondary)' }}>{c.driver || '\u2014'}</td>
+                  <td style={{ ...td('left'), color: 'var(--text-secondary)', fontStyle: c.rotating ? 'italic' : 'normal' }}>{c.driver || '\u2014'}</td>
                   <td style={{ ...td('center'), fontWeight: 700 }}>{c.median.toFixed(2)}</td>
                   <td style={{ ...td('center'), color: 'var(--text-secondary)' }}>{c.iqr.toFixed(2)}</td>
                   <td style={td('center')}>
