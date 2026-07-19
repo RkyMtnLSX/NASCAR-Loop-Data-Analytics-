@@ -6,6 +6,7 @@ const MIN_STOPS = 3        // crews with fewer timed stops are hidden (too noisy
 const LOWN = 5             // below this, sample is flagged as thin
 const SERIES = [{ v: 'cup', label: 'Cup' }, { v: 'oreilly', label: "O'Reilly" }, { v: 'trucks', label: 'Trucks' }]
 const SERIES_COLOR = { cup: 'var(--series-cup)', oreilly: 'var(--series-oreilly)', trucks: 'var(--series-trucks)' }
+const DRIVER_OVERRIDE = { cup: { '33': 'Austin Hill' } }  // full-time driver; pin name, ignore rotating detection
 const MEDAL = { 0: '\uD83E\uDD47', 1: '\uD83E\uDD48', 2: '\uD83E\uDD49' }
 const __CAR_ALIAS = { '133': '33' }
 
@@ -76,8 +77,9 @@ export default function PitCrewRankings() {
         const q1 = b[Math.floor(b.length * 0.25)], q3 = b[Math.floor(b.length * 0.75)]
         const names = Object.keys(c.dc)
         const distinct = new Set(names.map(cleanName))
-        const rotating = distinct.size > 1
-        const driver = rotating ? 'Rotating' : (names.sort((a, b) => c.dc[b] - c.dc[a])[0] || '')
+        const ov = (DRIVER_OVERRIDE[series] || {})[c.car]
+        const rotating = ov ? false : distinct.size > 1
+        const driver = ov || (rotating ? 'Rotating' : (names.sort((a, b) => c.dc[b] - c.dc[a])[0] || ''))
         return { car: c.car, org: c.org, driver: driver, rotating: rotating, median: median(c.t), iqr: q3 - q1, n: c.t.length }
       })
       setRows(out)
