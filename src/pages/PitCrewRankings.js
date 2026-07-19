@@ -20,7 +20,7 @@ function CarNum({ car, series }) {
   return (
     <img src={dir + (__CAR_ALIAS[String(car)] || car) + '.png'} alt={'#' + car}
       style={{ height: 22, marginRight: 8, verticalAlign: 'middle' }}
-      onError={(e) => { const t = e.target; if (!t.dataset.retried) { t.dataset.retried = '1'; t.src = t.src + (t.src.indexOf('?') >= 0 ? '&r=' : '?r=') + Date.now() } else { t.style.display = 'none' } }} />
+      onError={(e) => { const t = e.target; if (!t.dataset.retried) { t.dataset.retried = '1'; t.src = t.src + (t.src.indexOf('?') >= 0 ? '&r=' : '?r=') + Date.now() } else { const s = document.createElement('span'); s.textContent = t.alt; s.style.fontWeight = '700'; t.replaceWith(s) } }} />
   )
 }
 
@@ -125,12 +125,7 @@ export default function PitCrewRankings() {
               {sorted.map((c, i) => (
                 <tr key={c.car + c.org} style={{ background: i % 2 ? 'transparent' : 'var(--bg-elevated)' }}>
                   <td style={{ ...td('center'), fontWeight: 700 }}>{MEDAL[i] || (i + 1)}</td>
-                  <td style={td('left')}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center' }}>
-                      <CarNum car={c.car} series={series} />
-                      <span style={{ fontWeight: 700 }}>#{c.car}</span>
-                    </span>
-                  </td>
+                  <td style={td('left')}><CarNum car={c.car} series={series} /></td>
                   <td style={td('left')}>{c.org || '\u2014'}</td>
                   <td style={{ ...td('left'), color: 'var(--text-secondary)' }}>{c.driver || '\u2014'}</td>
                   <td style={{ ...td('center'), fontWeight: 700 }}>{c.median.toFixed(2)}</td>
