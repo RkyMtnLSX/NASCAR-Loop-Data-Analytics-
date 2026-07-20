@@ -1041,7 +1041,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
   // one before the race IS the closing line (operator re-sims up to green flag). Grade Center computes
   // CLV from published-board odds vs the final snapshot. Debounced 4s, deduped by content hash.
   const __betYear = (config && config.race_year) || new Date().getFullYear()
-  const __betRace = raceNumMap[series] ? parseInt(raceNumMap[series]) : null
+  const __betRace = raceNumMap[series] ? parseInt(raceNumMap[series]) : ((config && config.race_number) ? parseInt(config.race_number) : null)
   const __betTrack = (config && config.track_name) || null
   async function loadMyBets() {
     if (!__betRace) { setMyBets([]); return }
@@ -1051,10 +1051,14 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadMyBets() }, [series, __betYear, __betRace])
   async function addMyBet() {
-    if (!betForm.driver || betForm.odds === '' || !__betRace) return
-    await supabase.from('my_bets').insert({ series, race_year: __betYear, race_number: __betRace, track_name: __betTrack, driver_name: betForm.driver, market: betForm.market, odds: parseInt(betForm.odds), stake: betForm.stake ? parseFloat(betForm.stake) : null })
-    setBetForm({ driver: '', market: 'win', odds: '', stake: '' })
-    loadMyBets()
+    if (!betForm.driver || betForm.odds === '') { alert('Pick a driver and enter odds.'); return }
+    if (!__betRace) { alert('No race loaded - run or publish a sim for this race first, then log the bet.'); return }
+    try {
+      const { error } = await supabase.from('my_bets').insert({ series, race_year: __betYear, race_number: __betRace, track_name: __betTrack, driver_name: betForm.driver, market: betForm.market, odds: parseInt(betForm.odds), stake: betForm.stake ? parseFloat(betForm.stake) : null })
+      if (error) { alert('Save failed: ' + error.message); return }
+      setBetForm({ driver: '', market: 'win', odds: '', stake: '' })
+      loadMyBets()
+    } catch (e2) { alert('Save failed: ' + (e2 && e2.message ? e2.message : e2)) }
   }
   async function delMyBet(id) { await supabase.from('my_bets').delete().eq('id', id); setMyBets(bs => bs.filter(b => b.id !== id)) }
   const __snapHash = React.useRef('')
