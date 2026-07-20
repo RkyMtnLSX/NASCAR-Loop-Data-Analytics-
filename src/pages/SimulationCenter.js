@@ -1076,10 +1076,10 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
           ;['win', 't3', 't5', 't10'].forEach(mk => {
             const m = mvSnap[nm] && mvSnap[nm][mk]
             if (!m) return
-            ;['dk', 'fd', 'hr'].forEach(bk => { if (m[bk] != null) rows.push({ series: series, track_name: config.track_name, race_year: config.race_year || new Date().getFullYear(), race_number: raceNumMap[series] ? parseInt(raceNumMap[series]) : null, driver_name: nm, market: mk, book: bk, odds: m[bk] }) })
+            ;['dk', 'fd', 'hr'].forEach(bk => { if (m[bk] != null) rows.push({ series: series, track_name: config.track_name, race_year: config.race_year || new Date().getFullYear(), race_number: raceNumMap[series] ? parseInt(raceNumMap[series]) : null, driver_name: nm, market: mk, book: bk, odds: m[bk], ev: m.ev, mev: m.mev, medge: m.medge, best_price: m.best, best_book: m.bb }) })
           })
         })
-        if (rows.length >= 10) { await supabase.from('odds_snapshots').insert(rows); __snapHash.current = h }
+        if (rows.length >= 10) { { const { error: __oe } = await supabase.from('odds_snapshots').insert(rows); if (__oe) { await supabase.from('odds_snapshots').insert(rows.map(({ ev, mev, medge, best_price, best_book, ...__r }) => __r)) } }; __snapHash.current = h }
       } catch (e) {}
     }, 4000)
     return () => clearTimeout(tmr)
