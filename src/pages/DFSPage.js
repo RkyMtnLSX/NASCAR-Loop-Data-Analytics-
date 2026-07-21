@@ -1,33 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 
-const ADMIN_PASSWORD = process.env.REACT_APP_ADMIN_PASSWORD
 const SERIES = [{ v: 'cup', label: 'Cup' }, { v: 'oreilly', label: "O'Reilly" }, { v: 'trucks', label: 'Trucks' }]
 const CAP = 50000
 const ROSTER = 6
-
-const norm = (s) => (s || '').toString().toLowerCase().replace(/[^a-z ]/g, '').replace(/\s+/g, ' ').trim()
-
-function parseSalaries(text, drivers) {
-  const lines = (text || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean)
-  const out = {}, unmatched = []
-  const byNorm = {}, byLast = {}
-  drivers.forEach(d => { const n = norm(d.name); byNorm[n] = d.name; const p = n.split(' '); if (p.length) byLast[p[p.length - 1]] = d.name })
-  lines.forEach(line => {
-    let name = null, sal = null
-    const cells = line.includes(',') ? line.split(',') : line.split(/\t/)
-    if (cells.length > 1) {
-      for (const cell of cells) { const m = cell.replace(/[$,\s]/g, '').match(/^\d{4,5}$/); if (m) { const v = +m[0]; if (v >= 2000 && v <= 20000) { sal = v; break } } }
-      for (const cell of cells) { const nc = norm(cell.replace(/\(.*\)/, '')); if (byNorm[nc]) { name = byNorm[nc]; break } }
-    }
-    if (sal === null) { const nums = line.replace(/[$,]/g, '').match(/\b\d{4,5}\b/g) || []; for (const x of nums) { const v = +x; if (v >= 2000 && v <= 20000) { sal = v; break } } }
-    if (!name) { const nl = norm(line); for (const d of drivers) { if (nl.indexOf(norm(d.name)) >= 0) { name = d.name; break } } }
-    if (!name) { const nl = norm(line); for (const last in byLast) { if (last.length > 2 && new RegExp('\\b' + last + '\\b').test(nl)) { name = byLast[last]; break } } }
-    if (name && sal) out[name] = sal
-    else if (sal && !name) unmatched.push(line.slice(0, 44))
-  })
-  return { out, unmatched }
-}
 
 function optimize(pool, locks, excludes, K) {
   const usable = pool.filter(d => d.sal > 0 && d.projDK > 0 && !excludes.has(d.name))
@@ -75,50 +51,73 @@ function applyExposure(ranked, want, maxExp) {
   return picked
 }
 
+function bestLineup(pool) {
+  const usable = pool.filter(d => d.sal > 0 && d.val > 0)
+  if (usable.length < ROSTER) return null
+  const cand = usable.sort((a, b) => b.val - a.val)
+  const m = cand.length
+  let best = null, bestVal = -Infinity
+  const topRSum = (i, r) => { let s = 0, c = 0; for (let j = i; j < m && c < r; j++) { s += cand[j].val; c++ } return s }
+  const chosen = []
+  function dfs(start, cnt, sal, val) {
+    if (cnt === ROSTER) { if (val > bestVal) { bestVal = val; best = chosen.slice() } return }
+    const rem = ROSTER - cnt
+    for (let i = start; i <= m - rem; i++) {
+      const d = cand[i]
+      if (sal + d.sal > CAP) continue
+      if (val + topRSum(i, rem) <= bestVal) break
+      chosen.push(i); dfs(i + 1, cnt + 1, sal + d.sal, val + d.val); chosen.pop()
+    }
+  }
+  dfs(0, 0, 0, 0)
+  return best ? best.map(i => cand[i].name) : null
+}
+
 export default function DFSPage() {
   const [series, setSeries] = useState('cup')
   const [race, setRace] = useState(null)
   const [drivers, setDrivers] = useState([])
   const [salaries, setSalaries] = useState({})
+  const [samples, setSamples] = useState(null)
   const [loading, setLoading] = useState(false)
-  const [authed, setAuthed] = useState(false)
-  const [pw, setPw] = useState('')
-  const [authErr, setAuthErr] = useState('')
-  const [paste, setPaste] = useState('')
-  const [pasteMsg, setPasteMsg] = useState('')
-  const [saveMsg, setSaveMsg] = useState('')
   const [locks, setLocks] = useState(() => new Set())
   const [excludes, setExcludes] = useState(() => new Set())
   const [numLineups, setNumLineups] = useState(20)
   const [maxExp, setMaxExp] = useState(1)
   const [lineups, setLineups] = useState([])
+  const [optPct, setOptPct] = useState({})
   const [building, setBuilding] = useState(false)
+  const [note, setNote] = useState('')
   const [sortKey, setSortKey] = useState('value')
   const [sortDir, setSortDir] = useState('desc')
 
   useEffect(() => {
     let alive = true
-    setLoading(true); setLineups([]); setLocks(new Set()); setExcludes(new Set()); setSalaries({}); setSaveMsg(''); setPasteMsg('')
+    setLoading(true); setLineups([]); setOptPct({}); setLocks(new Set()); setExcludes(new Set()); setSalaries({}); setSamples(null); setNote('')
     ;(async () => {
-      const { data } = await supabase.from('sim_results').select('track_name,race_year,race_number,results,published_at').eq('series', series).order('id', { ascending: false }).limit(1)
+      const { data } = await supabase.from('sim_results').select('track_name,race_year,race_number,results').eq('series', series).order('id', { ascending: false }).limit(1)
       if (!alive) return
       const row = data && data[0]
       if (!row) { setDrivers([]); setRace(null); setLoading(false); return }
-      const r = { track: row.track_name, year: row.race_year, rn: row.race_number, at: row.published_at }
+      const r = { track: row.track_name, year: row.race_year, rn: row.race_number }
       setRace(r)
       const ds = (row.results || []).map(d => ({
-        name: d.driver_name, car: d.car_number, mfr: d.manufacturer, org: d.organization,
+        name: d.driver_name, car: d.car_number, mfr: d.manufacturer,
         projDK: +d.proj_dk || 0, projFinish: +d.proj_finish || 0, winPct: +d.win_pct || 0,
-        top5: +d.top5_pct || 0, lapsLed: +d.laps_led || 0, avgFast: +d.avg_fast_laps || 0,
-        p25: +d.finish_p25 || 0, startPos: +d.start_pos || 0
+        lapsLed: +d.laps_led || 0, avgFast: +d.avg_fast_laps || 0, startPos: +d.start_pos || 0
       })).filter(d => d.name)
       setDrivers(ds)
       let q = supabase.from('dfs_salaries').select('salaries').eq('series', series).eq('race_year', r.year)
       q = r.rn != null ? q.eq('race_number', r.rn) : q.is('race_number', null)
       const { data: sd } = await q.order('updated_at', { ascending: false }).limit(1)
-      if (!alive) return
-      if (sd && sd[0] && sd[0].salaries) setSalaries(sd[0].salaries)
-      setLoading(false)
+      if (alive && sd && sd[0] && sd[0].salaries) setSalaries(sd[0].salaries)
+      try {
+        let sq = supabase.from('dfs_sim_samples').select('drivers,samples').eq('series', series).eq('race_year', r.year)
+        sq = r.rn != null ? sq.eq('race_number', r.rn) : sq.is('race_number', null)
+        const { data: samp } = await sq.order('id', { ascending: false }).limit(1)
+        if (alive && samp && samp[0] && samp[0].drivers) setSamples({ drivers: samp[0].drivers, rows: samp[0].samples || [] })
+      } catch (e) { /* samples table optional */ }
+      if (alive) setLoading(false)
     })()
     return () => { alive = false }
   }, [series])
@@ -126,8 +125,8 @@ export default function DFSPage() {
   const rows = useMemo(() => drivers.map(d => {
     const sal = salaries[d.name] || 0
     const value = sal > 0 ? d.projDK / (sal / 1000) : 0
-    return { ...d, sal, value }
-  }), [drivers, salaries])
+    return { ...d, sal, value, opt: optPct[d.name] || 0 }
+  }), [drivers, salaries, optPct])
 
   const sorted = useMemo(() => {
     const arr = rows.slice()
@@ -141,35 +140,28 @@ export default function DFSPage() {
   }, [lineups])
 
   const salCount = Object.values(salaries).filter(v => v > 0).length
-  const login = (e) => { e.preventDefault(); if (pw === ADMIN_PASSWORD && ADMIN_PASSWORD) { setAuthed(true); setAuthErr('') } else setAuthErr('Incorrect password') }
-  const setSal = (name, val) => setSalaries(s => ({ ...s, [name]: val === '' ? 0 : Math.round(+val) || 0 }))
+  const canBuild = salCount >= ROSTER
   const toggle = (setFn, name) => setFn(prev => { const n = new Set(prev); n.has(name) ? n.delete(name) : n.add(name); return n })
-  const doPaste = () => {
-    const { out, unmatched } = parseSalaries(paste, drivers)
-    setSalaries(s => ({ ...s, ...out }))
-    const n = Object.keys(out).length
-    setPasteMsg('Matched ' + n + ' driver' + (n === 1 ? '' : 's') + '.' + (unmatched.length ? ' Unmatched rows: ' + unmatched.length + ' (edit manually below).' : ''))
-  }
-  const saveSalaries = async () => {
-    if (!race) return
-    setSaveMsg('Saving\u2026')
-    try {
-      let del = supabase.from('dfs_salaries').delete().eq('series', series).eq('race_year', race.year)
-      del = race.rn != null ? del.eq('race_number', race.rn) : del.is('race_number', null)
-      await del
-      const { error } = await supabase.from('dfs_salaries').insert({ series, race_year: race.year, race_number: race.rn, track_name: race.track, salaries })
-      if (error) setSaveMsg('Save failed: ' + error.message)
-      else setSaveMsg('Saved ' + salCount + ' salaries. Live for everyone.')
-    } catch (e) { setSaveMsg('Save failed: ' + (e.message || e)) }
-  }
   const build = () => {
-    setBuilding(true); setLineups([])
+    setBuilding(true); setLineups([]); setNote('')
     setTimeout(() => {
       const pool = rows.map(r => ({ name: r.name, car: r.car, sal: r.sal, projDK: r.projDK }))
       const K = Math.min(500, Math.max(numLineups * 6, 60))
       const res = optimize(pool, locks, excludes, K)
-      if (res.error) { setSaveMsg(res.error); setBuilding(false); return }
+      if (res.error) { setNote(res.error); setBuilding(false); return }
       setLineups(applyExposure(res.lineups, numLineups, maxExp))
+      if (samples && samples.drivers && samples.rows && samples.rows.length) {
+        const cnt = {}, nS = samples.rows.length
+        const salByIdx = samples.drivers.map(nm => salaries[nm] || 0)
+        for (let s = 0; s < nS; s++) {
+          const rowS = samples.rows[s], p = []
+          for (let j = 0; j < samples.drivers.length; j++) { const sal = salByIdx[j]; if (sal > 0) p.push({ name: samples.drivers[j], sal, val: rowS[j] }) }
+          const lu = bestLineup(p)
+          if (lu) lu.forEach(nm => { cnt[nm] = (cnt[nm] || 0) + 1 })
+        }
+        const op = {}; Object.keys(cnt).forEach(nm => { op[nm] = cnt[nm] / nS * 100 })
+        setOptPct(op)
+      }
       setBuilding(false)
     }, 30)
   }
@@ -181,7 +173,6 @@ export default function DFSPage() {
     </th>
   )
   const card = { background: 'var(--card,#16181d)', border: '1px solid var(--border,#2a2d34)', borderRadius: 10, padding: 16, marginBottom: 16 }
-  const canBuild = salCount >= ROSTER
 
   return (
     <div className="page" style={{ maxWidth: 1180, margin: '0 auto', padding: '18px 16px 60px' }}>
@@ -201,41 +192,9 @@ export default function DFSPage() {
       </div>
 
       {loading && <div style={{ color: 'var(--text-secondary,#9aa0aa)' }}>Loading projections\u2026</div>}
-      {!loading && !drivers.length && <div style={card}>No published simulation found for this series yet. Publish a sim in the Sim Center first.</div>}
+      {!loading && !drivers.length && <div style={card}>No published simulation found for this series yet.</div>}
 
       {!loading && drivers.length > 0 && <>
-        <div style={card}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-            <div>
-              <strong>Salaries</strong>{' '}
-              <span style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 13 }}>
-                {salCount > 0 ? salCount + ' of ' + drivers.length + ' posted' : 'not posted yet'}
-              </span>
-            </div>
-            {!authed && (
-              <form onSubmit={login} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <input type="password" value={pw} onChange={e => setPw(e.target.value)} placeholder="Admin"
-                  style={{ width: 120, background: 'var(--bg,#0e0f13)', color: 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 6, padding: '5px 7px', fontSize: 12 }} />
-                <button type="submit" style={{ padding: '5px 10px', borderRadius: 6, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: 'transparent', color: 'var(--text-secondary,#9aa0aa)', fontSize: 12 }}>Unlock</button>
-                {authErr && <span style={{ color: 'var(--accent,#e11d2a)', fontSize: 12 }}>{authErr}</span>}
-              </form>
-            )}
-            {authed && <span style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 12 }}>Admin mode</span>}
-          </div>
-
-          {authed && <div style={{ marginTop: 12, borderTop: '1px solid var(--border,#22252b)', paddingTop: 12 }}>
-            <textarea value={paste} onChange={e => setPaste(e.target.value)} placeholder="Paste the DraftKings salary CSV (or any Name, Salary rows) here\u2026"
-              style={{ width: '100%', minHeight: 84, background: 'var(--bg,#0e0f13)', color: 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 8, padding: 8, fontFamily: 'monospace', fontSize: 12 }} />
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
-              <button onClick={doPaste} style={{ padding: '6px 14px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: 'transparent', color: 'var(--text,#e8eaed)' }}>Import from paste</button>
-              <button onClick={saveSalaries} style={{ padding: '6px 14px', borderRadius: 8, cursor: 'pointer', border: 'none', background: 'var(--accent,#e11d2a)', color: '#fff', fontWeight: 600 }}>Save salaries to site</button>
-              {pasteMsg && <span style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 12 }}>{pasteMsg}</span>}
-              {saveMsg && <span style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 12 }}>{saveMsg}</span>}
-            </div>
-            <div style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 11, marginTop: 6 }}>Edit any salary directly in the table below, then Save.</div>
-          </div>}
-        </div>
-
         <div style={card}>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 12 }}>
             <label style={{ fontSize: 13 }}>Lineups<br /><input type="number" value={numLineups} min={1} max={150} onChange={e => setNumLineups(Math.max(1, Math.min(150, +e.target.value || 1)))} style={{ width: 70, marginTop: 4, background: 'var(--bg,#0e0f13)', color: 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 6, padding: '5px 7px' }} /></label>
@@ -245,14 +204,15 @@ export default function DFSPage() {
             <button onClick={build} disabled={building || !canBuild} style={{ padding: '8px 18px', borderRadius: 8, cursor: building || !canBuild ? 'not-allowed' : 'pointer', border: 'none', background: !canBuild ? 'var(--border,#2a2d34)' : 'var(--accent,#e11d2a)', color: '#fff', fontWeight: 600 }}>
               {building ? 'Building\u2026' : 'Build lineups'}
             </button>
-            <span style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 12 }}>{canBuild ? 'Cap $50,000 \u00b7 6 drivers \u00b7 use Lock/Excl to steer' : 'Salaries not posted yet'}</span>
+            <span style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 12 }}>{canBuild ? 'Cap $50,000 \u00b7 6 drivers \u00b7 Lock/Excl to steer' + (samples ? ' \u00b7 Optimal% from ' + samples.rows.length + ' sims' : '') : 'Salaries not posted yet'}</span>
+            {note && <span style={{ color: 'var(--accent,#e11d2a)', fontSize: 12 }}>{note}</span>}
           </div>
 
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead><tr style={{ color: 'var(--text-secondary,#9aa0aa)' }}>
                 <th style={{ padding: '7px 8px', textAlign: 'left' }}>Lock/Excl</th>
-                {th('name', 'Driver', 'left')}{th('sal', 'Salary')}{th('projDK', 'Proj DK')}{th('value', 'Value')}
+                {th('name', 'Driver', 'left')}{th('sal', 'Salary')}{th('projDK', 'Proj DK')}{th('value', 'Value')}{th('opt', 'Optimal%')}
                 {th('winPct', 'Win%')}{th('lapsLed', 'Laps Led')}{th('avgFast', 'Fast Laps')}{th('projFinish', 'Proj Fin')}
                 <th style={{ padding: '7px 8px', textAlign: 'right' }}>Expo</th>
               </tr></thead>
@@ -260,6 +220,7 @@ export default function DFSPage() {
                 {sorted.map(d => {
                   const locked = locks.has(d.name), excl = excludes.has(d.name)
                   const vBg = d.value >= 4 ? 'rgba(46,160,67,0.28)' : d.value >= 3 ? 'rgba(46,160,67,0.14)' : 'transparent'
+                  const oBg = d.opt >= 30 ? 'rgba(232,185,35,0.3)' : d.opt >= 12 ? 'rgba(232,185,35,0.15)' : 'transparent'
                   return (
                     <tr key={d.name} style={{ borderBottom: '1px solid var(--border,#22252b)', opacity: excl ? 0.4 : 1 }}>
                       <td style={{ padding: '4px 8px', whiteSpace: 'nowrap' }}>
@@ -267,13 +228,10 @@ export default function DFSPage() {
                         <button onClick={() => toggle(setExcludes, d.name)} title="Exclude" style={{ padding: '2px 7px', borderRadius: 5, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: excl ? '#555' : 'transparent', color: '#fff' }}>X</button>
                       </td>
                       <td style={{ padding: '4px 8px', textAlign: 'left', whiteSpace: 'nowrap' }}>{d.car ? '#' + d.car + ' ' : ''}{d.name}</td>
-                      <td style={{ padding: '4px 8px', textAlign: 'right' }}>
-                        {authed
-                          ? <input value={d.sal || ''} onChange={e => setSal(d.name, e.target.value)} placeholder="\u2014" style={{ width: 62, textAlign: 'right', background: 'var(--bg,#0e0f13)', color: 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 5, padding: '3px 5px' }} />
-                          : <span>{d.sal ? '$' + d.sal.toLocaleString() : '\u2014'}</span>}
-                      </td>
+                      <td style={{ padding: '4px 8px', textAlign: 'right' }}>{d.sal ? '$' + d.sal.toLocaleString() : '\u2014'}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right', fontWeight: 600 }}>{d.projDK.toFixed(1)}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right', background: vBg, fontWeight: 600 }}>{d.value ? d.value.toFixed(2) : '\u2014'}</td>
+                      <td style={{ padding: '4px 8px', textAlign: 'right', background: oBg }}>{d.opt ? d.opt.toFixed(1) + '%' : '\u2014'}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right' }}>{d.winPct.toFixed(1)}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right' }}>{d.lapsLed.toFixed(0)}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right' }}>{d.avgFast.toFixed(0)}</td>
