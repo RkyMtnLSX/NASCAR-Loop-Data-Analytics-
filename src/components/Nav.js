@@ -16,7 +16,6 @@ const LOOP_LINKS = [
 
 const SIM_LINKS = [
   { path: '/sim-results',       label: 'Sim Results' },
-  { path: '/dfs', label: 'DFS Optimizer' },
 ]
 
 export default function Nav({ isAdmin, onAdminClick }) {
@@ -132,6 +131,10 @@ export default function Nav({ isAdmin, onAdminClick }) {
             </button>
             <Dropdown links={SIM_LINKS} open={simOpen} />
           </div>
+
+          <Link to="/dfs" style={linkStyle(location.pathname === '/dfs')}>
+            DFS Center
+          </Link>
 
         </div>
 
