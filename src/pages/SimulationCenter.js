@@ -407,6 +407,9 @@ function runRaceSim(drivers, simConfig) {
 
   const sumFinish      = new Float64Array(n)
   const sumDK          = new Float64Array(n)
+  const SAMPLE_TARGET = 1000
+  const sampleStride = Math.max(1, Math.floor(numSims / SAMPLE_TARGET))
+  const dkSamples = []
   const sumLapsLed     = new Float64Array(n)
   const sumFastLaps    = new Int32Array(n)
   const dfCnt          = new Int32Array(n)
@@ -461,12 +464,16 @@ function runRaceSim(drivers, simConfig) {
       active.forEach((s, r) => { const fl = r === active.length - 1 ? remFL : Math.round(flw[r] / flWt * totalRaceLaps); simFastLaps[s.i] = Math.max(0, Math.min(fl, remFL)); remFL -= simFastLaps[s.i]; sumFastLaps[s.i] += simFastLaps[s.i] })
     }
 
+    const __srow = (sim % sampleStride === 0 && dkSamples.length < SAMPLE_TARGET) ? new Array(n).fill(0) : null
     scored.forEach(s => {
-      const finPos   = simPos[s.i]
-      const startPos = drivers[s.i].startPos || finPos
-      const ll       = simLL[s.i]
-      sumDK[s.i] += dkFinishPts(finPos) + (startPos - finPos) + (ll * 0.25) + (simFastLaps[s.i] * 0.45)
+      const finPos = simPos[s.i]
+      const startPos = drivers[s.i].startPos ?? finPos
+      const ll = simLL[s.i]
+      const __dk = dkFinishPts(finPos) + (startPos - finPos) + (ll * 0.25) + (simFastLaps[s.i] * 0.45)
+      sumDK[s.i] += __dk
+      if (__srow) __srow[s.i] = Math.round(__dk)
     })
+    if (__srow) dkSamples.push(__srow)
   }
 
   const __rows = drivers.map((d, i) => {
@@ -510,6 +517,8 @@ function runRaceSim(drivers, simConfig) {
   }).sort((a, b) => b.projDK - a.projDK)
   __rows.posMatrix = posMatrix
   __rows.simN = numSims
+  __rows.__dkSamples = dkSamples
+  __rows.__sampleDrivers = drivers.map(d => d.name)
   return __rows
 }
 
@@ -1147,7 +1156,16 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
     }
     await supabase.from('sim_results').delete().eq('series', series).eq('stage', simStage)
     const { error } = await supabase.from('sim_results').insert(payload)
-    if (!error) setPublished(true)
+    if (!error) {
+      try {
+        const __samp = simResults.__dkSamples, __sdrv = simResults.__sampleDrivers
+        if (__samp && __samp.length && __sdrv) {
+          await supabase.from('dfs_sim_samples').delete().eq('series', series).eq('race_year', payload.race_year).eq('race_number', payload.race_number)
+          await supabase.from('dfs_sim_samples').insert({ series, race_year: payload.race_year, race_number: payload.race_number, track_name: payload.track_name, drivers: __sdrv, samples: __samp })
+        }
+      } catch (e) {}
+      setPublished(true)
+    }
     else alert('Publish failed: ' + error.message)
   }
 
