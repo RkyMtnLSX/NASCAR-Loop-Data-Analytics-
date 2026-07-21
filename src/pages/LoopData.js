@@ -18,6 +18,7 @@ const TRACK_ABBR = {
 'Pocono Raceway': 'POC',
 'Indianapolis Motor Speedway': 'IND',
 'Indianapolis Grand Prix Circuit': 'Indy GP',
+  'Lucas Oil Indianapolis Raceway Park': 'IRP',
 'Kansas Speedway': 'KAN',
 'Nashville Superspeedway': 'NSS',
 'New Hampshire Motor Speedway': 'NH',
