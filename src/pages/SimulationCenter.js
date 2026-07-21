@@ -161,6 +161,9 @@ function dkFinishPts(pos) {
   return pos <= 40 ? table[pos] : 0
 }
 
+const LL_FIN_CURVE = [0.313,0.106,0.07,0.058,0.048,0.034,0.03,0.022,0.019,0.017,0.015,0.013,0.011,0.01,0.01,0.011,0.013,0.012,0.01,0.008,0.008,0.009,0.01,0.011,0.01,0.008,0.009,0.009,0.01,0.009,0.009,0.008,0.007,0.007,0.008,0.008,0.006,0.003,0.006,0.008]
+const FL_FIN_CURVE = [0.19,0.098,0.069,0.057,0.049,0.038,0.034,0.027,0.025,0.022,0.02,0.019,0.017,0.016,0.016,0.015,0.015,0.014,0.013,0.012,0.012,0.013,0.013,0.013,0.014,0.013,0.013,0.013,0.013,0.014,0.014,0.012,0.011,0.01,0.011,0.01,0.008,0.007,0.008,0.008]
+
 function normalizeArr(values, lowerIsBetter = false) {
   const valid = values.filter(v => v != null && !isNaN(v))
   if (valid.length < 2) return values.map(v => (v == null ? null : 50))
@@ -397,7 +400,7 @@ function runRaceSim(drivers, simConfig) {
   const { numSims, cautionPreset, dnfRate, totalRaceLaps } = simConfig
   const noiseWidth = cautionPreset.noise
   const chaosFactor = Math.min(0.85, cautionPreset.value / 20)
-  const k = 0.38 * (1 - chaosFactor)
+  
 
   const n = drivers.length
   if (!n) return []
@@ -443,35 +446,20 @@ function runRaceSim(drivers, simConfig) {
     for (let j = 0; j < n; j++) posMatrix[sim * n + j] = simPos[j]
 
     const active = scored.filter(s => !s.dnf)
-    const simLL  = new Float64Array(n)
-    if (active.length > 0) {
-      const totalW = active.reduce((sum, _, i) => sum + Math.exp(-k * i), 0)
-      let remaining = totalRaceLaps
-      active.forEach((s, i) => {
-        const share = Math.exp(-k * i) / totalW
-        const ll = i < active.length - 1
-          ? Math.round(share * totalRaceLaps)
-          : remaining
-        simLL[s.i] = Math.max(0, Math.min(ll, remaining))
-        remaining -= simLL[s.i]
-        sumLapsLed[s.i] += simLL[s.i]
-      })
-    }
-
+    const simLL = new Float64Array(n)
     const simFastLaps = new Int32Array(n)
     if (active.length > 0) {
-      const flW = active.map(s => Math.exp(s.score / 8))
-      const flTotal = flW.reduce((a, b) => a + b, 0)
-      let remaining = totalRaceLaps
-      active.forEach((s, idx) => {
-        const fl = idx < active.length - 1
-          ? Math.round((flW[idx] / flTotal) * totalRaceLaps)
-          : remaining
-        simFastLaps[s.i] = Math.max(0, fl)
-        remaining -= simFastLaps[s.i]
-      })
+      const flatten = Math.min(0.85, chaosFactor)
+      const uni = 1 / active.length
+      let llW = 0
+      const llw = active.map((s, r) => { const c = r < LL_FIN_CURVE.length ? LL_FIN_CURVE[r] : LL_FIN_CURVE[LL_FIN_CURVE.length - 1] * Math.pow(0.75, r - LL_FIN_CURVE.length + 1); const w = c * (1 - flatten) + uni * flatten; llW += w; return w })
+      let remLL = totalRaceLaps
+      active.forEach((s, r) => { const ll = r === active.length - 1 ? remLL : Math.round(llw[r] / llW * totalRaceLaps); simLL[s.i] = Math.max(0, Math.min(ll, remLL)); remLL -= simLL[s.i]; sumLapsLed[s.i] += simLL[s.i] })
+      let flWt = 0
+      const flw = active.map((s, r) => { const c = r < FL_FIN_CURVE.length ? FL_FIN_CURVE[r] : FL_FIN_CURVE[FL_FIN_CURVE.length - 1] * Math.pow(0.85, r - FL_FIN_CURVE.length + 1); const w = c * (1 - flatten) + uni * flatten; flWt += w; return w })
+      let remFL = totalRaceLaps
+      active.forEach((s, r) => { const fl = r === active.length - 1 ? remFL : Math.round(flw[r] / flWt * totalRaceLaps); simFastLaps[s.i] = Math.max(0, Math.min(fl, remFL)); remFL -= simFastLaps[s.i]; sumFastLaps[s.i] += simFastLaps[s.i] })
     }
-    active.forEach(s => { sumFastLaps[s.i] += simFastLaps[s.i] })
 
     scored.forEach(s => {
       const finPos   = simPos[s.i]
