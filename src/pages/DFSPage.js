@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 
+const ADMIN_PASSWORD = process.env.REACT_APP_ADMIN_PASSWORD
 const SERIES = [{ v: 'cup', label: 'Cup' }, { v: 'oreilly', label: "O'Reilly" }, { v: 'trucks', label: 'Trucks' }]
 const CAP = 50000
 const ROSTER = 6
@@ -39,7 +40,7 @@ function optimize(pool, locks, excludes, K) {
   if (capLeft < 0) return { error: 'Locked drivers exceed the salary cap.' }
   const cand = usable.filter(d => !locks.has(d.name)).sort((a, b) => b.projDK - a.projDK)
   const m = cand.length
-  if (m < need) return { error: 'Not enough drivers with salaries entered.' }
+  if (m < need) return { error: 'Not enough drivers with salaries to fill a lineup.' }
   const results = []; let worst = -Infinity
   const topRSumFrom = (i, r) => { let s = 0, c = 0; for (let j = i; j < m && c < r; j++) { s += cand[j].projDK; c++ } return s }
   function dfs(start, chosen, sal, proj) {
@@ -80,9 +81,12 @@ export default function DFSPage() {
   const [drivers, setDrivers] = useState([])
   const [salaries, setSalaries] = useState({})
   const [loading, setLoading] = useState(false)
+  const [authed, setAuthed] = useState(false)
+  const [pw, setPw] = useState('')
+  const [authErr, setAuthErr] = useState('')
   const [paste, setPaste] = useState('')
-  const [showPaste, setShowPaste] = useState(false)
   const [pasteMsg, setPasteMsg] = useState('')
+  const [saveMsg, setSaveMsg] = useState('')
   const [locks, setLocks] = useState(() => new Set())
   const [excludes, setExcludes] = useState(() => new Set())
   const [numLineups, setNumLineups] = useState(20)
@@ -94,29 +98,35 @@ export default function DFSPage() {
 
   useEffect(() => {
     let alive = true
-    setLoading(true); setLineups([]); setLocks(new Set()); setExcludes(new Set())
-    supabase.from('sim_results').select('track_name,race_year,race_number,results,published_at').eq('series', series).order('id', { ascending: false }).limit(1)
-      .then(({ data }) => {
-        if (!alive) return
-        const row = data && data[0]
-        if (!row) { setDrivers([]); setRace(null); setLoading(false); return }
-        setRace({ track: row.track_name, year: row.race_year, rn: row.race_number, at: row.published_at })
-        const ds = (row.results || []).map(d => ({
-          name: d.driver_name, car: d.car_number, mfr: d.manufacturer, org: d.organization,
-          projDK: +d.proj_dk || 0, projFinish: +d.proj_finish || 0, winPct: +d.win_pct || 0,
-          top5: +d.top5_pct || 0, lapsLed: +d.laps_led || 0, avgFast: +d.avg_fast_laps || 0,
-          p25: +d.finish_p25 || 0, startPos: +d.start_pos || 0
-        })).filter(d => d.name)
-        setDrivers(ds); setLoading(false)
-      })
+    setLoading(true); setLineups([]); setLocks(new Set()); setExcludes(new Set()); setSalaries({}); setSaveMsg(''); setPasteMsg('')
+    ;(async () => {
+      const { data } = await supabase.from('sim_results').select('track_name,race_year,race_number,results,published_at').eq('series', series).order('id', { ascending: false }).limit(1)
+      if (!alive) return
+      const row = data && data[0]
+      if (!row) { setDrivers([]); setRace(null); setLoading(false); return }
+      const r = { track: row.track_name, year: row.race_year, rn: row.race_number, at: row.published_at }
+      setRace(r)
+      const ds = (row.results || []).map(d => ({
+        name: d.driver_name, car: d.car_number, mfr: d.manufacturer, org: d.organization,
+        projDK: +d.proj_dk || 0, projFinish: +d.proj_finish || 0, winPct: +d.win_pct || 0,
+        top5: +d.top5_pct || 0, lapsLed: +d.laps_led || 0, avgFast: +d.avg_fast_laps || 0,
+        p25: +d.finish_p25 || 0, startPos: +d.start_pos || 0
+      })).filter(d => d.name)
+      setDrivers(ds)
+      let q = supabase.from('dfs_salaries').select('salaries').eq('series', series).eq('race_year', r.year)
+      q = r.rn != null ? q.eq('race_number', r.rn) : q.is('race_number', null)
+      const { data: sd } = await q.order('updated_at', { ascending: false }).limit(1)
+      if (!alive) return
+      if (sd && sd[0] && sd[0].salaries) setSalaries(sd[0].salaries)
+      setLoading(false)
+    })()
     return () => { alive = false }
   }, [series])
 
   const rows = useMemo(() => drivers.map(d => {
     const sal = salaries[d.name] || 0
     const value = sal > 0 ? d.projDK / (sal / 1000) : 0
-    const lev = d.projDK + d.lapsLed * 0.25 + d.winPct * 0.4
-    return { ...d, sal, value, lev }
+    return { ...d, sal, value }
   }), [drivers, salaries])
 
   const sorted = useMemo(() => {
@@ -130,13 +140,27 @@ export default function DFSPage() {
     return c
   }, [lineups])
 
+  const salCount = Object.values(salaries).filter(v => v > 0).length
+  const login = (e) => { e.preventDefault(); if (pw === ADMIN_PASSWORD && ADMIN_PASSWORD) { setAuthed(true); setAuthErr('') } else setAuthErr('Incorrect password') }
   const setSal = (name, val) => setSalaries(s => ({ ...s, [name]: val === '' ? 0 : Math.round(+val) || 0 }))
   const toggle = (setFn, name) => setFn(prev => { const n = new Set(prev); n.has(name) ? n.delete(name) : n.add(name); return n })
   const doPaste = () => {
     const { out, unmatched } = parseSalaries(paste, drivers)
     setSalaries(s => ({ ...s, ...out }))
     const n = Object.keys(out).length
-    setPasteMsg('Matched ' + n + ' driver' + (n === 1 ? '' : 's') + '.' + (unmatched.length ? ' Unmatched rows: ' + unmatched.length + ' (edit salaries manually).' : ''))
+    setPasteMsg('Matched ' + n + ' driver' + (n === 1 ? '' : 's') + '.' + (unmatched.length ? ' Unmatched rows: ' + unmatched.length + ' (edit manually below).' : ''))
+  }
+  const saveSalaries = async () => {
+    if (!race) return
+    setSaveMsg('Saving\u2026')
+    try {
+      let del = supabase.from('dfs_salaries').delete().eq('series', series).eq('race_year', race.year)
+      del = race.rn != null ? del.eq('race_number', race.rn) : del.is('race_number', null)
+      await del
+      const { error } = await supabase.from('dfs_salaries').insert({ series, race_year: race.year, race_number: race.rn, track_name: race.track, salaries })
+      if (error) setSaveMsg('Save failed: ' + error.message)
+      else setSaveMsg('Saved ' + salCount + ' salaries. Live for everyone.')
+    } catch (e) { setSaveMsg('Save failed: ' + (e.message || e)) }
   }
   const build = () => {
     setBuilding(true); setLineups([])
@@ -144,13 +168,12 @@ export default function DFSPage() {
       const pool = rows.map(r => ({ name: r.name, car: r.car, sal: r.sal, projDK: r.projDK }))
       const K = Math.min(500, Math.max(numLineups * 6, 60))
       const res = optimize(pool, locks, excludes, K)
-      if (res.error) { setPasteMsg(res.error); setBuilding(false); return }
+      if (res.error) { setSaveMsg(res.error); setBuilding(false); return }
       setLineups(applyExposure(res.lineups, numLineups, maxExp))
       setBuilding(false)
     }, 30)
   }
 
-  const salCount = Object.values(salaries).filter(v => v > 0).length
   const th = (key, label, align) => (
     <th onClick={() => { setSortKey(key); setSortDir(sortKey === key && sortDir === 'desc' ? 'asc' : 'desc') }}
       style={{ padding: '7px 8px', textAlign: align || 'right', cursor: 'pointer', whiteSpace: 'nowrap', borderBottom: '1px solid var(--border,#333)', userSelect: 'none' }}>
@@ -158,12 +181,13 @@ export default function DFSPage() {
     </th>
   )
   const card = { background: 'var(--card,#16181d)', border: '1px solid var(--border,#2a2d34)', borderRadius: 10, padding: 16, marginBottom: 16 }
+  const canBuild = salCount >= ROSTER
 
   return (
     <div className="page" style={{ maxWidth: 1180, margin: '0 auto', padding: '18px 16px 60px' }}>
-      <h1 style={{ margin: '0 0 4px' }}>DFS Optimizer</h1>
+      <h1 style={{ margin: '0 0 4px' }}>DFS Center</h1>
       <div style={{ color: 'var(--text-secondary,#9aa0aa)', marginBottom: 16, fontSize: 14 }}>
-        DraftKings Classic projections from the latest published simulation. Paste your DK salary export or enter salaries manually, then build optimal lineups.
+        DraftKings Classic projections from the latest published simulation. Build optimal lineups against the posted salaries.
       </div>
 
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
@@ -182,18 +206,33 @@ export default function DFSPage() {
       {!loading && drivers.length > 0 && <>
         <div style={card}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-            <div><strong>Salaries</strong> <span style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 13 }}>{salCount} of {drivers.length} entered</span></div>
-            <button onClick={() => setShowPaste(v => !v)} style={{ padding: '6px 12px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: 'transparent', color: 'var(--text,#e8eaed)' }}>
-              {showPaste ? 'Hide paste' : 'Paste DK salary export'}
-            </button>
-          </div>
-          {showPaste && <div style={{ marginTop: 10 }}>
-            <textarea value={paste} onChange={e => setPaste(e.target.value)} placeholder="Paste the DraftKings salary CSV (or any Name, Salary rows) here\u2026"
-              style={{ width: '100%', minHeight: 90, background: 'var(--bg,#0e0f13)', color: 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 8, padding: 8, fontFamily: 'monospace', fontSize: 12 }} />
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 8 }}>
-              <button onClick={doPaste} style={{ padding: '6px 14px', borderRadius: 8, cursor: 'pointer', border: 'none', background: 'var(--accent,#e11d2a)', color: '#fff' }}>Import salaries</button>
-              {pasteMsg && <span style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 13 }}>{pasteMsg}</span>}
+            <div>
+              <strong>Salaries</strong>{' '}
+              <span style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 13 }}>
+                {salCount > 0 ? salCount + ' of ' + drivers.length + ' posted' : 'not posted yet'}
+              </span>
             </div>
+            {!authed && (
+              <form onSubmit={login} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <input type="password" value={pw} onChange={e => setPw(e.target.value)} placeholder="Admin"
+                  style={{ width: 120, background: 'var(--bg,#0e0f13)', color: 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 6, padding: '5px 7px', fontSize: 12 }} />
+                <button type="submit" style={{ padding: '5px 10px', borderRadius: 6, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: 'transparent', color: 'var(--text-secondary,#9aa0aa)', fontSize: 12 }}>Unlock</button>
+                {authErr && <span style={{ color: 'var(--accent,#e11d2a)', fontSize: 12 }}>{authErr}</span>}
+              </form>
+            )}
+            {authed && <span style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 12 }}>Admin mode</span>}
+          </div>
+
+          {authed && <div style={{ marginTop: 12, borderTop: '1px solid var(--border,#22252b)', paddingTop: 12 }}>
+            <textarea value={paste} onChange={e => setPaste(e.target.value)} placeholder="Paste the DraftKings salary CSV (or any Name, Salary rows) here\u2026"
+              style={{ width: '100%', minHeight: 84, background: 'var(--bg,#0e0f13)', color: 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 8, padding: 8, fontFamily: 'monospace', fontSize: 12 }} />
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
+              <button onClick={doPaste} style={{ padding: '6px 14px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: 'transparent', color: 'var(--text,#e8eaed)' }}>Import from paste</button>
+              <button onClick={saveSalaries} style={{ padding: '6px 14px', borderRadius: 8, cursor: 'pointer', border: 'none', background: 'var(--accent,#e11d2a)', color: '#fff', fontWeight: 600 }}>Save salaries to site</button>
+              {pasteMsg && <span style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 12 }}>{pasteMsg}</span>}
+              {saveMsg && <span style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 12 }}>{saveMsg}</span>}
+            </div>
+            <div style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 11, marginTop: 6 }}>Edit any salary directly in the table below, then Save.</div>
           </div>}
         </div>
 
@@ -203,10 +242,10 @@ export default function DFSPage() {
             <label style={{ fontSize: 13 }}>Max exposure<br /><select value={maxExp} onChange={e => setMaxExp(+e.target.value)} style={{ marginTop: 4, background: 'var(--bg,#0e0f13)', color: 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 6, padding: '5px 7px' }}>
               <option value={1}>No cap</option><option value={0.75}>75%</option><option value={0.6}>60%</option><option value={0.5}>50%</option><option value={0.4}>40%</option>
             </select></label>
-            <button onClick={build} disabled={building || salCount < ROSTER} style={{ padding: '8px 18px', borderRadius: 8, cursor: building || salCount < ROSTER ? 'not-allowed' : 'pointer', border: 'none', background: salCount < ROSTER ? 'var(--border,#2a2d34)' : 'var(--accent,#e11d2a)', color: '#fff', fontWeight: 600 }}>
+            <button onClick={build} disabled={building || !canBuild} style={{ padding: '8px 18px', borderRadius: 8, cursor: building || !canBuild ? 'not-allowed' : 'pointer', border: 'none', background: !canBuild ? 'var(--border,#2a2d34)' : 'var(--accent,#e11d2a)', color: '#fff', fontWeight: 600 }}>
               {building ? 'Building\u2026' : 'Build lineups'}
             </button>
-            <span style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 12 }}>Cap $50,000 &middot; 6 drivers &middot; click Lock/Excl in the table</span>
+            <span style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 12 }}>{canBuild ? 'Cap $50,000 \u00b7 6 drivers \u00b7 use Lock/Excl to steer' : 'Salaries not posted yet'}</span>
           </div>
 
           <div style={{ overflowX: 'auto' }}>
@@ -229,8 +268,9 @@ export default function DFSPage() {
                       </td>
                       <td style={{ padding: '4px 8px', textAlign: 'left', whiteSpace: 'nowrap' }}>{d.car ? '#' + d.car + ' ' : ''}{d.name}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right' }}>
-                        <input value={d.sal || ''} onChange={e => setSal(d.name, e.target.value)} placeholder="\u2014"
-                          style={{ width: 62, textAlign: 'right', background: 'var(--bg,#0e0f13)', color: 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 5, padding: '3px 5px' }} />
+                        {authed
+                          ? <input value={d.sal || ''} onChange={e => setSal(d.name, e.target.value)} placeholder="\u2014" style={{ width: 62, textAlign: 'right', background: 'var(--bg,#0e0f13)', color: 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 5, padding: '3px 5px' }} />
+                          : <span>{d.sal ? '$' + d.sal.toLocaleString() : '\u2014'}</span>}
                       </td>
                       <td style={{ padding: '4px 8px', textAlign: 'right', fontWeight: 600 }}>{d.projDK.toFixed(1)}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right', background: vBg, fontWeight: 600 }}>{d.value ? d.value.toFixed(2) : '\u2014'}</td>
@@ -262,7 +302,7 @@ export default function DFSPage() {
                   <tr key={i} style={{ borderBottom: '1px solid var(--border,#22252b)' }}>
                     <td style={{ padding: '5px 8px', color: 'var(--text-secondary,#9aa0aa)' }}>{i + 1}</td>
                     <td style={{ padding: '5px 8px' }}>{lu.drivers.slice().sort((a, b) => b.projDK - a.projDK).map(d => (d.car ? '#' + d.car + ' ' : '') + d.name).join(',  ')}</td>
-                    <td style={{ padding: '5px 8px', textAlign: 'right', color: lu.salary > CAP ? 'var(--accent,#e11d2a)' : 'inherit' }}>{'$' + lu.salary.toLocaleString()}</td>
+                    <td style={{ padding: '5px 8px', textAlign: 'right' }}>{'$' + lu.salary.toLocaleString()}</td>
                     <td style={{ padding: '5px 8px', textAlign: 'right', fontWeight: 600 }}>{lu.proj.toFixed(1)}</td>
                   </tr>
                 ))}
