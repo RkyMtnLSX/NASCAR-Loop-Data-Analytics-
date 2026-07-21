@@ -16,6 +16,7 @@ const LOOP_LINKS = [
 
 const SIM_LINKS = [
   { path: '/sim-results',       label: 'Sim Results' },
+  { path: '/dfs', label: 'DFS Optimizer' },
 ]
 
 export default function Nav({ isAdmin, onAdminClick }) {
