@@ -8,9 +8,10 @@ const PRACTICE_LINKS = [
 ]
 
 const LOOP_LINKS = [
-  { path: '/loop-data',       label: 'Loop Data' },
-  { path: '/fastest-laps',    label: 'Fastest Laps' },
-  { path: '/green-flag-speed', label: 'Green Flag Speed' },
+  { path: '/loop-data',         label: 'Loop Data' },
+  { path: '/green-flag-speed',  label: 'Green Flag Speed' },
+  { path: '/fastest-laps',      label: 'Fastest Laps' },
+  { path: '/qualifying',        label: 'Qualifying' },
   { path: '/pit-crew-rankings', label: 'Pit Crew Rankings' },
 ]
 
@@ -113,15 +114,12 @@ export default function Nav({ isAdmin, onAdminClick }) {
           {/* Loop Data dropdown */}
           <div style={{ position: 'relative' }} {...makeHover(setLoopOpen, loopTimer)}>
             <button style={dropBtn(isLoopPage)}>
-              Loop Data
+              Data Center
               <span style={{ fontSize: '0.55rem', opacity: 0.7, marginTop: 1 }}>▾</span>
             </button>
             <Dropdown links={LOOP_LINKS} open={loopOpen} />
           </div>
 
-          <Link to="/qualifying" style={linkStyle(location.pathname === '/qualifying')}>
-            Qualifying
-          </Link>
 
           {/* Simulation dropdown */}
           <div style={{ position: 'relative' }} {...makeHover(setSimOpen, simTimer)}>
