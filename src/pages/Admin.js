@@ -734,6 +734,8 @@ function LoadNewRace() {
     }
     return name
   }
+  function __lev(a, b) { const m = a.length, n = b.length; if (!m) return n; if (!n) return m; let p = Array.from({ length: n + 1 }, (_, i) => i); for (let i = 1; i <= m; i++) { let prev = p[0]; p[0] = i; for (let j = 1; j <= n; j++) { const tmp = p[j]; p[j] = Math.min(p[j] + 1, p[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1)); prev = tmp; } } return p[n]; }
+  function __findUnknownDrivers(rows, knownNames) { const nrm = (s) => (s || '').toLowerCase().replace(/[^a-z]/g, ''); const known = knownNames.map((nm) => ({ nm, k: nrm(nm) })).filter((x) => x.k); const set = new Set(known.map((x) => x.k)); const out = []; for (const r of rows) { const k = nrm(r.driver_name); if (!k || set.has(k)) continue; let best = null, bd = 99; for (const x of known) { const d = __lev(k, x.k); if (d < bd) { bd = d; best = x.nm; } } out.push({ name: r.driver_name, suggestion: (best && bd <= 4) ? best : null }); } return out; }
   function parseLoopData(text) {
     const atMatch = text.match(/\bat\s+([A-Z][^,\n(]+)/)
     const trackName = atMatch ? atMatch[1].trim() : ('Race ' + raceNum + ' ' + year)
@@ -772,6 +774,15 @@ function LoadNewRace() {
     try {
       const { trackName: parsedTrack, expectedLaps, rows, totalCautions, totalCautionLaps, leadChanges, avgSpeed, greenFlagPasses, marginOfVictory } = parseLoopData(pasteText); const trackName = selTrack || parsedTrack
       if (rows.length === 0) return setStatus({ error: 'No driver rows found. Make sure you copied the full page (Ctrl+A, Ctrl+C).' })
+      {
+        const { data: __kd } = await supabase.from('loop_data').select('driver_name').eq('series', series).limit(5000)
+        const __known = [...new Set((__kd || []).map((x) => x.driver_name).filter(Boolean))]
+        const __unk = __findUnknownDrivers(rows, __known)
+        if (__unk.length) {
+          const __msg = 'Unrecognized driver(s) - possible typo in the paste:\n\n' + __unk.map((u) => '  - ' + u.name + (u.suggestion ? '   (did you mean ' + u.suggestion + '?)' : '')).join('\n') + '\n\nLoad anyway?'
+          if (!window.confirm(__msg)) { setStatus({ error: 'Load cancelled: ' + __unk.length + ' unrecognized driver(s). Fix the paste and retry.' }); return }
+        }
+      }
       const seriesCodeMap = { cup: 'W', oreilly: 'B', xfinity: 'B', trucks: 'C', truck: 'C' }
       const racingRefId = year + '-' + String(raceNum).padStart(2,'0') + '-' + (seriesCodeMap[series] || 'W')
       const { data: existing } = await supabase.from('races').select('id,track_name').eq('racing_reference_id', racingRefId).maybeSingle()
