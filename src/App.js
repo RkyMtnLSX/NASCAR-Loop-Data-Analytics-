@@ -19,6 +19,7 @@ import QualifyingCenter   from './pages/QualifyingCenter'
 import SimulationCenter   from './pages/SimulationCenter'
 import GradeCenter        from './pages/GradeCenter'
 import SimResults         from './pages/SimResults'
+import DFSPage            from './pages/DFSPage'
 import Admin              from './pages/Admin'
 
 const ADMIN_PW = 'pitboard2026'
@@ -150,6 +151,7 @@ export default function App() {
         <Route path="/sim-results"        element={<SimResults />} />
         <Route path="/subscribe"          element={<Subscribe />} />
         <Route path="/admin"              element={isAdmin ? <Admin /> : <AdminGate />} />
+        <Route path="/dfs"             element={<DFSPage />} />
       </Routes>
     </BrowserRouter>
   )
