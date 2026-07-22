@@ -31,13 +31,13 @@ export default function Landing() {
             alignItems: 'center',
             gap: 6,
             padding: '4px 12px',
-            background: 'var(--accent-dim)',
-            border: '1px solid var(--accent)30',
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.14)',
             borderRadius: 20,
             fontSize: '0.6875rem',
             fontWeight: 600,
             letterSpacing: '0.08em',
-            color: 'var(--accent)',
+            color: 'var(--text-secondary)',
             textTransform: 'uppercase',
             marginBottom: 20,
           }}>
@@ -52,8 +52,8 @@ export default function Landing() {
             lineHeight: 1.1,
             marginBottom: 16,
           }}>
-            Bet the number,<br />
-            <span style={{ color: 'var(--accent)' }}>not the narrative</span>
+            The model behind<br />
+            <span style={{ color: 'var(--text-primary)' }}>every bet and lineup.</span>
           </h1>
 
           <p style={{
@@ -62,12 +62,12 @@ export default function Landing() {
             lineHeight: 1.7,
             marginBottom: 32,
           }}>
-            Model-built probabilities for every driver, every market, every week {'\u2014'}
-            compared line-by-line against DraftKings, FanDuel, and Hard Rock.
+            A Monte Carlo model prices every driver in every market: win, top finishes, matchups, and DFS {'\u2014'}
+            lined up against DraftKings, FanDuel, and Hard Rock. Betting edges and optimal lineups, every race week.
           </p>
 
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link to="/subscribe" className="btn btn-primary" style={{ padding: '10px 24px' }}>
+            <Link to="/subscribe" className="btn btn-primary" style={{ padding: '10px 24px', background: '#ffffff', color: '#0e0f13', border: 'none' }}>
               Get Full Access
             </Link>
             <Link to="/sim-results" className="btn btn-secondary" style={{ padding: '10px 24px' }}>
@@ -98,7 +98,7 @@ export default function Landing() {
             { value: '3', label: 'Series Covered' },
           ].map(s => (
             <div key={s.label} style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--accent)', letterSpacing: '-0.02em' }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
                 {s.value}
               </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>
