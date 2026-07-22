@@ -1357,3 +1357,10 @@ This was the 07-15 -> 07-18 marathon: best5 shipped end-to-end (sim, grader, liv
 **Nav reorg.** (1) commit 724b9c7: renamed Loop Data dropdown -> Data Center; moved Qualifying off the top level into it. Data Center now = Loop Data, Green Flag Speed, Fastest Laps, Qualifying, Pit Crew Rankings (isLoopPage derives active-state from LOOP_LINKS so /qualifying highlights it). (2) commits 503bd19 + c3cb552: renamed Simulation dropdown -> Sim Center with three per-series links Cup Sim / O'Reilly Sim / Truck Sim -> /sim-results?series=X; SimResults reads ?series= via useSearchParams + effect (switches without remount); isSimPage strips the query when matching.
 
 **Open threads:** load O'Reilly + Trucks historical salary workbooks; start weekly DK ownership logging (perishable); build the grading harness (our projected DK vs actual vs the 0.29 salary benchmark) once sims are republished with the new allocator; Optimal% activates after a republish (writes dfs_sim_samples) + posted salaries.
+
+
+## 2026-07-22 — Extractor relocated + fully armored (status note)
+
+- The live telemetry extractor now lives at **C:\Users\atmms\NascarDataScrapperV3\** (moved OUT of OneDrive — the old OneDrive\Desktop\NASCAR DATA EXTRACTOR V3 folder is abandoned; ignore it). Root cause of the Errno-22 capture crashes (OneDrive sync invalidating handles mid-append) is gone.
+- ALL write sites are fail-soft: ingest raw (retry x4 -> skip line), aux_raw (same), write_sheets xlsx (retry -> alternate filename -> skip workbook; Excel-lock proof), plus the bare-launch help guard. Lap/pit CSV rows derive from in-memory data, so skipped raw-archive lines are harmless.
+- Retired: the old pre-v3 copy at OneDrive\Desktop\NASCAR Practice Scanner\files\nascar_extract.py — do not run it (unpatched, duplicates polling).
