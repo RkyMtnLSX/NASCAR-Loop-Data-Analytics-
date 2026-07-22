@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
+import { useSearchParams } from 'react-router-dom'
 
 const SERIES_TABS = [
   { value: 'cup',     label: 'Cup Series' },
@@ -154,6 +155,8 @@ function MarketTables({ results, config }) {
 }
 export default function SimResults() {
   const [series, setSeries]       = useState('cup')
+  const [__sp] = useSearchParams()
+  useEffect(() => { const __s = __sp.get('series'); if (__s && ['cup', 'oreilly', 'trucks'].includes(__s)) setSeries(__s) }, [__sp])
   const [mvMkt, setMvMkt] = useState('Win')
   const [mvUnits, setMvUnits] = useState('odds')
   const [mvSort, setMvSort] = useState('edge')
