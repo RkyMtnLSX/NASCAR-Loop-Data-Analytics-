@@ -16,7 +16,9 @@ const LOOP_LINKS = [
 ]
 
 const SIM_LINKS = [
-  { path: '/sim-results',       label: 'Sim Results' },
+  { path: '/sim-results?series=cup',     label: 'Cup Sim' },
+  { path: '/sim-results?series=oreilly', label: "O'Reilly Sim" },
+  { path: '/sim-results?series=trucks',  label: 'Truck Sim' },
 ]
 
 export default function Nav({ isAdmin, onAdminClick }) {
@@ -37,7 +39,7 @@ export default function Nav({ isAdmin, onAdminClick }) {
 
   const isPracticePage = PRACTICE_LINKS.some(l => location.pathname === l.path)
   const isLoopPage     = LOOP_LINKS.some(l => location.pathname === l.path)
-  const isSimPage      = SIM_LINKS.some(l => location.pathname === l.path)
+  const isSimPage      = SIM_LINKS.some(l => location.pathname === l.path.split('?')[0])
 
   const linkStyle = (active) => ({
     padding: '6px 12px', borderRadius: 'var(--radius-md)',
@@ -124,7 +126,7 @@ export default function Nav({ isAdmin, onAdminClick }) {
           {/* Simulation dropdown */}
           <div style={{ position: 'relative' }} {...makeHover(setSimOpen, simTimer)}>
             <button style={dropBtn(isSimPage)}>
-              Simulation
+              Sim Center
               <span style={{ fontSize: '0.55rem', opacity: 0.7, marginTop: 1 }}>▾</span>
             </button>
             <Dropdown links={SIM_LINKS} open={simOpen} />
