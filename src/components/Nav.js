@@ -105,21 +105,21 @@ export default function Nav({ isAdmin, onAdminClick }) {
           <Link to="/" style={linkStyle(location.pathname === '/')}>Race Weekend</Link>
 
           {/* Practice Center dropdown */}
-          <div style={{ position: 'relative' }} {...makeHover(setPracticeOpen, practiceTimer)}>
-            <button style={dropBtn(isPracticePage)}>
-              Practice Center
-              <span style={{ fontSize: '0.55rem', opacity: 0.7, marginTop: 1 }}>▾</span>
-            </button>
-            <Dropdown links={PRACTICE_LINKS} open={practiceOpen} />
-          </div>
-
-          {/* Loop Data dropdown */}
           <div style={{ position: 'relative' }} {...makeHover(setLoopOpen, loopTimer)}>
             <button style={dropBtn(isLoopPage)}>
               Data Center
               <span style={{ fontSize: '0.55rem', opacity: 0.7, marginTop: 1 }}>▾</span>
             </button>
             <Dropdown links={LOOP_LINKS} open={loopOpen} />
+          </div>
+
+          {/* Loop Data dropdown */}
+          <div style={{ position: 'relative' }} {...makeHover(setPracticeOpen, practiceTimer)}>
+            <button style={dropBtn(isPracticePage)}>
+              Practice Center
+              <span style={{ fontSize: '0.55rem', opacity: 0.7, marginTop: 1 }}>▾</span>
+            </button>
+            <Dropdown links={PRACTICE_LINKS} open={practiceOpen} />
           </div>
 
 
