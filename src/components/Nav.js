@@ -92,8 +92,13 @@ export default function Nav({ isAdmin, onAdminClick }) {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 52,
       }}>
         {/* Logo */}
-        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
-          <span style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '0.1em', color: '#ffffff', textTransform: 'uppercase' }}>PitBoard</span>
+        <Link to="/" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 3, textDecoration: 'none' }}>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {[{ c: '#f5c518', w: 16 }, { c: '#f5c518', w: 16 }, { c: '#f5c518', w: 16 }, { c: '#e10600', w: 56 }, { c: '#c2179b', w: 36 }, { c: '#1d6fd1', w: 36 }].map((s, i) => (
+              <span key={i} style={{ width: s.w, height: 6, background: s.c, transform: 'skewX(-32deg)' }} />
+            ))}
+          </div>
+          <span style={{ display: 'block', width: 206, textAlign: 'center', fontSize: '1.05rem', fontWeight: 800, letterSpacing: '0.34em', color: '#ffffff', textTransform: 'uppercase', transform: 'skewX(-32deg)' }}>PitBoard</span>
         </Link>
 
         {/* Nav links */}
