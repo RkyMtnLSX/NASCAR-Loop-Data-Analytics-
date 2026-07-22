@@ -26,5 +26,5 @@ function Row({ corner }) {
 }
 
 export default function RacingStripes() {
-  return (<><Row corner="br" /></>)
+  return (<><Row corner="tl" /><Row corner="br" /></>)
 }
