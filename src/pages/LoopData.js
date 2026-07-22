@@ -592,7 +592,7 @@ return (
 <td style={{ ...stickyCell, background: bg }}>
 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
 <span style={{ color: 'var(--text-muted)', fontSize: '0.83rem', fontFamily: 'var(--font-mono)', minWidth: 18, paddingTop: 2 }}>{i + 1}</span>
-<div>
+<div style={{ textAlign: 'left' }}>
 <div style={{ fontWeight: i < 3 ? 600 : 400, whiteSpace: 'nowrap' }}>
 {row.car_number && ((series === 'cup' || series === 'oreilly' || series === 'trucks') ? <img src={(series === 'cup' ? '/car-numbers/' : series === 'oreilly' ? '/car-numbers-oreilly/' : '/car-numbers-trucks/') + (({'133':'33'})[String(row.car_number)] || row.car_number) + '.png'} alt={'#' + row.car_number} style={{ height: 28, marginRight: 6, verticalAlign: 'middle' }} onError={(e)=>{const t=e.target;if(!t.dataset.retried){t.dataset.retried='1';t.src=t.src+(t.src.includes('?')?'&r=':'?r=')+Date.now();}else{t.style.display='none';}}} /> : <span style={{ marginRight: 6, fontFamily: 'var(--font-mono)', fontSize: '0.88rem', color: 'var(--text-muted)', fontWeight: 600 }}>{'#' + row.car_number}</span>)}
 <span
