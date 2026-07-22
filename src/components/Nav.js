@@ -93,10 +93,7 @@ export default function Nav({ isAdmin, onAdminClick }) {
       }}>
         {/* Logo */}
         <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
-          <span style={{ fontSize: '0.6875rem', fontWeight: 700, letterSpacing: '0.12em',
-            color: 'var(--accent)', textTransform: 'uppercase' }}>
-            ⬡ PitBoard
-          </span>
+          <span style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '0.1em', color: '#ffffff', textTransform: 'uppercase' }}>PitBoard</span>
         </Link>
 
         {/* Nav links */}
