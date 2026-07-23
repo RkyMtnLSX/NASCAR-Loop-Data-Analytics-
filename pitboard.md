@@ -1441,3 +1441,9 @@ PRECEDENT NOTES (operator diligence, same date): pitcrewrank.com age UNVERIFIED 
 ## 2026-07-23 — drilldown hotfix: robust y-scale (de43d377, build green)
 
 Operator caught flat-line charts: one outlier race median (e.g. #20 crew R17 ~205s — wrecked/held car) owned the y-axis and flattened the 9-10s races into a line. Fix: y-domain capped at the Tukey upper fence of race medians (q3 + 1.5 IQR, floor lo+0.5s); outlier races clamp to the chart edge, axis label shows "Ns+" when capped, tooltip appends "(OFF SCALE - slow outlier race)". Data untouched — display scale only.
+
+## 2026-07-23 — MAJOR FIX: qualifying-stops-only crew stats (5b05b664, build green, bundle verified)
+
+Operator caught it via the Keselowski drilldown: raw stop log showed "stops" of 83-152s (crash repairs, penalty holds, non-competitive stops) mixed with real ~10s stops — R3 med 85.9s, R12 131.1s, R17 58.2s, R20 42.0s. These were inflating his season median to 11.23 (clean stops run ~10.2-10.8) and poisoning Bomb% (his 19% was mostly repairs). Ranks were unfair to any crew whose car got wrecked often.
+
+Fix — ALL crew stats now computed on QUALIFYING STOPS only: series-level Tukey fence (stop-level q3 + 1.5 IQR across all 4-tire stops in series-season) excludes non-competitive stops from median, Adj, IQR/consistency, Bomb%, stop counts, AND the drilldown race medians (races with zero clean stops drop off the chart; the earlier chart-scale clamp stays as backstop). Bomb redefined: qualifying stop slower than BOMB_X 1.25x the series CLEAN median (hung-lug territory), so it now measures botched-but-real stops, not wrecks. MIN_STOPS gate applies to clean count. Same concept as pitcrewrank's "qualifying 4-tire" stops. NOTE for any future pit-crew sim work: v1-0.06 sim term uses its own median calc in SimulationCenter — check whether it needs the same fence (it uses green-flag medians which are less contaminated, but verify).
