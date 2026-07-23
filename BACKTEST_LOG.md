@@ -3479,3 +3479,15 @@ The v1 anchor shipped correct in principle and wrong in two particulars; the ope
 **DRIVER SPEEDING verdict: genuine candidate, queued.** Field-wide reliability modest (0.279) BUT the tail is individually solid: chronic speeders at 2.5x base over huge samples — Ty Gibbs 10.5 pct/124 races, Kyle Busch 10.3/145, Suarez 9.3/151, Blaney 8.9/124 (Gibbs z ~ 3.7 vs base). For those names, expected impact ~ 0.5-1.0 positions/race + tail variance — pit-crew-term scale, concentrated in a handful of stars whose t10/DK tails matter. DESIGN (not shipped, freeze holds): empirical-Bayes shrunken driver penalty rate -> per-sim penalty event with position setback; walk-forward test = does the shrunken prior rate predict finish/DK residual to all existing terms? Run after this weekend.
 
 **Doctrine:** persistence testing BEFORE predictive testing for sparse-event data — if the trait doesn't repeat, there is nothing to predict with. (Crew penalties failed here; driver speeding partially passed via its tail.)
+
+## 2026-07-23 — TASK #67 RESOLVED EARLY: driver speeding sim term — NO SHIP (display only)
+
+Two-stage sparse-event test (probability x cost decomposition, run in-browser vs pit_penalties + pit_stops + loop_data 2022-26):
+
+**1) Probability side — walk-forward penalty prediction.** Per-driver chronological history; shrunken prior rate (k=25 toward base) computed from strictly-prior races (min 15); predicting 2025-26 driver-races. Base driver-race penalty rate 3.9% (523/13,474). Calibration by prior bucket: low predicted 1.8% -> actual 3.0% (n 1,680); mid 4.1% -> 4.2% (n 2,041); high 7.2% -> 6.0% (n 1,011). MONOTONIC and real — the trait predicts out-of-sample. k=25 slightly under-shrinks (actuals compress toward middle); k~50 would calibrate if ever needed.
+
+**2) Cost side — within-driver net finish cost of a penalty race.** 86 drivers with >=20 races and >=2 penalty races (435 penalty races used): finish percentile in penalty races vs same driver's clean races = +1.8 pctile ~ 0.7 positions in a 36-car field, t ~ 1.58 (not significant). Drivers recover most of the mid-race hit.
+
+**Verdict: probability x cost = expected finish impact ~0.02 positions/race (high vs low risk), ~0.04 for a true chronic vs base. Order of magnitude below sim resolution, and the cost estimate itself is not significant. NO sim term — driver penalties join crew penalties as DISPLAY ONLY (task #66 pit crew rankings page). The planned walk-forward-vs-DK gate is moot: the effect ceiling kills it before the harness matters.**
+
+Method note (doctrine confirmed): persistence -> probability -> cost decomposition is the right ladder for sparse events. Persistence passed (07-22: split-half r .162, S-B .279, chronic tail solid), probability passed, cost failed to matter. A trait can be perfectly real and still not worth a model term.
