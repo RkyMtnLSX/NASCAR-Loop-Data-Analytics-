@@ -342,7 +342,8 @@ function buildSpeedScores(drivers, weights) {
     const __eqM = __eqScale ? __eqScale(d.modalEquipRating) : null
     const __eqScl = d.equipScale != null ? d.equipScale : 1
     const __eqConf = (d.nEquipRaces > 0 ? Math.min(1, d.nEquipRaces / 4) : 0) * __eqScl
-    const __mkA = d.marketFill != null ? d.marketFill : 50 // MARKET ANCHOR 2026-07-22: de-vigged win-odds pctile replaces neutral as the ignorance fill (salary-proxy backtest: MAE .204 vs .282, level miss 24pts — BACKTEST_LOG)
+    const __mkA = d.marketFill != null ? d.marketFill : 50
+    const __thinD = ((d.nCorrRaces || 0) < 5) && d.practiceScore == null // v1.1: thin = same def as the EDGE gate // MARKET ANCHOR 2026-07-22: de-vigged win-odds pctile replaces neutral as the ignorance fill (salary-proxy backtest: MAE .204 vs .282, level miss 24pts — BACKTEST_LOG)
     const __eqFill = __eqS != null ? __eqS * __eqConf + __mkA * (1 - __eqConf) : __mkA
     let c = rawC * conf + __eqFill * (1 - conf)
     if (conf >= 1 && __eqS != null && __eqM != null && d.modalCar && d.carNumber && String(d.carNumber).trim() !== d.modalCar) {
@@ -360,9 +361,9 @@ function buildSpeedScores(drivers, weights) {
     const rawT = blendedT ?? 50
     const tConf = d.nTrackRaces > 0 ? Math.min(1, d.nTrackRaces / 4) : (blendedT != null ? 1 : 0)
     const t    = rawT * tConf + 50 * (1 - tConf)
-    const lrp = lrpScores[i]   ?? 50
-    const srp = srpScores[i]   ?? 50
-    const sp  = startScores[i] ?? 50
+    const lrp = lrpScores[i]   ?? (__thinD ? __mkA : 50) // v1.1: thin drivers' ignorance fills = market everywhere
+    const srp = srpScores[i]   ?? (__thinD ? __mkA : 50)
+    const sp  = startScores[i] ?? (__thinD ? __mkA : 50)
     const fl  = fallScores[i]  ?? 50
     const rc  = raceCraftScores[i] ?? 50
     const wc  = winConvScores[i]   ?? 50
@@ -1198,7 +1199,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
       race_year:  config.race_year || new Date().getFullYear(),
       race_number: raceNumMap[series] ? parseInt(raceNumMap[series]) : null,
       stage: simStage,
-      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'pairing-first', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06', flagGuard: 'conf-v1', marketAnchor: 'v1', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
+      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'pairing-first', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06', flagGuard: 'conf-v1', marketAnchor: 'v1.1-all-fills', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
       results: simResults.map(d => ({
         driver_name:  d.name,
         car_number:   d.carNumber,
