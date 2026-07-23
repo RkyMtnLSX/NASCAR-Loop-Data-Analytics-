@@ -36,10 +36,15 @@ function CrewDetail({ c }) {
   const W = 760, H = 150, PX = 44, PB = 30, PT = 14
   const meds = rl.map((r) => r.med)
   const lo = Math.min.apply(null, meds), hi = Math.max.apply(null, meds)
+  // robust y-scale: cap at Tukey upper fence so one wrecked/held-car race cannot flatten the chart
+  const ms = [...meds].sort((a, b) => a - b)
+  const mq1 = ms[Math.floor(ms.length * 0.25)], mq3 = ms[Math.floor(ms.length * 0.75)]
+  const hiS = Math.max(Math.min(hi, mq3 + 1.5 * (mq3 - mq1)), lo + 0.5)
+  const cl = (v) => Math.min(v, hiS)
   const xf = (i) => rl.length === 1 ? W / 2 : PX + i * (W - PX - 14) / (rl.length - 1)
-  const yf = (v) => hi === lo ? H / 2 : PT + (v - lo) * (H - PT - PB) / (hi - lo)
+  const yf = (v) => hiS === lo ? H / 2 : PT + (v - lo) * (H - PT - PB) / (hiS - lo)
   const pcol = (p) => p === 'b' ? '#7f1d1d' : p === 'c' ? '#b91c1c' : '#d97706'
-  const pts = rl.map((r, i) => xf(i) + ',' + yf(r.med)).join(' ')
+  const pts = rl.map((r, i) => xf(i) + ',' + yf(cl(r.med))).join(' ')
   return (
     <div>
       <div style={{ fontSize: '0.8rem', marginBottom: 8 }}>
@@ -48,14 +53,14 @@ function CrewDetail({ c }) {
       </div>
       <svg width={W} height={H} style={{ maxWidth: '100%' }}>
         <text x={4} y={yf(lo) + 4} style={{ fontSize: 10, fill: 'var(--text-secondary)' }}>{lo.toFixed(1)}s</text>
-        <text x={4} y={yf(hi) + 4} style={{ fontSize: 10, fill: 'var(--text-secondary)' }}>{hi.toFixed(1)}s</text>
+        <text x={4} y={yf(hiS) + 4} style={{ fontSize: 10, fill: 'var(--text-secondary)' }}>{hiS.toFixed(1)}s{hiS < hi ? '+' : ''}</text>
         <polyline points={pts} fill="none" stroke="var(--text-secondary)" strokeWidth="1.5" opacity="0.55" />
         {rl.map((r, i) => {
           const p = (c.pens || {})[r.rn]
           return (
             <g key={r.rn}>
-              <circle cx={xf(i)} cy={yf(r.med)} r={p ? 5.5 : 4} fill={p ? pcol(p) : 'var(--bg-elevated)'} stroke={p ? pcol(p) : 'var(--text-secondary)'} strokeWidth="1.5">
-                <title>{'R' + r.rn + (r.track ? ' ' + r.track : '') + ' - med ' + r.med.toFixed(2) + 's, best ' + r.best.toFixed(2) + 's, ' + r.n + ' stops' + (p ? (p === 'c' ? ' - CREW PENALTY' : p === 'd' ? ' - DRIVER PENALTY' : ' - CREW + DRIVER PENALTIES') : '')}</title>
+              <circle cx={xf(i)} cy={yf(cl(r.med))} r={p ? 5.5 : 4} fill={p ? pcol(p) : 'var(--bg-elevated)'} stroke={p ? pcol(p) : 'var(--text-secondary)'} strokeWidth="1.5">
+                <title>{'R' + r.rn + (r.track ? ' ' + r.track : '') + ' - med ' + r.med.toFixed(2) + 's, best ' + r.best.toFixed(2) + 's, ' + r.n + ' stops' + (r.med > hiS ? ' (OFF SCALE - slow outlier race)' : '') + (p ? (p === 'c' ? ' - CREW PENALTY' : p === 'd' ? ' - DRIVER PENALTY' : ' - CREW + DRIVER PENALTIES') : '')}</title>
               </circle>
               <text x={xf(i)} y={H - 10} textAnchor="middle" style={{ fontSize: 9, fill: 'var(--text-secondary)' }}>{r.rn}</text>
             </g>
