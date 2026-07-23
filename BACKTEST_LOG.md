@@ -3497,3 +3497,14 @@ Method note (doctrine confirmed): persistence -> probability -> cost decompositi
 Checked whether the sim's task-#46 crew term needs the qualifying-stops fence shipped to the rankings page (5b05b664). ANSWER: YES. The sim fetch (SimulationCenter ~47.5k: series+season, tires_changed=4, lap>0, box_time not null) has NO flag filter and NO outlier fence — contrary to a prior session note claiming green-flag-only. Contamination measured (2026 season, Tukey fence q3+1.5IQR per series): cup 13.4% of stops excluded (fence 18.4s), trucks 11.0% (39.2s), oreilly 11.3% (33.0s). Cars whose sim median moves >0.15s clean-vs-raw: cup 29, trucks 23, oreilly 29. Worst: cup #6 Keselowski 11.22->10.58 (-0.64s, wreck repairs), #33 11.52->10.75, trucks #2 31.12->26.96 (-4.2s). Wreck-prone cars are unfairly slow on a CREW-skill term.
 
 NOT shipped now: (a) model freeze through IRP weekend; (b) the #46 validation that set weight 0.06 ran on the contaminated medians — swapping the input requires re-validation. TASK #68: after freeze lifts, add the same series-level Tukey fence to the sim's __byCar accumulation (3-line change) AND re-run the #46-style correlation check on clean medians before the next published board. Expectation: equal or better (removes noise uncorrelated with crew skill).
+
+## 2026-07-23 — TASK #68 VALIDATION PASSED: fenced crew medians strictly dominate raw (clean input ready to ship)
+
+Re-ran a #46-style walk-forward on the fence question, per operator ("cant we just backtest it to validate it?"). Design: within series-season, crew metric = median 4-tire box_time per car from STRICTLY PRIOR races (>=5 stops, >=100 prior stops in pool); RAW variant vs CLEAN variant (Tukey fence q3+1.5IQR computed from the same prior-race pool — fully walk-forward, no lookahead); within-race tie-shared percentiles; finish pctile via loop_data; identical sample for both variants: 10,868 driver-races (2022-26, all 3 series, races with >=8 scored cars). DISCLOSED DEVIATION from #46: control = driver trailing avg finish pctile (walk-forward, >=3 prior races), not the full corr prior — weaker control inflates both crew coefs equally (~0.22 vs #46's 0.095) but the A/B comparison is clean since both variants face the identical control.
+
+RESULTS:
+- Separate models: RAW coef .2161 t 18.61 | CLEAN coef .2225 t 19.24. Clean wins.
+- HEAD-TO-HEAD (both in one model): ctrl t 21.45 | rawP coef .0552 t 1.63 (NOISE) | clnP coef .1708 t 5.07. The clean metric absorbs ALL the crew signal; raw retains nothing incremental. Strict dominance.
+- Materiality: fence shifts 3,904/10,868 driver-races (36%) by >5 within-race percentile points; avg abs shift 4.5 pts.
+
+VERDICT: task #68 fence fix is VALIDATED — the #46 term was originally validated at a handicap (wreck noise in its own input). Ship decision (now vs post-freeze) = operator's call; the change is 3 lines in SimulationCenter __byCar + config stamp bump pitCrew 'v1-0.06-fenced'.
