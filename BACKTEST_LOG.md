@@ -3456,3 +3456,26 @@ The v1 anchor shipped correct in principle and wrong in two particulars; the ope
 **FROZEN:** no further anchor scale revisions by reasoning. Next revision, if any, comes from the odds_snapshots archive (~15 races): test scale variants (rank / log-prob / multi-market) against thin-driver finish percentiles, same harness as the salary-proxy validation. Live review addition: thin-driver calibration (did anchored drivers finish where their anchors said?) rides the #55-style review.
 
 **Post-mortem of the evening (for future sessions):** one incident (a phantom flag) -> nine ships in one night (gate, anchor v1-v1.4, ringer exclusion, caution auto, P-R-P guards + UI, honesty stars). Ships v1.2/v1.3 fixed bugs that v1.4 revealed were partially misdiagnoses of a surprising-but-correct market opinion. Lesson logged: when a validated system produces a surprising number, CHECK WHAT THE INPUT ACTUALLY SAYS before re-deriving the mechanism. The star markers (diagnosis instrument) and the reproduce-from-snapshots method (ground truth) are the tools that finally cracked it — use them first next time.
+
+
+---
+
+## 2026-07-23 — PENALTY DATA vs THE MODEL: persistence tests. CREW -> DISPLAY ONLY. DRIVER SPEEDING -> candidate (queued).
+
+**Question (operator):** how should the new pit_penalties data affect pit crew rankings in the simulation?
+
+**Sparsity frame first:** crew penalties ~ 2.5-2.7 pct per car-race. Even at ~10 positions cost per event, expected impact ~ 0.25 positions/race — a TAIL event. If modeled at all it belongs as a per-sim event (like DNF), not a mean shift. But any model use requires the trait to be STICKY.
+
+**Persistence tests (split-half by odd/even race number, Spearman-Brown full-season reliability):**
+
+| unit | n units | mean rate | split-half r | reliability |
+|---|---|---|---|---|
+| CREW penalties, car+series+season (>=14 races) | 457 | 2.7 pct | 0.122 | 0.217 |
+| CREW penalties, ORG+series+season (>=20 car-races) | 207 | 2.5 pct | 0.099 | 0.179 |
+| DRIVER penalties, by driver career (>=24 races) | 151 | 4.0 pct | 0.162 | 0.279 |
+
+**CREW verdict: real but unactionable.** Trait exists (r significant at n=457) but ~80 pct of a season's rate is luck; org pooling makes it WORSE (penalty-proneness is crew-local, not org-cultural). Shrunken estimates cluster at base rate -> cross-crew spread ~0.05-0.1 expected positions — invisible under sim noise. DECISION: crew penalties stay OUT of the sim. They are excellent DISPLAY content (rankings page, task #66) — raw attributed counts are product differentiation, not model claims.
+
+**DRIVER SPEEDING verdict: genuine candidate, queued.** Field-wide reliability modest (0.279) BUT the tail is individually solid: chronic speeders at 2.5x base over huge samples — Ty Gibbs 10.5 pct/124 races, Kyle Busch 10.3/145, Suarez 9.3/151, Blaney 8.9/124 (Gibbs z ~ 3.7 vs base). For those names, expected impact ~ 0.5-1.0 positions/race + tail variance — pit-crew-term scale, concentrated in a handful of stars whose t10/DK tails matter. DESIGN (not shipped, freeze holds): empirical-Bayes shrunken driver penalty rate -> per-sim penalty event with position setback; walk-forward test = does the shrunken prior rate predict finish/DK residual to all existing terms? Run after this weekend.
+
+**Doctrine:** persistence testing BEFORE predictive testing for sparse-event data — if the trait doesn't repeat, there is nothing to predict with. (Crew penalties failed here; driver speeding partially passed via its tail.)
