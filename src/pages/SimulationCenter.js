@@ -393,6 +393,7 @@ function buildSpeedScores(drivers, weights) {
         win:  Math.round(wc),
         pit:  Math.round(pit),
         track: Math.round(t),
+        anchored: { corr: d.marketFill != null && conf < 1 && __eqS == null, lrp: d.marketFill != null && __thinD && lrpScores[i] == null, sp: d.marketFill != null && __thinD && startScores[i] == null }, // '*' in breakdown = market-anchored fill, not measured data
       },
     }
   })
@@ -1854,7 +1855,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
                           <>
                             {[['corr','corrHistory'],['lrp','longRunPace'],['srp','shortRunPace'],['sp','startPos'],['fall','tireFalloff'],['rc','raceCraft'],['pit','pitCrew'],['track','trackHistory']].filter(pp => (weights[pp[1]] || 0) > 0).map(pp => pp[0]).map(k => (
                               <td key={k} style={{ padding: '7px 10px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                                {row.scores?.[k] != null ? row.scores[k] : '--'}
+                                {row.scores?.[k] != null ? row.scores[k] : '--'}{row.scores && row.scores.anchored && row.scores.anchored[k] ? '*' : ''}
                               </td>
                             ))}
                             <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--accent)', fontSize: '0.92rem' }}>
