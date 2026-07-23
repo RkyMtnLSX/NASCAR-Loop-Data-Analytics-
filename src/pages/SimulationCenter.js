@@ -1050,25 +1050,38 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
   // MARKET ANCHOR source: implied win-prob field percentile (0-100) from pasted odds.
   const __mktFill = useMemo(() => {
     try {
+      // v1.4 multi-market tie-averaged rank (2026-07-22). History: rank spread co-priced
+      // longshots by alphabet (v1.1); log-prob let FD's +250000 junk lines stretch the scale
+      // so +10000 scored mid-field (v1.2/1.3). Books' t3/t5 tails ARE calibrated — so: per
+      // market, rank implied prob with TIES SHARING rank; average percentile across all
+      // markets a driver is priced in. Semantics = finish-rank space (what the salary-proxy
+      // backtest validated). DO NOT re-derive again by reasoning — next revision must come
+      // from the odds_snapshots archive (~15 races).
       const mv = __marketValue(oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt, rawDrivers)
-      const probs = []
-      rawDrivers.forEach(d => {
-        const m = mv[d.name] && mv[d.name].win
-        const best = m && m.best
-        if (best == null) return
-        const dec = best > 0 ? best / 100 + 1 : 100 / Math.abs(best) + 1
-        probs.push([d.name, 1 / dec])
+      const dec = a => a > 0 ? a / 100 + 1 : 100 / Math.abs(a) + 1
+      const acc = {}
+      ;['win', 't3', 't5', 't10'].forEach(mk => {
+        const rows = []
+        rawDrivers.forEach(d => {
+          const m = mv[d.name] && mv[d.name][mk]
+          const best = m && m.best
+          if (best == null) return
+          rows.push([d.name, 1 / dec(best)])
+        })
+        if (rows.length < 10) return
+        rows.sort((a, b) => a[1] - b[1])
+        let i = 0
+        while (i < rows.length) {
+          let k = i
+          while (k + 1 < rows.length && rows[k + 1][1] === rows[i][1]) k++
+          const shared = ((i + k) / 2 + 1) / rows.length * 100
+          for (let z = i; z <= k; z++) { (acc[rows[z][0]] = acc[rows[z][0]] || []).push(shared) }
+          i = k + 1
+        }
       })
-      if (probs.length < 10) return {}
-      // v1.2: LOG-prob min-max, not rank percentile. Rank spread the +10000 longshot cluster
-      // uniformly (alphabet decided MCJ's anchor = 51); ratings are ~linear in log win-prob,
-      // so co-priced drivers must get co-equal anchors.
-      const lps = probs.map(p => Math.log(p[1]))
-      const mn = Math.min.apply(null, lps), mx = Math.max.apply(null, lps)
-      if (mx <= mn) return {}
       const out = {}
-      probs.forEach((p, i) => { out[p[0]] = Math.round(((lps[i] - mn) / (mx - mn)) * 100) })
-      return out
+      Object.keys(acc).forEach(n => { out[n] = Math.round(acc[n].reduce((s, v) => s + v, 0) / acc[n].length) })
+      return Object.keys(out).length >= 10 ? out : {}
     } catch (e) { return {} }
   }, [oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt, rawDrivers])
 
@@ -1205,7 +1218,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
       race_year:  config.race_year || new Date().getFullYear(),
       race_number: raceNumMap[series] ? parseInt(raceNumMap[series]) : null,
       stage: simStage,
-      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'pairing-first', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06', flagGuard: 'conf-v1', marketAnchor: 'v1.3-track', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
+      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'pairing-first', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06', flagGuard: 'conf-v1', marketAnchor: 'v1.4-multimkt', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
       results: simResults.map(d => ({
         driver_name:  d.name,
         car_number:   d.carNumber,
