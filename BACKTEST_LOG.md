@@ -3443,3 +3443,16 @@ The v1 anchor shipped correct in principle and wrong in two particulars; the ope
 - **Breakdown honesty marker (5d4266c1):** '*' on any market-anchored cell — measured data vs borrowed prior is now visible at a glance (also the diagnostic that caught v1.2's bug: '51*' = anchor firing with wrong scale).
 
 **Meta-note for the record:** four ships in one evening on one feature, each triggered by the operator reading actual numbers off the actual screen. Backtests validate designs; operators validate implementations.
+
+
+---
+
+## 2026-07-22 — MARKET ANCHOR v1.4 FINAL (4fb6bc84) + THE CONVERGENCE FINDING. ANCHOR FROZEN.
+
+**v1.4 (shipped):** multi-market tie-averaged rank — per market (win/t3/t5/t10), implied-prob rank with ties SHARING rank, percentiles averaged across every market a driver is priced in. Fixes both prior defects: co-priced longshots get identical anchors (Muniz 9, was alphabet-random), and the calibrated t3/t5 ladders outvote the junk win tail (FD +250000 filler lines).
+
+**THE FINDING that ended the night:** MCJ's anchor is ~48 under EVERY reasonable scale — because that IS the market's multi-market opinion of him in THIS field (win +10000 with 8 trucks longer; t3 +2500; t5 +1100; weak standalone IRP field; Halmar equipment). The author's "should be ~20" was a personal prior overriding the market — the exact failure the anchor exists to prevent. For data-less drivers the market's surprising answers are still the best available answers; the gate ensures no VALUE claim rides on them either way.
+
+**FROZEN:** no further anchor scale revisions by reasoning. Next revision, if any, comes from the odds_snapshots archive (~15 races): test scale variants (rank / log-prob / multi-market) against thin-driver finish percentiles, same harness as the salary-proxy validation. Live review addition: thin-driver calibration (did anchored drivers finish where their anchors said?) rides the #55-style review.
+
+**Post-mortem of the evening (for future sessions):** one incident (a phantom flag) -> nine ships in one night (gate, anchor v1-v1.4, ringer exclusion, caution auto, P-R-P guards + UI, honesty stars). Ships v1.2/v1.3 fixed bugs that v1.4 revealed were partially misdiagnoses of a surprising-but-correct market opinion. Lesson logged: when a validated system produces a surprising number, CHECK WHAT THE INPUT ACTUALLY SAYS before re-deriving the mechanism. The star markers (diagnosis instrument) and the reproduce-from-snapshots method (ground truth) are the tools that finally cracked it — use them first next time.
