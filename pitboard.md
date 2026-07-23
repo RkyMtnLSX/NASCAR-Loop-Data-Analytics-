@@ -1379,3 +1379,12 @@ This was the 07-15 -> 07-18 marathon: best5 shipped end-to-end (sim, grader, liv
 **Data hygiene recap (already shipped).** loop_data "Daniel Su - rez" (accent mangled to " - " when pasted from source) unified to "Daniel Suarez" via UPDATE (races 18-21). Load Loop Data paste parser now checks each driver vs known roster and pops a confirm with a Levenshtein did-you-mean before save (Admin.js, abae523).
 
 **Open threads (unchanged):** ingest O'Reilly + Trucks historical DFS salary workbooks (same pipeline as the 754-row Cup load); start weekly DK ownership logging (CSVs expire ~3wk); build grading harness (our projected DK vs actual vs the 0.29 salary-market benchmark) once sims are republished with the new dominator allocator; Optimal% lights up after a republish (writes dfs_sim_samples) + posted salaries. Live tables: dfs_salaries (JSONB/race), dfs_sim_samples, dfs_salary_history (754 Cup rows), dfs_ownership (empty).
+
+
+## 2026-07-22 — SHIPPED: MCJ incident bundle (62417f84 + 13f3754d)
+
+- EDGE flags require data confidence (>= 5 corr races or practice) — flagGuard 'conf-v1'.
+- Thin-driver ignorance fill ~ de-vigged market win-odds percentile (marketAnchor 'v1'; salary-proxy validated, MAE .204 vs .282). Confident drivers: zero market influence. OPERATOR RHYTHM CHANGE: **Paste odds -> Run -> Publish** (guards enforce: empty-odds confirm + stale-odds confirm).
+- Ringer (crossover_borrows) rows excluded from car equipment pools (Bell/62 -> MCJ ghost value).
+- Caution preset auto-selects nearest calibrated anchor from track+series history (note shown in panel, SS pinned, manual override wins).
+- Odds text still NOT persisted across page remounts — re-paste after any navigation (guard will catch it).
