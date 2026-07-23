@@ -342,7 +342,8 @@ function buildSpeedScores(drivers, weights) {
     const __eqM = __eqScale ? __eqScale(d.modalEquipRating) : null
     const __eqScl = d.equipScale != null ? d.equipScale : 1
     const __eqConf = (d.nEquipRaces > 0 ? Math.min(1, d.nEquipRaces / 4) : 0) * __eqScl
-    const __eqFill = __eqS != null ? __eqS * __eqConf + 50 * (1 - __eqConf) : 50
+    const __mkA = d.marketFill != null ? d.marketFill : 50 // MARKET ANCHOR 2026-07-22: de-vigged win-odds pctile replaces neutral as the ignorance fill (salary-proxy backtest: MAE .204 vs .282, level miss 24pts — BACKTEST_LOG)
+    const __eqFill = __eqS != null ? __eqS * __eqConf + __mkA * (1 - __eqConf) : __mkA
     let c = rawC * conf + __eqFill * (1 - conf)
     if (conf >= 1 && __eqS != null && __eqM != null && d.modalCar && d.carNumber && String(d.carNumber).trim() !== d.modalCar) {
       const __dConf = Math.min(1, Math.min(d.nEquipRaces, d.nModalEquip) / 4)
@@ -610,6 +611,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
   const [myBets, setMyBets] = useState([])
   const [betForm, setBetForm] = useState({ driver: '', market: 'win', odds: '', stake: '' })
   const [cautionPreset, setCautionPreset]   = useState(CAUTION_PRESETS[1])
+  const [cautionAutoNote, setCautionAutoNote] = useState('')
   const [dnfPreset, setDnfPreset]           = useState(DNF_PRESETS[1])
   const [numSims, setNumSims]               = useState(10000)
   const [totalRaceLaps, setTotalRaceLaps]   = useState(200)
@@ -859,6 +861,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
           const rating = parseFloat(r.driver_rating)
           const yr = parseInt(r.year) || 0
           if (!car || r.series !== s || isNaN(rating)) return
+          if (__borrowMap[normalizeName((r.driver_name || '').trim())]) return // 2026-07-22: ringer rows measure driver x equipment jointly (Bell/62 -> MCJ ghost value) — excluded from car pools
           if (!loopByCar[car]) loopByCar[car] = []
           loopByCar[car].push({ rating, yr })
         })
@@ -1012,6 +1015,56 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
     }, 800)
     return () => clearTimeout(h)
   }, [rearOverrides, series]) // eslint-disable-line
+  // CAUTION AUTO-PRESET (2026-07-22): nearest calibrated preset from track+series caution
+  // history (races.total_cautions, non-exhibition); corr-group fallback under 2 races;
+  // superspeedways pinned (SS noise calibration anchor). Manual clicks override.
+  useEffect(() => {
+    let dead = false
+    if (!config) return
+    ;(async () => {
+      try {
+        if (isSuperspeedway(config.track_name)) { if (!dead) setCautionAutoNote('SS: pinned (calibrated)'); return }
+        const { data: tr } = await supabase.from('races').select('total_cautions, track_name')
+          .eq('series', series).not('total_cautions', 'is', null).not('exhibition', 'is', true)
+        if (dead || !tr || !tr.length) return
+        let rows = tr.filter(r => r.track_name === config.track_name)
+        let src = 'track avg'
+        if (rows.length < 2 && config.correlation_label) {
+          const { data: gts } = await supabase.from('tracks').select('name').eq('correlation_group_label', config.correlation_label)
+          const names = new Set((gts || []).map(x => x.name))
+          rows = tr.filter(r => names.has(r.track_name))
+          src = 'group avg'
+        }
+        if (dead || rows.length < 2) return
+        const avg = rows.reduce((sum, r) => sum + r.total_cautions, 0) / rows.length
+        const presets = getCautionPresets(series)
+        const pick = presets.reduce((a, b) => Math.abs(b.value - avg) < Math.abs(a.value - avg) ? b : a)
+        if (!dead) { setCautionPreset(pick); setCautionAutoNote('auto: ' + src + ' ' + avg.toFixed(1) + ' -> ' + pick.label) }
+      } catch (e) {}
+    })()
+    return () => { dead = true }
+  }, [config, series]) // eslint-disable-line
+
+  // MARKET ANCHOR source: implied win-prob field percentile (0-100) from pasted odds.
+  const __mktFill = useMemo(() => {
+    try {
+      const mv = __marketValue(oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt, rawDrivers)
+      const probs = []
+      rawDrivers.forEach(d => {
+        const m = mv[d.name] && mv[d.name].win
+        const best = m && m.best
+        if (best == null) return
+        const dec = best > 0 ? best / 100 + 1 : 100 / Math.abs(best) + 1
+        probs.push([d.name, 1 / dec])
+      })
+      if (probs.length < 10) return {}
+      const sorted = probs.slice().sort((a, b) => a[1] - b[1])
+      const out = {}
+      sorted.forEach((p, i) => { out[p[0]] = Math.round(((i + 1) / sorted.length) * 100) })
+      return out
+    } catch (e) { return {} }
+  }, [oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt, rawDrivers])
+
   const driversWithScores = useMemo(
     () => {
       const __rearPos = rawDrivers.length
@@ -1019,9 +1072,10 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
         ...d,
         equipScale: eqOverrides[d.name] != null ? eqOverrides[d.name] : 1,
         startPos: rearOverrides[d.name] ? __rearPos : d.startPos,
+        marketFill: __mktFill[d.name] != null ? __mktFill[d.name] : null,
         lapsDown: lapsDownOverrides[d.name] || 0,
       })), __applyRainOut(weights, rainOut))
-    }, [rawDrivers, weights, rainOut, eqOverrides, rearOverrides, lapsDownOverrides]
+    }, [rawDrivers, weights, rainOut, eqOverrides, rearOverrides, lapsDownOverrides, __mktFill]
   )
 
   function handleLogin(e) {
@@ -1059,6 +1113,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
   }
   async function delMyBet(id) { await supabase.from('my_bets').delete().eq('id', id); setMyBets(bs => bs.filter(b => b.id !== id)) }
   const __snapHash = React.useRef('')
+  const __runOddsHash = React.useRef('')
   useEffect(() => {
     if (!rawDrivers.length || !config) return
     const txts = [oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt]
@@ -1083,6 +1138,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
   }, [oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt, rawDrivers, series, config, raceNumMap]) // eslint-disable-line
 
   const handleRun = () => {
+    __runOddsHash.current = [oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt].map(x => (x || '').length + ':' + (x || '').slice(0, 40)).join('|')
     setRunning(true)
     setSimResults(null)
     setPublished(false)
@@ -1113,6 +1169,14 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
       alert('Enter a Race # before publishing - published boards and grading join on it.')
       return
     }
+    // PUBLISH GUARDS (2026-07-22): empty odds -> blank Market Value; stale odds -> anchors/flags computed on old odds.
+    const __oddsTxts = [oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt]
+    const __oddsHashNow = __oddsTxts.map(x => (x || '').length + ':' + (x || '').slice(0, 40)).join('|')
+    if (!__oddsTxts.some(x => (x || '').trim())) {
+      if (!window.confirm('No odds are pasted. Market Value will be BLANK and no bets will be flagged or logged. Publish anyway?')) return
+    } else if (__runOddsHash.current !== __oddsHashNow) {
+      if (!window.confirm('Odds changed since the last Run - market anchors and EV flags reflect the OLD odds. OK = publish anyway, Cancel = go re-run first.')) return
+    }
     const __mv = __marketValue(oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt, simResults)
     let __mtxB64 = null, __mtxN = 0, __mtxOrder = null
     if (simResults.posMatrix && simResults.simN) {
@@ -1134,7 +1198,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
       race_year:  config.race_year || new Date().getFullYear(),
       race_number: raceNumMap[series] ? parseInt(raceNumMap[series]) : null,
       stage: simStage,
-      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'pairing-first', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06', flagGuard: 'conf-v1', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
+      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'pairing-first', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06', flagGuard: 'conf-v1', marketAnchor: 'v1', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
       results: simResults.map(d => ({
         driver_name:  d.name,
         car_number:   d.carNumber,
@@ -1325,7 +1389,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
                   }}>{p.label}</button>
                 ))}
               </div>
-              <div style={hintStyle}>~{cautionPreset.value} cautions &middot; noise width &plusmn;{cautionPreset.noise}</div>
+              <div style={hintStyle}>~{cautionPreset.value} cautions &middot; noise width &plusmn;{cautionPreset.noise}{cautionAutoNote ? ' \u00b7 ' + cautionAutoNote : ''}</div>
             </div>
 
             <div style={{ padding: '12px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 8 }}>
