@@ -777,7 +777,16 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
             .not('box_time', 'is', null).gt('lap', 0).limit(20000)
           const __byCar = {}
           ;(__pits || []).forEach(p => { const c = String(p.car_number || '').trim(); if (c && p.box_time != null) (__byCar[c] = __byCar[c] || []).push(parseFloat(p.box_time)) })
-          Object.keys(__byCar).forEach(c => { const a = __byCar[c].sort((x, y) => x - y); if (a.length >= 5) __crewMap[c] = a.length % 2 ? a[(a.length - 1) / 2] : (a[a.length / 2 - 1] + a[a.length / 2]) / 2 })
+          // task #68 (2026-07-23): qualifying-stops fence — exclude crash repairs / penalty holds via
+          // series-season Tukey fence (q3 + 1.5*IQR) BEFORE computing crew medians. Validated same day:
+          // clean strictly dominates raw head-to-head (t 5.07 vs 1.63, n 10,868 — BACKTEST_LOG).
+          const __allBt = []
+          Object.keys(__byCar).forEach(c => { __byCar[c].forEach(t => __allBt.push(t)) })
+          __allBt.sort((x, y) => x - y)
+          const __fq1 = __allBt[Math.floor(__allBt.length * 0.25)] || 0
+          const __fq3 = __allBt[Math.floor(__allBt.length * 0.75)] || 0
+          const __fence = __allBt.length >= 100 ? __fq3 + 1.5 * (__fq3 - __fq1) : Infinity
+          Object.keys(__byCar).forEach(c => { const a = __byCar[c].filter(t => t <= __fence).sort((x, y) => x - y); if (a.length >= 5) __crewMap[c] = a.length % 2 ? a[(a.length - 1) / 2] : (a[a.length / 2 - 1] + a[a.length / 2]) / 2 })
         } catch (e) {}
 
         // Specific track history
@@ -1218,7 +1227,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
       race_year:  config.race_year || new Date().getFullYear(),
       race_number: raceNumMap[series] ? parseInt(raceNumMap[series]) : null,
       stage: simStage,
-      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'pairing-first', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06', flagGuard: 'conf-v1', marketAnchor: 'v1.4-multimkt', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
+      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'pairing-first', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06-fenced', flagGuard: 'conf-v1', marketAnchor: 'v1.4-multimkt', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
       results: simResults.map(d => ({
         driver_name:  d.name,
         car_number:   d.carNumber,
