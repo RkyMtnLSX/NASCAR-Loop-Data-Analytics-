@@ -3429,3 +3429,17 @@ Positive and significant EVERYWHERE. Headline: at superspeedways the crew term i
 **Ship 5 — P-R-P PUBLISH GUARDS:** publishing with empty odds boxes -> confirm (tonight's blank Market Value cause: page remount cleared unpersisted odds text between paste 04:05 and publish 04:13); odds changed since last Run -> confirm (market anchors + flags reflect old odds). New operator rhythm: PASTE -> RUN -> PUBLISH.
 
 **Doctrine addition:** market-as-ignorance-prior is IN (validated, confidence-bounded); market-as-calibration-target stays OUT. A flag now always means: the model has data AND that data disagrees with the price.
+
+
+---
+
+## 2026-07-22 — MARKET ANCHOR v1.1 -> v1.3 (same-night iteration, operator-driven QA)
+
+The v1 anchor shipped correct in principle and wrong in two particulars; the operator's screen-reading found both within the hour. Final state:
+
+- **v1.1 (dfe6a66b) all-fills:** v1 anchored only the corr-history slot (~34% of score); pre-practice/pre-quali thin drivers kept neutral-50 in practice/start slots -> t3/t5 stayed inflated. v1.1: thin drivers (gate def: <5 corr races AND no practice) use the market anchor in ALL ignorance fills.
+- **v1.2 (b87407d4) log-prob scale:** rank-percentile spread the co-priced +10000 longshot cluster uniformly (MCJ's anchor came out 51 — the ALPHABET set it). Ratings ~ linear in log win-prob -> anchor = log-prob min-max (co-priced drivers get co-equal anchors; favorites 100).
+- **v1.3 (92eda3ba) track fallback:** thin drivers' track-history ignorance also anchors to market. CROSS-REF: shrink-to-corr for ESTABLISHED drivers was tested and REJECTED 07-18 (regression-to-field at unfamiliar tracks is real) — the code comment warns future sessions not to "fix" the 50 to HIST for established drivers.
+- **Breakdown honesty marker (5d4266c1):** '*' on any market-anchored cell — measured data vs borrowed prior is now visible at a glance (also the diagnostic that caught v1.2's bug: '51*' = anchor firing with wrong scale).
+
+**Meta-note for the record:** four ships in one evening on one feature, each triggered by the operator reading actual numbers off the actual screen. Backtests validate designs; operators validate implementations.
