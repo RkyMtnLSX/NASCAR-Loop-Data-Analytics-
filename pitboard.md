@@ -1364,3 +1364,18 @@ This was the 07-15 -> 07-18 marathon: best5 shipped end-to-end (sim, grader, liv
 - The live telemetry extractor now lives at **C:\Users\atmms\NascarDataScrapperV3\** (moved OUT of OneDrive — the old OneDrive\Desktop\NASCAR DATA EXTRACTOR V3 folder is abandoned; ignore it). Root cause of the Errno-22 capture crashes (OneDrive sync invalidating handles mid-append) is gone.
 - ALL write sites are fail-soft: ingest raw (retry x4 -> skip line), aux_raw (same), write_sheets xlsx (retry -> alternate filename -> skip workbook; Excel-lock proof), plus the bare-launch help guard. Lap/pit CSV rows derive from in-memory data, so skipped raw-archive lines are harmless.
 - Retired: the old pre-v3 copy at OneDrive\Desktop\NASCAR Practice Scanner\files\nascar_extract.py — do not run it (unpatched, duplicates polling).
+
+
+## 2026-07-20 (cont. 2) - UI / nav / landing polish (HANDOFF to Fable, operator switching over)
+
+**Nav finalized.** Top bar = Race Weekend, Data Center, Practice Center, Sim Center, DFS Center (Data Center swapped BEFORE Practice Center, commit bfc5d5d). Data Center dropdown = Loop Data, Green Flag Speed, Fastest Laps, Qualifying, Pit Crew Rankings. Sim Center dropdown = Cup Sim / O'Reilly Sim / Truck Sim -> /sim-results?series=X (SimResults reads ?series= via useSearchParams).
+
+**Nav logo = plain white PITBOARD, bigger, no lugnut (current: commit e789a48).** IMPORTANT: an experimental unified logo (racing stripes + skewed PITBOARD, commits 1363c31 + RacingStripes d726f28) was tried and REVERTED at operator request. RacingStripes is back to both fixed corners (tl + br, commit 6f4c39b). Do NOT re-add the hex lugnut or re-color the logo gold.
+
+**Loop Data table alignment (a89d7ee).** Driver cell left-aligned so the car-number PNGs line up across all three series. Root cause was a center-aligned <td> (PNGs are already uniform 31px). Matches Fastest Laps / Green Flag Speed look.
+
+**Landing hero reworked (97b320e).** Headline broadened from betting-only to betting+DFS: "The model behind / every bet and lineup." Subhead now names DFS + the 3 books. Hero accents made MONOCHROME/white (badge, stat numbers, primary Get-Full-Access button) - operator dislikes the gold --accent on the hero. NOTE: rest of site still uses gold --accent (nav active state, What's-inside card tags/hover); operator may want a fuller de-yellow later - hero only for now.
+
+**Data hygiene recap (already shipped).** loop_data "Daniel Su - rez" (accent mangled to " - " when pasted from source) unified to "Daniel Suarez" via UPDATE (races 18-21). Load Loop Data paste parser now checks each driver vs known roster and pops a confirm with a Levenshtein did-you-mean before save (Admin.js, abae523).
+
+**Open threads (unchanged):** ingest O'Reilly + Trucks historical DFS salary workbooks (same pipeline as the 754-row Cup load); start weekly DK ownership logging (CSVs expire ~3wk); build grading harness (our projected DK vs actual vs the 0.29 salary-market benchmark) once sims are republished with the new dominator allocator; Optimal% lights up after a republish (writes dfs_sim_samples) + posted salaries. Live tables: dfs_salaries (JSONB/race), dfs_sim_samples, dfs_salary_history (754 Cup rows), dfs_ownership (empty).
