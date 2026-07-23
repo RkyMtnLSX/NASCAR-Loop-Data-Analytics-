@@ -1398,3 +1398,13 @@ This was the 07-15 -> 07-18 marathon: best5 shipped end-to-end (sim, grader, liv
 
 
 - FINAL ADDENDUM (4fb6bc84, marketAnchor 'v1.4-multimkt', FROZEN): anchor = multi-market tie-averaged rank percentile (win/t3/t5/t10 vote). MCJ convergence finding: his ~48 anchor is the market's real opinion in the weak IRP field, not a bug — all scales agree. No further scale changes by reasoning; re-derive only from odds_snapshots archive (~15 races). Thin-driver calibration added to the live review list.
+
+
+## 2026-07-23 — pit_penalties PIPELINE COMPLETE (schema f9f98a5a, loader v2 253bffd8)
+
+- **Source discovered + verified from the browser:** NASCAR race-control lap notes at cf.nascar.com/cacher/{year}/{series_id}/{nascar_race_id}/lap-notes.json (CORS open, archived like the pit feed; shape {laps:{lap:[{Note,FlagState,NoteID,DriverIDs}]}}). Penalties are EMBEDDED in narrative pit-cycle notes.
+- **New table pit_penalties** (operator ran DDL): race-registry-denormalized, unique (race_id, lap, car_number, penalty_text), RLS public read+write (task #64 tightens). **category = 'driver'** (speeding/too fast, commitment, outside box) **vs 'crew'** (over the wall too soon, uncontrolled tire, too many men, improper fueling, safety violation, lug nut) **vs 'other'** — the attribution split is the differentiator vs pitcrewranks-style products.
+- **Loader pitboard_penalties_backfill.py v2** (repo root; runs on operator machine like its pit sibling): registry-driven, harvests nascar_race_id from pit_stops (no re-matching), sentence-split -> per-car SEGMENT classification (v1 trimmed phrases to 8 words BEFORE classifying — chopped keywords off verbose prose, bloating 'other'; v2 classifies full segments, 9/9 on the live-sampled format tests). Idempotent delete-then-insert. Unparsed penalty sentences reported, never dropped.
+- **Live result (--year all): 386 races -> 1,129 penalties (driver 567 / crew 352 / other 210)**; 5 races had no notes feed; 7 unparsed sentences remain, ALL pronoun-referenced or retrospective recaps (unparseable at sentence level by design; capturing them risks dupes). ~99.4 pct capture. Crew-penalty leaders 2022-26: cup #8 x8, cup #38 x7, cup #20 x7, trucks #22 x7, trucks #13 x7.
+- **WEEKLY WORKFLOW SIMPLIFIED: POST_RACE_UPDATE.bat** (operator's scraper folder) runs pit stops + penalties for the current season in one click. Post-race ritual is now: loop PDF in Admin -> POST_RACE_UPDATE.bat -> grade both boards. The *_ALL.bat variants are history-rebuild tools only. Rule: .bat files are the buttons; never double-click a .py (default-runs and closes).
+- **Scope held:** data layer only. Penalty-adjusted crew rankings = future display project (operator wants to flesh out rankings later); model untouched (freeze in effect).
