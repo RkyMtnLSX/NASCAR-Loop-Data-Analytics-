@@ -157,7 +157,7 @@ export default function PitCrewRankings() {
   }, [series])
 
   const sorted = [...rows].sort((a, b) =>
-    sort === 'n' ? b.n - a.n : sort === 'iqr' ? a.iqr - b.iqr : sort === 'median' ? a.median - b.median : a.adj - b.adj)
+    sort === 'n' ? b.n - a.n : sort === 'iqr' ? a.iqr - b.iqr : a.adj - b.adj)
 
   return (
     <div style={wrap}>
@@ -194,8 +194,7 @@ export default function PitCrewRankings() {
               <col style={{ width: 68 }} />
               <col />
               <col />
-              <col style={{ width: 96 }} />
-              <col style={{ width: 78 }} />
+              <col style={{ width: 92 }} />
               <col style={{ width: 118 }} />
               <col style={{ width: 64 }} />
               <col style={{ width: 80 }} />
@@ -208,7 +207,6 @@ export default function PitCrewRankings() {
                 <th style={th({ align: 'left' })}>Car</th>
                 <th style={th({ align: 'left' })}>Organization</th>
                 <th style={th({ align: 'left' })}>Driver</th>
-                <th style={th({ align: 'center', sortable: true, active: sort === 'median' })} onClick={() => setSort('median')}>Median (s)</th>
                 <th style={th({ align: 'center', sortable: true, active: sort === 'adj' })} onClick={() => setSort('adj')}>Adj (s)</th>
                 <th style={th({ align: 'center', sortable: true, active: sort === 'iqr' })} onClick={() => setSort('iqr')}>Consistency</th>
                 <th style={th({ align: 'center' })}>Bomb%</th>
@@ -225,18 +223,17 @@ export default function PitCrewRankings() {
                   <td style={td('left')}><CarNum car={c.car} series={series} /></td>
                   <td style={td('left')}>{c.org || '\u2014'}</td>
                   <td style={{ ...td('left'), color: 'var(--text-secondary)', fontStyle: c.rotating ? 'italic' : 'normal' }}>{c.driver || '\u2014'}</td>
-                  <td style={{ ...td('center'), color: 'var(--text-secondary)' }}>{c.median.toFixed(2)}</td>
                   <td style={{ ...td('center'), fontWeight: 700 }}>{c.adj.toFixed(2)}</td>
                   <td style={{ ...td('center'), color: 'var(--text-secondary)' }}>{c.iqr.toFixed(2)}</td>
                   <td style={{ ...td('center'), color: 'var(--text-secondary)' }}>{(c.bomb * 100).toFixed(0)}%</td>
-                  <td style={td('center')}>{c.cp} <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>({c.penRate.toFixed(2)}/rc)</span></td>
+                  <td style={td('center')} title={c.penRate.toFixed(2) + ' crew penalties per race'}>{c.cp}</td>
                   <td style={td('center')}>{c.dp}{c.chronic ? <span style={{ marginLeft: 6, fontSize: '0.68rem', color: '#fff', background: '#7f1d1d', borderRadius: 4, padding: '1px 5px' }}>chronic</span> : null}</td>
                   <td style={td('center')}>
                     {c.n}{c.n < LOWN && <span style={{ marginLeft: 6, fontSize: '0.68rem', color: 'var(--text-secondary)', border: '1px solid var(--border)', borderRadius: 4, padding: '1px 5px' }}>thin</span>}
                   </td>
                 </tr>
                 {open === c.car + '|' + (c.org || '') && (
-                  <tr><td colSpan={11} style={{ padding: '12px 16px 18px', background: 'var(--bg-surface)', borderTop: '1px solid var(--border)' }}><CrewDetail c={c} /></td></tr>
+                  <tr><td colSpan={10} style={{ padding: '12px 16px 18px', background: 'var(--bg-surface)', borderTop: '1px solid var(--border)' }}><CrewDetail c={c} /></td></tr>
                 )}
                 </React.Fragment>
               ))}
