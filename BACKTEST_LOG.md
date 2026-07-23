@@ -3410,3 +3410,22 @@ Positive and significant EVERYWHERE. Headline: at superspeedways the crew term i
 **DK accuracy, first short-track reading:** corr .536 / spearman .512 / MAE 15.0 / bias +0.31 (n35). Confirms the Atlanta near-zero corr was SS variance, not model failure — on a short track the DK projections rank the field properly with near-perfect level calibration. Competitor's missing fast-lap engine remains a standing DFS edge.
 
 **CLV: absent this race (expected)** — snapshots began mid-afternoon; first full CLV row accrues next weekend once the paste-Run-at-green habit is in effect.
+
+
+---
+
+## 2026-07-22 — !! SHIPPED !! MCJ INCIDENT BUNDLE: edge gate, market anchor (VALIDATED), ringer exclusion, caution auto, P-R-P guards
+
+**Incident:** IRP trucks pre board flagged Michael Christopher Jr (1 career start) as t3/t5 VALUE. Root causes, in layers: (1) the 62's short-flat equipment pool was 100 PCT Christopher Bell rows (97.1 — his NW+Bristol) feeding MCJ's thin-history fill (the operator's Bell/62 endogeneity insight, now a live bug); (2) with equipment zeroed, the NEUTRAL ignorance fill still overrates unknowns at longshot prices. Operator product ruling: value flags on data-thin drivers destroy credibility. Board republished clean before grading — nothing bad logged.
+
+**Ship 1 — EDGE confidence gate (62417f84, flagGuard 'conf-v1'):** ev/medge flags require >= 5 corr-group races OR practice data present. Prices/probs still display; the VALUE claim is gated. Fail-open if fields absent.
+
+**Ship 2 — MARKET ANCHOR for thin drivers (13f3754d, marketAnchor 'v1'), operator-proposed + BACKTESTED same day:** the ignorance fill (previously neutral 50) becomes the de-vigged win-odds field percentile. Fill priority: equipment (when valid) -> market -> 50. Confidence-weighted: full-data drivers get ZERO market influence (independence where edge lives — the anti-SpeedGeeks doctrine: market speaks only in our silence; flags mean OUR DATA disagrees with the price). VALIDATION (salary proxy, cup 2026, 44 thin driver-races): thin drivers actually finish 73.7 pctile; neutral predicts 50.0 (6-sigma level miss); market predicts 70.2; MAE .204 vs .282; pooled corr .43; within-race thin-cluster ordering .40. Re-test on real odds once odds_snapshots accrue (~15 races).
+
+**Ship 3 — RINGER EXCLUSION from car equipment pools:** rows by active crossover-borrow drivers (Bell, Elliott) excluded from loopByCar — pairing doctrine: those rows measure driver x equipment jointly, not what the car gives a journeyman. Kills the Bell/62 class of ghost value at the root.
+
+**Ship 4 — CAUTION AUTO-PRESET:** nearest calibrated preset (Low/Medium/High anchors only — noise calibration untouched) from track+series races.total_cautions (>= 2 races, non-exhibition; corr-group fallback; superspeedways pinned). Note displayed in panel; manual clicks override. Measured spread: truck tracks 3.5-11.0 avg cautions (IRP 5.5 -> Low); all series-tracks 0-14.
+
+**Ship 5 — P-R-P PUBLISH GUARDS:** publishing with empty odds boxes -> confirm (tonight's blank Market Value cause: page remount cleared unpersisted odds text between paste 04:05 and publish 04:13); odds changed since last Run -> confirm (market anchors + flags reflect old odds). New operator rhythm: PASTE -> RUN -> PUBLISH.
+
+**Doctrine addition:** market-as-ignorance-prior is IN (validated, confidence-bounded); market-as-calibration-target stays OUT. A flag now always means: the model has data AND that data disagrees with the price.
