@@ -1395,3 +1395,6 @@ This was the 07-15 -> 07-18 marathon: best5 shipped end-to-end (sim, grader, liv
 
 
 - ADDENDA (v1.2 b87407d4, v1.3 92eda3ba, marker 5d4266c1): market anchor scale is LOG-prob min-max (rank percentile let the alphabet order co-priced +10000 longshots — MCJ got 51); thin drivers' TRACK fallback anchors to market too (established drivers keep validated neutral-50 — do not revert, see 07-18 rejection); breakdown cells show '*' when market-anchored (measured vs borrowed, product honesty + diagnostics). Stamp: marketAnchor 'v1.3-track'.
+
+
+- FINAL ADDENDUM (4fb6bc84, marketAnchor 'v1.4-multimkt', FROZEN): anchor = multi-market tie-averaged rank percentile (win/t3/t5/t10 vote). MCJ convergence finding: his ~48 anchor is the market's real opinion in the weak IRP field, not a bug — all scales agree. No further scale changes by reasoning; re-derive only from odds_snapshots archive (~15 races). Thin-driver calibration added to the live review list.
