@@ -1243,12 +1243,13 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
     })
   }, [simResults, sortKey, sortDir])
     const oddsCounts = useMemo(() => {
-      if (!simResults) return null
-      const mv = __marketValue(oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt, simResults)
+      const __ocSrc = (simResults && simResults.length ? simResults : rawDrivers)
+      if (!__ocSrc || !__ocSrc.length) return null
+      const mv = __marketValue(oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt, __ocSrc)
       const c = { dk: 0, fd: 0, hr: 0 }
       Object.keys(mv || {}).forEach(k => { const w = mv[k] && mv[k].win; if (w) { if (w.dk != null) c.dk++; if (w.fd != null) c.fd++; if (w.hr != null) c.hr++ } })
       return c
-    }, [simResults, oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt])
+    }, [simResults, rawDrivers, oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt])
   const shadeRows = useMemo(() => {
     if (!simResults || (!oddsWinTxt && !oddsT10Txt && !oddsFdTxt && !oddsHrTxt)) return null
     const mvMap = __marketValue(oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt, simResults)
@@ -1623,8 +1624,9 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
               {running && <div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />}
               {running ? `Running ${numSims.toLocaleString()} simulations...` : `Run ${numSims.toLocaleString()} Simulations`}
             </button>
-            {simResults && (
-              <><div style={{ marginTop: 12 }}>
+            {/* ODDS PASTE moved out of the simResults conditional (2026-07-22): Paste -> Run -> Publish requires the boxes to exist BEFORE the first run (market anchors read odds at run time). */}
+            {rawDrivers.length > 0 && (
+              <div style={{ marginTop: 12 }}>
   <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 4 }}>DK odds - paste incl. the header row (any column order auto-detected)</div>
   <textarea value={oddsWinTxt} onChange={e => setOddsWinTxt(e.target.value)} rows={3} style={{ width: '100%', fontFamily: 'monospace', fontSize: 11 }} />
   <div style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '6px 0 4px' }}>DK odds - Top 10 (paste)</div>
@@ -1648,6 +1650,9 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
         ))}
       </div> : null}
 </div>
+            )}
+            {simResults && (
+              <>
 <div style={{ marginBottom: 10 }}><label style={{ fontSize: '0.9rem', marginRight: 8, color: 'var(--text-muted)' }}>Race #</label><input type="number" value={raceNumMap[series] || ''} onChange={e => setRaceNumMap(m => ({ ...m, [series]: e.target.value }))} placeholder="e.g. 20" title="Season round number - carried to the Grade Center" style={{ width: 90, padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(128,128,128,0.35)', background: 'transparent', color: 'inherit', boxSizing: 'border-box' }} /></div>
 <div style={{ marginBottom: 10, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
   <span style={{ color: 'var(--text-muted)' }}>Sim stage:</span>
