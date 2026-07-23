@@ -10,7 +10,7 @@ const DRIVER_OVERRIDE = { cup: { '33': 'Austin Hill' } }  // full-time driver; p
 const MEDAL = { 0: '\uD83E\uDD47', 1: '\uD83E\uDD48', 2: '\uD83E\uDD49' }
 const __CAR_ALIAS = { '133': '33' }
 const PEN_SEC = 1.75   // amortized box-time equivalent per crew penalty per race (display methodology, not a sim input)
-const BOMB_X = 1.5     // a bomb = stop slower than 1.5x the series median
+const BOMB_X = 1.25    // a bomb = qualifying stop slower than 1.25x the series clean median (hung-lug territory)
 // Career driver pit-penalty rates pct (speeding/commitment/box), 2022-26 through 2026-07-23,
 // shrunk k=50 toward the 3.9 pct base, min 60 races, threshold 1.8x base. Regenerate from pit_penalties periodically.
 const CHRONIC = { 'ty gibbs': 8.7, 'riley herbst': 8.2, 'daniel suarez': 7.7, 'martin truex jr': 7.7, 'kyle busch': 7.7, 'shane van gisbergen': 7.4, 'john hunter nemechek': 7.2 }
@@ -128,9 +128,13 @@ export default function PitCrewRankings() {
       // crew = car + team, so a rotating driver lineup stays ONE crew. Normalize name
       // markers (leading *, trailing (i)/#) so one driver is not miscounted as several.
       const cleanName = (n) => n.replace(/^\*\s*/, '').replace(/\s*\(i\)\s*$/i, '').replace(/\s*#\s*$/, '').trim().toLowerCase()
-      const seriesMed = median(all.map((r) => +r.box_time))
-      const out = Object.values(crews).filter((c) => c.t.length >= MIN_STOPS).map((c) => {
-        const b = [...c.t].sort((a, b) => a - b)
+      const allT = all.map((r) => +r.box_time).sort((a, b) => a - b)
+      const sq1 = allT[Math.floor(allT.length * 0.25)], sq3 = allT[Math.floor(allT.length * 0.75)]
+      const fence = sq3 + 1.5 * (sq3 - sq1)   // series outlier fence: beyond this = repair/hold/non-competitive stop, excluded from ALL crew stats
+      const seriesMed = median(allT.filter((t) => t <= fence))
+      const out = Object.values(crews).filter((c) => c.t.filter((t) => t <= fence).length >= MIN_STOPS).map((c) => {
+        const ct = c.t.filter((t) => t <= fence)
+        const b = [...ct].sort((a, b) => a - b)
         const q1 = b[Math.floor(b.length * 0.25)], q3 = b[Math.floor(b.length * 0.75)]
         const names = Object.keys(c.dc)
         const distinct = new Set(names.map(cleanName))
@@ -140,11 +144,11 @@ export default function PitCrewRankings() {
         const races = Object.keys(c.rs).length || 1
         const cp = penC[String(c.car)] || 0
         const dp = penD[String(c.car)] || 0
-        const med = median(c.t)
-        const rlist = Object.keys(c.rd).map(Number).sort((a, b) => a - b).map((rn) => ({ rn: rn, med: median(c.rd[rn].ts), n: c.rd[rn].ts.length, best: Math.min.apply(null, c.rd[rn].ts), track: c.rd[rn].track }))
+        const med = median(ct)
+        const rlist = Object.keys(c.rd).map(Number).sort((a, b) => a - b).map((rn) => { const cts = c.rd[rn].ts.filter((t) => t <= fence); return cts.length ? { rn: rn, med: median(cts), n: cts.length, best: Math.min.apply(null, cts), track: c.rd[rn].track } : null }).filter(Boolean)
         const bestStop = rlist.reduce((m, x) => (m && m.best <= x.best ? m : x), null)
         const chronic = CHRONIC[(driver || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()]
-        return { car: c.car, org: c.org, driver: driver, rotating: rotating, median: med, adj: med + (cp / races) * PEN_SEC, penRate: cp / races, cp: cp, dp: dp, bomb: c.t.filter((t) => t > seriesMed * BOMB_X).length / c.t.length, chronic: chronic, iqr: q3 - q1, n: c.t.length, rlist: rlist, bestStop: bestStop, pens: (penR[String(c.car)] || {}) }
+        return { car: c.car, org: c.org, driver: driver, rotating: rotating, median: med, adj: med + (cp / races) * PEN_SEC, penRate: cp / races, cp: cp, dp: dp, bomb: ct.filter((t) => t > seriesMed * BOMB_X).length / ct.length, chronic: chronic, iqr: q3 - q1, n: ct.length, rlist: rlist, bestStop: bestStop, pens: (penR[String(c.car)] || {}) }
       })
       setRows(out)
       setLoading(false)
@@ -159,7 +163,7 @@ export default function PitCrewRankings() {
     <div style={wrap}>
       <h1 style={h1}>Pit Crew Rankings</h1>
       <p style={sub}>
-        Ranked by <strong>penalty-adjusted median 4-tire stop</strong> &mdash; median box time (seconds) plus {PEN_SEC}s per crew penalty per race. Bomb% is the share of stops slower than 1.5&times; the series median. Drv Pen counts driver-caused pit penalties (speeding, commitment line, pitting outside the box) &mdash; charged to the driver, not the crew; &ldquo;chronic&rdquo; marks drivers with elevated career rates. Lower is faster.
+        Ranked by <strong>penalty-adjusted median 4-tire stop</strong> &mdash; median box time (seconds) plus {PEN_SEC}s per crew penalty per race. Stats use qualifying stops only &mdash; box times beyond the series outlier fence (crash repairs, penalty holds, non-competitive stops) are excluded, so a wrecked car does not poison a crew&rsquo;s median. Bomb% is the share of qualifying stops slower than 1.25&times; the series median. Drv Pen counts driver-caused pit penalties (speeding, commitment line, pitting outside the box) &mdash; charged to the driver, not the crew; &ldquo;chronic&rdquo; marks drivers with elevated career rates. Lower is faster.
         {' '}{SEASON} season, within series. Consistency = interquartile range of box times (lower = steadier).
         Crews with fewer than {MIN_STOPS} timed stops are hidden; a &ldquo;thin&rdquo; tag marks fewer than {LOWN}.
       </p>
