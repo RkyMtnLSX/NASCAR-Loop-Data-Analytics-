@@ -274,7 +274,7 @@ export function __marketValue(winTxt, t10Txt, fdTxt, hrTxt, drivers) {
         // medge = OUR prob minus the SHARP consensus prob, in probability POINTS -> do we actually beat
         //         the market? This is the ONLY one of the three that isolates model alpha. A model with
         //         zero edge still prints a fat ev whenever one book hangs a bad number.
-        res[d.name][key] = { dk: px.dk, fd: px.fd, hr: px.hr, best: best, bb: bb, ev: p >= MINP[key] ? +((p * dec(best) - 1) * 100).toFixed(0) : null, mev: consP != null ? +((consP * dec(best) - 1) * 100).toFixed(0) : null, medge: (consP != null && p >= MINP[key]) ? +(((p - consP) * 100).toFixed(2)) : null };
+        res[d.name][key] = { dk: px.dk, fd: px.fd, hr: px.hr, best: best, bb: bb, ev: (p >= MINP[key] && ((d.nCorrRaces === undefined && d.practiceScore === undefined) || (d.nCorrRaces || 0) >= 5 || d.practiceScore != null)) ? +((p * dec(best) - 1) * 100).toFixed(0) : null /* EDGE gate 2026-07-22: no flags on data-thin drivers */, mev: consP != null ? +((consP * dec(best) - 1) * 100).toFixed(0) : null, medge: (consP != null && p >= MINP[key] && ((d.nCorrRaces === undefined && d.practiceScore === undefined) || (d.nCorrRaces || 0) >= 5 || d.practiceScore != null)) ? +(((p - consP) * 100).toFixed(2)) : null };
       });
     });
     return res;
@@ -1134,7 +1134,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
       race_year:  config.race_year || new Date().getFullYear(),
       race_number: raceNumMap[series] ? parseInt(raceNumMap[series]) : null,
       stage: simStage,
-      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'pairing-first', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
+      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'pairing-first', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06', flagGuard: 'conf-v1', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
       results: simResults.map(d => ({
         driver_name:  d.name,
         car_number:   d.carNumber,
