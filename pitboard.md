@@ -1412,3 +1412,16 @@ This was the 07-15 -> 07-18 marathon: best5 shipped end-to-end (sim, grader, liv
 ## 2026-07-23 — task #67 CLOSED (no ship): driver speeding stays display-only
 
 Ran the predictive test early (testing was never frozen — only shipping). Full numbers in BACKTEST_LOG same date. Short version: shrunken prior speeding rate DOES predict future penalties out-of-sample (3.0/4.2/6.0% actual across low/mid/high buckets, walk-forward 2025-26), but the net finish cost of a penalty race is only ~0.7 positions within-driver (t 1.58, n.s.) — drivers recover. Probability x cost = ~0.02-0.04 positions/race expected impact. No sim term. Driver penalties join crew penalties under task #66 (pit crew rankings page, display columns). Nothing shipped to the sim; freeze intact for the IRP weekend.
+
+## 2026-07-23 — MONETIZATION DOCTRINE (operator ruling) + task #66 page spec
+
+**Free/paid line (respect in all future UI work):**
+- FREE tier: lap-by-lap practice data (viewable on NASCAR's own site anyway; free tier also neutralizes any commercial-use complaint about the one raw-ish surface we show).
+- PAID tier: practice comparison tools, practice grader, all loop-data-derived pages, sim boards, rankings.
+- RULES: paywalled content must always be DERIVED work (our columns, groupings, grades, ranks) — never host NASCAR loop PDFs or verbatim report reproductions behind the paywall. Legal basis: sports stats are uncopyrightable facts (NBA v. Motorola 1997; CBC v. MLB 2007); exposure vector is NASCAR.com ToS (personal/non-commercial, no bulk DB downloads) — contract risk, practical ceiling C&D/IP-block, mitigated by selling analysis not feeds. Add footer disclaimer "PitBoard is not affiliated with or endorsed by NASCAR" when paywall ships; keep NASCAR out of customer-facing branding/domain. Not legal advice; get an hour with a sports-IP attorney if revenue gets real.
+
+**Task #66 spec — penalty-adjusted Pit Crew Rankings page (display only, data ready in pit_penalties):**
+- Crew section (per car+organization+season): headline rank stays median green-flag 4-tire box_time (v1 metric). Add: crew-category penalty count + rate; PENALTY-ADJUSTED RANK = median box time + amortized time-equivalent per penalty (~1.5-2s/stop per 10% penalty rate — label the methodology on-page); bomb rate (pct stops over blown threshold); recency split (season vs last 6). Descriptive of what happened — fine for display despite failing sim-predictiveness (reliability .217/.179, 07-22).
+- Driver row, VISUALLY SEPARATE from crew columns: speeding/commitment count + shrunken career rate (k~50 per 07-23 calibration note) + "chronic" tag for the Gibbs/Ky Busch/Suarez/Blaney tier. Never blend driver and crew penalties into one number — that is the credibility trap.
+- Queued extras when built: green-flag-only medians, in/out travel adjusted for pit_box, two-tire frequency, rolling recency weighting.
+- Timing: operator to decide build now vs post-IRP; display-only so freeze-compatible either way.
