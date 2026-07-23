@@ -1390,3 +1390,5 @@ This was the 07-15 -> 07-18 marathon: best5 shipped end-to-end (sim, grader, liv
 - Odds text still NOT persisted across page remounts — re-paste after any navigation (guard will catch it).
 
 - ADDENDUM (4801bc18): odds paste boxes moved OUT of the simResults conditional — they now render as soon as the field loads, so Paste -> Run -> Publish is actually possible (previously the boxes only existed AFTER a run, forcing run-first and defeating the market anchors — operator catch). Parse-count feedback (DK/FD/HR n parsed) now works pre-run off the field list.
+
+- ADDENDUM (dfe6a66b, marketAnchor 'v1.1-all-fills'): v1 anchored only the corr-history fill (~34% of score); pre-practice/pre-quali a thin driver's OTHER slots (practice, start) were still neutral-50 placeholders, so t3/t5 stayed inflated (operator catch on MCJ). v1.1: for thin drivers (same def as EDGE gate: <5 corr races AND no practice), ALL ignorance fills (history, practice lrp/srp, start) use the market percentile. Real data always overrides (Friday practice fills the practice slot with truth). Confident drivers: zero change.
