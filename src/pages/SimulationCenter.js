@@ -1060,9 +1060,14 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
         probs.push([d.name, 1 / dec])
       })
       if (probs.length < 10) return {}
-      const sorted = probs.slice().sort((a, b) => a[1] - b[1])
+      // v1.2: LOG-prob min-max, not rank percentile. Rank spread the +10000 longshot cluster
+      // uniformly (alphabet decided MCJ's anchor = 51); ratings are ~linear in log win-prob,
+      // so co-priced drivers must get co-equal anchors.
+      const lps = probs.map(p => Math.log(p[1]))
+      const mn = Math.min.apply(null, lps), mx = Math.max.apply(null, lps)
+      if (mx <= mn) return {}
       const out = {}
-      sorted.forEach((p, i) => { out[p[0]] = Math.round(((i + 1) / sorted.length) * 100) })
+      probs.forEach((p, i) => { out[p[0]] = Math.round(((lps[i] - mn) / (mx - mn)) * 100) })
       return out
     } catch (e) { return {} }
   }, [oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt, rawDrivers])
@@ -1200,7 +1205,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
       race_year:  config.race_year || new Date().getFullYear(),
       race_number: raceNumMap[series] ? parseInt(raceNumMap[series]) : null,
       stage: simStage,
-      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'pairing-first', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06', flagGuard: 'conf-v1', marketAnchor: 'v1.1-all-fills', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
+      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'pairing-first', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06', flagGuard: 'conf-v1', marketAnchor: 'v1.2-logprob', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
       results: simResults.map(d => ({
         driver_name:  d.name,
         car_number:   d.carNumber,
