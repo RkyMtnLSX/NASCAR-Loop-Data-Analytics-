@@ -1388,3 +1388,5 @@ This was the 07-15 -> 07-18 marathon: best5 shipped end-to-end (sim, grader, liv
 - Ringer (crossover_borrows) rows excluded from car equipment pools (Bell/62 -> MCJ ghost value).
 - Caution preset auto-selects nearest calibrated anchor from track+series history (note shown in panel, SS pinned, manual override wins).
 - Odds text still NOT persisted across page remounts — re-paste after any navigation (guard will catch it).
+
+- ADDENDUM (4801bc18): odds paste boxes moved OUT of the simResults conditional — they now render as soon as the field loads, so Paste -> Run -> Publish is actually possible (previously the boxes only existed AFTER a run, forcing run-first and defeating the market anchors — operator catch). Parse-count feedback (DK/FD/HR n parsed) now works pre-run off the field list.
