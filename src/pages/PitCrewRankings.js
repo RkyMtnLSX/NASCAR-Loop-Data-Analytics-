@@ -30,6 +30,45 @@ function CarNum({ car, series }) {
   )
 }
 
+function CrewDetail({ c }) {
+  const rl = c.rlist || []
+  if (!rl.length) return <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>No per-race data.</div>
+  const W = 760, H = 150, PX = 44, PB = 30, PT = 14
+  const meds = rl.map((r) => r.med)
+  const lo = Math.min.apply(null, meds), hi = Math.max.apply(null, meds)
+  const xf = (i) => rl.length === 1 ? W / 2 : PX + i * (W - PX - 14) / (rl.length - 1)
+  const yf = (v) => hi === lo ? H / 2 : PT + (v - lo) * (H - PT - PB) / (hi - lo)
+  const pcol = (p) => p === 'b' ? '#7f1d1d' : p === 'c' ? '#b91c1c' : '#d97706'
+  const pts = rl.map((r, i) => xf(i) + ',' + yf(r.med)).join(' ')
+  return (
+    <div>
+      <div style={{ fontSize: '0.8rem', marginBottom: 8 }}>
+        <strong>Race-by-race median 4-tire stop</strong> (up = faster)
+        {c.bestStop && <span style={{ color: 'var(--text-secondary)' }}> &middot; best stop {c.bestStop.best.toFixed(2)}s (R{c.bestStop.rn}{c.bestStop.track ? ', ' + c.bestStop.track : ''}) &middot; {rl.length} races &middot; {c.cp} crew pen / {c.dp} driver pen</span>}
+      </div>
+      <svg width={W} height={H} style={{ maxWidth: '100%' }}>
+        <text x={4} y={yf(lo) + 4} style={{ fontSize: 10, fill: 'var(--text-secondary)' }}>{lo.toFixed(1)}s</text>
+        <text x={4} y={yf(hi) + 4} style={{ fontSize: 10, fill: 'var(--text-secondary)' }}>{hi.toFixed(1)}s</text>
+        <polyline points={pts} fill="none" stroke="var(--text-secondary)" strokeWidth="1.5" opacity="0.55" />
+        {rl.map((r, i) => {
+          const p = (c.pens || {})[r.rn]
+          return (
+            <g key={r.rn}>
+              <circle cx={xf(i)} cy={yf(r.med)} r={p ? 5.5 : 4} fill={p ? pcol(p) : 'var(--bg-elevated)'} stroke={p ? pcol(p) : 'var(--text-secondary)'} strokeWidth="1.5">
+                <title>{'R' + r.rn + (r.track ? ' ' + r.track : '') + ' - med ' + r.med.toFixed(2) + 's, best ' + r.best.toFixed(2) + 's, ' + r.n + ' stops' + (p ? (p === 'c' ? ' - CREW PENALTY' : p === 'd' ? ' - DRIVER PENALTY' : ' - CREW + DRIVER PENALTIES') : '')}</title>
+              </circle>
+              <text x={xf(i)} y={H - 10} textAnchor="middle" style={{ fontSize: 9, fill: 'var(--text-secondary)' }}>{r.rn}</text>
+            </g>
+          )
+        })}
+      </svg>
+      <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: 4 }}>
+        Filled red dot = crew penalty that race &middot; orange = driver penalty &middot; dark red = both &middot; hover any dot for race detail
+      </div>
+    </div>
+  )
+}
+
 const wrap = { maxWidth: 1120, margin: '0 auto', padding: '24px 16px 60px' }
 const h1 = { fontSize: '1.5rem', fontWeight: 700, margin: '0 0 4px' }
 const sub = { fontSize: '0.9rem', color: 'var(--text-secondary)', margin: '0 0 20px', lineHeight: 1.5 }
@@ -45,6 +84,7 @@ export default function PitCrewRankings() {
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [sort, setSort] = useState('adj')  // 'adj' | 'median' | 'iqr' | 'n'
+  const [open, setOpen] = useState(null)
 
   useEffect(() => {
     let cancelled = false
@@ -55,7 +95,7 @@ export default function PitCrewRankings() {
       for (;;) {
         const { data, error } = await supabase
           .from('pit_stops')
-          .select('car_number, organization, driver_name, box_time, race_number')
+          .select('car_number, organization, driver_name, box_time, race_number, track_name')
           .eq('series', series).eq('year', SEASON)
           .eq('tires_changed', 4)
           .not('box_time', 'is', null)
@@ -66,16 +106,17 @@ export default function PitCrewRankings() {
         from += 1000
       }
       let pnl = []
-      const r2 = await supabase.from('pit_penalties').select('car_number, category').eq('series', series).eq('year', SEASON).range(0, 1999)
+      const r2 = await supabase.from('pit_penalties').select('car_number, category, race_number').eq('series', series).eq('year', SEASON).range(0, 1999)
       if (r2.data) pnl = r2.data
       const penC = {}, penD = {}
-      pnl.forEach((p) => { const k = String(p.car_number); if (p.category === 'crew') penC[k] = (penC[k] || 0) + 1; else if (p.category === 'driver') penD[k] = (penD[k] || 0) + 1 })
+      const penR = {}
+      pnl.forEach((p) => { const k = String(p.car_number); if (p.category === 'crew') penC[k] = (penC[k] || 0) + 1; else if (p.category === 'driver') penD[k] = (penD[k] || 0) + 1; if (p.category === 'crew' || p.category === 'driver') { const m = (penR[k] = penR[k] || {}); const rn = p.race_number; m[rn] = m[rn] ? (m[rn] === (p.category === 'crew' ? 'd' : 'c') ? 'b' : m[rn]) : (p.category === 'crew' ? 'c' : 'd') } })
       if (cancelled) return
       const crews = {}
       all.forEach((r) => {
         const key = r.car_number + '|' + (r.organization || '?')
-        const c = (crews[key] = crews[key] || { car: r.car_number, org: r.organization, dc: {}, t: [], rs: {} })
-        c.t.push(+r.box_time); if (r.race_number != null) c.rs[r.race_number] = 1
+        const c = (crews[key] = crews[key] || { car: r.car_number, org: r.organization, dc: {}, t: [], rs: {}, rd: {} })
+        c.t.push(+r.box_time); if (r.race_number != null) { c.rs[r.race_number] = 1; const rd = (c.rd[r.race_number] = c.rd[r.race_number] || { ts: [], track: r.track_name }); rd.ts.push(+r.box_time) }
         const dn = (r.driver_name || '').trim()
         if (dn) c.dc[dn] = (c.dc[dn] || 0) + 1
       })
@@ -95,8 +136,10 @@ export default function PitCrewRankings() {
         const cp = penC[String(c.car)] || 0
         const dp = penD[String(c.car)] || 0
         const med = median(c.t)
+        const rlist = Object.keys(c.rd).map(Number).sort((a, b) => a - b).map((rn) => ({ rn: rn, med: median(c.rd[rn].ts), n: c.rd[rn].ts.length, best: Math.min.apply(null, c.rd[rn].ts), track: c.rd[rn].track }))
+        const bestStop = rlist.reduce((m, x) => (m && m.best <= x.best ? m : x), null)
         const chronic = CHRONIC[(driver || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()]
-        return { car: c.car, org: c.org, driver: driver, rotating: rotating, median: med, adj: med + (cp / races) * PEN_SEC, penRate: cp / races, cp: cp, dp: dp, bomb: c.t.filter((t) => t > seriesMed * BOMB_X).length / c.t.length, chronic: chronic, iqr: q3 - q1, n: c.t.length }
+        return { car: c.car, org: c.org, driver: driver, rotating: rotating, median: med, adj: med + (cp / races) * PEN_SEC, penRate: cp / races, cp: cp, dp: dp, bomb: c.t.filter((t) => t > seriesMed * BOMB_X).length / c.t.length, chronic: chronic, iqr: q3 - q1, n: c.t.length, rlist: rlist, bestStop: bestStop, pens: (penR[String(c.car)] || {}) }
       })
       setRows(out)
       setLoading(false)
@@ -167,7 +210,8 @@ export default function PitCrewRankings() {
             </thead>
             <tbody>
               {sorted.map((c, i) => (
-                <tr key={c.car + c.org} style={{ background: i % 2 ? 'transparent' : 'var(--bg-elevated)' }}>
+                <React.Fragment key={c.car + '|' + (c.org || '')}>
+                <tr onClick={() => setOpen(open === c.car + '|' + (c.org || '') ? null : c.car + '|' + (c.org || ''))} style={{ cursor: 'pointer', background: i % 2 ? 'transparent' : 'var(--bg-elevated)' }}>
                   <td style={{ ...td('center'), fontWeight: 700 }}>{MEDAL[i] || (i + 1)}</td>
                   <td style={td('left')}><CarNum car={c.car} series={series} /></td>
                   <td style={td('left')}>{c.org || '\u2014'}</td>
@@ -182,6 +226,10 @@ export default function PitCrewRankings() {
                     {c.n}{c.n < LOWN && <span style={{ marginLeft: 6, fontSize: '0.68rem', color: 'var(--text-secondary)', border: '1px solid var(--border)', borderRadius: 4, padding: '1px 5px' }}>thin</span>}
                   </td>
                 </tr>
+                {open === c.car + '|' + (c.org || '') && (
+                  <tr><td colSpan={11} style={{ padding: '12px 16px 18px', background: 'var(--bg-surface)', borderTop: '1px solid var(--border)' }}><CrewDetail c={c} /></td></tr>
+                )}
+                </React.Fragment>
               ))}
             </tbody>
           </table>
