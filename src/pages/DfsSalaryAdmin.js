@@ -6,7 +6,7 @@ const norm = (s) => (s || '').toString().toLowerCase().replace(/[^a-z ]/g, '').r
 
 function parseSalaries(text, drivers) {
   const lines = (text || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean)
-  const out = {}, unmatched = []
+  const out = {}, unmatched = [], ids = {}   // ids: DK player IDs from 'Name (12345678)' or ID columns
   const byNorm = {}, byLast = {}
   drivers.forEach(d => { const n = norm(d.name); byNorm[n] = d.name; const p = n.split(' '); if (p.length) byLast[p[p.length - 1]] = d.name })
   lines.forEach(line => {
@@ -19,10 +19,10 @@ function parseSalaries(text, drivers) {
     if (sal === null) { const nums = line.replace(/[$,]/g, '').match(/\b\d{4,5}\b/g) || []; for (const x of nums) { const v = +x; if (v >= 2000 && v <= 20000) { sal = v; break } } }
     if (!name) { const nl = norm(line); for (const d of drivers) { if (nl.indexOf(norm(d.name)) >= 0) { name = d.name; break } } }
     if (!name) { const nl = norm(line); for (const last in byLast) { if (last.length > 2 && new RegExp('\\b' + last + '\\b').test(nl)) { name = byLast[last]; break } } }
-    if (name && sal) out[name] = sal
+    if (name && sal) { out[name] = sal; const idm = line.match(/\((\d{6,10})\)/) || line.replace(/[$]/g, '').match(/(?:^|[,\t])(\d{7,9})(?:[,\t]|$)/); if (idm) ids[name] = idm[1] }
     else if (sal && !name) unmatched.push(line.slice(0, 44))
   })
-  return { out, unmatched }
+  return { out, unmatched, ids }
 }
 
 export default function DfsSalaryAdmin() {
@@ -60,8 +60,8 @@ export default function DfsSalaryAdmin() {
   const salCount = Object.values(salaries).filter(v => v > 0).length
   const setSal = (name, val) => setSalaries(s => ({ ...s, [name]: val === '' ? 0 : Math.round(+val) || 0 }))
   const doPaste = () => {
-    const { out, unmatched } = parseSalaries(paste, drivers)
-    setSalaries(s => ({ ...s, ...out }))
+    const { out, unmatched, ids } = parseSalaries(paste, drivers)
+    setSalaries(s => ({ ...s, ...out, __ids: { ...(s.__ids || {}), ...ids } }))
     const n = Object.keys(out).length
     setMsg('Matched ' + n + ' driver' + (n === 1 ? '' : 's') + '.' + (unmatched.length ? ' Unmatched: ' + unmatched.length + ' (edit below).' : ''))
   }
