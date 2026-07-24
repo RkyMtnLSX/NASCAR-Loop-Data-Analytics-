@@ -3512,3 +3512,17 @@ VERDICT: task #68 fence fix is VALIDATED — the #46 term was originally validat
 ## 2026-07-23 — QUICK CHECK: 2T vs 4T crew skill agreement (display question, no model change)
 
 Operator asked whether the new 2T column changes rankings. It cannot (Adj rank is 4T-only) — but measured the agreement: cup 2026, crews with >=20 clean 4T + >=5 clean 2T (n 33): Spearman rho 0.73 between 4T and 2T median ranks. Same crews are good at both; divergers exist (#24: 4T rank 8 / 2T rank 26; #60: 18/2; #12: 19/4). O'Reilly rho 0.23 on n 19 — treated as sample noise (median crew has ~5 2T stops), not signal. VERDICT: 2T stays a standalone display lens; do NOT fold into Adj (thin samples, rho 0.73 means it would barely reorder anyway).
+
+## 2026-07-23 — SHIPPED: dominator curves v2 (caution-bucket) — pooled+flatten was double-diluting dominance (48908af6)
+
+Operator flagged DFS laps-led/fast-laps projections as not credible (Hamlin, top Brickyard win prob, projected 9 of 160 laps led). AUDIT of the parallel session's dominator design found TWO defects:
+
+1) DOUBLE DILUTION (the big one): LL/FL allocated per-sim by finish position from a POOLED empirical curve (winner .313), then blended toward uniform by flatten = cautions/20. But the pooled curve was measured on real races that already contain caution-driven spreading. Measured winner laps-led share by races.total_cautions bucket: low (<=5) 36.7%, mid (6-8) 32.4%, high (>=9) 25.0%. The sim's effective winner share at a low-caution race was ~24% — dominance understated ~35% relative, conditional-on-winning laps led understated ~50%. At 0.25 DK pts/lap led this is multiple DK points off every dominator.
+
+2) REMAINDER ARTIFACT: rounding leftovers were dumped on the LAST active finisher — visible in published boards as tail cars (P33) carrying MORE projected fast laps than midfield (P25).
+
+FIX (48908af6, stamp domCurves 'cbucket-v2'): six empirical curves embedded — LL and FL x low/mid/high caution buckets, full 40 finish positions, derived from loop_data 2022-26 (n 122/138/97 races, <50 total-laps-led races excluded, each curve sums to 1.000); bucket selected by cautionPreset.value (<=5/<=8/else — same breakpoints as the measurement); flatten and chaosFactor REMOVED; rounding remainder goes to the leader. Verified in live bundle.
+
+KNOWN LIMITATION logged for future work: dominance is still allocated purely by realized finish rank — no driver-speed input (a plodder winning a fuel-mileage sim gets winner-share laps led; GFS/practice pace unused). Fixing that is a real modeling project (speed-rank-conditioned curves), queued as candidate work post-freeze — NOT a quick patch.
+
+OPERATOR ACTION REQUIRED: re-run + republish all three weekend boards (trucks IRP R16, cup Indy R22, oreilly Indy R21) so sim_results / DFS pick up the new curves. Win/T3/T5/T10 probabilities are UNCHANGED by this fix (finish sim untouched) — only laps_led, avg_fast_laps, proj_dk move.
