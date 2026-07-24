@@ -1459,3 +1459,5 @@ Operator called for same-day validation instead of waiting out the freeze; PASSE
 ## 2026-07-23 — rankings page: chronic badge REMOVED (operator call), penalty COUNTS in drilldown tooltips (ed364352, build green)
 
 Chronic badge + embedded CHRONIC constant deleted entirely (subtitle clause too). Drv Pen column stays as plain count. Also resolved operator-spotted discrepancy: Gibbs showed 4 drv pens but fewer chart dots — penalties vs penalty RACES (his 4 = R1 + R5 x2 + R21; one dot per race). penR now stores per-race per-category COUNTS and tooltips show them ("2 DRIVER PEN"); dot colors unchanged.
+
+## 2026-07-23 — rankings subtitle condensed (f63956ce, build green): wall of text replaced with lead line ("Adj (s) = median 4-tire box time + 1.75s per crew penalty per race — lower is faster; qualifying stops only; click any row for detail") + smaller one-line glossary (Consistency / Bomb% / Crew Pen / Drv Pen / thin). No logic changes.
