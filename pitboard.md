@@ -1510,3 +1510,5 @@ Operator caught 77% exposure at a 50% cap. Causes: cap computed vs REQUESTED lin
 ## 2026-07-24 — SimResults wrong-series race condition fixed (46a78116, build green)
 
 Sim Admin -> truck results showed the CUP board under an active Trucks tab. Cause: mounts on 'cup', fires cup fetch, THEN ?series=trucks URL-sync flips state and fires trucks fetch — no stale-response guard, last response won. Fix: stale flag + effect cleanup drops superseded responses. Audit: SimResults was the only useSearchParams double-fire page (DFSPage/PitCrewRankings already guarded; GradeCenter/OddsPage/QualifyingCenter have no URL sync — left alone).
+
+## 2026-07-24 — rankings columns reverted to Crew Pen / Drv Pen abbreviations, glossary restored (e91ea0b9, build green; operator call — spelled-out headers truncated). Fence threshold documented for operator: Tukey q3+1.5*IQR per series-season = cup ~18.4s (~1.8x the ~10.2s median), trucks ~39s, oreilly ~33s; ~11-13% of stops excluded; bad-but-real stops still count.
