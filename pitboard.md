@@ -1506,3 +1506,7 @@ Operator caught 77% exposure at a 50% cap. Causes: cap computed vs REQUESTED lin
 5. Grab DK ownership CSVs (perishable) each slate.
 
 **Standing:** freeze intact for betting model (fence was a validated bug fix; anchor v1.4 FROZEN pending odds_snapshots archive); #55 counter continues; ROTATE THE GITHUB TOKEN (badly overdue); open tasks #40, #45, #48, #51, #52, #54, #56, #63, #64, #65 + queued: 2T/rankings extras, speed-conditioned dominator curves, end-of-2026 weight sweep.
+
+## 2026-07-24 — SimResults wrong-series race condition fixed (46a78116, build green)
+
+Sim Admin -> truck results showed the CUP board under an active Trucks tab. Cause: mounts on 'cup', fires cup fetch, THEN ?series=trucks URL-sync flips state and fires trucks fetch — no stale-response guard, last response won. Fix: stale flag + effect cleanup drops superseded responses. Audit: SimResults was the only useSearchParams double-fire page (DFSPage/PitCrewRankings already guarded; GradeCenter/OddsPage/QualifyingCenter have no URL sync — left alone).
