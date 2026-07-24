@@ -170,6 +170,10 @@ export default function SimResults() {
   const togSel = (name) => setSel((cur) => cur.indexOf(name) >= 0 ? cur.filter((x) => x !== name) : cur.concat([name]))
 
   useEffect(() => {
+    // 2026-07-24 FIX: stale-response guard. Arriving via ?series=trucks the page mounts on 'cup',
+    // fires a cup fetch, then the URL-sync flips series and fires a trucks fetch — if the cup
+    // response resolved LAST it overwrote the trucks board (cup data under an active trucks tab).
+    let stale = false
     setLoading(true)
     setError(null)
     setData(null)
@@ -181,11 +185,13 @@ export default function SimResults() {
       .limit(1)
       .single()
       .then(({ data: row, error: err }) => {
+        if (stale) return
         if (err && err.code !== 'PGRST116') setError('No published results yet.')
         else if (row) setData(row)
         else setError('No published results yet.')
         setLoading(false)
       })
+    return () => { stale = true }
   }, [series])
 
   const results = data?.results || []
