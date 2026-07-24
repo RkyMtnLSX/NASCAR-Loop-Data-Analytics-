@@ -558,7 +558,7 @@ function EntryListManager() {
                   <td style={{ padding: '6px 12px', color: 'var(--text-secondary)' }}>{e.organization || ''}</td><td style={{ padding: '6px 12px', color: 'var(--text-secondary)' }}>{e.manufacturer || '-'}</td>
                   <td style={{ padding: '6px 4px', width: 32 }}>
                     <button onClick={() => deleteEntry(e.id)}
-                      style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.9rem', padding: '2px 6px' }}></button>
+                      style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.9rem', padding: '2px 6px' }} title="remove entry">&times;</button>
                   </td>
                 </tr>
               ))}
