@@ -257,7 +257,7 @@ export default function DFSPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead><tr style={{ color: 'var(--text-secondary,#9aa0aa)' }}>
                 <th style={{ padding: '7px 8px', textAlign: 'left' }}>Lock/Excl</th>
-                {th('name', 'Driver', 'left')}{th('sal', 'Salary')}{th('projDK', 'Proj DK')}{th('value', 'Value')}{th('opt', 'Optimal%')}
+                {th('name', 'Driver', 'left')}{th('startPos', 'Start')}{th('sal', 'Salary')}{th('projDK', 'Proj DK')}{th('value', 'Value')}{th('opt', 'Optimal%')}
                 {th('winPct', 'Win%')}{th('lapsLed', 'Laps Led')}{th('avgFast', 'Fast Laps')}{th('projFinish', 'Proj Fin')}
                 <th style={{ padding: '7px 8px', textAlign: 'right' }}>Expo</th>
               </tr></thead>
@@ -273,6 +273,7 @@ export default function DFSPage() {
                         <button onClick={() => toggle(setExcludes, d.name)} title="Exclude" style={{ padding: '2px 7px', borderRadius: 5, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: excl ? '#555' : 'transparent', color: '#fff' }}>X</button>
                       </td>
                       <td style={{ padding: '4px 8px', textAlign: 'left', whiteSpace: 'nowrap' }}>{d.car ? '#' + d.car + ' ' : ''}{d.name}</td>
+                      <td style={{ padding: '4px 8px', textAlign: 'right', fontWeight: 600 }}>{d.startPos ? 'P' + d.startPos : '\u2014'}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right' }}>{d.sal ? '$' + d.sal.toLocaleString() : '\u2014'}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right', fontWeight: 600 }}>{d.projDK.toFixed(1)}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right', background: vBg, fontWeight: 600 }}>{d.value ? d.value.toFixed(2) : '\u2014'}</td>
