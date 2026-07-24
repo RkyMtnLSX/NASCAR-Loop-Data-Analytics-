@@ -125,7 +125,7 @@ function HeatMapView({ rows, byYear, series }) {
                     const bg = cell.short ? rowBg : (rankColor(cell.rank) || rowBg)
                     return (
                       <td key={r.key} title={cell.short ? 'rank excluded due to DNF' : ''} style={{ padding: '7px 8px', fontSize: '0.78rem', fontFamily: 'var(--font-mono)', textAlign: 'center', background: bg, opacity: cell.short ? 0.35 : 1, fontStyle: cell.short ? 'italic' : 'normal', color: cell.rank <= 3 && !cell.short ? '#111' : 'var(--text-primary)' }}>
-                        {cell.short ? cell.rank : (MEDAL[cell.rank] || cell.rank)}
+                        {cell.short ? cell.rank : (MEDAL[cell.rank] ? <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>{MEDAL[cell.rank]}</span> : cell.rank)}
                       </td>
                     )
                   })}
