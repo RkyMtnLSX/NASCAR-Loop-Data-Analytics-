@@ -1465,3 +1465,5 @@ Chronic badge + embedded CHRONIC constant deleted entirely (subtitle clause too)
 ## 2026-07-23 — SHIPPED: 2T (s) column on Pit Crew Rankings (672d0ef7, build green)
 
 Median TWO-TIRE stop per crew, sortable, with its own series-level Tukey fence (2T stops live on a different timescale — cup 2T median 5.8s vs 4T ~10s; sharing the 4T fence would have kept repair-length 2T stops). Fetch widened to tires_changed IN (2,4), split client-side; 4T flow untouched (drilldown stays 4-tire only). Display rules: dash under 3 clean 2T stops, "thin" tag under 5, hover shows sample size. Glossary line updated. DESIGN NOTE (operator question was "how good are teams at two tire stops"): frequency of 2T calls is crew-chief STRATEGY, not crew skill — deliberately excluded from the column; only the median 2T time is shown. 2026 samples: cup 345 2T stops (median crew 8), trucks 135 (median 3 — mostly dashes), oreilly 225 (median 5).
+
+## 2026-07-23 — rankings: column headers spelled out "Crew Penalty" / "Driver Penalty" (cols widened 100/112), their glossary entries removed from subtitle (66fabd77, build green). Glossary now only Consistency / Bomb% / 2T / thin.
