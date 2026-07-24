@@ -1493,3 +1493,16 @@ Stance: projections + Optimal% are the product, optimizer is convenience — kep
 ## 2026-07-23 — DFS exposure cap fix (59a2df96, build green)
 
 Operator caught 77% exposure at a 50% cap. Causes: cap computed vs REQUESTED lineup count while the candidate pool exhausted early (10 appearances / 13 delivered = 77%); K pool too shallow (x6). Fix: applyExposure fixed-point trim so every unlocked driver ends within maxExp of the DELIVERED set (locks exempt); K to numLineups x20 (cap 1500); shortfall surfaced in the note instead of silent over-exposure. Latent lock-vs-cap conflict also fixed.
+
+## 2026-07-23/24 — SESSION CLOSE: state of play going into the IRP/Indy weekend
+
+**Shipped today (all builds green, bundles verified, individually logged above):** task #67 closed (driver speeding no-ship, prob x cost); task #66 shipped + iterated (penalty-adjusted Pit Crew Rankings: Adj headline, qualifying-stops fence, per-crew drilldown w/ penalty-colored race dots + robust y-scale, 2T column, full penalty column names, condensed subtitle, chronic badge removed); task #68 shipped early after same-day validation (sim crew-term fence, v1-0.06-fenced — clean strictly dominates raw); dominator curves v2 (caution-bucket LL/FL, double-dilution fix, remainder-to-leader, domCurves cbucket-v2); UUID-order stale-race bug killed in DFSPage + DfsSalaryAdmin (codebase fully audited — no .order('id')-as-recency remains); entry-list remove button glyph restored + Reif->Eatmon swap in #42; DFS: Optimal% 1,000->10,000 samples (chunked), DK CSV export w/ player-ID capture, exposure cap fixed (delivered-set enforcement, locks exempt, 20x pool). Doctrines logged: input fixes don't trigger weight sweeps; track-history recency-weighting tested and REJECTED (career mean wins, n 5,316 — Majeski/Riggs board stands); monetization free/paid line + paid-precedent file (WIN THE RACE, FRCS, Bozi's paid Substack).
+
+**OPERATOR CHECKLIST before green flag:**
+1. RE-RUN + REPUBLISH all three boards (trucks IRP R16 / cup Indy R22 / oreilly Indy R21) — picks up: dominator curves v2, fenced crew medians, Eatmon in the #42, and 10k Optimal% samples. P-R-P: paste odds -> Run -> Publish.
+2. RE-PASTE full DK salary CSVs (all three slates) in Salary Admin so player IDs get captured — otherwise CSV exports aren't DK-upload-ready.
+3. Friday practice: upload -> P-R-P rerun (best5 injects measured speed; watch whether Riggs overtakes Majeski on data, not narrative).
+4. Post-race: loop PDF -> POST_RACE_UPDATE.bat -> grade boards. Final odds paste + Run at green flag = CLV close.
+5. Grab DK ownership CSVs (perishable) each slate.
+
+**Standing:** freeze intact for betting model (fence was a validated bug fix; anchor v1.4 FROZEN pending odds_snapshots archive); #55 counter continues; ROTATE THE GITHUB TOKEN (badly overdue); open tasks #40, #45, #48, #51, #52, #54, #56, #63, #64, #65 + queued: 2T/rankings extras, speed-conditioned dominator curves, end-of-2026 weight sweep.
