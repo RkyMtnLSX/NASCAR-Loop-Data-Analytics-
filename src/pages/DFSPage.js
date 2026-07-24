@@ -2,6 +2,16 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 
 const SERIES = [{ v: 'cup', label: 'Cup' }, { v: 'oreilly', label: "O'Reilly" }, { v: 'trucks', label: 'Trucks' }]
+const __CAR_ALIAS = { '133': '33' }
+function CarNum({ car, series }) {
+  if (!car) return null
+  const dir = series === 'oreilly' ? '/car-numbers-oreilly/' : series === 'trucks' ? '/car-numbers-trucks/' : '/car-numbers/'
+  return (
+    <img src={dir + (__CAR_ALIAS[String(car)] || car) + '.png'} alt={'#' + car}
+      style={{ height: 20, marginRight: 7, verticalAlign: 'middle' }}
+      onError={(e) => { const t = e.target; if (!t.dataset.retried) { t.dataset.retried = '1'; t.src = t.src + (t.src.indexOf('?') >= 0 ? '&r=' : '?r=') + Date.now() } else { const sp = document.createElement('span'); sp.textContent = t.alt + ' '; sp.style.fontWeight = '700'; t.replaceWith(sp) } }} />
+  )
+}
 const CAP = 50000
 const ROSTER = 6
 
@@ -272,7 +282,7 @@ export default function DFSPage() {
                         <button onClick={() => toggle(setLocks, d.name)} title="Lock" style={{ marginRight: 4, padding: '2px 7px', borderRadius: 5, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: locked ? 'var(--accent,#e11d2a)' : 'transparent', color: locked ? '#fff' : 'var(--text-secondary,#9aa0aa)' }}>L</button>
                         <button onClick={() => toggle(setExcludes, d.name)} title="Exclude" style={{ padding: '2px 7px', borderRadius: 5, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: excl ? '#555' : 'transparent', color: '#fff' }}>X</button>
                       </td>
-                      <td style={{ padding: '4px 8px', textAlign: 'left', whiteSpace: 'nowrap' }}>{d.car ? '#' + d.car + ' ' : ''}{d.name}</td>
+                      <td style={{ padding: '4px 8px', textAlign: 'left', whiteSpace: 'nowrap' }}><CarNum car={d.car} series={series} />{d.name}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right', fontWeight: 600 }}>{d.startPos ? 'P' + d.startPos : '\u2014'}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right' }}>{d.sal ? '$' + d.sal.toLocaleString() : '\u2014'}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right', fontWeight: 600 }}>{d.projDK.toFixed(1)}</td>
