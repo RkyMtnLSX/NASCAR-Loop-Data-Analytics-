@@ -97,9 +97,9 @@ export default function PitCrewRankings() {
       for (;;) {
         const { data, error } = await supabase
           .from('pit_stops')
-          .select('car_number, organization, driver_name, box_time, race_number, track_name')
+          .select('car_number, organization, driver_name, box_time, race_number, track_name, tires_changed')
           .eq('series', series).eq('year', SEASON)
-          .eq('tires_changed', 4)
+          .in('tires_changed', [2, 4])
           .not('box_time', 'is', null)
           .range(from, from + 999)
         if (error || !data) break
@@ -117,18 +117,21 @@ export default function PitCrewRankings() {
       const crews = {}
       all.forEach((r) => {
         const key = r.car_number + '|' + (r.organization || '?')
-        const c = (crews[key] = crews[key] || { car: r.car_number, org: r.organization, dc: {}, t: [], rs: {}, rd: {} })
-        c.t.push(+r.box_time); if (r.race_number != null) { c.rs[r.race_number] = 1; const rd = (c.rd[r.race_number] = c.rd[r.race_number] || { ts: [], track: r.track_name }); rd.ts.push(+r.box_time) }
+        const c = (crews[key] = crews[key] || { car: r.car_number, org: r.organization, dc: {}, t: [], t2: [], rs: {}, rd: {} })
+        if (+r.tires_changed === 4) { c.t.push(+r.box_time); if (r.race_number != null) { c.rs[r.race_number] = 1; const rd = (c.rd[r.race_number] = c.rd[r.race_number] || { ts: [], track: r.track_name }); rd.ts.push(+r.box_time) } } else if (+r.tires_changed === 2) { c.t2.push(+r.box_time) }
         const dn = (r.driver_name || '').trim()
         if (dn) c.dc[dn] = (c.dc[dn] || 0) + 1
       })
       // crew = car + team, so a rotating driver lineup stays ONE crew. Normalize name
       // markers (leading *, trailing (i)/#) so one driver is not miscounted as several.
       const cleanName = (n) => n.replace(/^\*\s*/, '').replace(/\s*\(i\)\s*$/i, '').replace(/\s*#\s*$/, '').trim().toLowerCase()
-      const allT = all.map((r) => +r.box_time).sort((a, b) => a - b)
+      const allT = all.filter((r) => +r.tires_changed === 4).map((r) => +r.box_time).sort((a, b) => a - b)
       const sq1 = allT[Math.floor(allT.length * 0.25)], sq3 = allT[Math.floor(allT.length * 0.75)]
       const fence = sq3 + 1.5 * (sq3 - sq1)   // series outlier fence: beyond this = repair/hold/non-competitive stop, excluded from ALL crew stats
       const seriesMed = median(allT.filter((t) => t <= fence))
+      const all2 = all.filter((r) => +r.tires_changed === 2).map((r) => +r.box_time).sort((a, b) => a - b)
+      const t2q1 = all2[Math.floor(all2.length * 0.25)] || 0, t2q3 = all2[Math.floor(all2.length * 0.75)] || 0
+      const fence2 = all2.length >= 30 ? t2q3 + 1.5 * (t2q3 - t2q1) : Infinity   // 2-tire stops get their OWN fence (different timescale)
       const out = Object.values(crews).filter((c) => c.t.filter((t) => t <= fence).length >= MIN_STOPS).map((c) => {
         const ct = c.t.filter((t) => t <= fence)
         const b = [...ct].sort((a, b) => a - b)
@@ -142,9 +145,10 @@ export default function PitCrewRankings() {
         const cp = penC[String(c.car)] || 0
         const dp = penD[String(c.car)] || 0
         const med = median(ct)
+        const ct2 = c.t2.filter((t) => t <= fence2)
         const rlist = Object.keys(c.rd).map(Number).sort((a, b) => a - b).map((rn) => { const cts = c.rd[rn].ts.filter((t) => t <= fence); return cts.length ? { rn: rn, med: median(cts), n: cts.length, best: Math.min.apply(null, cts), track: c.rd[rn].track } : null }).filter(Boolean)
         const bestStop = rlist.reduce((m, x) => (m && m.best <= x.best ? m : x), null)
-        return { car: c.car, org: c.org, driver: driver, rotating: rotating, median: med, adj: med + (cp / races) * PEN_SEC, penRate: cp / races, cp: cp, dp: dp, bomb: ct.filter((t) => t > seriesMed * BOMB_X).length / ct.length, iqr: q3 - q1, n: ct.length, rlist: rlist, bestStop: bestStop, pens: (penR[String(c.car)] || {}) }
+        return { car: c.car, org: c.org, driver: driver, rotating: rotating, median: med, adj: med + (cp / races) * PEN_SEC, penRate: cp / races, cp: cp, dp: dp, bomb: ct.filter((t) => t > seriesMed * BOMB_X).length / ct.length, iqr: q3 - q1, t2m: ct2.length >= 3 ? median(ct2) : null, n2: ct2.length, n: ct.length, rlist: rlist, bestStop: bestStop, pens: (penR[String(c.car)] || {}) }
       })
       setRows(out)
       setLoading(false)
@@ -153,7 +157,7 @@ export default function PitCrewRankings() {
   }, [series])
 
   const sorted = [...rows].sort((a, b) =>
-    sort === 'n' ? b.n - a.n : sort === 'iqr' ? a.iqr - b.iqr : a.adj - b.adj)
+    sort === 'n' ? b.n - a.n : sort === 'iqr' ? a.iqr - b.iqr : sort === '2t' ? ((a.t2m == null ? 1e9 : a.t2m) - (b.t2m == null ? 1e9 : b.t2m)) : a.adj - b.adj)
 
   return (
     <div style={wrap}>
@@ -165,7 +169,7 @@ export default function PitCrewRankings() {
       </p>
       <p style={{ ...sub, fontSize: '0.78rem' }}>
         Consistency = box-time spread (lower = steadier) &middot; Bomb% = stops 1.25&times; slower than the series median
-        {' '}&middot; Crew Pen = crew-caused penalties &middot; Drv Pen = driver-caused (speeding, commitment, box)
+        {' '}&middot; 2T = median two-tire stop (hover for sample size) &middot; Crew Pen = crew-caused penalties &middot; Drv Pen = driver-caused (speeding, commitment, box)
         {' '}&middot; crews under {MIN_STOPS} stops hidden &middot; &ldquo;thin&rdquo; = fewer than {LOWN}
       </p>
 
@@ -198,6 +202,7 @@ export default function PitCrewRankings() {
               <col style={{ width: 92 }} />
               <col style={{ width: 118 }} />
               <col style={{ width: 64 }} />
+              <col style={{ width: 68 }} />
               <col style={{ width: 80 }} />
               <col style={{ width: 92 }} />
               <col style={{ width: 84 }} />
@@ -211,6 +216,7 @@ export default function PitCrewRankings() {
                 <th style={th({ align: 'center', sortable: true, active: sort === 'adj' })} onClick={() => setSort('adj')}>Adj (s)</th>
                 <th style={th({ align: 'center', sortable: true, active: sort === 'iqr' })} onClick={() => setSort('iqr')}>Consistency</th>
                 <th style={th({ align: 'center' })}>Bomb%</th>
+                <th style={th({ align: 'center', sortable: true, active: sort === '2t' })} onClick={() => setSort('2t')}>2T (s)</th>
                 <th style={th({ align: 'center' })}>Crew Pen</th>
                 <th style={th({ align: 'center' })}>Drv Pen</th>
                 <th style={th({ align: 'center', sortable: true, active: sort === 'n' })} onClick={() => setSort('n')}>Stops</th>
@@ -227,6 +233,7 @@ export default function PitCrewRankings() {
                   <td style={{ ...td('center'), fontWeight: 700 }}>{c.adj.toFixed(2)}</td>
                   <td style={{ ...td('center'), color: 'var(--text-secondary)' }}>{c.iqr.toFixed(2)}</td>
                   <td style={{ ...td('center'), color: 'var(--text-secondary)' }}>{(c.bomb * 100).toFixed(0)}%</td>
+                  <td style={{ ...td('center'), color: 'var(--text-secondary)' }} title={c.n2 + ' two-tire stops'}>{c.t2m != null ? c.t2m.toFixed(2) : '\u2014'}{c.t2m != null && c.n2 < LOWN ? <span style={{ marginLeft: 4, fontSize: '0.62rem', border: '1px solid var(--border)', borderRadius: 4, padding: '0px 3px' }}>thin</span> : null}</td>
                   <td style={td('center')} title={c.penRate.toFixed(2) + ' crew penalties per race'}>{c.cp}</td>
                   <td style={td('center')}>{c.dp}</td>
                   <td style={td('center')}>
@@ -234,7 +241,7 @@ export default function PitCrewRankings() {
                   </td>
                 </tr>
                 {open === c.car + '|' + (c.org || '') && (
-                  <tr><td colSpan={10} style={{ padding: '12px 16px 18px', background: 'var(--bg-surface)', borderTop: '1px solid var(--border)' }}><CrewDetail c={c} /></td></tr>
+                  <tr><td colSpan={11} style={{ padding: '12px 16px 18px', background: 'var(--bg-surface)', borderTop: '1px solid var(--border)' }}><CrewDetail c={c} /></td></tr>
                 )}
                 </React.Fragment>
               ))}
