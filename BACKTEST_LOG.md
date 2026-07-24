@@ -3508,3 +3508,7 @@ RESULTS:
 - Materiality: fence shifts 3,904/10,868 driver-races (36%) by >5 within-race percentile points; avg abs shift 4.5 pts.
 
 VERDICT: task #68 fence fix is VALIDATED — the #46 term was originally validated at a handicap (wreck noise in its own input). Ship decision (now vs post-freeze) = operator's call; the change is 3 lines in SimulationCenter __byCar + config stamp bump pitCrew 'v1-0.06-fenced'.
+
+## 2026-07-23 — QUICK CHECK: 2T vs 4T crew skill agreement (display question, no model change)
+
+Operator asked whether the new 2T column changes rankings. It cannot (Adj rank is 4T-only) — but measured the agreement: cup 2026, crews with >=20 clean 4T + >=5 clean 2T (n 33): Spearman rho 0.73 between 4T and 2T median ranks. Same crews are good at both; divergers exist (#24: 4T rank 8 / 2T rank 26; #60: 18/2; #12: 19/4). O'Reilly rho 0.23 on n 19 — treated as sample noise (median crew has ~5 2T stops), not signal. VERDICT: 2T stays a standalone display lens; do NOT fold into Adj (thin samples, rho 0.73 means it would barely reorder anyway).
