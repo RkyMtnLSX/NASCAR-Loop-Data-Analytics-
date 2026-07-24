@@ -417,7 +417,7 @@ function runRaceSim(drivers, simConfig) {
 
   const sumFinish      = new Float64Array(n)
   const sumDK          = new Float64Array(n)
-  const SAMPLE_TARGET = 1000
+  const SAMPLE_TARGET = 10000  // 2026-07-23: was 1000; Optimal% SE at 10k ~ +/-0.3pct (50k would cost 7MB rows + minutes of solver for negligible gain)
   const sampleStride = Math.max(1, Math.floor(numSims / SAMPLE_TARGET))
   const dkSamples = []
   const sumLapsLed     = new Float64Array(n)
