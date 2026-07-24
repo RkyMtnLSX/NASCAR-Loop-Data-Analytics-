@@ -169,7 +169,7 @@ export default function PitCrewRankings() {
       </p>
       <p style={{ ...sub, fontSize: '0.78rem' }}>
         Consistency = box-time spread (lower = steadier) &middot; Bomb% = stops 1.25&times; slower than the series median
-        {' '}&middot; 2T = median two-tire stop (hover for sample size) &middot; Crew Pen = crew-caused penalties &middot; Drv Pen = driver-caused (speeding, commitment, box)
+        {' '}&middot; 2T = median two-tire stop (hover for sample size)
         {' '}&middot; crews under {MIN_STOPS} stops hidden &middot; &ldquo;thin&rdquo; = fewer than {LOWN}
       </p>
 
@@ -203,8 +203,8 @@ export default function PitCrewRankings() {
               <col style={{ width: 118 }} />
               <col style={{ width: 64 }} />
               <col style={{ width: 68 }} />
-              <col style={{ width: 80 }} />
-              <col style={{ width: 92 }} />
+              <col style={{ width: 100 }} />
+              <col style={{ width: 112 }} />
               <col style={{ width: 84 }} />
             </colgroup>
             <thead>
@@ -217,8 +217,8 @@ export default function PitCrewRankings() {
                 <th style={th({ align: 'center', sortable: true, active: sort === 'iqr' })} onClick={() => setSort('iqr')}>Consistency</th>
                 <th style={th({ align: 'center' })}>Bomb%</th>
                 <th style={th({ align: 'center', sortable: true, active: sort === '2t' })} onClick={() => setSort('2t')}>2T (s)</th>
-                <th style={th({ align: 'center' })}>Crew Pen</th>
-                <th style={th({ align: 'center' })}>Drv Pen</th>
+                <th style={th({ align: 'center' })}>Crew Penalty</th>
+                <th style={th({ align: 'center' })}>Driver Penalty</th>
                 <th style={th({ align: 'center', sortable: true, active: sort === 'n' })} onClick={() => setSort('n')}>Stops</th>
               </tr>
             </thead>
