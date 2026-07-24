@@ -11,9 +11,6 @@ const MEDAL = { 0: '\uD83E\uDD47', 1: '\uD83E\uDD48', 2: '\uD83E\uDD49' }
 const __CAR_ALIAS = { '133': '33' }
 const PEN_SEC = 1.75   // amortized box-time equivalent per crew penalty per race (display methodology, not a sim input)
 const BOMB_X = 1.25    // a bomb = qualifying stop slower than 1.25x the series clean median (hung-lug territory)
-// Career driver pit-penalty rates pct (speeding/commitment/box), 2022-26 through 2026-07-23,
-// shrunk k=50 toward the 3.9 pct base, min 60 races, threshold 1.8x base. Regenerate from pit_penalties periodically.
-const CHRONIC = { 'ty gibbs': 8.7, 'riley herbst': 8.2, 'daniel suarez': 7.7, 'martin truex jr': 7.7, 'kyle busch': 7.7, 'shane van gisbergen': 7.4, 'john hunter nemechek': 7.2 }
 
 const median = (arr) => {
   const b = [...arr].sort((a, b) => a - b), n = b.length
@@ -43,7 +40,7 @@ function CrewDetail({ c }) {
   const cl = (v) => Math.min(v, hiS)
   const xf = (i) => rl.length === 1 ? W / 2 : PX + i * (W - PX - 14) / (rl.length - 1)
   const yf = (v) => hiS === lo ? H / 2 : PT + (v - lo) * (H - PT - PB) / (hiS - lo)
-  const pcol = (p) => p === 'b' ? '#7f1d1d' : p === 'c' ? '#b91c1c' : '#d97706'
+  const pcol = (p) => p.c && p.d ? '#7f1d1d' : p.c ? '#b91c1c' : '#d97706'
   const pts = rl.map((r, i) => xf(i) + ',' + yf(cl(r.med))).join(' ')
   return (
     <div>
@@ -60,7 +57,7 @@ function CrewDetail({ c }) {
           return (
             <g key={r.rn}>
               <circle cx={xf(i)} cy={yf(cl(r.med))} r={p ? 5.5 : 4} fill={p ? pcol(p) : 'var(--bg-elevated)'} stroke={p ? pcol(p) : 'var(--text-secondary)'} strokeWidth="1.5">
-                <title>{'R' + r.rn + (r.track ? ' ' + r.track : '') + ' - med ' + r.med.toFixed(2) + 's, best ' + r.best.toFixed(2) + 's, ' + r.n + ' stops' + (r.med > hiS ? ' (OFF SCALE - slow outlier race)' : '') + (p ? (p === 'c' ? ' - CREW PENALTY' : p === 'd' ? ' - DRIVER PENALTY' : ' - CREW + DRIVER PENALTIES') : '')}</title>
+                <title>{'R' + r.rn + (r.track ? ' ' + r.track : '') + ' - med ' + r.med.toFixed(2) + 's, best ' + r.best.toFixed(2) + 's, ' + r.n + ' stops' + (r.med > hiS ? ' (OFF SCALE - slow outlier race)' : '') + (p ? ' - ' + (p.c ? p.c + ' CREW PEN' : '') + (p.c && p.d ? ' + ' : '') + (p.d ? p.d + ' DRIVER PEN' : '') : '')}</title>
               </circle>
               <text x={xf(i)} y={H - 10} textAnchor="middle" style={{ fontSize: 9, fill: 'var(--text-secondary)' }}>{r.rn}</text>
             </g>
@@ -115,7 +112,7 @@ export default function PitCrewRankings() {
       if (r2.data) pnl = r2.data
       const penC = {}, penD = {}
       const penR = {}
-      pnl.forEach((p) => { const k = String(p.car_number); if (p.category === 'crew') penC[k] = (penC[k] || 0) + 1; else if (p.category === 'driver') penD[k] = (penD[k] || 0) + 1; if (p.category === 'crew' || p.category === 'driver') { const m = (penR[k] = penR[k] || {}); const rn = p.race_number; m[rn] = m[rn] ? (m[rn] === (p.category === 'crew' ? 'd' : 'c') ? 'b' : m[rn]) : (p.category === 'crew' ? 'c' : 'd') } })
+      pnl.forEach((p) => { const k = String(p.car_number); if (p.category === 'crew') penC[k] = (penC[k] || 0) + 1; else if (p.category === 'driver') penD[k] = (penD[k] || 0) + 1; if (p.category === 'crew' || p.category === 'driver') { const m = (penR[k] = penR[k] || {}); const e = (m[p.race_number] = m[p.race_number] || { c: 0, d: 0 }); if (p.category === 'crew') e.c += 1; else e.d += 1 } })
       if (cancelled) return
       const crews = {}
       all.forEach((r) => {
@@ -147,8 +144,7 @@ export default function PitCrewRankings() {
         const med = median(ct)
         const rlist = Object.keys(c.rd).map(Number).sort((a, b) => a - b).map((rn) => { const cts = c.rd[rn].ts.filter((t) => t <= fence); return cts.length ? { rn: rn, med: median(cts), n: cts.length, best: Math.min.apply(null, cts), track: c.rd[rn].track } : null }).filter(Boolean)
         const bestStop = rlist.reduce((m, x) => (m && m.best <= x.best ? m : x), null)
-        const chronic = CHRONIC[(driver || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()]
-        return { car: c.car, org: c.org, driver: driver, rotating: rotating, median: med, adj: med + (cp / races) * PEN_SEC, penRate: cp / races, cp: cp, dp: dp, bomb: ct.filter((t) => t > seriesMed * BOMB_X).length / ct.length, chronic: chronic, iqr: q3 - q1, n: ct.length, rlist: rlist, bestStop: bestStop, pens: (penR[String(c.car)] || {}) }
+        return { car: c.car, org: c.org, driver: driver, rotating: rotating, median: med, adj: med + (cp / races) * PEN_SEC, penRate: cp / races, cp: cp, dp: dp, bomb: ct.filter((t) => t > seriesMed * BOMB_X).length / ct.length, iqr: q3 - q1, n: ct.length, rlist: rlist, bestStop: bestStop, pens: (penR[String(c.car)] || {}) }
       })
       setRows(out)
       setLoading(false)
@@ -163,7 +159,7 @@ export default function PitCrewRankings() {
     <div style={wrap}>
       <h1 style={h1}>Pit Crew Rankings</h1>
       <p style={sub}>
-        Ranked by <strong>penalty-adjusted median 4-tire stop</strong> &mdash; median box time (seconds) plus {PEN_SEC}s per crew penalty per race. Stats use qualifying stops only &mdash; box times beyond the series outlier fence (crash repairs, penalty holds, non-competitive stops) are excluded, so a wrecked car does not poison a crew&rsquo;s median. Bomb% is the share of qualifying stops slower than 1.25&times; the series median. Drv Pen counts driver-caused pit penalties (speeding, commitment line, pitting outside the box) &mdash; charged to the driver, not the crew; &ldquo;chronic&rdquo; marks drivers with elevated career rates. Lower is faster.
+        Ranked by <strong>penalty-adjusted median 4-tire stop</strong> &mdash; median box time (seconds) plus {PEN_SEC}s per crew penalty per race. Stats use qualifying stops only &mdash; box times beyond the series outlier fence (crash repairs, penalty holds, non-competitive stops) are excluded, so a wrecked car does not poison a crew&rsquo;s median. Bomb% is the share of qualifying stops slower than 1.25&times; the series median. Drv Pen counts driver-caused pit penalties (speeding, commitment line, pitting outside the box) &mdash; charged to the driver, not the crew. Lower is faster.
         {' '}{SEASON} season, within series. Consistency = interquartile range of box times (lower = steadier).
         Crews with fewer than {MIN_STOPS} timed stops are hidden; a &ldquo;thin&rdquo; tag marks fewer than {LOWN}.
       </p>
@@ -227,7 +223,7 @@ export default function PitCrewRankings() {
                   <td style={{ ...td('center'), color: 'var(--text-secondary)' }}>{c.iqr.toFixed(2)}</td>
                   <td style={{ ...td('center'), color: 'var(--text-secondary)' }}>{(c.bomb * 100).toFixed(0)}%</td>
                   <td style={td('center')} title={c.penRate.toFixed(2) + ' crew penalties per race'}>{c.cp}</td>
-                  <td style={td('center')}>{c.dp}{c.chronic ? <span style={{ marginLeft: 6, fontSize: '0.68rem', color: '#fff', background: '#7f1d1d', borderRadius: 4, padding: '1px 5px' }}>chronic</span> : null}</td>
+                  <td style={td('center')}>{c.dp}</td>
                   <td style={td('center')}>
                     {c.n}{c.n < LOWN && <span style={{ marginLeft: 6, fontSize: '0.68rem', color: 'var(--text-secondary)', border: '1px solid var(--border)', borderRadius: 4, padding: '1px 5px' }}>thin</span>}
                   </td>
