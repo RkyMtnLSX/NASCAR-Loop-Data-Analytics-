@@ -179,6 +179,18 @@ export default function DFSPage() {
     }, 30)
   }
 
+  const exportCsv = () => {
+    if (!lineups.length) return
+    const ids = (salaries && salaries.__ids) || {}
+    const missing = new Set()
+    const rows2 = lineups.map(lu => lu.drivers.map(d => { const id = ids[d.name]; if (!id) missing.add(d.name); return id ? (d.name + ' (' + id + ')') : d.name }).join(','))
+    const csv = 'D,D,D,D,D,D\n' + rows2.join('\n')
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
+    a.download = 'pitboard_dk_' + series + '_lineups.csv'
+    a.click(); URL.revokeObjectURL(a.href)
+    setNote(missing.size ? 'CSV exported - WARNING: no DK ID for ' + missing.size + ' driver(s) (re-paste the full DK salary CSV in Salary Admin to capture IDs; DK upload needs them)' : 'CSV exported - DK upload ready (' + lineups.length + ' lineups)')
+  }
   const th = (key, label, align) => (
     <th onClick={() => { setSortKey(key); setSortDir(sortKey === key && sortDir === 'desc' ? 'asc' : 'desc') }}
       style={{ padding: '7px 8px', textAlign: align || 'right', cursor: 'pointer', whiteSpace: 'nowrap', borderBottom: '1px solid var(--border,#333)', userSelect: 'none' }}>
@@ -217,6 +229,7 @@ export default function DFSPage() {
             <button onClick={build} disabled={building || !canBuild} style={{ padding: '8px 18px', borderRadius: 8, cursor: building || !canBuild ? 'not-allowed' : 'pointer', border: 'none', background: !canBuild ? 'var(--border,#2a2d34)' : 'var(--accent,#e11d2a)', color: '#fff', fontWeight: 600 }}>
               {building ? 'Building\u2026' : 'Build lineups'}
             </button>
+            {lineups.length > 0 && <button onClick={exportCsv} style={{ padding: '8px 14px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--accent,#e11d2a)', background: 'transparent', color: 'var(--accent,#e11d2a)', fontWeight: 600 }}>Export DK CSV</button>}
             <span style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 12 }}>{canBuild ? 'Cap $50,000 \u00b7 6 drivers \u00b7 Lock/Excl to steer' + (samples ? ' \u00b7 Optimal% from ' + samples.rows.length + ' sims' : '') : 'Salaries not posted yet'}</span>
             {note && <span style={{ color: 'var(--accent,#e11d2a)', fontSize: 12 }}>{note}</span>}
           </div>
