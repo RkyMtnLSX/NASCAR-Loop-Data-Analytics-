@@ -95,7 +95,7 @@ export default function DFSPage() {
     let alive = true
     setLoading(true); setLineups([]); setOptPct({}); setLocks(new Set()); setExcludes(new Set()); setSalaries({}); setSamples(null); setNote('')
     ;(async () => {
-      const { data } = await supabase.from('sim_results').select('track_name,race_year,race_number,results').eq('series', series).order('id', { ascending: false }).limit(1)
+      const { data } = await supabase.from('sim_results').select('track_name,race_year,race_number,results').eq('series', series).order('published_at', { ascending: false }).limit(1)   // FIX 2026-07-23: id is a UUID — ordering by it is RANDOM, served stale boards
       if (!alive) return
       const row = data && data[0]
       if (!row) { setDrivers([]); setRace(null); setLoading(false); return }
@@ -114,7 +114,7 @@ export default function DFSPage() {
       try {
         let sq = supabase.from('dfs_sim_samples').select('drivers,samples').eq('series', series).eq('race_year', r.year)
         sq = r.rn != null ? sq.eq('race_number', r.rn) : sq.is('race_number', null)
-        const { data: samp } = await sq.order('id', { ascending: false }).limit(1)
+        const { data: samp } = await sq.order('created_at', { ascending: false }).limit(1)
         if (alive && samp && samp[0] && samp[0].drivers) setSamples({ drivers: samp[0].drivers, rows: samp[0].samples || [] })
       } catch (e) { /* samples table optional */ }
       if (alive) setLoading(false)
