@@ -1536,3 +1536,5 @@ v2 assumption WRONG: live lap-times.json does NOT exist during practice/qual (XM
 v3: polls live-feed every ~8s during active runs (45s idle), all three series concurrently; records each car's lap on laps_completed increment (+flag at capture); gap counter for laps missed between polls in every summary; sessions keyed run_type+run_id, named from weekend_runs timing_run_id; per-run files; race stops the series. Offline test passed (gaps, rotation). HARD RULE: laps while the watcher is down are UNRECOVERABLE (best-lap archive only). Today's practices lost at per-lap level; operator's normal source covers tonight; independence starts next session.
 
 ## 2026-07-24 — DFS Center: Start column added (16cbfabe, build green). start_pos was published + loaded (startPos) but never rendered. Sortable "Start" column between Driver and Salary, P{n} format, dash pre-lineup. Populates from whatever the published board carries.
+
+## 2026-07-24 — DFS Center: car number PNGs in driver column (e662c44d, build green). CarNum ported from PitCrewRankings (per-series dirs, 133->33 alias, retry + bold text fallback). Replaces plain #text prefix.
