@@ -226,7 +226,7 @@ export default function PitCrewRankings() {
               {sorted.map((c, i) => (
                 <React.Fragment key={c.car + '|' + (c.org || '')}>
                 <tr onClick={() => setOpen(open === c.car + '|' + (c.org || '') ? null : c.car + '|' + (c.org || ''))} style={{ cursor: 'pointer', background: i % 2 ? 'transparent' : 'var(--bg-elevated)' }}>
-                  <td style={{ ...td('center'), fontWeight: 700 }}>{MEDAL[i] || (i + 1)}</td>
+                  <td style={{ ...td('center'), fontWeight: 700 }}>{MEDAL[i] ? <span style={{ fontSize: '1.35rem', lineHeight: 1 }}>{MEDAL[i]}</span> : (i + 1)}</td>
                   <td style={td('left')}><CarNum car={c.car} series={series} /></td>
                   <td style={td('left')}>{c.org || '\u2014'}</td>
                   <td style={{ ...td('left'), color: 'var(--text-secondary)', fontStyle: c.rotating ? 'italic' : 'normal' }}>{c.driver || '\u2014'}</td>
