@@ -1481,3 +1481,7 @@ Operator ran all three weekend sims (trucks IRP R16, cup Indy R22, oreilly Indy 
 ## 2026-07-23 — entry list remove button restored + Reif->Eatmon swap (1fe17a5c, build green)
 
 No way to remove entry-list drivers (Reif replaced by Eatmon, #42 Niece, IRP trucks). Cause: Admin.js deleteEntry + per-row button existed and DB deletes work — but the button element was EMPTY (x glyph lost in a past edit; invisible zero-width button). Fixed with &times; + title. Immediate swap done directly in entry_list (id 1325 -> Parker Eatmon; car/org/mfr kept); operator re-runs trucks sim. Task #40 (replace-in-car action) still open, less urgent now.
+
+## 2026-07-23 — DFS Optimal% resolution: 1,000 -> 10,000 sim samples (4d11c980 + 6c7dbbed, builds green)
+
+SAMPLE_TARGET 1000->10000 in SimulationCenter (stride 5 of 50k sims); DFSPage Optimal% loop chunked (400 exact lineup solves per tick, progress note) so 10k does not freeze the tab. NOT 50k by design: SE at 10k ~ +/-0.3pct vs +/-0.13 at 50k, for 7MB rows + minutes of solver — tradeoff stops paying at 10k. Takes effect on NEXT publish per board — republish the three weekend boards to upgrade samples.
