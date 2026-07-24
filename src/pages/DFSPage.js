@@ -151,16 +151,29 @@ export default function DFSPage() {
       if (res.error) { setNote(res.error); setBuilding(false); return }
       setLineups(applyExposure(res.lineups, numLineups, maxExp))
       if (samples && samples.drivers && samples.rows && samples.rows.length) {
+        // 2026-07-23: chunked so 10k exact solves do not freeze the tab; progress in note
         const cnt = {}, nS = samples.rows.length
         const salByIdx = samples.drivers.map(nm => salaries[nm] || 0)
-        for (let s = 0; s < nS; s++) {
-          const rowS = samples.rows[s], p = []
-          for (let j = 0; j < samples.drivers.length; j++) { const sal = salByIdx[j]; if (sal > 0) p.push({ name: samples.drivers[j], sal, val: rowS[j] }) }
-          const lu = bestLineup(p)
-          if (lu) lu.forEach(nm => { cnt[nm] = (cnt[nm] || 0) + 1 })
+        let si = 0
+        const CHUNK = 400
+        const step = () => {
+          const end = Math.min(nS, si + CHUNK)
+          for (; si < end; si++) {
+            const rowS = samples.rows[si], p = []
+            for (let j = 0; j < samples.drivers.length; j++) { const sal = salByIdx[j]; if (sal > 0) p.push({ name: samples.drivers[j], sal, val: rowS[j] }) }
+            const lu = bestLineup(p)
+            if (lu) lu.forEach(nm => { cnt[nm] = (cnt[nm] || 0) + 1 })
+          }
+          if (si < nS) { setNote('Computing Optimal% ' + Math.round(si / nS * 100) + '%...'); setTimeout(step, 0) }
+          else {
+            const op = {}; Object.keys(cnt).forEach(nm => { op[nm] = cnt[nm] / nS * 100 })
+            setOptPct(op)
+            setNote('')
+            setBuilding(false)
+          }
         }
-        const op = {}; Object.keys(cnt).forEach(nm => { op[nm] = cnt[nm] / nS * 100 })
-        setOptPct(op)
+        step()
+        return
       }
       setBuilding(false)
     }, 30)
