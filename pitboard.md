@@ -1485,3 +1485,7 @@ No way to remove entry-list drivers (Reif replaced by Eatmon, #42 Niece, IRP tru
 ## 2026-07-23 — DFS Optimal% resolution: 1,000 -> 10,000 sim samples (4d11c980 + 6c7dbbed, builds green)
 
 SAMPLE_TARGET 1000->10000 in SimulationCenter (stride 5 of 50k sims); DFSPage Optimal% loop chunked (400 exact lineup solves per tick, progress note) so 10k does not freeze the tab. NOT 50k by design: SE at 10k ~ +/-0.3pct vs +/-0.13 at 50k, for 7MB rows + minutes of solver — tradeoff stops paying at 10k. Takes effect on NEXT publish per board — republish the three weekend boards to upgrade samples.
+
+## 2026-07-23 — DFS: DK CSV export shipped + optimizer stance (b0a5a951 + 790844bc, builds green)
+
+Stance: projections + Optimal% are the product, optimizer is convenience — kept, but DK-uploadable CSV was the missing table-stakes feature. Shipped: DfsSalaryAdmin captures DK player IDs from salary paste (stored salaries.__ids in existing jsonb, zero schema change); DFSPage "Export DK CSV" next to Build (D,D,D,D,D,D header, Name (ID) cells, per-series filename, warns when IDs missing). OPERATOR: re-paste this weekend's full DK salary CSVs once so exports carry IDs (old saves are name+salary only).
