@@ -39,14 +39,30 @@ function optimize(pool, locks, excludes, K) {
   return { lineups: results.map(r => ({ drivers: locked.concat(r.ids.map(i => cand[i])), salary: r.sal, proj: r.proj })) }
 }
 
-function applyExposure(ranked, want, maxExp) {
+function applyExposure(ranked, want, maxExp, locks) {
+  const lk = locks || new Set()
   if (maxExp >= 1) return ranked.slice(0, want)
   const capCount = Math.max(1, Math.floor(want * maxExp))
   const used = {}, picked = []
   for (const lu of ranked) {
     if (picked.length >= want) break
-    if (lu.drivers.some(d => (used[d.name] || 0) >= capCount)) continue
+    if (lu.drivers.some(d => !lk.has(d.name) && (used[d.name] || 0) >= capCount)) continue
     picked.push(lu); lu.drivers.forEach(d => { used[d.name] = (used[d.name] || 0) + 1 })
+  }
+  // 2026-07-23 FIX: the cap must hold against the DELIVERED set, not the requested count.
+  // When the candidate pool exhausts early (13 of 20), a 10-appearance driver was 77% exposed.
+  // Trim worst-ranked lineups until every unlocked driver is within maxExp of the final set.
+  for (;;) {
+    const cap2 = Math.max(1, Math.floor(picked.length * maxExp))
+    const cnt = {}
+    picked.forEach(lu => lu.drivers.forEach(d => { cnt[d.name] = (cnt[d.name] || 0) + 1 }))
+    const over = Object.keys(cnt).filter(n => !lk.has(n) && cnt[n] > cap2)
+    if (!over.length || picked.length <= 1) break
+    const worstName = over.sort((a, b) => cnt[b] - cnt[a])[0]
+    let idx = -1
+    for (let i = picked.length - 1; i >= 0; i--) { if (picked[i].drivers.some(d => d.name === worstName)) { idx = i; break } }
+    if (idx < 0) break
+    picked.splice(idx, 1)
   }
   return picked
 }
@@ -146,10 +162,12 @@ export default function DFSPage() {
     setBuilding(true); setLineups([]); setNote('')
     setTimeout(() => {
       const pool = rows.map(r => ({ name: r.name, car: r.car, sal: r.sal, projDK: r.projDK }))
-      const K = Math.min(500, Math.max(numLineups * 6, 60))
+      const K = Math.min(1500, Math.max(numLineups * 20, 200))   // deeper pool so exposure caps can actually fill the request
       const res = optimize(pool, locks, excludes, K)
       if (res.error) { setNote(res.error); setBuilding(false); return }
-      setLineups(applyExposure(res.lineups, numLineups, maxExp))
+      const picked = applyExposure(res.lineups, numLineups, maxExp, locks)
+      setLineups(picked)
+      const expMsg = picked.length < numLineups ? 'Exposure cap: only ' + picked.length + ' of ' + numLineups + ' lineups possible at ' + Math.round(maxExp * 100) + '% max exposure (locked drivers exempt). Raise the cap, the lineup count, or lock fewer drivers.' : ''
       if (samples && samples.drivers && samples.rows && samples.rows.length) {
         // 2026-07-23: chunked so 10k exact solves do not freeze the tab; progress in note
         const cnt = {}, nS = samples.rows.length
@@ -168,13 +186,14 @@ export default function DFSPage() {
           else {
             const op = {}; Object.keys(cnt).forEach(nm => { op[nm] = cnt[nm] / nS * 100 })
             setOptPct(op)
-            setNote('')
+            setNote(expMsg)
             setBuilding(false)
           }
         }
         step()
         return
       }
+      setNote(expMsg)
       setBuilding(false)
     }, 30)
   }
