@@ -161,8 +161,13 @@ function dkFinishPts(pos) {
   return pos <= 40 ? table[pos] : 0
 }
 
-const LL_FIN_CURVE = [0.313,0.106,0.07,0.058,0.048,0.034,0.03,0.022,0.019,0.017,0.015,0.013,0.011,0.01,0.01,0.011,0.013,0.012,0.01,0.008,0.008,0.009,0.01,0.011,0.01,0.008,0.009,0.009,0.01,0.009,0.009,0.008,0.007,0.007,0.008,0.008,0.006,0.003,0.006,0.008]
-const FL_FIN_CURVE = [0.19,0.098,0.069,0.057,0.049,0.038,0.034,0.027,0.025,0.022,0.02,0.019,0.017,0.016,0.016,0.015,0.015,0.014,0.013,0.012,0.012,0.013,0.013,0.013,0.014,0.013,0.013,0.013,0.013,0.014,0.014,0.012,0.011,0.01,0.011,0.01,0.008,0.007,0.008,0.008]
+// 2026-07-23: caution-bucket dominator curves (loop_data 2022-26, share of race laps led /
+// fastest laps by finish position, bucketed by races.total_cautions: low <=5 n122, mid 6-8 n138,
+// high >=9 n97; races with <50 total laps-led rows excluded). REPLACES pooled curve + flatten:
+// the pooled curve already embedded caution spreading, so flatten diluted dominance TWICE
+// (sim winner share ~24% vs measured 36.7% at low cautions). BACKTEST_LOG 2026-07-23.
+const LL_CURVES = { low: [0.3652,0.135,0.0746,0.0669,0.0327,0.0448,0.0248,0.0152,0.0127,0.0213,0.0121,0.0143,0.0107,0.0048,0.0116,0.011,0.0172,0.0092,0.0064,0.0095,0.0028,0.007,0.008,0.0053,0.0074,0.0047,0.0041,0.0072,0.003,0.0093,0.0036,0.0043,0.0043,0.0047,0.0066,0.0113,0.0048,0.0007,0.0003,0.0007], mid: [0.3199,0.1027,0.0724,0.0751,0.031,0.0394,0.0288,0.0198,0.0196,0.0157,0.0184,0.0109,0.0098,0.0096,0.0154,0.0098,0.0143,0.0106,0.0082,0.0069,0.0097,0.0061,0.0128,0.0179,0.011,0.0081,0.0044,0.0186,0.0115,0.0082,0.0134,0.0097,0.0073,0.0057,0.0077,0.0051,0.0029,0.0014,0.0002,0], high: [0.2415,0.0965,0.0664,0.071,0.0471,0.0482,0.0233,0.0366,0.0264,0.0181,0.0152,0.0216,0.0135,0.013,0.0097,0.0133,0.0096,0.0198,0.0079,0.0082,0.0169,0.0112,0.0073,0.0166,0.0127,0.0165,0.0063,0.012,0.0063,0.0135,0.0124,0.0189,0.0095,0.0043,0.0157,0.0102,0.0019,0.0009,0,0] }
+const FL_CURVES = { low: [0.2025,0.1217,0.0676,0.0642,0.0408,0.0458,0.029,0.0349,0.0213,0.0257,0.0217,0.0186,0.0208,0.0173,0.0125,0.0171,0.0202,0.0144,0.0128,0.0143,0.0103,0.0142,0.0119,0.0095,0.0098,0.0141,0.0106,0.0097,0.0081,0.0119,0.0093,0.0098,0.0085,0.0092,0.0129,0.0094,0.0051,0.0012,0.0012,0.0002], mid: [0.1858,0.0948,0.0755,0.0583,0.0429,0.0392,0.0338,0.028,0.0252,0.0208,0.0254,0.019,0.0161,0.0161,0.0177,0.0166,0.0145,0.0124,0.0111,0.0107,0.0122,0.0111,0.017,0.0176,0.0143,0.0155,0.015,0.0167,0.016,0.012,0.0182,0.0183,0.0099,0.011,0.0094,0.0119,0.0062,0.0032,0.0002,0.0004], high: [0.1647,0.0831,0.0734,0.0642,0.0491,0.0517,0.0244,0.0312,0.0258,0.0264,0.0187,0.0212,0.0211,0.0169,0.0212,0.0164,0.0143,0.0205,0.0133,0.0137,0.0168,0.0154,0.0111,0.0168,0.0166,0.0173,0.0123,0.0133,0.0106,0.019,0.0149,0.0155,0.0098,0.0101,0.0137,0.0088,0.0032,0.003,0.0004,0] }
 
 function normalizeArr(values, lowerIsBetter = false) {
   const valid = values.filter(v => v != null && !isNaN(v))
@@ -402,7 +407,9 @@ function buildSpeedScores(drivers, weights) {
 function runRaceSim(drivers, simConfig) {
   const { numSims, cautionPreset, dnfRate, totalRaceLaps } = simConfig
   const noiseWidth = cautionPreset.noise
-  const chaosFactor = Math.min(0.85, cautionPreset.value / 20)
+  const __cb = cautionPreset.value <= 5 ? 'low' : cautionPreset.value <= 8 ? 'mid' : 'high'
+  const __LLC = LL_CURVES[__cb]
+  const __FLC = FL_CURVES[__cb]
   
 
   const n = drivers.length
@@ -455,16 +462,19 @@ function runRaceSim(drivers, simConfig) {
     const simLL = new Float64Array(n)
     const simFastLaps = new Int32Array(n)
     if (active.length > 0) {
-      const flatten = Math.min(0.85, chaosFactor)
-      const uni = 1 / active.length
+      // rounding remainder goes to the LEADER (was: last active driver - caused tail FL artifact)
       let llW = 0
-      const llw = active.map((s, r) => { const c = r < LL_FIN_CURVE.length ? LL_FIN_CURVE[r] : LL_FIN_CURVE[LL_FIN_CURVE.length - 1] * Math.pow(0.75, r - LL_FIN_CURVE.length + 1); const w = c * (1 - flatten) + uni * flatten; llW += w; return w })
+      const llw = active.map((s, r) => { const w = r < __LLC.length ? __LLC[r] : __LLC[__LLC.length - 1] * Math.pow(0.75, r - __LLC.length + 1); llW += w; return w })
       let remLL = totalRaceLaps
-      active.forEach((s, r) => { const ll = r === active.length - 1 ? remLL : Math.round(llw[r] / llW * totalRaceLaps); simLL[s.i] = Math.max(0, Math.min(ll, remLL)); remLL -= simLL[s.i]; sumLapsLed[s.i] += simLL[s.i] })
+      for (let r = active.length - 1; r >= 1; r--) { const ll = Math.max(0, Math.min(Math.round(llw[r] / llW * totalRaceLaps), remLL)); simLL[active[r].i] = ll; remLL -= ll }
+      simLL[active[0].i] = remLL
+      active.forEach((s) => { sumLapsLed[s.i] += simLL[s.i] })
       let flWt = 0
-      const flw = active.map((s, r) => { const c = r < FL_FIN_CURVE.length ? FL_FIN_CURVE[r] : FL_FIN_CURVE[FL_FIN_CURVE.length - 1] * Math.pow(0.85, r - FL_FIN_CURVE.length + 1); const w = c * (1 - flatten) + uni * flatten; flWt += w; return w })
+      const flw = active.map((s, r) => { const w = r < __FLC.length ? __FLC[r] : __FLC[__FLC.length - 1] * Math.pow(0.85, r - __FLC.length + 1); flWt += w; return w })
       let remFL = totalRaceLaps
-      active.forEach((s, r) => { const fl = r === active.length - 1 ? remFL : Math.round(flw[r] / flWt * totalRaceLaps); simFastLaps[s.i] = Math.max(0, Math.min(fl, remFL)); remFL -= simFastLaps[s.i]; sumFastLaps[s.i] += simFastLaps[s.i] })
+      for (let r = active.length - 1; r >= 1; r--) { const fl = Math.max(0, Math.min(Math.round(flw[r] / flWt * totalRaceLaps), remFL)); simFastLaps[active[r].i] = fl; remFL -= fl }
+      simFastLaps[active[0].i] = remFL
+      active.forEach((s) => { sumFastLaps[s.i] += simFastLaps[s.i] })
     }
 
     const __srow = (sim % sampleStride === 0 && dkSamples.length < SAMPLE_TARGET) ? new Array(n).fill(0) : null
@@ -1227,7 +1237,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
       race_year:  config.race_year || new Date().getFullYear(),
       race_number: raceNumMap[series] ? parseInt(raceNumMap[series]) : null,
       stage: simStage,
-      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'pairing-first', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06-fenced', flagGuard: 'conf-v1', marketAnchor: 'v1.4-multimkt', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
+      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'pairing-first', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06-fenced', domCurves: 'cbucket-v2', flagGuard: 'conf-v1', marketAnchor: 'v1.4-multimkt', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
       results: simResults.map(d => ({
         driver_name:  d.name,
         car_number:   d.carNumber,
