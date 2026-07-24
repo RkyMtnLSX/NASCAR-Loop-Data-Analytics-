@@ -159,9 +159,14 @@ export default function PitCrewRankings() {
     <div style={wrap}>
       <h1 style={h1}>Pit Crew Rankings</h1>
       <p style={sub}>
-        Ranked by <strong>penalty-adjusted median 4-tire stop</strong> &mdash; median box time (seconds) plus {PEN_SEC}s per crew penalty per race. Stats use qualifying stops only &mdash; box times beyond the series outlier fence (crash repairs, penalty holds, non-competitive stops) are excluded, so a wrecked car does not poison a crew&rsquo;s median. Bomb% is the share of qualifying stops slower than 1.25&times; the series median. Drv Pen counts driver-caused pit penalties (speeding, commitment line, pitting outside the box) &mdash; charged to the driver, not the crew. Lower is faster.
-        {' '}{SEASON} season, within series. Consistency = interquartile range of box times (lower = steadier).
-        Crews with fewer than {MIN_STOPS} timed stops are hidden; a &ldquo;thin&rdquo; tag marks fewer than {LOWN}.
+        <strong>Adj (s)</strong> = median 4-tire box time + {PEN_SEC}s per crew penalty per race &mdash; lower is faster.
+        {' '}{SEASON} season, within series, qualifying stops only (crash repairs and penalty holds excluded).
+        {' '}Click any row for race-by-race detail.
+      </p>
+      <p style={{ ...sub, fontSize: '0.78rem' }}>
+        Consistency = box-time spread (lower = steadier) &middot; Bomb% = stops 1.25&times; slower than the series median
+        {' '}&middot; Crew Pen = crew-caused penalties &middot; Drv Pen = driver-caused (speeding, commitment, box)
+        {' '}&middot; crews under {MIN_STOPS} stops hidden &middot; &ldquo;thin&rdquo; = fewer than {LOWN}
       </p>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap' }}>
