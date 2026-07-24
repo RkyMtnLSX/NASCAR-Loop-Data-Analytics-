@@ -39,7 +39,7 @@ export default function DfsSalaryAdmin() {
     let alive = true
     setLoading(true); setSalaries({}); setMsg(''); setSaveMsg('')
     ;(async () => {
-      const { data } = await supabase.from('sim_results').select('track_name,race_year,race_number,results').eq('series', series).order('id', { ascending: false }).limit(1)
+      const { data } = await supabase.from('sim_results').select('track_name,race_year,race_number,results').eq('series', series).order('published_at', { ascending: false }).limit(1)   // FIX 2026-07-23: id is a UUID - ordering by it is RANDOM (same bug as DFSPage)
       if (!alive) return
       const row = data && data[0]
       if (!row) { setDrivers([]); setRace(null); setLoading(false); return }
