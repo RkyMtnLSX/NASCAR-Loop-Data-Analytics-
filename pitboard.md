@@ -1489,3 +1489,7 @@ SAMPLE_TARGET 1000->10000 in SimulationCenter (stride 5 of 50k sims); DFSPage Op
 ## 2026-07-23 — DFS: DK CSV export shipped + optimizer stance (b0a5a951 + 790844bc, builds green)
 
 Stance: projections + Optimal% are the product, optimizer is convenience — kept, but DK-uploadable CSV was the missing table-stakes feature. Shipped: DfsSalaryAdmin captures DK player IDs from salary paste (stored salaries.__ids in existing jsonb, zero schema change); DFSPage "Export DK CSV" next to Build (D,D,D,D,D,D header, Name (ID) cells, per-series filename, warns when IDs missing). OPERATOR: re-paste this weekend's full DK salary CSVs once so exports carry IDs (old saves are name+salary only).
+
+## 2026-07-23 — DFS exposure cap fix (59a2df96, build green)
+
+Operator caught 77% exposure at a 50% cap. Causes: cap computed vs REQUESTED lineup count while the candidate pool exhausted early (10 appearances / 13 delivered = 77%); K pool too shallow (x6). Fix: applyExposure fixed-point trim so every unlocked driver ends within maxExp of the DELIVERED set (locks exempt); K to numLineups x20 (cap 1500); shortfall surfaced in the note instead of silent over-exposure. Latent lock-vs-cap conflict also fixed.
