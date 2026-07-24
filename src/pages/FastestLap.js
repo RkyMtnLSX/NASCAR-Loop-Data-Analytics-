@@ -79,7 +79,7 @@ function RaceTable({ rows, raceName, track }) {
               return (
                 <tr key={i} style={{background:rowBg}}>
                   <td style={stickyCell(rowBg)}>
-                    <span style={{marginRight:6,fontSize:'0.75rem',fontFamily:'var(--font-mono)',color:rank<=3?'var(--accent)':'var(--text-muted)',minWidth:22,display:'inline-block'}}>{MEDAL[rank]||rank}</span>
+                    <span style={{marginRight:6,fontSize:rank<=3?'1.2rem':'0.75rem',fontFamily:'var(--font-mono)',color:rank<=3?'var(--accent)':'var(--text-muted)',minWidth:26,display:'inline-block'}}>{MEDAL[rank]||rank}</span>
                     <span style={{fontWeight:rank<=3?700:400}}><CarNum car={r.car} />{r.driver}</span>
                   </td>
                   <td style={numCell}>{r.car}</td>
