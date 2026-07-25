@@ -302,6 +302,12 @@ function buildSpeedScores(drivers, weights) {
   const lrpScores        = normalizeArr(drivers.map(d => d.lrpTime),       true)  // lower lap time = better
   const srpScores        = normalizeArr(drivers.map(d => d.srpTime),        true)
   const startScores      = normalizeArr(drivers.map(d => d.startPos),       true)  // P1 = 100
+  // trail10-v2.2 (2026-07-25 overshoot backtest, operator challenge): projected grids carried
+  // real-grid-sized confidence with worse favorite identification (toy-MC favorite gap +4.1 pts
+  // vs actual grid, 319 races 2023+, 2022 Next Gen year excluded per operator). Shading projected
+  // start influence lam=0.7 matches the actual-grid calibration profile (21.4 vs 20.9). Real
+  // lineups untouched - this only softens forecasts of a grid we have not seen yet.
+  for (let __i = 0; __i < drivers.length; __i++) if (drivers[__i].__startProjected && startScores[__i] != null) startScores[__i] = 50 + (startScores[__i] - 50) * 0.7
   const fallScores       = normalizeArr(drivers.map(d => d.trendSlope),     true)  // lower falloff = better
   const raceCraftScores  = normalizeArr(drivers.map(d => d.raceCraftPct),    false) // higher pct = better
   const trackRatingScores = normalizeArr(drivers.map(d => d.trackAvgRating), false) // higher = better
@@ -1286,7 +1292,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
       race_year:  config.race_year || new Date().getFullYear(),
       race_number: raceNumMap[series] ? parseInt(raceNumMap[series]) : null,
       stage: simStage,
-      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'pairing-first', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06-fenced', domCurves: 'cbucket-v2', startProj: 'trail10-v2.1-hybrid-grid', flagGuard: 'conf-v1', marketAnchor: 'v1.4-multimkt', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
+      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'pairing-first', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06-fenced', domCurves: 'cbucket-v2', startProj: 'trail10-v2.2-shaded', flagGuard: 'conf-v1', marketAnchor: 'v1.4-multimkt', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
       results: simResults.map(d => ({
         driver_name:  d.name,
         car_number:   d.carNumber,
