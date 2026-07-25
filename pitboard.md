@@ -1572,3 +1572,7 @@ Canonical inventory for NascarDataScrapperV3: TWO weekly buttons — CAPTURE_PRA
 ## 2026-07-25 — IRP added to pit-feed coverage-gap list + rankings quirk
 
 Trucks pit rankings unchanged post-IRP is CORRECT: Lucas Oil IRP has no pit-road timing loops (live-pit-data 403, zero pit_stops rows) — joins Rockingham / St. Pete / Lime Rock. QUIRK: penalties (lap notes, exist everywhere) load at gap venues while box times don't -> penalty in numerator without race in denominator, slightly inflated per-race pen rate until the next timed race. Small effect on Adj; acceptable; revisit if gap venues multiply. Obsolete-file deletion list given to operator (Claude does not delete operator files; folder also outside mounted access).
+
+## 2026-07-25 — SHIPPED task #72 same day: projected start positions (142d2970, build green, bundle verified)
+
+Operator called ship-now for the Cup pre-quali window. __projStart map (loop_data 2025+, mean of last-10 start pctiles, min 3 prior) fills startPos ONLY when quali+practice absent; raw-pctile x fieldN (compressed = conservative under fixed 0.33 weight; ranked-grid variant deferred); badge 'projected' (__lnPrac/__lnProj); __hasStart guard: projected starts never satisfy the DNQ trim; <3-race drivers neutral; stamp startProj 'trail10-v1'. Ships mid-weekend like the fence: validated same day (t=21, n=13,144), touches only the pre-lineup path. Operator re-runs Cup pre board to use it.
