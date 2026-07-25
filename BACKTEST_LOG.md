@@ -3573,3 +3573,7 @@ Byron projected P14 at Indy vs 5.0 Indy quali avg (n=2); outright flag died. Tes
 ## 2026-07-25 — OVERSHOOT BACKTEST (operator challenge) -> trail10-v2.2 shade shipped (4301ea97)
 
 Do projected grids overshoot favorites? Toy-MC (relative comparisons only), 319 races 2023+ (2022 Next Gen excluded per operator): ACTUAL grid favorite gap 20.9 (pred 37.8/real 16.9); PROJECTED unshaded gap 25.0 (pred 38.1/real 13.2) — real-grid confidence, worse favorite ID, +4.1 pts overshoot. CONFIRMED. Shade sweep: lam 0.7 -> gap 21.4 ~= actual-grid profile. SHIPPED lam=0.7 on startScores for projected drivers only; stamp 'trail10-v2.2-shaded'. Final design: hybrid conditioning + 1..K re-rank + 0.7 shade, each separately tested.
+
+## 2026-07-25 — SHIPPED task #71 part 1: dominator curves by TRACK GROUP x caution bucket (gxc-v3, 880ee02a)
+
+Winner LL share by group: SS 18.2 (n62) / INT 30.4 (n160) / SHORT 37.2 (n110) / ROAD 42.5 (n52) — pooled cbucket-v2 starved road/short dominators, overfed SS. New LL_CURVES_G/FL_CURVES_G [group][bucket], 40 positions; n<20 cells (SS-low/high, ROAD-mid/high) fall back to group-pooled at generation; global cbucket = runtime fallback. __trackGroup classifier reuses isSuperspeedway/isRoadCourse + SHORT keywords (same list as derivation). trackGroup via simConfig. Stamp 'gxc-v3', bundle verified. Win markets unchanged. Part 2 (speed-conditioned) stays queued. Operator: re-run + republish today's boards.
