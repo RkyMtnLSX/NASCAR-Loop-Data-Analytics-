@@ -1554,3 +1554,5 @@ Recovery after the deleted-board error: odds reconstructed byte-accurate from od
 ## 2026-07-24 — DNQ leak caught by operator (Shafer playable in DFS despite missing the show)
 
 NASCAR quali feed: P37 Carroll DNQ, P38 Shafer DNQ — tonight's manual quali load inserted all 38 without checking the comment flag; sim raced 38 in a 36-truck field, DFS listed Shafer. DATA FIX: DNQ rows deleted from qualifying_results (max P36), both removed from entry_list (36 drivers); operator re-runs + republishes. SYSTEMIC: task #70 — quali loads respect DNQ comments, sim excludes flagged drivers, DFS inherits; capture tooling should use the live-qualifying-data comment field (DNQ/OP).
+
+## 2026-07-24 — DFS: Optimal% computes on page load (a3622b62, build green). Was gated behind Build lineups; now a useEffect fires the chunked 10k solve when samples + salaries are present, cancelling cleanly on series switch. Build only builds.
