@@ -174,11 +174,28 @@ export default function DFSPage() {
     return () => { cancel = true }
   }, [samples, salaries])
 
+  // 2026-07-25: Ceiling DK = 90th-percentile DK score from the stored sim samples.
+  // Cash games read Proj (mean); GPPs read the ceiling (Boschele IRP: proj 31, ceiling would
+  // have shown the P19->top-7 tournament upside the mean hides).
+  const ceilMap = useMemo(() => {
+    if (!samples || !samples.drivers || !samples.rows || !samples.rows.length) return {}
+    const out = {}
+    const nS = samples.rows.length
+    const i90 = Math.min(nS - 1, Math.floor(nS * 0.9))
+    for (let j = 0; j < samples.drivers.length; j++) {
+      const col = new Float64Array(nS)
+      for (let s2 = 0; s2 < nS; s2++) col[s2] = samples.rows[s2][j] || 0
+      col.sort()
+      out[samples.drivers[j]] = col[i90]
+    }
+    return out
+  }, [samples])
+
   const rows = useMemo(() => drivers.map(d => {
     const sal = salaries[d.name] || 0
     const value = sal > 0 ? d.projDK / (sal / 1000) : 0
-    return { ...d, sal, value, opt: optPct[d.name] || 0 }
-  }), [drivers, salaries, optPct])
+    return { ...d, sal, value, opt: optPct[d.name] || 0, ceil: ceilMap[d.name] || 0 }
+  }), [drivers, salaries, optPct, ceilMap])
 
   const sorted = useMemo(() => {
     const arr = rows.slice()
@@ -268,7 +285,7 @@ export default function DFSPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead><tr style={{ color: 'var(--text-secondary,#9aa0aa)' }}>
                 <th style={{ padding: '7px 8px', textAlign: 'left' }}>Lock/Excl</th>
-                {th('name', 'Driver', 'left')}{th('startPos', 'Start')}{th('sal', 'Salary')}{th('projDK', 'Proj DK')}{th('value', 'Value')}{th('opt', 'Optimal%')}
+                {th('name', 'Driver', 'left')}{th('startPos', 'Start')}{th('sal', 'Salary')}{th('projDK', 'Proj DK')}{th('ceil', 'Ceil DK')}{th('value', 'Value')}{th('opt', 'Optimal%')}
                 {th('winPct', 'Win%')}{th('lapsLed', 'Laps Led')}{th('avgFast', 'Fast Laps')}{th('projFinish', 'Proj Fin')}
                 <th style={{ padding: '7px 8px', textAlign: 'right' }}>Expo</th>
               </tr></thead>
@@ -287,6 +304,7 @@ export default function DFSPage() {
                       <td style={{ padding: '4px 8px', textAlign: 'right', fontWeight: 600 }}>{d.startPos ? 'P' + d.startPos : '\u2014'}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right' }}>{d.sal ? '$' + d.sal.toLocaleString() : '\u2014'}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right', fontWeight: 600 }}>{d.projDK.toFixed(1)}</td>
+                      <td style={{ padding: '4px 8px', textAlign: 'right', color: 'var(--text-secondary,#9aa0aa)' }}>{d.ceil ? d.ceil.toFixed(0) : '\u2014'}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right', background: vBg, fontWeight: 600 }}>{d.value ? d.value.toFixed(2) : '\u2014'}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right', background: oBg }}>{d.opt ? d.opt.toFixed(1) + '%' : '\u2014'}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right' }}>{d.winPct.toFixed(1)}</td>
