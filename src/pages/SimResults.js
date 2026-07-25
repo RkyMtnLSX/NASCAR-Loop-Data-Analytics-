@@ -16,10 +16,8 @@ const fmtNum = (n, dec = 1) => n == null ? '' : (+n).toFixed(dec)
 function fmvAmerican(p) {
   if (!p || p <= 0) return '--'
   if (p >= 0.999) return '-99999'
-  // 2026-07-24 (operator credibility ruling, Burton +15900 case): below ~2% our tail
-  // precision does not support an exact price - a 0.5pct model error swings thousands of
-  // odds points. Cap the display like books do rather than pretend precision.
-  if (p < 0.02) return '>+5000'
+  // 2026-07-25: tail cap removed (operator call - show the raw number; the 07-24 cap
+  // hid mid-tail win FMVs). Caveat stands in the docs: sub-2% prices carry wide error bars.
   return p >= 0.5 ? String(Math.round(-100 * p / (1 - p))) : '+' + Math.round(100 * (1 - p) / p)
 }
 function __decodeMtx(cfg) {
