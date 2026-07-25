@@ -1550,3 +1550,7 @@ Races need no watcher: completed races archive full per-lap permanently (lap-tim
 ## 2026-07-24 — RESOLUTION: IRP trucks final board fully rebuilt before green flag
 
 Recovery after the deleted-board error: odds reconstructed byte-accurate from odds_snapshots (23:34:58 auto-snapshot of the 5:35PM paste — the 07-18 snapshot system paid for itself) into ODDS_RESTORE_DK.txt (3-col Winner/Top3/Top5, verified vs parseDK, 35 drivers) + ODDS_RESTORE_3_HARDROCK.txt (parseSect format); real quali lineup loaded from NASCAR live feed (Riggs pole); stage default reverted to Post. Board republished: same closing odds, BETTER lineup than the deleted board. POS header confirmed accepted as practice-upload start (quali outranks fallback). STANDING RULE, all sessions: never delete published rows on your own diagnosis — surface and ask. my_bets never touched.
+
+## 2026-07-24 — DNQ leak caught by operator (Shafer playable in DFS despite missing the show)
+
+NASCAR quali feed: P37 Carroll DNQ, P38 Shafer DNQ — tonight's manual quali load inserted all 38 without checking the comment flag; sim raced 38 in a 36-truck field, DFS listed Shafer. DATA FIX: DNQ rows deleted from qualifying_results (max P36), both removed from entry_list (36 drivers); operator re-runs + republishes. SYSTEMIC: task #70 — quali loads respect DNQ comments, sim excludes flagged drivers, DFS inherits; capture tooling should use the live-qualifying-data comment field (DNQ/OP).
