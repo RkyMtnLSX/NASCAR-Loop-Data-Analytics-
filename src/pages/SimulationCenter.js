@@ -647,7 +647,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
   const [shadeLambda, setShadeLambda] = useState(0.5)
   const [showShade, setShowShade] = useState(false)
   const [showBorrows, setShowBorrows] = useState(false)
-  const [simStage, setSimStage] = useState('pre')   // 2026-07-24: was 'post' - default footgun published a pre-race board into the post slot and overwrote the graded NW board
+  const [simStage, setSimStage] = useState('post')  // post = POST-PRACTICE final board (race-day default). 2026-07-24: briefly flipped to 'pre' on a misread of stage semantics - reverted same day
   const [raceNumMap, setRaceNumMap] = useState({})
   const [authed,        setAuthed]          = useState(false)
   const [password,      setPassword]        = useState('')
@@ -1207,16 +1207,6 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
     if (!raceNumMap[series] || !parseInt(raceNumMap[series])) {
       alert('Enter a Race # before publishing - published boards and grading join on it.')
       return
-    }
-    // PUBLISH GUARD (2026-07-24): POST stage is for GRADED races. Publishing post for a race
-    // with no loop data yet silently OVERWRITES the previous graded post board (happened 07-24:
-    // IRP pre-race board destroyed the NW post board). Confirm loudly.
-    if (simStage === 'post') {
-      try {
-        const __gy = (config && config.race_year) || new Date().getFullYear()
-        const { count: __lc } = await supabase.from('loop_data').select('id', { count: 'exact', head: true }).eq('series', series).eq('year', __gy).eq('race_number', parseInt(raceNumMap[series]))
-        if (!__lc && !window.confirm('Stage is POST but this race has NO loop data yet. Post boards are for graded races - publishing will OVERWRITE the previous post board. Publish as POST anyway? (Cancel and flip Stage to Pre for a pre-race board.)')) return
-      } catch (e) {}
     }
     // PUBLISH GUARDS (2026-07-22): empty odds -> blank Market Value; stale odds -> anchors/flags computed on old odds.
     const __oddsTxts = [oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt]
