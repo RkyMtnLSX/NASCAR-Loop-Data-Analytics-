@@ -925,6 +925,28 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
             ? qualData.map(q => ({ driver_name: q.driver_name }))
             : [...new Set((practiceData || []).map(p => p.driver_name))].map(n => ({ driver_name: n }))
 
+        // task #72 (2026-07-25, backtested same day): PROJECTED start positions for pre-lineup
+        // boards. pred = mean of last-10 prior start pctiles (same series, min 3 prior, 2025+
+        // corpus); walk-forward corr 0.643 vs actual grid, recovers ~75% of the start term's
+        // value pre-quali (BACKTEST_LOG n=13,144). Fills ONLY when neither quali nor practice
+        // provides a start; raw-pctile mapping (not re-ranked) keeps the projected grid
+        // compressed toward mid-field = conservative under the fixed 0.33 weight. Badge says
+        // 'projected'; the real grid takes over automatically once qualifying loads.
+        let __projStart = new Map()
+        try {
+          const { data: __pstarts } = await supabase.from('loop_data')
+            .select('driver_name, start_position, year, race_number')
+            .eq('series', s).gte('year', 2025).not('start_position', 'is', null).limit(6000)
+          const __pbr = {}
+          ;(__pstarts || []).forEach(r => { const k = r.year * 100 + r.race_number; (__pbr[k] = __pbr[k] || []).push(r) })
+          const __phist = {}
+          Object.keys(__pbr).map(Number).sort((a, b) => a - b).forEach(k => {
+            const el = __pbr[k]; if (el.length < 15) return
+            el.forEach(r => { const dn = normalizeName(r.driver_name); (__phist[dn] = __phist[dn] || []).push(r.start_position / el.length) })
+          })
+          Object.keys(__phist).forEach(dn => { const a = __phist[dn]; if (a.length >= 3) { const last = a.slice(-10); __projStart.set(dn, last.reduce((x, y) => x + y, 0) / last.length) } })
+        } catch (e) { __projStart = new Map() }
+
         const drivers = driverSource
           .map(e => {
             const name  = e.driver_name?.trim()
@@ -937,7 +959,8 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
               carNumber:     e.car_number   || null,
               organization:  e.organization || null,
               manufacturer:  e.manufacturer || null,
-              startPos:      qual && qual.qualifying_position ? parseFloat(qual.qualifying_position) : (prac && prac.qualifying_position ? parseFloat(prac.qualifying_position) : null),
+              __startProjected: !(qual && qual.qualifying_position) && !(prac && prac.qualifying_position) && __projStart.has(normName),
+              startPos:      qual && qual.qualifying_position ? parseFloat(qual.qualifying_position) : (prac && prac.qualifying_position ? parseFloat(prac.qualifying_position) : (__projStart.has(normName) ? Math.max(1, Math.round(__projStart.get(normName) * driverSource.length)) : null)),
               qualTime:      qual ? parseFloat(qual.lap_time)       || null : null,
               lrpTime:       prac ? ((series !== 'oreilly' && parseFloat(prac.best5)) || parseFloat(prac.overall_avg) || null) : null, // SHIPPED 2026-07-16: best5 for cup+trucks (log 4-1-2 + regression); oreilly keeps overall_avg per its own evidence; falls back when best5 null
               practiceGroup: prac ? (prac.practice_group || null) : null,
@@ -966,23 +989,26 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
         // from qualifying_results OR the practice sheet), entries with NO start position are not in
         // the race (DNQ or no-show: Huffman/Hill/Schafer, NW trucks) — drop them from the sim field.
         // Pre-lineup sims (few/no starts known) keep every entry.
-        const __hasStart = d => d.startPos != null && !isNaN(parseFloat(d.startPos))
+        const __hasStart = d => d.startPos != null && !d.__startProjected && !isNaN(parseFloat(d.startPos))   // projected starts do NOT count as being in the field (task #72)
         if (drivers.filter(__hasStart).length >= 20) {
           for (let __i = drivers.length - 1; __i >= 0; __i--) if (!__hasStart(drivers[__i])) drivers.splice(__i, 1)
         }
 
         // Lineup-state badge: what does startPos actually use for this run?
         const __lnQ = drivers.filter(d => { const q = qualMap.get(normalizeName(d.name)); return q && q.qualifying_position }).length
-        const __lnAny = drivers.filter(d => d.startPos !== null).length
+        const __lnPrac = drivers.filter(d => d.startPos !== null && !d.__startProjected).length
+        const __lnProj = drivers.filter(d => d.__startProjected).length
         let __lnSrc = 'none'
         if (__lnQ >= Math.max(3, drivers.length * 0.5)) {
           const __srcCnt = {}
           ;(qualData || []).forEach(q => { const sv = q.lineup_source || 'qualifying'; __srcCnt[sv] = (__srcCnt[sv] || 0) + 1 })
           __lnSrc = Object.keys(__srcCnt).sort((a, b) => __srcCnt[b] - __srcCnt[a])[0] || 'qualifying'
-        } else if (__lnAny >= Math.max(3, drivers.length * 0.5)) {
+        } else if (__lnPrac >= Math.max(3, drivers.length * 0.5)) {
           __lnSrc = 'practice fallback'
-        } else if (__lnAny > 0) {
-          __lnSrc = 'partial ' + __lnAny + '/' + drivers.length
+        } else if (__lnProj >= Math.max(3, drivers.length * 0.5)) {
+          __lnSrc = 'projected'   // task #72: trailing-form start projection, pre-lineup only
+        } else if (__lnPrac + __lnProj > 0) {
+          __lnSrc = 'partial ' + (__lnPrac + __lnProj) + '/' + drivers.length
         }
         setLineupState(__lnSrc)
 
@@ -1237,7 +1263,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
       race_year:  config.race_year || new Date().getFullYear(),
       race_number: raceNumMap[series] ? parseInt(raceNumMap[series]) : null,
       stage: simStage,
-      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'pairing-first', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06-fenced', domCurves: 'cbucket-v2', flagGuard: 'conf-v1', marketAnchor: 'v1.4-multimkt', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
+      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'pairing-first', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06-fenced', domCurves: 'cbucket-v2', startProj: 'trail10-v1', flagGuard: 'conf-v1', marketAnchor: 'v1.4-multimkt', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
       results: simResults.map(d => ({
         driver_name:  d.name,
         car_number:   d.carNumber,
