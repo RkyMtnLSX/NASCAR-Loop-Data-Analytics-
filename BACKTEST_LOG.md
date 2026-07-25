@@ -3569,3 +3569,7 @@ Operator: should projections carry across track types? HALF — pooled vs group-
 ## 2026-07-25 — TESTED & REJECTED: track-specific blend + oval-only history for start projections (Byron case)
 
 Byron projected P14 at Indy vs 5.0 Indy quali avg (n=2); outright flag died. Tested vs shipped hybrid (n 13,144): oval-only .656 = no gain; track blend (lam=n/(n+2)) .655 = slightly worse — 1-4-start track samples too noisy in aggregate; shrinkage that avoids flukes also mutes the Byrons. Hybrid stands. Flag note: pre-projection boards were start-BLIND, not Byron-believers; the real grid restores honest flags at quali load. Pattern (3rd entry): discipline-level conditioning (SS/road) survives testing; per-track conditioning does not.
+
+## 2026-07-25 — OVERSHOOT BACKTEST (operator challenge) -> trail10-v2.2 shade shipped (4301ea97)
+
+Do projected grids overshoot favorites? Toy-MC (relative comparisons only), 319 races 2023+ (2022 Next Gen excluded per operator): ACTUAL grid favorite gap 20.9 (pred 37.8/real 16.9); PROJECTED unshaded gap 25.0 (pred 38.1/real 13.2) — real-grid confidence, worse favorite ID, +4.1 pts overshoot. CONFIRMED. Shade sweep: lam 0.7 -> gap 21.4 ~= actual-grid profile. SHIPPED lam=0.7 on startScores for projected drivers only; stamp 'trail10-v2.2-shaded'. Final design: hybrid conditioning + 1..K re-rank + 0.7 shade, each separately tested.
