@@ -1564,3 +1564,7 @@ NASCAR quali feed: P37 Carroll DNQ, P38 Shafer DNQ — tonight's manual quali lo
 ## 2026-07-25 — DOCTRINE: flag threshold changes ONLY from the #69 archive sweep (no leans tier)
 
 Operator asked whether dropping the 10% min-edge threshold would have flagged the (winning) Majeski t3 — recognized as results-bias off one cashed ticket. Ruling: threshold stays 10% until #69 archive accrues ~15-20 boards, then ONE empirical sweep (5/8/10/15% flags vs close) decides it, with receipts. "Leans" display tier (5-10% edges, tracked-not-bet) REJECTED by operator on complexity grounds — the archive captures everything the sweep needs, zero new UI. Also numbered: task #71 = DFS dominator surgery (track-type curves + speed-conditioned LL/FL), post-weekend.
+
+## 2026-07-25 — tooling inventory README shipped (WHICH_BUTTONS_README.txt)
+
+Canonical inventory for NascarDataScrapperV3: TWO weekly buttons — CAPTURE_PRACTICE.bat (watcher, before practice/quali) + POST_RACE_UPDATE.bat (pit stops + penalties + race archives, once post-weekend). Plumbing .py never double-clicked. Rare: *_ALL history rebuilds. Obsolete: PIT_BACKFILL_2026/DRYRUN, PITBOARD_APPEND.md. Old scraper superseded for lap data (keep for xlsx reports only). Rule: ScrapperV3 = cockpit; updates ship to Downloads, operator copies over. POST_RACE first full run verified: trucks race archive 6851 laps x 36, penalties refreshed, cup/xfinity correctly skipped.
