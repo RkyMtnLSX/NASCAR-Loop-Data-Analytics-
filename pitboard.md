@@ -1546,3 +1546,7 @@ v3: polls live-feed every ~8s during active runs (45s idle), all three series co
 ## 2026-07-24 — RACE lap capture added (--race mode) + POST_RACE_UPDATE.bat step 3/3
 
 Races need no watcher: completed races archive full per-lap permanently (lap-times.json, verified 251x36 NW). --race one-shot added to pitboard_practice_capture.py (skips unposted races gracefully; per-lap flags). POST_RACE_UPDATE.bat: pit stops, penalties, race lap archives. Division of labor: PRACTICE/QUAL = live watcher during sessions; RACE = archive grab any time after.
+
+## 2026-07-24 — RESOLUTION: IRP trucks final board fully rebuilt before green flag
+
+Recovery after the deleted-board error: odds reconstructed byte-accurate from odds_snapshots (23:34:58 auto-snapshot of the 5:35PM paste — the 07-18 snapshot system paid for itself) into ODDS_RESTORE_DK.txt (3-col Winner/Top3/Top5, verified vs parseDK, 35 drivers) + ODDS_RESTORE_3_HARDROCK.txt (parseSect format); real quali lineup loaded from NASCAR live feed (Riggs pole); stage default reverted to Post. Board republished: same closing odds, BETTER lineup than the deleted board. POS header confirmed accepted as practice-upload start (quali outranks fallback). STANDING RULE, all sessions: never delete published rows on your own diagnosis — surface and ask. my_bets never touched.
