@@ -3561,3 +3561,7 @@ Operator insight (books repriced Riggs +250 -> -140 across practice/quali): book
 TEST (walk-forward, 2022-26 all series, n 13,144): predicted start = mean of last-10 prior start pctiles (min 3 prior). Predictability: corr(pred, actual) 0.643. Value: Model A ctrl-only RMSE .2608 (= current pre-board); B + PREDICTED start coef .390 t 21.0 RMSE .2565 (+3.2%); C + ACTUAL start t 24.3 RMSE .2551 (+4.3%). Predicted start recovers ~75% of the real grid's value pre-quali. Shared-ctrl A/B/C bracket makes the recovery finding robust to the weak-control caveat.
 
 VERDICT: implement post-weekend as 'lineup: projected' state (badged), trailing-10 fill, auto-handoff at quali load, <3-race drivers neutral, full-vs-shaded (~0.75x) weight decided at implementation. Un-neutralizing a validated term, not a new signal.
+
+## 2026-07-25 — start-projection SWEEP: hybrid category conditioning WINS -> trail10-v2-hybrid shipped (a2164f79)
+
+Operator: should projections carry across track types? HALF — pooled vs group-conditioned (n 13,144): SHORT pooled .653 > grp .639; INT .676 > .670 (oval quali skill transfers); SS grp .610 > pooled .563; ROAD grp .660 > .626 (separate disciplines). HYBRID (pooled ovals, conditioned SS/road, pooled fallback <3): corr .656, finish-model t 22.3 RMSE .2560 (vs 21.0/.2565). Shipped: projection conditions on isSuperspeedway/isRoadCourse when current race is SS/road; stamp startProj 'trail10-v2-hybrid'. Build green, bundle verified.
