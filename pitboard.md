@@ -1558,3 +1558,5 @@ NASCAR quali feed: P37 Carroll DNQ, P38 Shafer DNQ — tonight's manual quali lo
 ## 2026-07-24 — DFS: Optimal% computes on page load (a3622b62, build green). Was gated behind Build lineups; now a useEffect fires the chunked 10k solve when samples + salaries are present, cancelling cleanly on series switch. Build only builds.
 
 ## 2026-07-25 — DFS: Ceil DK column shipped (1cfb1609, build green). p90 DK from the stored 10k samples, sortable, next to Proj DK. Cash reads the mean, GPPs read the tail (Boschele IRP: proj 31, matrix ceiling 7th contained his run — operator's point). Zero new tracking. Live for the Indy slates. Queued separately: track-type dominator curves + speed-conditioned LL/FL (post-weekend DFS surgery).
+
+## 2026-07-25 — DFS: "Ceil DK" renamed "Ceiling" + caption explainer "Ceiling = 90th-percentile DK score (tournament upside)" (ed5a3366, build green; operator readability call).
