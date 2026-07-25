@@ -1580,3 +1580,5 @@ Operator called ship-now for the Cup pre-quali window. __projStart map (loop_dat
 ## 2026-07-25 — trail10-v2.1: projected starts re-ranked to a real 1..K grid (860efb98, build green)
 
 Operator: "somebody needs to be projected on the pole." Behind the aesthetics, a real bug: composite min-max stretches start scores regardless (v1 compression illusory in score space) BUT DK place-diff computes start-finish literally — the compressed pseudo grid biased DFS projections on projected boards. Fix: projected drivers ranked 1..K by predicted pctile; rookies unchanged; stamp 'trail10-v2.1-hybrid-grid'. Composite ordering unchanged.
+
+## 2026-07-25 — FMV tail cap REMOVED (330fdd76, build green; operator call). The 07-24 ">+5000" cap also hid mid-tail win FMVs. Raw numbers everywhere; the sub-2% precision caveat lives in the docs, not the UI.
