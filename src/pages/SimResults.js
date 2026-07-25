@@ -19,7 +19,7 @@ function fmvAmerican(p) {
   // 2026-07-24 (operator credibility ruling, Burton +15900 case): below ~2% our tail
   // precision does not support an exact price - a 0.5pct model error swings thousands of
   // odds points. Cap the display like books do rather than pretend precision.
-  if (p < 0.02) return '+5000+'
+  if (p < 0.02) return '>+5000'
   return p >= 0.5 ? String(Math.round(-100 * p / (1 - p))) : '+' + Math.round(100 * (1 - p) / p)
 }
 function __decodeMtx(cfg) {
