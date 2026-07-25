@@ -1538,3 +1538,7 @@ v3: polls live-feed every ~8s during active runs (45s idle), all three series co
 ## 2026-07-24 — DFS Center: Start column added (16cbfabe, build green). start_pos was published + loaded (startPos) but never rendered. Sortable "Start" column between Driver and Salary, P{n} format, dash pre-lineup. Populates from whatever the published board carries.
 
 ## 2026-07-24 — DFS Center: car number PNGs in driver column (e662c44d, build green). CarNum ported from PitCrewRankings (per-series dirs, 133->33 alias, retry + bold text fallback). Replaces plain #text prefix.
+
+## 2026-07-24 — INCIDENT: final IRP trucks sim published into the POST slot (root cause: simStage default 'post')
+
+5:35PM publish went out stage POST: public page (latest row any stage) showed the practice-fallback board (looked stale, wasn't) AND delete-then-insert destroyed the graded NW trucks post board (grades safe in sim_grades; contents unrecoverable — third case for #69 archive). Shipped (061d6b97 + 35699793): simStage default -> 'pre'; publish guard (POST with no loop_data = loud confirm); FMV cap renders ">+5000". Mis-staged row deleted (bdd92929) — real pre board visible again. Operator: load QUALI lineup, re-run, publish.
