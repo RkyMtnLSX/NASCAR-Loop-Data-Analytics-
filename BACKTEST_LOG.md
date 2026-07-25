@@ -3565,3 +3565,7 @@ VERDICT: implement post-weekend as 'lineup: projected' state (badged), trailing-
 ## 2026-07-25 — start-projection SWEEP: hybrid category conditioning WINS -> trail10-v2-hybrid shipped (a2164f79)
 
 Operator: should projections carry across track types? HALF — pooled vs group-conditioned (n 13,144): SHORT pooled .653 > grp .639; INT .676 > .670 (oval quali skill transfers); SS grp .610 > pooled .563; ROAD grp .660 > .626 (separate disciplines). HYBRID (pooled ovals, conditioned SS/road, pooled fallback <3): corr .656, finish-model t 22.3 RMSE .2560 (vs 21.0/.2565). Shipped: projection conditions on isSuperspeedway/isRoadCourse when current race is SS/road; stamp startProj 'trail10-v2-hybrid'. Build green, bundle verified.
+
+## 2026-07-25 — TESTED & REJECTED: track-specific blend + oval-only history for start projections (Byron case)
+
+Byron projected P14 at Indy vs 5.0 Indy quali avg (n=2); outright flag died. Tested vs shipped hybrid (n 13,144): oval-only .656 = no gain; track blend (lam=n/(n+2)) .655 = slightly worse — 1-4-start track samples too noisy in aggregate; shrinkage that avoids flukes also mutes the Byrons. Hybrid stands. Flag note: pre-projection boards were start-BLIND, not Byron-believers; the real grid restores honest flags at quali load. Pattern (3rd entry): discipline-level conditioning (SS/road) survives testing; per-track conditioning does not.
