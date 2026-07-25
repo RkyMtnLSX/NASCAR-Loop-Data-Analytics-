@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 
 const SERIES = [{ v: 'cup', label: 'Cup' }, { v: 'oreilly', label: "O'Reilly" }, { v: 'trucks', label: 'Trucks' }]
+const SERIES_COLOR = { cup: 'var(--series-cup)', oreilly: 'var(--series-oreilly)', trucks: 'var(--series-trucks)' }
 const __CAR_ALIAS = { '133': '33' }
 function CarNum({ car, series }) {
   if (!car) return null
@@ -256,7 +257,7 @@ export default function DFSPage() {
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
         {SERIES.map(s => (
           <button key={s.v} onClick={() => setSeries(s.v)}
-            style={{ padding: '7px 14px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: series === s.v ? 'var(--accent,#e11d2a)' : 'transparent', color: series === s.v ? '#fff' : 'var(--text-secondary,#9aa0aa)' }}>
+            style={{ padding: '7px 14px', borderRadius: 8, cursor: 'pointer', border: series === s.v ? '1px solid ' + SERIES_COLOR[s.v] : '1px solid var(--border,#2a2d34)', background: series === s.v ? SERIES_COLOR[s.v] : 'transparent', color: series === s.v ? (s.v === 'trucks' ? '#111' : '#fff') : 'var(--text-secondary,#9aa0aa)' }}>
             {s.label}
           </button>
         ))}
