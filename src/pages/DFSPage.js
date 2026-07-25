@@ -148,6 +148,32 @@ export default function DFSPage() {
     return () => { alive = false }
   }, [series])
 
+  // 2026-07-24: Optimal% computes automatically once samples + salaries are loaded
+  // (was: only after clicking Build lineups). Chunked; cancelled cleanly on series switch.
+  useEffect(() => {
+    if (!samples || !samples.drivers || !samples.rows || !samples.rows.length) return
+    const salByIdx = samples.drivers.map(nm => salaries[nm] || 0)
+    if (salByIdx.filter(v => v > 0).length < ROSTER) return
+    let cancel = false
+    const cnt = {}, nS = samples.rows.length
+    let si = 0
+    const CHUNK = 400
+    const step = () => {
+      if (cancel) return
+      const end = Math.min(nS, si + CHUNK)
+      for (; si < end; si++) {
+        const rowS = samples.rows[si], p = []
+        for (let j = 0; j < samples.drivers.length; j++) { const sal = salByIdx[j]; if (sal > 0) p.push({ name: samples.drivers[j], sal, val: rowS[j] }) }
+        const lu = bestLineup(p)
+        if (lu) lu.forEach(nm => { cnt[nm] = (cnt[nm] || 0) + 1 })
+      }
+      if (si < nS) setTimeout(step, 0)
+      else if (!cancel) { const op = {}; Object.keys(cnt).forEach(nm => { op[nm] = cnt[nm] / nS * 100 }); setOptPct(op) }
+    }
+    step()
+    return () => { cancel = true }
+  }, [samples, salaries])
+
   const rows = useMemo(() => drivers.map(d => {
     const sal = salaries[d.name] || 0
     const value = sal > 0 ? d.projDK / (sal / 1000) : 0
@@ -178,31 +204,6 @@ export default function DFSPage() {
       const picked = applyExposure(res.lineups, numLineups, maxExp, locks)
       setLineups(picked)
       const expMsg = picked.length < numLineups ? 'Exposure cap: only ' + picked.length + ' of ' + numLineups + ' lineups possible at ' + Math.round(maxExp * 100) + '% max exposure (locked drivers exempt). Raise the cap, the lineup count, or lock fewer drivers.' : ''
-      if (samples && samples.drivers && samples.rows && samples.rows.length) {
-        // 2026-07-23: chunked so 10k exact solves do not freeze the tab; progress in note
-        const cnt = {}, nS = samples.rows.length
-        const salByIdx = samples.drivers.map(nm => salaries[nm] || 0)
-        let si = 0
-        const CHUNK = 400
-        const step = () => {
-          const end = Math.min(nS, si + CHUNK)
-          for (; si < end; si++) {
-            const rowS = samples.rows[si], p = []
-            for (let j = 0; j < samples.drivers.length; j++) { const sal = salByIdx[j]; if (sal > 0) p.push({ name: samples.drivers[j], sal, val: rowS[j] }) }
-            const lu = bestLineup(p)
-            if (lu) lu.forEach(nm => { cnt[nm] = (cnt[nm] || 0) + 1 })
-          }
-          if (si < nS) { setNote('Computing Optimal% ' + Math.round(si / nS * 100) + '%...'); setTimeout(step, 0) }
-          else {
-            const op = {}; Object.keys(cnt).forEach(nm => { op[nm] = cnt[nm] / nS * 100 })
-            setOptPct(op)
-            setNote(expMsg)
-            setBuilding(false)
-          }
-        }
-        step()
-        return
-      }
       setNote(expMsg)
       setBuilding(false)
     }, 30)
