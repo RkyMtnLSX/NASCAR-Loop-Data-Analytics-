@@ -1576,3 +1576,7 @@ Trucks pit rankings unchanged post-IRP is CORRECT: Lucas Oil IRP has no pit-road
 ## 2026-07-25 — SHIPPED task #72 same day: projected start positions (142d2970, build green, bundle verified)
 
 Operator called ship-now for the Cup pre-quali window. __projStart map (loop_data 2025+, mean of last-10 start pctiles, min 3 prior) fills startPos ONLY when quali+practice absent; raw-pctile x fieldN (compressed = conservative under fixed 0.33 weight; ranked-grid variant deferred); badge 'projected' (__lnPrac/__lnProj); __hasStart guard: projected starts never satisfy the DNQ trim; <3-race drivers neutral; stamp startProj 'trail10-v1'. Ships mid-weekend like the fence: validated same day (t=21, n=13,144), touches only the pre-lineup path. Operator re-runs Cup pre board to use it.
+
+## 2026-07-25 — trail10-v2.1: projected starts re-ranked to a real 1..K grid (860efb98, build green)
+
+Operator: "somebody needs to be projected on the pole." Behind the aesthetics, a real bug: composite min-max stretches start scores regardless (v1 compression illusory in score space) BUT DK place-diff computes start-finish literally — the compressed pseudo grid biased DFS projections on projected boards. Fix: projected drivers ranked 1..K by predicted pctile; rookies unchanged; stamp 'trail10-v2.1-hybrid-grid'. Composite ordering unchanged.
