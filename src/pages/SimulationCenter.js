@@ -935,16 +935,29 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
         let __projStart = new Map()
         try {
           const { data: __pstarts } = await supabase.from('loop_data')
-            .select('driver_name, start_position, year, race_number')
+            .select('driver_name, start_position, year, race_number, track_name')
             .eq('series', s).gte('year', 2025).not('start_position', 'is', null).limit(6000)
           const __pbr = {}
           ;(__pstarts || []).forEach(r => { const k = r.year * 100 + r.race_number; (__pbr[k] = __pbr[k] || []).push(r) })
-          const __phist = {}
+          // trail10-v2 HYBRID (2026-07-25 sweep): SS and ROAD grids are separate disciplines —
+          // condition the projection on category there (corr .563->.610 SS, .626->.660 road);
+          // ovals share one qualifying skill so pooled wins (short .653 vs .639). Hybrid corr
+          // .656 overall, finish-model t 22.3 vs 21.0 pooled (BACKTEST_LOG same date).
+          const __cat = isSuperspeedway(cfg.track_name) ? 'SS' : (isRoadCourse(cfg.track_name) ? 'ROAD' : null)
+          const __rowCat = tn => isSuperspeedway(tn) ? 'SS' : (isRoadCourse(tn) ? 'ROAD' : null)
+          const __phist = {}, __phistC = {}
           Object.keys(__pbr).map(Number).sort((a, b) => a - b).forEach(k => {
             const el = __pbr[k]; if (el.length < 15) return
-            el.forEach(r => { const dn = normalizeName(r.driver_name); (__phist[dn] = __phist[dn] || []).push(r.start_position / el.length) })
+            const rc = __rowCat(el[0].track_name)
+            el.forEach(r => { const dn = normalizeName(r.driver_name); const v = r.start_position / el.length
+              ;(__phist[dn] = __phist[dn] || []).push(v)
+              if (__cat && rc === __cat) (__phistC[dn] = __phistC[dn] || []).push(v) })
           })
-          Object.keys(__phist).forEach(dn => { const a = __phist[dn]; if (a.length >= 3) { const last = a.slice(-10); __projStart.set(dn, last.reduce((x, y) => x + y, 0) / last.length) } })
+          Object.keys(__phist).forEach(dn => {
+            const cA = __cat ? (__phistC[dn] || []) : []
+            const a = (cA.length >= 3) ? cA : __phist[dn]
+            if (a.length >= 3) { const last = a.slice(-10); __projStart.set(dn, last.reduce((x, y) => x + y, 0) / last.length) }
+          })
         } catch (e) { __projStart = new Map() }
 
         const drivers = driverSource
@@ -1263,7 +1276,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
       race_year:  config.race_year || new Date().getFullYear(),
       race_number: raceNumMap[series] ? parseInt(raceNumMap[series]) : null,
       stage: simStage,
-      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'pairing-first', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06-fenced', domCurves: 'cbucket-v2', startProj: 'trail10-v1', flagGuard: 'conf-v1', marketAnchor: 'v1.4-multimkt', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
+      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'pairing-first', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06-fenced', domCurves: 'cbucket-v2', startProj: 'trail10-v2-hybrid', flagGuard: 'conf-v1', marketAnchor: 'v1.4-multimkt', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
       results: simResults.map(d => ({
         driver_name:  d.name,
         car_number:   d.carNumber,
