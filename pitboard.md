@@ -1560,3 +1560,7 @@ NASCAR quali feed: P37 Carroll DNQ, P38 Shafer DNQ — tonight's manual quali lo
 ## 2026-07-25 — DFS: Ceil DK column shipped (1cfb1609, build green). p90 DK from the stored 10k samples, sortable, next to Proj DK. Cash reads the mean, GPPs read the tail (Boschele IRP: proj 31, matrix ceiling 7th contained his run — operator's point). Zero new tracking. Live for the Indy slates. Queued separately: track-type dominator curves + speed-conditioned LL/FL (post-weekend DFS surgery).
 
 ## 2026-07-25 — DFS: "Ceil DK" renamed "Ceiling" + caption explainer "Ceiling = 90th-percentile DK score (tournament upside)" (ed5a3366, build green; operator readability call).
+
+## 2026-07-25 — DOCTRINE: flag threshold changes ONLY from the #69 archive sweep (no leans tier)
+
+Operator asked whether dropping the 10% min-edge threshold would have flagged the (winning) Majeski t3 — recognized as results-bias off one cashed ticket. Ruling: threshold stays 10% until #69 archive accrues ~15-20 boards, then ONE empirical sweep (5/8/10/15% flags vs close) decides it, with receipts. "Leans" display tier (5-10% edges, tracked-not-bet) REJECTED by operator on complexity grounds — the archive captures everything the sweep needs, zero new UI. Also numbered: task #71 = DFS dominator surgery (track-type curves + speed-conditioned LL/FL), post-weekend.
