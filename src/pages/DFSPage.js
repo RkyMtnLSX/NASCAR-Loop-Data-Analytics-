@@ -277,7 +277,7 @@ export default function DFSPage() {
               {building ? 'Building\u2026' : 'Build lineups'}
             </button>
             {lineups.length > 0 && <button onClick={exportCsv} style={{ padding: '8px 14px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--accent,#e11d2a)', background: 'transparent', color: 'var(--accent,#e11d2a)', fontWeight: 600 }}>Export DK CSV</button>}
-            <span style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 12 }}>{canBuild ? 'Cap $50,000 \u00b7 6 drivers \u00b7 Lock/Excl to steer' + (samples ? ' \u00b7 Optimal% from ' + samples.rows.length + ' sims' : '') : 'Salaries not posted yet'}</span>
+            <span style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 12 }}>{canBuild ? 'Cap $50,000 \u00b7 6 drivers \u00b7 Lock/Excl to steer' + (samples ? ' \u00b7 Optimal% from ' + samples.rows.length + ' sims \u00b7 Ceiling = 90th-percentile DK score (tournament upside)' : '') : 'Salaries not posted yet'}</span>
             {note && <span style={{ color: 'var(--accent,#e11d2a)', fontSize: 12 }}>{note}</span>}
           </div>
 
@@ -285,7 +285,7 @@ export default function DFSPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead><tr style={{ color: 'var(--text-secondary,#9aa0aa)' }}>
                 <th style={{ padding: '7px 8px', textAlign: 'left' }}>Lock/Excl</th>
-                {th('name', 'Driver', 'left')}{th('startPos', 'Start')}{th('sal', 'Salary')}{th('projDK', 'Proj DK')}{th('ceil', 'Ceil DK')}{th('value', 'Value')}{th('opt', 'Optimal%')}
+                {th('name', 'Driver', 'left')}{th('startPos', 'Start')}{th('sal', 'Salary')}{th('projDK', 'Proj DK')}{th('ceil', 'Ceiling')}{th('value', 'Value')}{th('opt', 'Optimal%')}
                 {th('winPct', 'Win%')}{th('lapsLed', 'Laps Led')}{th('avgFast', 'Fast Laps')}{th('projFinish', 'Proj Fin')}
                 <th style={{ padding: '7px 8px', textAlign: 'right' }}>Expo</th>
               </tr></thead>
