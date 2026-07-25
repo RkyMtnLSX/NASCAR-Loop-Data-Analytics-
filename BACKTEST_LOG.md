@@ -3553,3 +3553,11 @@ Case 1: Michael Christopher Jr, #62 Niece (Bell's ringer truck), IRP trucks R16.
 ## 2026-07-25 — DFS grade, trucks IRP R16: proj Spearman 0.416 vs salary benchmark 0.513 (first loss to salary)
 
 n 34, DK-pts MAE 13.4. Two projected-top-6 busts (Eckes alternator from P2, Enfinger lap-198 wreck) + Riggs dominance concentration (actual 130 vs EV-proj 49 — EV projections can't match a realized dominator; salary "called it" via P1 pricing on a chalk night). Historical salary benchmark ~0.29 — salaries ran hot. Running ledger: NW us 0.51 (win), IRP 0.42 vs 0.51 (loss); both inside single-race noise (SE ~0.17). Judge at 8-10 slates. No action.
+
+## 2026-07-25 — PASSED: projected start positions for pre-lineup boards (task #72, implement post-weekend)
+
+Operator insight (books repriced Riggs +250 -> -140 across practice/quali): books bake EXPECTED start into pre-quali prices; our pre-lineup boards ran the 0.33-weight startPos term at NEUTRAL — systematic blind spot when early-week flags fire (good qualifiers underrated / bad overrated; plausible contributor to the 44%-positive CLV rate).
+
+TEST (walk-forward, 2022-26 all series, n 13,144): predicted start = mean of last-10 prior start pctiles (min 3 prior). Predictability: corr(pred, actual) 0.643. Value: Model A ctrl-only RMSE .2608 (= current pre-board); B + PREDICTED start coef .390 t 21.0 RMSE .2565 (+3.2%); C + ACTUAL start t 24.3 RMSE .2551 (+4.3%). Predicted start recovers ~75% of the real grid's value pre-quali. Shared-ctrl A/B/C bracket makes the recovery finding robust to the weak-control caveat.
+
+VERDICT: implement post-weekend as 'lineup: projected' state (badged), trailing-10 fill, auto-handoff at quali load, <3-race drivers neutral, full-vs-shaded (~0.75x) weight decided at implementation. Un-neutralizing a validated term, not a new signal.
