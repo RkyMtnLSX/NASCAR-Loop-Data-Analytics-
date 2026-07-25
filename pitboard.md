@@ -1568,3 +1568,7 @@ Operator asked whether dropping the 10% min-edge threshold would have flagged th
 ## 2026-07-25 — tooling inventory README shipped (WHICH_BUTTONS_README.txt)
 
 Canonical inventory for NascarDataScrapperV3: TWO weekly buttons — CAPTURE_PRACTICE.bat (watcher, before practice/quali) + POST_RACE_UPDATE.bat (pit stops + penalties + race archives, once post-weekend). Plumbing .py never double-clicked. Rare: *_ALL history rebuilds. Obsolete: PIT_BACKFILL_2026/DRYRUN, PITBOARD_APPEND.md. Old scraper superseded for lap data (keep for xlsx reports only). Rule: ScrapperV3 = cockpit; updates ship to Downloads, operator copies over. POST_RACE first full run verified: trucks race archive 6851 laps x 36, penalties refreshed, cup/xfinity correctly skipped.
+
+## 2026-07-25 — IRP added to pit-feed coverage-gap list + rankings quirk
+
+Trucks pit rankings unchanged post-IRP is CORRECT: Lucas Oil IRP has no pit-road timing loops (live-pit-data 403, zero pit_stops rows) — joins Rockingham / St. Pete / Lime Rock. QUIRK: penalties (lap notes, exist everywhere) load at gap venues while box times don't -> penalty in numerator without race in denominator, slightly inflated per-race pen rate until the next timed race. Small effect on Adj; acceptable; revisit if gap venues multiply. Obsolete-file deletion list given to operator (Claude does not delete operator files; folder also outside mounted access).
