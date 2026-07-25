@@ -3545,3 +3545,7 @@ FINDINGS:
 5. SHIPPED meanwhile (display honesty per operator credibility doctrine): fmvAmerican caps below 2% probability at "+5000+" (24b06757, build green) — a 0.5pct model error at these probs swings thousands of odds points; books cap for the same reason. Applies to all FMV renders on SimResults incl. Matchup Compare.
 
 ALSO: operator's screenshot board (practice-fallback lineup, Burton 23.2 avgFin) is not the current DB board (Burton 15.0 avgFin, group win 14.6%) — republish with the QUALIFYING lineup resolves the stale view.
+
+## 2026-07-24 — RINGER-EQUIPMENT LIVE LEDGER opened (feeds task #54 re-test, end of 2026)
+
+Case 1: Michael Christopher Jr, #62 Niece (Bell's ringer truck), IRP trucks R16. Pre-fix sim flagged t3/t5 VALUE at DK t3 +2500 / t5 +1100 (win +10000) — operator vetoed 07-22, fixes shipped (gate/anchor/ringer exclusion). Post-fix final board: proj fin 15.2, win 0.7%, start P11. Closing essentially unchanged (t3 +2500 / t5 +1200 — market never moved). Live: P9 at lap 85. Pre-registered grading: vetoed flags "won" ONLY on actual top-3/top-5; top-10 = consistent with post-fix 15.2, NOT vindication of the raw fill. Accumulate cases for #54; singles prove nothing. FINISH: ___ (fill post-race).
