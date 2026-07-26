@@ -39,6 +39,7 @@ export default function FastestLapOddsAdmin() {
   const [sel, setSel] = useState('')
   const [hist, setHist] = useState([])
   const [loading, setLoading] = useState(false)
+  const [cmp, setCmp] = useState(null)
 
   const parsed = useMemo(() => parseFL(paste), [paste])
 
@@ -77,6 +78,62 @@ export default function FastestLapOddsAdmin() {
       .eq('series', p[0]).eq('race_year', +p[1]).eq('race_number', +p[2])
       .order('captured_at', { ascending: false }).limit(3000)
     setHist(data || []); setLoading(false)
+    loadCompare(key, data || [])
+  }
+
+  async function loadCompare(key, histRows) {
+    if (!key || !histRows || !histRows.length) { setCmp(null); return }
+    const p = key.split('|'); const sname = p[0], yr = +p[1], rn = +p[2]
+    const trackName = histRows[0].track_name
+    const { data: trk } = await supabase.from('tracks').select('name,track_type,correlation_group_label').eq('name', trackName).maybeSingle()
+    const ttype = trk ? (trk.correlation_group_label || trk.track_type) : null
+    let flAll = [], off = 0
+    while (true) {
+      const { data } = await supabase.from('fastest_laps').select('year,track,track_type,rank,driver,start_pos').range(off, off + 999)
+      if (!data || !data.length) break
+      flAll = flAll.concat(data); if (data.length < 1000) break; off += 1000; if (off > 20000) break
+    }
+    const bkt = s => s <= 5 ? '1-5' : (s <= 10 ? '6-10' : (s <= 20 ? '11-20' : '21+'))
+    const tally = {}
+    flAll.forEach(r => {
+      if (r.start_pos == null || r.rank == null) return
+      const k = (r.track_type || '?') + '|' + bkt(+r.start_pos)
+      if (!tally[k]) tally[k] = { n: 0, w: 0 }
+      tally[k].n++; if (+r.rank === 1) tally[k].w++
+    })
+    const trackKey = (ttype || '').toLowerCase()
+    const pick = (b) => {
+      const cands = Object.keys(tally).filter(k => k.endsWith('|' + b))
+      let best = null
+      cands.forEach(k => { const tt = k.split('|')[0].toLowerCase(); if (trackKey && (tt.indexOf(trackKey.split(' ')[0]) >= 0 || trackKey.indexOf(tt.split(' ')[0]) >= 0)) best = k })
+      const t2 = best ? tally[best] : null
+      if (t2 && t2.n >= 30) return { p: +(t2.w / t2.n * 100).toFixed(1), n: t2.n, src: best.split('|')[0] }
+      let n = 0, w = 0
+      cands.forEach(k => { n += tally[k].n; w += tally[k].w })
+      return n ? { p: +(w / n * 100).toFixed(1), n: n, src: 'all tracks' } : null
+    }
+    const prior = {}
+    flAll.filter(r => String(r.track || '').toLowerCase() === String(trackName || '').toLowerCase())
+      .forEach(r => { (prior[r.driver] = prior[r.driver] || []).push(r.year + ':' + r.rank) })
+    const { data: brd } = await supabase.from('sim_results').select('stage,results').eq('series', sname).eq('race_year', yr).eq('race_number', rn)
+    const board = (brd || []).sort((a, b) => (a.stage === 'post' ? -1 : 1))[0]
+    const startMap = {}
+    ;((board && board.results) || []).forEach(d => { if (d.start_pos != null) startMap[d.driver_name] = +d.start_pos })
+    const latestCap = histRows[0].captured_at
+    const rows = histRows.filter(r => r.captured_at === latestCap)
+    const sum = rows.reduce((a, b) => a + (impl(b.odds) || 0), 0)
+    const nrm = s => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z]/g, '')
+    const sKeys = {}; Object.keys(startMap).forEach(k => { sKeys[nrm(k)] = startMap[k] })
+    const pKeys = {}; Object.keys(prior).forEach(k => { pKeys[nrm(k)] = prior[k] })
+    const out = rows.map(r => {
+      const sp = sKeys[nrm(r.driver_name)]
+      const base = sp != null ? pick(bkt(sp)) : null
+      const mkt = +(impl(r.odds) / sum * 100).toFixed(2)
+      return { driver: r.driver_name, odds: r.odds, start: sp == null ? null : sp, base: base, mkt: mkt,
+        diff: base ? +(base.p - mkt).toFixed(2) : null, prior: (pKeys[nrm(r.driver_name)] || []).sort().reverse().slice(0, 3).join(', ') }
+    })
+    out.sort((a, b) => (b.diff == null ? -99 : b.diff) - (a.diff == null ? -99 : a.diff))
+    setCmp({ trackName: trackName, ttype: ttype, rows: out, cap: latestCap })
   }
 
   useEffect(() => { loadRaces() }, []) // eslint-disable-line
@@ -201,6 +258,41 @@ export default function FastestLapOddsAdmin() {
           </div>
         ))}
       </div>
+
+      {cmp && cmp.rows.length > 0 && (
+        <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14, marginTop: 14 }}>
+          <b style={{ fontSize: '0.9rem' }}>Positional base rate vs market</b>
+          <div style={{ color: 'var(--text-secondary)', fontSize: 12, margin: '4px 0 10px' }}>
+            {cmp.trackName}{cmp.ttype ? ' \u00b7 ' + cmp.ttype : ''} \u00b7 empirical P(fastest lap) by starting bucket for this track type, from every race in fastest_laps. Positive Diff = market shorter than history says it should be.
+          </div>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ borderCollapse: 'collapse', fontSize: 12.5, minWidth: 640 }}>
+              <thead><tr style={{ color: 'var(--text-muted)' }}>
+                <th style={{ ...td, textAlign: 'left' }}>Driver</th>
+                <th style={{ ...td, textAlign: 'right' }}>Start</th>
+                <th style={{ ...td, textAlign: 'right' }}>Odds</th>
+                <th style={{ ...td, textAlign: 'right' }}>Market %</th>
+                <th style={{ ...td, textAlign: 'right' }}>Base %</th>
+                <th style={{ ...td, textAlign: 'right' }}>Diff</th>
+                <th style={{ ...td, textAlign: 'left' }}>Prior FL rank here</th>
+              </tr></thead>
+              <tbody>
+                {cmp.rows.map(r => (
+                  <tr key={r.driver}>
+                    <td style={{ ...td, textAlign: 'left' }}>{r.driver}</td>
+                    <td style={{ ...td, textAlign: 'right', color: 'var(--text-muted)' }}>{r.start == null ? '-' : r.start}</td>
+                    <td style={{ ...td, textAlign: 'right' }}>{am(r.odds)}</td>
+                    <td style={{ ...td, textAlign: 'right', color: 'var(--text-muted)' }}>{r.mkt}</td>
+                    <td style={{ ...td, textAlign: 'right' }} title={r.base ? ('n=' + r.base.n + ' from ' + r.base.src) : ''}>{r.base ? r.base.p : '-'}</td>
+                    <td style={{ ...td, textAlign: 'right', fontWeight: 600, color: r.diff == null ? 'var(--text-muted)' : (r.diff > 0 ? '#22c55e' : '#ef4444') }}>{r.diff == null ? '-' : ((r.diff > 0 ? '+' : '') + r.diff)}</td>
+                    <td style={{ ...td, textAlign: 'left', color: 'var(--text-muted)' }}>{r.prior || '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
