@@ -1228,11 +1228,12 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
     if (!rawDrivers.length || !config) return
     const txts = [oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt]
     if (!txts.some(x => (x || '').trim())) return
-    const h = series + '|' + txts.map(x => (x || '').length + ':' + (x || '').slice(0, 60)).join('|')
+    const h = series + '|' + ((simResults && simResults.length) ? 'S' : 'N') + '|' + txts.map(x => (x || '').length + ':' + (x || '').slice(0, 60)).join('|')
     if (h === __snapHash.current) return
     const tmr = setTimeout(async () => {
       try {
-        const mvSnap = __marketValue(oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt, rawDrivers)
+        const __mvSrc = (simResults && simResults.length) ? simResults : rawDrivers
+        const mvSnap = __marketValue(oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt, __mvSrc)
         const rows = []
         Object.keys(mvSnap || {}).forEach(nm => {
           ;['win', 't3', 't5', 't10'].forEach(mk => {
@@ -1245,7 +1246,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
       } catch (e) {}
     }, 4000)
     return () => clearTimeout(tmr)
-  }, [oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt, rawDrivers, series, config, raceNumMap]) // eslint-disable-line
+  }, [oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt, rawDrivers, simResults, series, config, raceNumMap]) // eslint-disable-line
 
   const handleRun = () => {
     __runOddsHash.current = [oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt].map(x => (x || '').length + ':' + (x || '').slice(0, 40)).join('|')
