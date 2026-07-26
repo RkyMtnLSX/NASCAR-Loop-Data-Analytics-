@@ -1339,6 +1339,23 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
           await supabase.from('dfs_sim_samples').insert({ series, race_year: payload.race_year, race_number: payload.race_number, track_name: payload.track_name, drivers: __sdrv, samples: __samp })
         }
       } catch (e) {}
+      try {
+        const __MKTS = [['win', 'win_pct'], ['t3', 'top3_pct'], ['t5', 'top5_pct'], ['t10', 'top10_pct']]
+        const __fb = []
+        ;(payload.results || []).forEach(d => {
+          const mv = d.mv
+          if (!mv) return
+          __MKTS.forEach(([mk, pf]) => {
+            const b = mv[mk]
+            if (!b || b.best == null || b.ev == null || b.ev <= 0) return
+            __fb.push({ series: series, race_year: payload.race_year, race_number: payload.race_number, track_name: payload.track_name, stage: simStage, driver_name: d.driver_name, market: mk, sim_prob: (d[pf] == null ? null : d[pf]), best_price: b.best, book: (b.bb || null), ev: b.ev, mev: (b.mev == null ? null : b.mev), medge: (b.medge == null ? null : b.medge) })
+          })
+        })
+        if (__fb.length) {
+          await supabase.from('flagged_bets').delete().eq('series', series).eq('race_year', payload.race_year).eq('race_number', payload.race_number).eq('stage', simStage)
+          await supabase.from('flagged_bets').insert(__fb)
+        }
+      } catch (e) {}
       setPublished(true)
     }
     else alert('Publish failed: ' + error.message)
