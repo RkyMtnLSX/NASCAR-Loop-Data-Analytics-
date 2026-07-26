@@ -9,6 +9,20 @@ import { gradePracticeSession } from '../lib/practiceGrader'
 import SimulationCenter, { DEFAULT_WEIGHTS, ROAD_COURSE_WEIGHTS, SUPERSPEEDWAY_WEIGHTS, TRUCK_ROAD_WEIGHTS, ONEILLY_SUPERSPEEDWAY_WEIGHTS } from './SimulationCenter'
 import GradeCenter from './GradeCenter'
 
+
+// Strip NASCAR roster markers that ride along with scraped driver names:
+//   '#' rookie, '*' ineligible, '(i)' ineligible for points, '(P)' playoff.
+// They are status flags, not part of the name. Left in place they silently
+// fork a driver into two identities AND defeat the unique constraints,
+// which lets duplicate rows through. Only leading/trailing marker tokens
+// are removed; anything interior is left alone.
+export function stripRosterMarkers(name) {
+  var s = String(name == null ? '' : name)
+  s = s.replace(/\((?:i|P)\)/gi, ' ')
+  s = s.replace(/^[#*\s]+/, '').replace(/[#*\s]+$/, '')
+  return s.replace(/\s+/g, ' ').trim()
+}
+
 // Race # single source of truth (2026-07-11): loader Race # fields default from
 // featured_weekend.race_number for the selected series (set once in Weekend Config).
 // Prefill only - always editable for historical backfills.
@@ -393,7 +407,7 @@ function EntryListManager() {
     const { error } = await supabase.from('entry_list').upsert({
       series, race_year: cfg.correlation_year, track_name: cfg.track_name,
       car_number: newCar.trim() || null,
-      driver_name: newDriver.trim(),
+      driver_name: stripRosterMarkers(newDriver),
       organization: newOrg.trim() || null,
         manufacturer: normMfr(newMfr) || null,
     })
@@ -426,7 +440,7 @@ function EntryListManager() {
         rows.push({
           series, race_year: cfg.correlation_year, track_name: cfg.track_name,
           car_number: parts[0] || null,
-          driver_name: parts[1],
+          driver_name: stripRosterMarkers(parts[1]),
           organization: parts[2] || null,
           manufacturer: normMfr(parts[3]) || null,
         })
@@ -731,6 +745,7 @@ function LoadNewRace() {
     { key: 'Suarez',      val: 'Daniel Su - rez' },
   ]
   function normalizeDriverName(name) {
+    name = stripRosterMarkers(name)
     if (NAME_MAP[name]) return NAME_MAP[name]
     for (const { key, val } of NAME_LAST) {
       if (name.includes(key)) return val
@@ -1289,7 +1304,7 @@ function parseSource(text) {
     if (isNaN(draw) || draw < 1 || draw > 70) continue
     const name = m[3].replace(/,\s*/g, ' ').replace(/\s+/g, ' ').trim()
     if (name.length < 4) continue
-    rows.push({ draw_order: draw, driver_name: name })
+    rows.push({ draw_order: draw, driver_name: stripRosterMarkers(name) })
   }
   // Deduplicate by draw_order (keep first)
   const seen = new Set()
@@ -1454,7 +1469,7 @@ function LoadFastestLaps() {
     let m
     while ((m = RE.exec(pasteText)) !== null) {
       rows.push({
-        driver:          m[1].trim(),
+        driver:          stripRosterMarkers(m[1]),
         car:             m[2].trim(),
         start_pos:       m[3].trim(),
         finish_pos:      m[4].trim(),
@@ -1801,7 +1816,7 @@ function LoadGreenFlagSpeed() {
         const mid = items.slice(2, items.length - 2)
         const driver = mid.filter(o => o.x < teamX - 15).map(o => o.s).join(' ').trim()
         const team = mid.filter(o => o.x >= teamX - 15).map(o => o.s).join(' ').trim()
-        if (driver) rows.push({ rank: rank, car: car, driver: driver, team: team, finish: finish, gfs: gfs })
+        if (driver) rows.push({ rank: rank, car: car, driver: stripRosterMarkers(driver), team: team, finish: finish, gfs: gfs })
       })
       if (!rows.length) { setStatus({ error: 'Found the Green Flag Speed page but parsed no driver rows.' }); return }
       setParsed({ track: track, race_name: rname, report_date: rdate, rows: rows })
@@ -2050,7 +2065,7 @@ export default function Admin() {
 
       const rows = preview.graded.map(d => ({
         race_id: raceId,
-        driver_name: d.driver,
+        driver_name: stripRosterMarkers(d.driver),
         series, year,
         track_name: trackName,
         session_number: sessionNum,
@@ -2094,7 +2109,7 @@ export default function Admin() {
             lapRows.push({
               series, year, track_name: trackName, session_number: sessionNum,
             race_number: practiceRaceNum,
-              driver_name: d.driver,
+              driver_name: stripRosterMarkers(d.driver),
               car_number: d.carNumber || null,
               starting_position: d.start || null,
               lap_number: parseInt(lapNum),
