@@ -1329,7 +1329,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
         avg_fast_laps: +(d.avgFastLaps || 0).toFixed(2), manufacturer: d.manufacturer || null, mv: (__mv[d.name] || null),
       }))
     }
-    await supabase.from('sim_results').delete().eq('series', series).eq('stage', simStage)
+    await supabase.from('sim_results').delete().eq('series', series).eq('stage', simStage).eq('race_year', payload.race_year).eq('race_number', payload.race_number)
     const { error } = await supabase.from('sim_results').insert(payload)
     if (!error) {
       try {
