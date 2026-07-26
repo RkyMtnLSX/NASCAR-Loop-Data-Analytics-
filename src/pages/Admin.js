@@ -1960,7 +1960,7 @@ export default function Admin() {
     setUploadStatus(null)
     // ---- UPLOAD GUARDS (2026-07-16): confirm dialogs for the three dropdown/race# mistake modes ----
     try {
-      const rn = parseInt(practiceRaceNum)
+      let rn = parseInt(practiceRaceNum)
       // guard 1: registry check - does this (series, year, track, race#) exist? Never silently stub.
       const { data: trackRaces } = await supabase.from('races').select('race_number')
         .eq('year', year).eq('series', series).eq('track_name', trackName)
@@ -1968,13 +1968,28 @@ export default function Admin() {
         .eq('year', year).eq('series', series).eq('race_number', rn)
       const exactMatch = (trackRaces || []).some(r => String(r.race_number) === String(rn))
       if (!exactMatch) {
-        const opts = (trackRaces || []).map(r => 'R' + r.race_number).join(', ') || 'none'
+        const trackNums = [...new Set((trackRaces || []).map(r => parseInt(r.race_number)).filter(Boolean))].sort((a, b) => a - b)
         const other = (rnRaces || []).map(r => r.track_name).join(', ') || 'no race'
-        const ok = window.confirm('No ' + series + ' ' + year + ' race found for ' + trackName + ' R' + rn + '.\n' +
-          trackName + ' races that year: ' + opts + '.\n' +
-          'R' + rn + ' in the registry is: ' + other + '.\n\nUpload anyway? (creates a stub race)')
-        if (!ok) { setUploading(false); setUploadStatus({ type: 'error', message: 'Upload cancelled (registry mismatch).' }); return }
+        if (trackNums.length) {
+          // The track IS on the schedule, just under a different number -> offer the correct one.
+          const suggest = trackNums[0]
+          const msg = 'RACE NUMBER MISMATCH\n\n' +
+            'You entered R' + rn + ', but R' + rn + ' in the ' + year + ' ' + series + ' schedule is: ' + other + '.\n' +
+            trackName + ' is ' + trackNums.map(n => 'R' + n).join(' / ') + '.\n\n' +
+            'OK  = upload as R' + suggest + ' (correct)\n' +
+            'Cancel = stop and fix it yourself'
+          const useIt = window.confirm(msg)
+          if (!useIt) { setUploading(false); setUploadStatus({ type: 'error', message: 'Upload cancelled (race number mismatch).' }); return }
+          rn = suggest
+          setPracticeRaceNum(String(suggest))
+        } else {
+          const ok = window.confirm('No ' + series + ' ' + year + ' race found for ' + trackName + ' at all.\n' +
+            'R' + rn + ' in the registry is: ' + other + '.\n\n' +
+            'Upload anyway? (creates a stub race - only do this if the schedule is genuinely missing this race)')
+          if (!ok) { setUploading(false); setUploadStatus({ type: 'error', message: 'Upload cancelled (registry mismatch).' }); return }
+        }
       }
+
       // guard 2: overwrite check - replacing an existing session requires explicit confirmation
       const { data: existSess } = await supabase.from('practice_sessions').select('id')
         .eq('series', series).eq('year', year).eq('track_name', trackName)
