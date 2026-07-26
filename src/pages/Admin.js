@@ -730,19 +730,28 @@ function LoadNewRace() {
   const [tracks, setTracks] = useState([])
   useEffect(() => { supabase.from('tracks').select('name').order('name').then(({ data }) => setTracks((data || []).map(t => t.name))) }, [])
 
+  // Canonical spelling = whatever loop_data holds the most rows under.
+  // These used to point the WRONG way: correct names were being rewritten
+  // into corrupted ones on every load. The accented characters had also been
+  // destroyed in this source file (a-acute had become ' - '), so they are
+  // written as \u escapes here to survive any future re-encoding.
   const NAME_MAP = {
-    'John H. Nemechek':      'John Hunter Nemechek',
-    'Baltazar Leguizamon':   'Baltazar Leguizam - n',
-    'Daniel Suarez':         'Daniel Su - rez',
-    'A.J. Allmendinger':     'AJ Allmendinger',
-    'Christopher Bell Jr':   'Christopher Bell',
+    'John H. Nemechek':        'John Hunter Nemechek',
+    'Baltazar Leguizamon':     'Baltazar Leguizam\u00f3n',
+    'Baltazar Leguizam - n':   'Baltazar Leguizam\u00f3n',
+    'Daniel Su - rez':         'Daniel Suarez',
+    'Daniel Su\u00e1rez':       'Daniel Suarez',
+    'AJ Allmendinger':         'A.J. Allmendinger',
+    'Christopher Bell Jr':     'Christopher Bell',
   }
   // Last-name-only fallback for drivers Racing Reference abbreviates inconsistently
   const NAME_LAST = [
-    { key: 'Nemechek',    val: 'John Hunter Nemechek' },
-    { key: 'Leguizamon',  val: 'Baltazar Leguizam - n' },
-    { key: 'Su - rez',      val: 'Daniel Su - rez' },
-    { key: 'Suarez',      val: 'Daniel Su - rez' },
+    { key: 'Nemechek',      val: 'John Hunter Nemechek' },
+    { key: 'Leguizam',      val: 'Baltazar Leguizam\u00f3n' },
+    { key: 'Su - rez',      val: 'Daniel Suarez' },
+    { key: 'Su\u00e1rez',    val: 'Daniel Suarez' },
+    { key: 'Suarez',        val: 'Daniel Suarez' },
+    { key: 'Allmendinger',  val: 'A.J. Allmendinger' },
   ]
   function normalizeDriverName(name) {
     name = stripRosterMarkers(name)
