@@ -13,6 +13,8 @@ export default function FlaggedBetsAdmin() {
   const [loading, setLoading] = useState(false)
   const [msg, setMsg] = useState('')
   const [showVoided, setShowVoided] = useState(true)
+  const [dedupeStages, setDedupeStages] = useState(true)
+  const [onePerDriver, setOnePerDriver] = useState(false)
   const [sortKey, setSortKey] = useState('ev')
   const [sortDir, setSortDir] = useState('desc')
 
@@ -97,7 +99,29 @@ export default function FlaggedBetsAdmin() {
 
   const liveRows = rows.filter(r => !r.voided_at)
   const voidedRows = rows.filter(r => r.voided_at)
-  const graded = liveRows.filter(r => fin[r.driver_name] != null && NEED[r.market])
+  const effective = useMemo(() => {
+    let L = rows.filter(r => !r.voided_at)
+    if (dedupeStages) {
+      const m = {}
+      L.forEach(r => {
+        const k = r.driver_name + '|' + r.market
+        if (!m[k]) { m[k] = r; return }
+        if (m[k].stage !== 'pre' && r.stage === 'pre') m[k] = r
+      })
+      L = Object.keys(m).map(k => m[k])
+    }
+    if (onePerDriver) {
+      const m = {}
+      L.forEach(r => {
+        const k = r.driver_name
+        if (!m[k] || (+r.medge || 0) > (+m[k].medge || 0)) m[k] = r
+      })
+      L = Object.keys(m).map(k => m[k])
+    }
+    return L
+  }, [rows, dedupeStages, onePerDriver])
+  const collapsed = liveRows.length - effective.length
+  const graded = effective.filter(r => fin[r.driver_name] != null && NEED[r.market])
   const wins = graded.filter(r => fin[r.driver_name] <= NEED[r.market]).length
   const pl = graded.reduce((a, r) => {
     const h = fin[r.driver_name] <= NEED[r.market]
@@ -138,6 +162,9 @@ export default function FlaggedBetsAdmin() {
 
       <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap', marginBottom: 12, fontSize: '0.85rem' }}>
         <span><b>{liveRows.length}</b> live</span>
+        <span style={{ color: 'var(--text-muted)' }}>{collapsed > 0 ? ('\u2212' + collapsed + ' collapsed') : ''}</span>
+        <label style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 5 }}><input type="checkbox" checked={dedupeStages} onChange={e => setDedupeStages(e.target.checked)} /> one per driver+market</label>
+        <label style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 5 }}><input type="checkbox" checked={onePerDriver} onChange={e => setOnePerDriver(e.target.checked)} /> one per driver (best medge)</label>
         <span style={{ color: 'var(--text-muted)' }}><b>{voidedRows.length}</b> voided</span>
         {graded.length ? (
           <span>graded <b>{graded.length}</b> \u00b7 <b>{wins}-{graded.length - wins}</b> \u00b7{' '}
