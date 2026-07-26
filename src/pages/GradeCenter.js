@@ -412,7 +412,7 @@ export default function GradeCenter() {
         <h3 style={{ fontWeight: 600, marginBottom: 10 }}>Season log ({log.length})</h3>
         {log.length === 0 && <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No graded races yet.</div>}
         {log.length > 0 && (
-          <table style={{ width: '100%', fontSize: '0.83rem', borderCollapse: 'collapse' }}>
+          <div style={{ overflowX: 'auto' }}><table style={{ width: '100%', minWidth: 1120, fontSize: '0.83rem', borderCollapse: 'collapse', whiteSpace: 'nowrap' }}>
             <thead><tr style={{ textAlign: 'left', color: 'var(--text-muted)' }}><th style={{ padding: '4px 8px' }}>R#</th><th title="Sim stage - pre = before practice/qualifying, post = after" style={{ cursor: 'help' }}>Stage</th><th title="Weight config used for this sim" style={{ cursor: 'help' }}>Config</th><th>Race</th><th title="Mean Absolute Error - average positions off between projected and actual finish (lower is better)" style={{ cursor: 'help' }}>MAE</th><th title="MAE against the median projection (finish_p50) instead of the mean. MAE is mathematically minimised by the median, so this is the matched estimator." style={{ cursor: 'help' }}>MAE-Md</th><th title="MAE after converting projections to a 1..N running order. Removes the compression penalty on expected values - pure ordering skill." style={{ cursor: 'help' }}>MAE-Rk</th><th title="Spearman rank correlation of projected vs actual finish, -1 to 1 (higher = closer order)" style={{ cursor: 'help' }}>Spear</th><th title="Win Brier score - calibration of the win probabilities vs the actual result (lower is better)" style={{ cursor: 'help' }}>WinBr</th><th title="Flat-bet ROI% on every bet the sim flagged +EV that race (1 unit each, at the best book price)" style={{ cursor: 'help' }}>+EV</th><th title="ROI% excluding the win market (Top 3/5/10 bets only) - a cleaner read on edge, since the win market overshoots" style={{ cursor: 'help' }}>ex-win</th><th title="ROI% on win-market +EV bets only - the overshoot-prone bucket" style={{ cursor: 'help' }}>win</th><th title="Consensus ROI% - only bets that were +EV against the de-vigged market price (higher conviction)" style={{ cursor: 'help' }}>cons</th></tr></thead>
             <tbody>
               {log.map(g => (
@@ -429,7 +429,7 @@ export default function GradeCenter() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
         <div style={{ marginTop: 28, borderTop: '1px solid var(--border)', paddingTop: 20 }}>
           <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 10 }}>Closing Line Value (CLV)</h2>
