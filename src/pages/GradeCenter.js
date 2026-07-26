@@ -90,7 +90,22 @@ function ClvPanel({ series, stage }) {
   const [sim,setSim]=useState(null);
   const [win,setWin]=useState(''); const [t10,setT10]=useState(''); const [fd,setFd]=useState(''); const [hr,setHr]=useState('');
   const [rows,setRows]=useState(null); const [msg,setMsg]=useState(''); const [season,setSeason]=useState(null); const [hist,setHist]=useState([]);
-  function loadSeason(){ supabase.from('clv_log').select('*').order('race_year',{ ascending:false }).order('race_number',{ ascending:false }).order('clv',{ ascending:false }).then(({ data:d })=>{ if(!d){ setSeason(null); setHist([]); return; } const n=d.length,pos=d.filter(x=>x.clv>0).length,avg=n?d.reduce((a,b)=>a+(+b.clv||0),0)/n:0; setSeason({ n, pos, avg }); setHist(d); }); }
+  function loadSeason(){ supabase.from('clv_log').select('*').order('race_year',{ ascending:false }).order('race_number',{ ascending:false }).order('clv',{ ascending:false }).then(async ({ data:d })=>{ if(!d){ setSeason(null); setHist([]); return; }
+    const __need={ win:1, t3:3, t5:5, t10:10 };
+    try {
+      const __yrs=[...new Set(d.map(x=>x.race_year).filter(Boolean))];
+      const { data:__ld } = await supabase.from('loop_data').select('series,year,race_number,driver_name,finish_position').in('year', __yrs.length?__yrs:[0]).limit(20000);
+      const __f={}; (__ld||[]).forEach(r=>{ __f[r.series+'|'+r.year+'|'+r.race_number+'|'+r.driver_name]=r.finish_position });
+      d.forEach(r=>{ const fp=__f[r.series+'|'+r.race_year+'|'+r.race_number+'|'+r.driver_name]; const nd=__need[r.market];
+        r.__fin=(fp==null?null:fp);
+        r.__hit=(fp!=null&&nd)?(fp<=nd):null;
+        r.__pl=(r.__hit==null)?null:(r.__hit?(r.bet_odds>0?r.bet_odds/100:100/Math.abs(r.bet_odds)):-1);
+      });
+    } catch(e){}
+    const n=d.length,pos=d.filter(x=>x.clv>0).length,avg=n?d.reduce((a,b)=>a+(+b.clv||0),0)/n:0;
+    const gr=d.filter(x=>x.__hit!=null); const w=gr.filter(x=>x.__hit).length; const pl=gr.reduce((a,b)=>a+(b.__pl||0),0);
+    setSeason({ n, pos, avg, graded:gr.length, w, l:gr.length-w, pl });
+    setHist(d); }); }
   useEffect(()=>{ loadSeason() },[]);
   useEffect(()=>{ setSim(null); setRows(null); },[series,stage]);
   async function loadSim(){
@@ -136,7 +151,7 @@ function ClvPanel({ series, stage }) {
   return (
     <div style={{ maxWidth:800 }}>
       <div style={{ fontSize:'0.85rem', color:'var(--text-muted)', marginBottom:10 }}>Load the sim you bet off (uses the series + stage selected above), then paste the closing odds. CLV diffs them against the bet-time odds saved on that sim, for every +EV bet it flagged. No re-run needed.</div>
-      {season ? <div style={{ fontSize:'0.8rem', marginBottom:12, color:'var(--text-secondary)' }}>Season CLV: <b>{season.n}</b> logged bets, <b style={{ color:(season.n && season.pos/season.n>=0.5)?'#22c55e':'var(--text)' }}>{season.n?Math.round(100*season.pos/season.n):0}%</b> positive, avg <b>{season.avg>=0?'+':''}{season.avg.toFixed(1)} pts</b></div> : null}
+      {season ? <div style={{ fontSize:'0.8rem', marginBottom:12, color:'var(--text-secondary)' }}>Season CLV: <b>{season.n}</b> logged bets, <b style={{ color:(season.n && season.pos/season.n>=0.5)?'#22c55e':'var(--text)' }}>{season.n?Math.round(100*season.pos/season.n):0}%</b> positive, avg <b>{season.avg>=0?'+':''}{season.avg.toFixed(1)} pts</b>{season.graded ? (<span> &middot; <b>{season.w}-{season.l}</b>, <b style={{ color: season.pl >= 0 ? '#22c55e' : '#ef4444' }}>{(season.pl>=0?'+':'')+season.pl.toFixed(2)}u</b> ({((season.pl/season.graded)*100).toFixed(1)}% ROI)</span>) : null}</div> : null}
       <div style={{ marginBottom:10 }}><button onClick={loadSim} style={{ ...btn, background:'var(--bg-surface)', color:'var(--text)', border:'1px solid var(--border)' }}>Load latest {stage} sim ({series})</button></div>
       {sim ? (
         <div>
@@ -175,7 +190,7 @@ function ClvPanel({ series, stage }) {
           <div style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: 8 }}>CLV history ({hist.length})</div>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead><tr><th style={{ ...th, textAlign: 'left' }}>Race</th><th style={{ ...th, textAlign: 'left' }}>Driver</th><th style={{ ...th, textAlign: 'left', cursor: 'help' }} title="Market - Win / Top 3 / Top 5 / Top 10">Mkt</th><th style={th}>Sim %</th><th style={th}>Bet</th><th style={th}>Close</th><th style={{ ...th, cursor: 'help' }} title="Closing Line Value in points - how much the closing implied % beat your bet-time price. Positive = the line moved your way">CLV</th></tr></thead>
+              <thead><tr><th style={{ ...th, textAlign: 'left' }}>Race</th><th style={{ ...th, textAlign: 'left' }}>Driver</th><th style={{ ...th, textAlign: 'left', cursor: 'help' }} title="Market - Win / Top 3 / Top 5 / Top 10">Mkt</th><th style={th}>Sim %</th><th style={th}>Bet</th><th style={th}>Close</th><th style={{ ...th, cursor: 'help' }} title="Closing Line Value in points - how much the closing implied % beat your bet-time price. Positive = the line moved your way">CLV</th><th style={{ ...th, cursor: 'help' }} title="Actual finishing position. Blank until loop data for that race is loaded.">Fin</th><th style={{ ...th, cursor: 'help' }} title="Did the bet cash? Units won or lost at a 1 unit stake.">Result</th></tr></thead>
               <tbody>
                 {hist.map((r, i) => (
                   <tr key={i}>
@@ -185,7 +200,7 @@ function ClvPanel({ series, stage }) {
                     <td style={td}>{r.sim_prob != null ? (+r.sim_prob).toFixed(1) + '%' : '-'}</td>
                     <td style={td}>{__amFmt(r.bet_odds)}</td>
                     <td style={td}>{__amFmt(r.close_odds)}</td>
-                    <td style={{ ...td, fontWeight: 600, color: r.clv > 0 ? '#22c55e' : '#ef4444' }}>{(r.clv > 0 ? '+' : '') + (+r.clv).toFixed(1)}</td>
+                    <td style={{ ...td, fontWeight: 600, color: r.clv > 0 ? '#22c55e' : '#ef4444' }}>{(r.clv > 0 ? '+' : '') + (+r.clv).toFixed(1)}</td><td style={{ ...td, color: 'var(--text-muted)' }}>{r.__fin != null ? r.__fin : '-'}</td><td style={{ ...td, fontWeight: 600, color: r.__hit == null ? 'var(--text-muted)' : (r.__hit ? '#22c55e' : '#ef4444') }}>{r.__hit == null ? '-' : (r.__hit ? ('WIN +' + r.__pl.toFixed(2) + 'u') : '-1.00u')}</td>
                   </tr>
                 ))}
               </tbody>
