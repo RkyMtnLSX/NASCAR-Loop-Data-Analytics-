@@ -1582,3 +1582,16 @@ Operator called ship-now for the Cup pre-quali window. __projStart map (loop_dat
 Operator: "somebody needs to be projected on the pole." Behind the aesthetics, a real bug: composite min-max stretches start scores regardless (v1 compression illusory in score space) BUT DK place-diff computes start-finish literally — the compressed pseudo grid biased DFS projections on projected boards. Fix: projected drivers ranked 1..K by predicted pctile; rookies unchanged; stamp 'trail10-v2.1-hybrid-grid'. Composite ordering unchanged.
 
 ## 2026-07-25 — FMV tail cap REMOVED (330fdd76, build green; operator call). The 07-24 ">+5000" cap also hid mid-tail win FMVs. Raw numbers everywhere; the sub-2% precision caveat lives in the docs, not the UI.
+
+
+## 2026-07-25 - INCIDENT: wrong race # in weekend config spawned a phantom races row (O'Reilly Indy)
+
+**What happened.** Operator set the weekend config to race 21 for the O'Reilly Indy weekend. Real O'Reilly R21 is ATLANTA (07-11); Indy is R22. Everything loaded that weekend inherited 21, and the practice uploader's stub-race logic CREATED A SECOND races row: id 437 = Indianapolis Motor Speedway @ race_number 21 with racing_reference_id NULL (real Indy = id 439, 2026-22-B). The schedule briefly had TWO rows numbered 21 (Atlanta id 409 real, Indy id 437 phantom).
+
+**Blast radius (all tagged 21, all Indy):** practice_sessions 38, practice_laps 596, sim_results 2 (pre+post), odds_snapshots 2223, dfs_salaries 1, dfs_sim_samples 1. loop_data NOT affected (already correct 21=Atlanta / 22=Indy) - it keys off the loop paste, not the weekend config.
+
+**Unwind (SQL, operator-run).** race_number 21 -> 22 on all six tables, scoped by track_name='Indianapolis Motor Speedway' so real Atlanta R21 rows could not be caught (verified first: Atlanta had 0 odds / 0 sim rows at 21). The stub delete then failed TWICE on FKs - practice_sessions_race_id_fkey, then pit_stops_race_id_fkey. Supabase SQL editor runs the script as ONE transaction, so each failure rolled back the whole batch (misleading: practice tables looked already-updated from an earlier partial run). Resolved with a DO block walking pg_constraint for every FK referencing public.races, repointing child race_id 437 -> 439 generically, then deleting 437. LESSON: when deleting a races row, ALWAYS repoint children via the pg_constraint sweep rather than guessing table names one at a time.
+
+**The pit_stops surprise (hypothesis falsified).** The stub had collected 134 pit_stops rows, but the operator had NOT run the loader for the Indy race (race ended while he was away). My hypothesis that these were duplicated Atlanta stops was FALSIFIED: only 3 shared (driver,lap) pairs vs Atlanta's 174. Real signature: 134 rows / 38 drivers / laps 0-28 / 27 distinct laps / box_time NULL on ALL 134. Atlanta by contrast: 174 rows, max lap 172, avg box 40.49s. Zero timing content = the lap-note/penalty path firing without pit-road timing (same shape as the documented gap-venue quirk). Deleted. Real stops load with POST_RACE_UPDATE. STANDING NOTE: pit rows with NULL box_time still hit the per-race denominator - they inflate penalty/adjusted rates while contributing no timing.
+
+**Follow-up shipped:** race-number/track mismatch guard on the loaders (next entry).
