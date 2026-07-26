@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import DfsSalaryAdmin from './DfsSalaryAdmin'
 import FlaggedBetsAdmin from './FlaggedBetsAdmin'
 import LineMovementAdmin from './LineMovementAdmin'
+import FastestLapOddsAdmin from './FastestLapOddsAdmin'
 import { parsePracticeExcel } from '../lib/excelParser'
 import { gradePracticeSession } from '../lib/practiceGrader'
 import SimulationCenter, { DEFAULT_WEIGHTS, ROAD_COURSE_WEIGHTS, SUPERSPEEDWAY_WEIGHTS, TRUCK_ROAD_WEIGHTS, ONEILLY_SUPERSPEEDWAY_WEIGHTS } from './SimulationCenter'
@@ -2147,7 +2148,7 @@ export default function Admin() {
 
   const __tabBar = (
     <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid rgba(128,128,128,0.25)', marginBottom: 16 }}>
-      {[['admin', 'Admin'], ['sim', 'Sim Admin'], ['grader', 'Sim Grader'], ['flags', 'Flagged Bets'], ['load', 'Load Data'], ['dfs', 'DFS'], ['lines', 'Line Movement']].map(t => (
+      {[['admin', 'Admin'], ['sim', 'Sim Admin'], ['grader', 'Sim Grader'], ['flags', 'Flagged Bets'], ['load', 'Load Data'], ['dfs', 'DFS'], ['lines', 'Line Movement'], ['flodds', 'Fastest Lap Odds']].map(t => (
         <button key={t[0]} onClick={() => setAdminTab(t[0])} style={{ padding: '8px 16px', border: 'none', background: 'none', borderBottom: adminTab === t[0] ? '2px solid #e8b923' : '2px solid transparent', color: adminTab === t[0] ? '#e8b923' : 'var(--text-muted)', fontWeight: 600, cursor: 'pointer', fontSize: '0.95rem' }}>{t[1]}</button>
       ))}
     </div>
@@ -2165,6 +2166,7 @@ export default function Admin() {
       {adminTab === 'flags' && <FlaggedBetsAdmin />}
       {adminTab === 'dfs' && <DfsSalaryAdmin />}
       {adminTab === 'lines' && <LineMovementAdmin />}
+      {adminTab === 'flodds' && <FastestLapOddsAdmin />}
       {adminTab === 'admin' && (<>
       <WeekendConfig />
       <QualSimConfig />
