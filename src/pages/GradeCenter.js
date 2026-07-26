@@ -31,14 +31,18 @@ function __parseFinish(txt, board) {
 function __gradeRace(board, actualMap, preOwned, dkActMap) {
   const dec = a => a > 0 ? a / 100 + 1 : 100 / Math.abs(a) + 1
   const Ncut = { win: 1, t3: 3, t5: 5, t10: 10 }
-  const rows = board.map(d => ({ name: d.driver_name, car: String(d.car_number), pf: d.proj_finish, win: d.win_pct, t3: d.top3_pct, t5: d.top5_pct, t10: d.top10_pct, mv: d.mv, dkp: d.proj_dk != null ? d.proj_dk : null, dka: dkActMap ? dkActMap[String(d.car_number)] : null, act: actualMap[String(d.car_number)] })).filter(d => d.act != null)
+  const rows = board.map(d => ({ name: d.driver_name, car: String(d.car_number), pf: d.proj_finish, p50: (d.finish_p50 != null ? +d.finish_p50 : null), win: d.win_pct, t3: d.top3_pct, t5: d.top5_pct, t10: d.top10_pct, mv: d.mv, dkp: d.proj_dk != null ? d.proj_dk : null, dka: dkActMap ? dkActMap[String(d.car_number)] : null, act: actualMap[String(d.car_number)] })).filter(d => d.act != null)
   const n = rows.length
   const spearman = (a, b) => { const rk = x => { const idx = x.map((v, i) => [v, i]).sort((p, q) => p[0] - q[0]); const r = Array(x.length); idx.forEach((p, i) => r[p[1]] = i + 1); return r }; const ra = rk(a), rb = rk(b); let d2 = 0; for (let i = 0; i < a.length; i++) d2 += (ra[i] - rb[i]) * (ra[i] - rb[i]); return +(1 - 6 * d2 / (a.length * (a.length * a.length - 1))).toFixed(3) }
   const act = rows.map(r => r.act)
   const mae = +(rows.reduce((s, r) => s + Math.abs(r.pf - r.act), 0) / n).toFixed(2)
+  const __p50rows = rows.filter(r => r.p50 != null)
+  const mae_median = __p50rows.length ? +(__p50rows.reduce((s, r) => s + Math.abs(r.p50 - r.act), 0) / __p50rows.length).toFixed(2) : null
+  const __ranked = rows.slice().sort((a, b) => a.pf - b.pf)
+  const mae_rank = +(__ranked.reduce((s, r, i) => s + Math.abs((i + 1) - r.act), 0) / n).toFixed(2)
   const ind = N => rows.map(r => r.act <= N ? 1 : 0)
   const brier = (probs, ii) => +(probs.reduce((s, p, i) => s + (p / 100 - ii[i]) * (p / 100 - ii[i]), 0) / n).toFixed(4)
-  const metrics = { n: n, mae: mae, spearman_pf: spearman(rows.map(r => r.pf), act), win_brier: brier(rows.map(r => r.win), ind(1)), top3_brier: brier(rows.map(r => r.t3), ind(3)), top5_brier: brier(rows.map(r => r.t5), ind(5)), top10_brier: brier(rows.map(r => r.t10), ind(10)) }
+  const metrics = { n: n, mae: mae, mae_median: mae_median, mae_rank: mae_rank, spearman_pf: spearman(rows.map(r => r.pf), act), win_brier: brier(rows.map(r => r.win), ind(1)), top3_brier: brier(rows.map(r => r.t3), ind(3)), top5_brier: brier(rows.map(r => r.t5), ind(5)), top10_brier: brier(rows.map(r => r.t10), ind(10)) }
   // DK projection accuracy (2026-07-18): only when loop-data actuals available
   const __dkRows = rows.filter(r => r.dkp != null && r.dka != null)
   if (__dkRows.length >= 10) {
