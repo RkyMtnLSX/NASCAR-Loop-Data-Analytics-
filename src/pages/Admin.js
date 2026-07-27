@@ -23,6 +23,21 @@ export function stripRosterMarkers(name) {
   return s.replace(/\s+/g, ' ').trim()
 }
 
+// Shared canonical-name map for loaders outside the loop-data parser.
+// Lap Raptor writes 'AJ Allmendinger' and 'Ricky Stenhouse Jr.'; loop_data
+// canon is 'A.J. Allmendinger' and 'Ricky Stenhouse Jr'.
+const CANON_NAMES = {
+  'AJ Allmendinger':      'A.J. Allmendinger',
+  'Ricky Stenhouse Jr.':  'Ricky Stenhouse Jr',
+  'Daniel Su\u00e1rez':     'Daniel Suarez',
+  'John H. Nemechek':     'John Hunter Nemechek',
+  'Michael Christopher Jr': 'Mike Christopher, Jr.',
+}
+export function canonDriverName(name) {
+  const s = stripRosterMarkers(name)
+  return CANON_NAMES[s] || s
+}
+
 // Race # single source of truth (2026-07-11): loader Race # fields default from
 // featured_weekend.race_number for the selected series (set once in Weekend Config).
 // Prefill only - always editable for historical backfills.
@@ -1466,6 +1481,12 @@ function LoadFastestLaps() {
   useEffect(() => { supabase.from('tracks').select('name').order('name').then(({ data }) => setTracks((data || []).map(t => t.name))) }, [])
 
   // Lap Raptor Lap Performance columns (use ?report=lap_performance tab):
+  // LAYOUT CHANGED 2026-07-26: Lap Raptor INSERTED two columns, cPOMS and LSP,
+  // between ARP and Fastest Lap. The old regex allowed exactly one numeric column
+  // there, so it matched ZERO rows again. It now accepts 1-3 ({1,3}), covering the
+  // pre-07/12, 07/12 and 07/26 layouts. Current column order:
+  //   Driver | Car | Start | Finish | Status | ARP | cPOMS | LSP | FastestLap |
+  //   FastestTime | P50 | P95 | FastestSpeed | P50 | P95
   // LAYOUT CHANGED 2026-07-12: Lap Raptor DROPPED the Make column and turned Car into an <img>,
   // whose alt text pastes as "Number 45" instead of a bare 45. The old regex required Make and a
   // bare number, so it matched ZERO rows ("No rows parsed"). The regex below accepts BOTH layouts:
@@ -1473,12 +1494,12 @@ function LoadFastestLaps() {
   //   OLD: Driver  NN  Make     Start  Finish  Status  ARP  FL#  FL_Time  P50_T  P95_T  FL_Speed  P50_S  P95_S
   // If it ever returns 0 rows again, diff a fresh paste against these two shapes first.
   function parsePaste() {
-    const RE = /^(.+?)\s+(?:Number\s+)?(\d{1,3})\s+(?:(?:Chevy|Chevrolet|Ford|Toyota|Dodge|Ram)\s+)?(\d+)\s+(\d+)\s+(\w+)\s+[\d.]+\s+(\d+)\s+([\d.]+)\s+[\d.]+\s+[\d.]+\s+([\d.]+)/gm
+    const RE = /^(.+?)\s+(?:Number\s+)?(\d{1,3})\s+(?:(?:Chevy|Chevrolet|Ford|Toyota|Dodge|Ram)\s+)?(\d+)\s+(\d+)\s+(\w+)\s+(?:[\d.]+\s+){1,3}(\d+)\s+([\d.]+)\s+[\d.]+\s+[\d.]+\s+([\d.]+)/gm
     const rows = []
     let m
     while ((m = RE.exec(pasteText)) !== null) {
       rows.push({
-        driver:          stripRosterMarkers(m[1]),
+        driver:          canonDriverName(m[1]),
         car:             m[2].trim(),
         start_pos:       m[3].trim(),
         finish_pos:      m[4].trim(),
