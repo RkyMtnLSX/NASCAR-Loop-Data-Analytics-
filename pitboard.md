@@ -1632,3 +1632,71 @@ Operator: "somebody needs to be projected on the pole." Behind the aesthetics, a
 **Also shipped: CLV history Fin + Result columns (41d51cf).** The CLV table had NO result column - operator literally could not see which bets cashed (this is how the single t10 winner went unnoticed). Now joins loop_data finishing positions, shows Fin + WIN/-1.00u per row, and the season line carries W-L, units and ROI.
 
 **Operator stance (unchanged, respect it):** no model changes, no flag filters, no odds caps yet - too early, and he explicitly WANTS the sim taking longshot stabs. Visibility and honest measurement first. Next real work is task #71 (dominator surgery) and letting flagged_bets accrue.
+
+## 2026-07-26 - DRIVER-NAME CORRUPTION: ROOT CAUSE FOUND AND KILLED (2cbcae3, ef92729, 1e9a5d6)
+The Suarez corruption we patched weeks ago was never fixed at source. Admin.js NAME_MAP was
+pointing the WRONG WAY and rewriting correct names into broken ones on every single load:
+  'A.J. Allmendinger'   -> 'AJ Allmendinger'
+  'Daniel Suarez'       -> 'Daniel Su - rez'   (the a-acute had been destroyed IN THE SOURCE FILE,
+  'Baltazar Leguizamon' -> 'Baltazar Leguizam - n'  replaced by a literal space-hyphen-space)
+So the map's TARGET VALUES were garbage. Every Cup load re-corrupted both drivers. Confirmed live
+on the R22 Indy load: 2 of 39 rows landed off-canon. FIX (ef92729): map now points at loop_data
+canon, accents written as \u00e1 / \u00f3 escapes so a future re-encode cannot mangle them, and both
+the corrupted and accented forms accepted as input keys.
+
+SECOND SOURCE (2cbcae3): NASCAR roster markers were never stripped at ingest -- '#' rookie,
+'*' ineligible, '(i)' ineligible-for-points, '(P)' playoff, ~19,800 rows. loop_data / GFS /
+fastest_laps were clean; pit_stops (17,859 rows / 319 spellings), practice_sessions, entry_list
+and qualifying_results were not. Added module-level stripRosterMarkers() wired into 8 ingest
+points; folded into the front of normalizeDriverName so NAME_MAP matches marker-tagged names too.
+
+THIS COST REAL SIM INPUTS. 15 practice rows in 2026 were marker-named with no clean twin, so a
+name-keyed practice lookup found nothing: Cup R11 Dover (Berry, Hocevar, Zane Smith, Grala,
+Allmendinger, Heim), R13 Charlotte (Zilisch, Austin Hill, Legge, Timmy Hill, Heim), R14 Nashville
+(Zilisch, Austin Hill, Heim, Finchum). Those boards ran without those drivers' practice pace.
+
+DB CLEANUP - 4 SQL rounds, all run by operator, all verified:
+  R1 markers + 26 spelling variants across 7 data tables; R2 source typos (Justin Carroll->
+  Justin S. Carroll 71 rows, John H. Nemechek->John Hunter Nemechek 193 rows, Cam Waters,
+  Andes Perez De Lara, Micael McDowell, Carson Kvapili, Ricky Stenhhouse JR, Michael Christopher
+  Jr); R3 Nicholas Sanchez->Nick Sanchez (98 GFS rows) + Jason M. White; R4 the betting tables
+  (clv_log, flagged_bets, odds_snapshots) which rounds 1-3 had missed -- grading joins those to
+  loop_data BY NAME, so Allmendinger and Suarez bets could not settle at all.
+END STATE: 0 markers in all 10 tables, 0 loop_data internal splits, 316 canonical names.
+
+DELIBERATELY NOT MERGED (operator-confirmed distinct people): 'Austin J Hill' vs 'Austin Hill';
+'Jason A White' vs 'Jason M White' (different truck numbers in 2023). loop_data's plain
+'Jason White' (9 rows) remains unattributable between the two -- OPEN.
+
+## 2026-07-26 - FASTEST_LAPS TRACK NAMES + POCONO BACKFILL
+fastest_laps had 43 distinct track values with 7 duplicate groups (Pocono, Sonoma, Las Vegas,
+Charlotte Roval 2.32 vs 2.28, North Wilkesboro 120/102, Atlanta, Charlotte) caused by an optional
+' (N.NN miles)' suffix plus two missing-space typos. Normalized to 36; 30 match tracks.name, the
+6 that do not are venues genuinely absent from the tracks table (Bristol Dirt, Chicago Street,
+COTA, Indy Road Course, LA Coliseum, WWT). This silently halved a driver's prior-FL history in
+the new FastestLapOddsAdmin lookup. Also backfilled 2026 Pocono start/finish (38/38).
+
+## 2026-07-26 - THREE DATA BUGS SURFACED BY THE NAME AUDIT
+1. qualifying_results TWO-PASS SPLIT. Cup 2026 Atlanta R20: the draw-order upload (Jul 11) and the
+   results upload (Jul 12) spelled Stenhouse and Suarez differently, so each driver had TWO rows --
+   one holding only draw_order, one holding the actual result. They never merged. NOTE: the
+   variant-spelled row was the one WITH the data; a naive 'delete the odd spelling' would have
+   destroyed Suarez's P5. Swept all 157 races; those 2 were the only occurrences.
+2. DUPLICATE RACE LOAD. Cup 2025 R16 Mexico City qualifying was loaded twice under two
+   racing_reference_ids. The newer load overwrote every driver EXCEPT Nemechek, whose row survived
+   only because the two loads spelled his name differently. A name typo does not just hide a
+   driver -- it DEFEATS THE UNIQUE CONSTRAINT and lets duplicate rows through.
+3. JUNK ROWS: qualifying_results id 6518 'Required To' (sheet text parsed as a driver, given
+   qualifying_position 39, Pocono 2026 R16); odds_snapshots id 8970 '**TEST**' on race 999;
+   entry_list id 433 'John Hunter' / organization 'Nemechek' (name split across two columns).
+
+## 2026-07-26 - LAP RAPTOR LAYOUT CHANGED AGAIN (1e9a5d6)
+Second break in two weeks. 07/12 they dropped Make and made Car an <img> ('Number 45'). 07/26 they
+INSERTED two columns, cPOMS and LSP, between ARP and Fastest Lap. The regex allowed exactly one
+numeric column there -> zero rows -> 'No rows parsed'. Now accepts 1-3 via (?:[\d.]+\s+){1,3},
+which covers all three known layouts. Verified 5/5 against the live Brickyard 400 paste including
+'Ricky Stenhouse Jr.', 'Shane Van Gisbergen' and status 'Accident'. Current column order:
+  Driver | Car | Start | Finish | Status | ARP | cPOMS | LSP | FastestLap | FastestTime | P50 |
+  P95 | FastestSpeed | P50 | P95
+Also added module-level canonDriverName() to this loader -- Lap Raptor writes 'AJ Allmendinger'
+and 'Ricky Stenhouse Jr.', which would have re-broken fastest_laps the moment it worked again.
