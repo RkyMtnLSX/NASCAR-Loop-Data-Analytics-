@@ -3624,3 +3624,88 @@ Winner LL share by group: SS 18.2 (n62) / INT 30.4 (n160) / SHORT 37.2 (n110) / 
 **Shipped (916b383).** rows now carry p50 (= finish_p50); grader computes and stores mae_median (against finish_p50) and mae_rank (project to a 1..N ordering by proj_finish, compare to actual position) alongside the existing mae. All three land in sim_grades.metrics from the next grade forward. No existing metric changed or removed.
 
 **DECISION RULE (agreed with operator, important).** Do NOT pick the variant with the lowest number - rank-MAE will nearly always win because it is immune to the compression penalty, so 'lowest wins' just selects the most flattering metric. They answer different questions: mean = is expected finish calibrated incl. DNF risk; median = the MAE-matched estimator; rank = pure ordering skill. The empirical question the data CAN settle is which variant best predicts the outcomes we care about (CLV, bet ROI, DFS points correlation). Once ~10-15 graded races exist, correlate each MAE variant per race against that race's betting/DFS performance and steer by the one that tracks profitability - that is also the one to optimise in future weight sweeps, since whatever is optimised is what gets produced.
+
+## 2026-07-26 - THE MODEL HAS SKILL AT SOME TRACK TYPES AND NONE AT OTHERS, AND BETS THE SAME AT BOTH
+Graded all 18 boards in sim_grades, grouped by tracks.correlation_group_label.
+
+  GROUP              BOARDS   MAE    SPEARMAN   BETS   UNITS
+  Intermediate         6      6.67     0.666      67    -6.6
+  Short & Flat         6      6.66     0.631      71   -26.5
+  Superspeedway        4      9.68     0.193      41   -28.0
+  Road Course          2      9.88     0.026       7    -3.8
+
+Spearman is the honest test (did we get the ORDER right). 0.63-0.67 at intermediates and short
+tracks is a real signal. 0.193 at superspeedways. 0.026 at road courses = the finishing order is
+statistically unrelated to what the model predicted. O'Reilly Atlanta R21 posted Spearman -0.015
+pre / 0.036 post and STILL generated 18 bets across the two stages, both -100% ROI.
+
+THE FINDING THAT COSTS MONEY: corr(Spearman, bet count) = 0.017, n=18. The model bets exactly as
+heavily where it has no skill as where it has skill. Superspeedways are the single largest loss
+bucket in the archive: 41 bets, -28.0 units.
+Brier confirms the probabilities themselves break down, not just the ranking: top-10 Brier 0.2563
+at O'Reilly Atlanta vs 0.0946 at O'Reilly Indy -- nearly 3x worse.
+
+PROPOSED NEXT TEST (not yet run): raise the chaos/noise parameter at superspeedways until Brier is
+MINIMIZED, not until flags disappear. If the output distribution goes near-flat the flag count
+collapses on its own without a hand-coded track blacklist -- the model simply stops claiming to
+know something it does not. Principled and directly testable.
+CAVEATS: n=4 superspeedway boards, n=2 road course. Road course stays parked until the offseason
+per operator (n=2 proves nothing). The superspeedway case is the stronger one -- 4 boards, 41
+bets, corroborated independently by Spearman AND Brier.
+Also note: Trucks' apparent edge (mean MAE 7.48 vs Cup 8.01) is NOT a series effect. Trucks IRP
+and North Wilkesboro are short tracks, where the model is good in every series.
+
+## 2026-07-26 - CUP R22 INDIANAPOLIS GRADED: INPUTS VINDICATED, CONVERSION FAILED
+Betting: 2 of 28, -22.64u, -80.8% ROI. Win 0/4, T3 0/9, T5 0/8, T10 2/7.
+Accuracy: MAE 8.24 post / 8.42 pre, vs a START-POSITION-ONLY BASELINE of 9.54. Beats naive by 1.3.
+Season Cup MAE band is 7.16 (Chicagoland) to 8.79 (Atlanta), so 8.24 is mid-to-poor, not a collapse.
+
+CALIBRATION ON THE SELECTIONS (the number that matters): sim expected 6.9 hits across those 28
+bets, market implied 5.7, actual 2. The sim was ~3.5x optimistic on the drivers it specifically
+chose, and more optimistic than the book on every one of them -- which IS the +EV claim.
+(NOTE: full-board calibration -- win_pct summing to 1.0, top5_pct to 5 -- is MECHANICALLY FORCED
+and is NOT evidence of anything. Do not cite it.)
+
+WHY IT LOST, from loop_data + the Lap Raptor caution log:
+  Caution lap 121-126, 'accident, #1 12 16 33 35 38 42 62 88 turn 3' -- a NINE-CAR wreck at 75%
+  distance, preceded by a debris caution at 115-119. That sequence vaulted Bell (start 23 -> fin 2,
+  avg running position 13), Logano (19->3, ARP 12), Berry (26->7, ARP 15) and Preece (34->8, ARP 17,
+  he ran 24th at mid-race) while burying the cars that had actually run up front: Reddick ran 97.5%
+  of laps in the top 15 and finished 10th; Hocevar led at mid-race and finished 9th.
+  By driver rating the sim bet Hamlin (#2 in field), Hocevar (#3), Reddick (#5), Keselowski (#6),
+  Buescher (#7) -- five of the seven fastest cars, identified before green.
+  Miss distribution: 2 hits, 4 missed by 1-2 (Briscoe T3 fin 4, Keselowski T5 fin 6, Buescher T10
+  fin 11, Hamlin T3 fin 5), 4 by 3-5, 18 by 6+. Had only the by-1s landed: -3.69u not -22.64u.
+  Of the 10 drivers bet: 6 ran where projected, 1 was wrecked (Allmendinger, #16 in the turn-3
+  crash -- ran as high as 7th, finished 25th ON THE LEAD LAP with a POSITIVE pass differential;
+  his rating of 60.5 is an artifact of the wreck, NOT evidence of a bad flag), and only 3 were
+  genuine pace misreads (Bowman 72.5% top-15, Suarez and McDowell both 55%).
+CORRECTION to my own first read: I initially called the Allmendinger flag 'just wrong' on the
+basis of his rating and top-15%. Both are downstream of the wreck. That was grading a bet on
+outcome-contaminated stats. The flag was defensible.
+
+## 2026-07-26 - SEASON CLV IS NOT YET SIGNIFICANT; DO NOT TUNE ON IT
+clv_log, 116 bets across 5 races: sum +109.7, mean +0.946, sd 4.62.
+  Cup R21 North Wilkesboro  n39  +78.6   Trucks R16 IRP     n9  +18.3
+  O'Reilly R22 Indy         n10  +19.6   Cup R22 Indy      n28  +12.4
+  Trucks R15 North Wilkesboro n30 -19.3
+WHY IT IS WEAKER THAN IT LOOKS:
+  - The top 5 individual bets are +78.8 = 72% of all CLV ever logged.
+  - Positive rate among bets that MOVED is 52%. A coin flip. The mean is positive because the
+    winners are larger, not more frequent.
+  - Naive t = 2.20, but the 116 bets are not independent; they are 5 races. Clustered at the race
+    level t = 2.14 on 4 df, p ~ 0.10. NOT significant.
+BY MARKET: T5 n41 avg +2.60 / 68% positive; Win n28 +0.25 / 39%; T10 n18 -0.05 / 67%;
+T3 n29 -0.10 / 35%. T5 looks strong but T3 is nearly the same bet and is the WORST market --
+if the T5 edge were structural it should bleed into T3. Treat as noise until the archive grows.
+Consistent with the earlier finding corr(edge, CLV) = -0.029: the model still cannot tell you
+which of its own flags to trust.
+DOCTRINE UNCHANGED: threshold stays 10% until the #69 archive reaches 15-20 boards, then ONE
+sweep. New: bet COUNT (not weights) is now the leading hypothesis for that sweep to test first.
+
+## 2026-07-26 - MEASUREMENT CAVEAT ON EVERYTHING ABOVE
+Every board graded this season was produced by a model reading partly corrupted inputs (see
+pitboard 2026-07-26 NAME_MAP entry): two Cup drivers split into duplicate identities on every
+load, 15 practice rows invisible at Dover/Charlotte/Nashville, fastest-lap history split across
+7 duplicate track names. All of that was fixed 2026-07-26. Pre-07/26 grades are a floor, not a
+clean read of the model.
