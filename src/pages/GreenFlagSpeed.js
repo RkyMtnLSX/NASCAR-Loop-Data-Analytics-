@@ -65,11 +65,19 @@ function HeatMapView({ rows, byYear, series }) {
   })
   const driverMap = new Map()
     const carMap = new Map()
+  // Race distance per race = the winner's lap count. Used to show how much of
+  // the race a dimmed driver actually ran (see short_run, 90% threshold).
+  const raceLaps = new Map()
+  rows.forEach(r => {
+    if (r.laps_completed == null) return
+    const rk = r.race_name + '|' + r.race_date
+    if (!raceLaps.has(rk) || r.laps_completed > raceLaps.get(rk)) raceLaps.set(rk, r.laps_completed)
+  })
   rows.forEach(r => {
     const key = r.race_name + '|' + r.race_date
     if (!driverMap.has(r.driver)) driverMap.set(r.driver, {})
       if (r.car && !carMap.has(r.driver)) carMap.set(r.driver, r.car)
-    driverMap.get(r.driver)[key] = { rank: parseInt(r.gfs_rank), short: !!r.short_run }
+    driverMap.get(r.driver)[key] = { rank: parseInt(r.gfs_rank), short: !!r.short_run, laps: r.laps_completed }
   })
   const drivers = [...driverMap.entries()].map(([driver, rankMap]) => {
     const valid = Object.values(rankMap).filter(v => !v.short && !isNaN(v.rank) && v.rank > 0).map(v => v.rank)
@@ -95,7 +103,7 @@ function HeatMapView({ rows, byYear, series }) {
             <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>{label}</span>
           </span>
         ))}
-        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginLeft: 8 }}>{'—'} = DNP &middot; dimmed = excluded (short run / DNF)</span>
+        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginLeft: 8 }}>{'—'} = DNP · dimmed = ran under 90% of race distance (green flag speed inflated)</span>
       </div>
       <div style={{ overflowX: 'auto', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
         <table style={{ borderCollapse: 'collapse', width: '100%' }}>
@@ -124,8 +132,9 @@ function HeatMapView({ rows, byYear, series }) {
                     if (!cell) return <td key={r.key} style={{ padding: '7px 8px', fontSize: '0.78rem', fontFamily: 'var(--font-mono)', textAlign: 'center', color: 'var(--text-muted)', background: rowBg }}>{'—'}</td>
                     const bg = cell.short ? rowBg : (rankColor(cell.rank) || rowBg)
                     return (
-                      <td key={r.key} title={cell.short ? 'rank excluded due to DNF' : ''} style={{ padding: '7px 8px', fontSize: '0.78rem', fontFamily: 'var(--font-mono)', textAlign: 'center', background: bg, opacity: cell.short ? 0.35 : 1, fontStyle: cell.short ? 'italic' : 'normal', color: cell.rank <= 3 && !cell.short ? '#111' : 'var(--text-primary)' }}>
+                      <td key={r.key} title={cell.short ? (cell.laps != null && raceLaps.get(r.key) ? cell.laps + '/' + raceLaps.get(r.key) + ' laps (' + Math.round(100 * cell.laps / raceLaps.get(r.key)) + '%) - partial run, green flag speed inflated' : 'partial run - excluded from ranking') : ''} style={{ padding: '7px 8px', fontSize: '0.78rem', fontFamily: 'var(--font-mono)', textAlign: 'center', background: bg, opacity: cell.short ? 0.35 : 1, fontStyle: cell.short ? 'italic' : 'normal', color: cell.rank <= 3 && !cell.short ? '#111' : 'var(--text-primary)' }}>
                         {cell.short ? cell.rank : (MEDAL[cell.rank] ? <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>{MEDAL[cell.rank]}</span> : cell.rank)}
+                        {cell.short && cell.laps != null && raceLaps.get(r.key) ? <div style={{ fontSize: '0.58rem', lineHeight: 1, marginTop: 2, opacity: 0.9 }}>{Math.round(100 * cell.laps / raceLaps.get(r.key))}%</div> : null}
                       </td>
                     )
                   })}
@@ -154,7 +163,7 @@ function RaceTable({ rows, series }) {
         </tr></thead>
         <tbody>
           {sorted.map((r, i) => (
-            <tr key={r.id || i} title={r.short_run ? 'rank excluded due to DNF' : ''} style={{ background: i % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-elevated)', opacity: r.short_run ? 0.4 : 1 }}>
+            <tr key={r.id || i} title={r.short_run ? 'partial run - excluded from ranking' : ''} style={{ background: i % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-elevated)', opacity: r.short_run ? 0.4 : 1 }}>
               <td style={{ ...numCell, textAlign: 'center' }}>{MEDAL[r.gfs_rank] || r.gfs_rank}</td>
               <td style={stickyCell(i % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-elevated)')}><CarNum car={r.car} series={series} />{r.driver}{r.short_run ? <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', marginLeft: 6 }}>(excluded)</span> : null}</td>
               <td style={{ ...numCell, color: 'var(--text-muted)' }}>{r.car}</td>
