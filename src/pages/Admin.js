@@ -1871,7 +1871,12 @@ function LoadGreenFlagSpeed() {
       if (ld && ld.length) { ld.forEach(r => { lapsByFin[r.finish_position] = r.laps_completed; if ((r.laps_completed || 0) > maxLaps) maxLaps = r.laps_completed }) }
       const insertRows = parsed.rows.map(r => {
         const laps = lapsByFin[r.finish]
-        const shortRun = (maxLaps > 0 && laps != null) ? (laps < 0.40 * maxLaps) : false
+        // 2026-07-26: threshold moved 0.40 -> 0.90. GFS percentile runs ~19 points
+        // better than average-running-position percentile at 50-75% of race distance
+        // and ~39 better under 40% (n=13,346, monotonic). Cause is exposure: the
+        // green-flag laps you miss by exiting early are the slow late-race ones.
+        // Bias only clears above 90%. See BACKTEST_LOG 2026-07-26.
+        const shortRun = (maxLaps > 0 && laps != null) ? (laps < 0.90 * maxLaps) : false
         return { series: series, year: parseInt(year), track: selTrack, race_name: raceName || parsed.race_name || null, report_date: parsed.report_date || null, race_number: parseInt(raceNum), race_date: raceDate, gfs_rank: r.rank, car: String(r.car), driver: r.driver, team: r.team || null, finish_pos: r.finish, green_flag_speed: r.gfs, laps_completed: (laps != null ? laps : null), short_run: shortRun, gfs_rank_valid: null }
       })
       const valid = insertRows.filter(r => !r.short_run).slice().sort((a, b) => b.green_flag_speed - a.green_flag_speed)
