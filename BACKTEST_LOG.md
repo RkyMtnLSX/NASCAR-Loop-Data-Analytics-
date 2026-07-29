@@ -3709,3 +3709,50 @@ pitboard 2026-07-26 NAME_MAP entry): two Cup drivers split into duplicate identi
 load, 15 practice rows invisible at Dover/Charlotte/Nashville, fastest-lap history split across
 7 duplicate track names. All of that was fixed 2026-07-26. Pre-07/26 grades are a floor, not a
 clean read of the model.
+
+## 2026-07-26 - GREEN FLAG SPEED IS INFLATED BY PARTIAL RACES (exposure bias)
+TRIGGER: operator disputed Landen Lewis ranking 2nd in GFS at Trucks IRP off 135 of 200 laps,
+having started 20th and run in traffic all day. Correct instinct.
+
+TWO TESTS I RAN FIRST, BOTH FLAWED -- recorded so nobody repeats them:
+  (1) Predictiveness: correlated a driver's GFS percentile against their NEXT race's GFS
+      percentile (n=12,862 pairs). Got 0.451 full-race vs 0.359 for sub-50%, and concluded
+      partial races were 'degraded but usable'. CIRCULAR -- the same bias sits on both sides
+      of the correlation, so a biased metric predicting itself still correlates.
+  (2) Deviation from the driver's own full-race baseline. Underpowered and confounded
+      (drivers who crash are disproportionately drivers who were fast and pushing).
+
+THE TEST THAT SETTLES IT: compare GFS percentile against AVERAGE RUNNING POSITION percentile
+within the SAME race. ARP is an independent yardstick from loop_data. n=13,346 driver-races.
+  GFS pct minus ARP pct (negative = GFS flatters the driver):
+    laps >=99%   n9,972  +4.1   t 26.8
+    90-99%       n1,670  -0.1   t -0.3
+    75-90%       n475    -8.7   t -9.2
+    50-75%       n545   -19.2   t -16.4
+    40-50%       n161   -26.2   t -11.8
+    <40%         n523   -39.2   t -26.5
+Monotonic dose-response. A truck running 50-75% of distance ranks ~19 percentile points
+better than its running position justifies.
+
+MECHANISM IS EXPOSURE, NOT TRAFFIC. GFS averages green-flag laps; the laps you miss by
+exiting early are the LATE ones -- hot track, old tyres, more lapped traffic. Finish the race
+and those slow laps drag your average down. Crash at 135 and you keep only the fast ones.
+CONCRETE: Trucks IRP 2026 -- Lewis GFS 2nd / ARP 23rd / 25.9% top-15 laps / rating 68.2, and
+Hemric (out in the same incident, same lap) GFS 5th / ARP 22nd. Burton and Rhodes ran
+comparable traffic for 199 laps and landed 11th and 12th.
+
+THRESHOLD SET AT 90%, not 40%. Bias is already -8.7 at 75-90% and does not clear until 90%.
+Shipped in both display (5db8709) and ingest (87e29bb).
+
+IMPORTANT DISTINCTION THE OPERATOR DREW AND THE DATA SUPPORTS: this is a PACE metric. It is
+not trying to tell you why a driver stopped. A short run says something about ATTRITION RISK,
+which belongs in the DNF side of the sim, not as a correction to the speed number. Do not
+launder one variable through the other -- dim the cell, show the lap count, let the operator
+make the Lewis-crashed vs Eckes-battery call.
+
+## 2026-07-26 - CORRECTION to the same-day GFS numbers
+An earlier entry tonight cited 2,071 short runs. That figure was inflated by a bug in my own
+backfill (pass 2 filling from the wrong race -- see pitboard 2026-07-26). Post-repair and
+post-manual-loads the honest figure is 2,072 short runs / 375 null / 15,954 total, which is
+coincidentally close but arrived at correctly. Any analysis run against GFS between the
+backfill and the repair should be re-run.
