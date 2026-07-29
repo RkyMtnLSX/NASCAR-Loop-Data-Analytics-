@@ -3756,3 +3756,11 @@ backfill (pass 2 filling from the wrong race -- see pitboard 2026-07-26). Post-r
 post-manual-loads the honest figure is 2,072 short runs / 375 null / 15,954 total, which is
 coincidentally close but arrived at correctly. Any analysis run against GFS between the
 backfill and the repair should be re-run.
+
+## 2026-07-28 - PASSED & SHIPPED: speed-conditioned dominance (task #71 part 2, mult-v1, 0d39c236)
+
+TEST: does pre-race practice pace predict laps-led / fastest-laps share BEYOND track group x finish position? Sample: 101 practice-covered races (2024-26, all series), 3,555 driver-races with practice + laps data. Method: residualize each driver's LL/FL share against the mean share for (group, finish position) cells (n>=5), correlate residual with practice speed pctile (best5, fallback overall_avg; same-weekend pre-race data - no leakage). RESULT: LL residual r .121 t 7.3; FL residual r .200 t 12.2 - FL more speed-driven, as hypothesized. Structure: multiplicative (slope/mean-share ratio ~1.10 P1-3, 1.47 P4-8, 1.54 P9-15; tail higher on trivial shares).
+
+SHIPPED: __spdPct = within-field pctile of the sim's practice metric (lrpTime: best5 cup/trucks, overall_avg oreilly; no practice -> 0.5 neutral); dominator allocation weight = curve[rank] * max(0.1, 1 + K*(spdPct - 0.5)) with K=1.1 LL / 1.0 FL (front-bucket fitted slopes); renormalization unchanged. Stamp domSpeed 'mult-v1'. Bundle verified. Win/T3/T5/T10 untouched - LL/FL/projDK only. Effect: fastest-practice car ~1.5x the dominance share of the slowest at equal finish - the Mosack/Riggs shape from IRP. Boards with no practice loaded degrade to pure gxc-v3 curves. TASK #71 COMPLETE (both parts).
+
+ALSO 2026-07-28: operator backfilled O'Reilly 2022 loop data (old task #65 DONE - he said #64, means #65; #64 RLS tightening still open). FOLLOW-UP for operator: run pit + penalties backfills for oreilly 2022 (python pitboard_pit_backfill.py --year 2022 --series oreilly, penalties likewise) so pit_stops/pit_penalties cover the new season; corr pools pick the races up automatically.
