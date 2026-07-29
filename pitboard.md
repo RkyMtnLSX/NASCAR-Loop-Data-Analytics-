@@ -1808,3 +1808,7 @@ OPERATOR JUDGEMENT CALLS TO RESPECT (all verified correct today):
   - 'Jason A White' and 'Jason M White' are different drivers; loop_data's plain
     'Jason White' (9 rows) is still unattributed between them. OPEN.
   - Road course weakness stays parked until the offseason (n=2 proves nothing).
+
+## 2026-07-28 - 2T column fix: cap at series clean 4T median (f5c0aca4, build green; Brandon Jones 35.44s case)
+
+Lower-series TWO_WHEEL rows are largely SPLIT 4-tire service (rights one stop, lefts the next - consecutive R/L pairs in the raw data) + wait-inflated caution service (35-95s); polluted distribution -> 2T Tukey fence ~120s filtered nothing (series 2T q3 54.3). Fix on principle: a competitive 2T stop must be FASTER than a 4T stop -> 2T filter capped at series clean 4T median. Jones 35.44 -> ~11.8s. Cup unaffected.
