@@ -145,7 +145,12 @@ export default function PitCrewRankings() {
         const cp = penC[String(c.car)] || 0
         const dp = penD[String(c.car)] || 0
         const med = median(ct)
-        const ct2 = c.t2.filter((t) => t <= fence2)
+        // 2026-07-28 (Brandon Jones 35.44s case): lower-series '2T' rows are often SPLIT 4-tire
+        // service (rights one caution stop, lefts the next) and wait-inflated caution service
+        // (35-95s), and the polluted distribution pushes the Tukey fence to ~120s (filters
+        // nothing). Principle: a competitive 2-tire stop exists to be FASTER than a 4-tire
+        // stop - cap the 2T filter at the series clean 4T median.
+        const ct2 = c.t2.filter((t) => t <= Math.min(fence2, seriesMed))
         const rlist = Object.keys(c.rd).map(Number).sort((a, b) => a - b).map((rn) => { const cts = c.rd[rn].ts.filter((t) => t <= fence); return cts.length ? { rn: rn, med: median(cts), n: cts.length, best: Math.min.apply(null, cts), track: c.rd[rn].track } : null }).filter(Boolean)
         const bestStop = rlist.reduce((m, x) => (m && m.best <= x.best ? m : x), null)
         return { car: c.car, org: c.org, driver: driver, rotating: rotating, median: med, adj: med + (cp / races) * PEN_SEC, penRate: cp / races, cp: cp, dp: dp, bomb: ct.filter((t) => t > seriesMed * BOMB_X).length / ct.length, iqr: q3 - q1, t2m: ct2.length >= 3 ? median(ct2) : null, n2: ct2.length, n: ct.length, rlist: rlist, bestStop: bestStop, pens: (penR[String(c.car)] || {}) }
