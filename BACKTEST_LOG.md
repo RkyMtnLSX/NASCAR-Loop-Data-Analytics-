@@ -3768,3 +3768,7 @@ ALSO 2026-07-28: operator backfilled O'Reilly 2022 loop data (old task #65 DONE 
 ## 2026-07-28 - CLARIFICATION (operator, correct): Riggs IRP is an ANECDOTE, not a benchmark
 
 Riggs proj-49/actual-130 motivated the dominator fixes but must NOT be a target: mean projections structurally cannot match realized dominators (49 = EV across futures; 130 = one draw). Tuning any single mean toward a realized dominator night = overconfidence. Evidence is the AGGREGATE record (group winner shares n 52-160/group; speed conditioning n 3,555, t 7.3/12.2). Success metrics: DFS Spearman vs salary over 8-10 slates; realized winner LL inside the per-track-type sim distribution; Ceiling coverage of dominator nights. Never grade on one race.
+
+## 2026-07-28 - PENALTY COVERAGE INVESTIGATED: parser exonerated, SOURCE incomplete (no fix possible)
+
+Cup Indy R22 raw lap-notes contain exactly ONE real penalty (No.10 blend line - captured correctly); parser got 1/1 available. No official penalty feed exists (all candidate endpoints 403). NASCAR lap-note penalty coverage is scorer-dependent by race (NW rich, Indy near-empty) -> pit_penalties is a FLOOR, not a census. Display-only status unchanged. CAVEAT on 07-23 speeding work: direction stands (under-capture attenuates), chronic rates are lower bounds, race-varying capture adds unseen noise. 19% 'other' = classification margin, separate from coverage. No code change.
