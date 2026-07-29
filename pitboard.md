@@ -1700,3 +1700,111 @@ which covers all three known layouts. Verified 5/5 against the live Brickyard 40
   P95 | FastestSpeed | P50 | P95
 Also added module-level canonDriverName() to this loader -- Lap Raptor writes 'AJ Allmendinger'
 and 'Ricky Stenhouse Jr.', which would have re-broken fastest_laps the moment it worked again.
+
+## 2026-07-26 - GREEN FLAG SPEED: 90% PARTIAL-RUN RULE SHIPPED (5db8709, 87e29bb)
+Operator flagged Landen Lewis ranked 2nd in GFS at Trucks IRP off 135 of 200 laps, having
+started 20th and run in traffic. He was right and my first two tests were wrong -- see
+BACKTEST_LOG 2026-07-26 for the methodology failure and the test that actually settles it.
+SHORT VERSION: GFS averages green-flag laps, so the laps you miss by exiting early are the
+slow late-race ones. Exposure bias, not traffic. Bias only clears above 90% of distance.
+
+CODE:
+  87e29bb  Admin.js GFS ingest: short_run threshold 0.40 -> 0.90 of race distance, with the
+           reasoning inline so nobody 'fixes' it back.
+  5db8709  GreenFlagSpeed.js heat map: dimmed cells now carry a small lap percentage under
+           the rank (Lewis reads 2 / 68%). Clean cells untouched. Also corrected two lies in
+           the UI -- the tooltip said 'rank excluded due to DNF' (it is a lap-count rule, and
+           Eckes was not a DNF) and the legend said 'excluded (short run / DNF)'. Both now
+           state the 90% rule.
+The dimming pipeline already existed and is driven entirely by the short_run boolean, so this
+was mostly a data change.
+
+## 2026-07-26 - GFS laps_completed BACKFILL (2,547 -> 375 null)
+Root cause of the nulls was NOT missing loop data: 2,463 of 2,547 rows had NO race_number,
+so the original backfill had no key to join on. Four passes, narrowest first:
+  1. exact race_number + driver           ~74 rows
+  2. track + driver, only where that series/year/track hosted ONE loop race   ~801
+  3. two races at the track: disambiguate on finish position                  ~110
+  4/5. recompute short_run and re-rank gfs_rank_valid
+Operator then backfilled O'Reilly 2022 loop data (25 races) and re-ran, taking null from
+1,658 to 419. The three manual loads below took it to 375.
+REMAINING 375 ARE ALL RACES WITH NO LOOP DATA BY DEFINITION: All-Star Races/Opens (106),
+the Clash at the Coliseum and Bowman Gray (96), Daytona Duels (82), Trucks 2022 dirt at
+Bristol and Knoxville (72), ~19 O'Reilly 2022 singles. NO POINTS RACE IS MISSING A LAP COUNT.
+OPEN QUESTION for a future session: the Duels are 60-lap qualifying races and the Clash is a
+150-lap exhibition, yet they sit on the same GFS board as 500-mile races and can never get
+the 90% filter. Flagging them as exhibitions in the UI is the honest treatment.
+
+## 2026-07-26 - MY BUG: PASS 2 FILLED FROM THE WRONG RACE (repaired)
+Pass 2 guarded that LOOP_DATA had exactly one race at that track that year. It never checked
+that the GFS row belonged to THAT race. Where loop holds one race and GFS holds a DIFFERENT
+one at the same track, it matched on driver name alone and wrote another race's lap count.
+62 rows, 2 groups:
+  trucks 2025 Bristol (24) -- GFS had the September UNOH 250, loop had the April race.
+    Ty Majeski FINISHED 4th in September and was given 52 laps from April where he went out
+    33rd, so the new 90% rule flagged him short and dropped a 4th-place run out of the
+    ranking. That is the shape of the damage: it looks like a filter working.
+  cup 2022 Texas (38) -- All-Star Open and All-Star Race both took the September points
+    race's lap counts. The points race itself was correct and was left alone.
+FIX: nulled the 62, recomputed, and hardened the join with TWO guards -- finish position must
+match AND the two races must agree on their WINNER. The winner check is the decisive one:
+Heim and Kligerman finished in the same position in both Bristol races, so finish-position
+alone would still have let 4 rows through.
+A STANDING AUDIT now ships with the SQL: list every track-season where both sources hold one
+race but disagree on the winner. Run it after any GFS or loop_data load. Currently 0 rows.
+
+## 2026-07-26 - THREE RACES MANUALLY TRANSCRIBED FROM NASCAR BOX SCORE PDFs
+Racing Reference never published loop data for any of these, which is why the GFS backfill
+could not find them. Operator supplied the PDFs; parsed and loaded as SQL.
+  trucks 2025 R20  Bristol, UNOH 250, 2025-09-11        36 drivers, laps_led sum 250
+  trucks 2025 R25  Phoenix, Truck Championship, 10-31   34 drivers, laps_led sum 161
+  oreilly 2025 R20 Dover, BetRivers 200, 2025-07-19     38 drivers, laps_led sum 134
+VALIDATION USED ON ALL THREE: finish positions must be 1..N complete with no gaps, and
+laps_led must sum to exactly the race distance. The laps_led check is the strong one -- any
+misread column breaks it. Winners cross-checked against green_flag_speed finish_pos = 1.
+TWO STRUCTURAL GOTCHAS WORTH REMEMBERING:
+  - races id 431 already existed as a STUB reading 'Darlington Raceway 2025 R20' with no date
+    or laps -- a phantom from a stale weekend config, same failure mode as the O'Reilly
+    R21/R22 incident. Corrected in place rather than inserting a duplicate.
+  - Dover had NO stub (O'Reilly 2025 jumps 19 -> 21), so that load creates the races row and
+    its 38 children in one WITH ... RETURNING id statement -- children cannot be orphaned and
+    there is no hardcoded id to go stale.
+  - The Dover box score spells him 'Nicholas Sanchez'; loop_data canon is 'Nick Sanchez' --
+    the same driver whose 98 GFS rows were merged earlier the same night. Loading the PDF
+    spelling verbatim would have reopened that split. Always canonicalize on manual loads.
+RESULT: every 2025 season is now complete with zero holes -- Cup 1-36, Trucks 1-25,
+O'Reilly 1-33 -- and the winner-mismatch audit returns 0.
+
+
+## 2026-07-26 - HANDOFF NOTE (session ending, operator returning to Fable)
+STATE AT HANDOFF:
+  - Driver names canonical across all 10 tables. 0 roster markers, 0 loop_data internal
+    splits, 316 canonical names. NAME_MAP root cause fixed at source (ef92729).
+  - fastest_laps track names 43 -> 36 distinct, 0 duplicate groups.
+  - green_flag_speed: 375 null laps (all genuinely loop-dataless races), 2,072 short runs,
+    90% rule live in both display and ingest.
+  - Every 2025 season complete: Cup 1-36, Trucks 1-25, O'Reilly 1-33.
+  - Commits today: 2cbcae3, ef92729, 1e9a5d6, 5db8709, 87e29bb.
+
+OPEN / NEXT, roughly in priority order:
+  1. SUPERSPEEDWAY NOISE RECALIBRATION -- the strongest finding in the archive and not yet
+     acted on. See BACKTEST_LOG 2026-07-26. Raise chaos/noise at superspeedways until Brier
+     is MINIMISED (not until flags disappear); the flag count should collapse on its own.
+     Do NOT hard-blacklist track types.
+  2. Flag Duels / Clash / All-Star as exhibitions in the GFS UI -- they can never get the
+     90% filter and currently sit alongside 500-mile races.
+  3. Task #71 DFS dominator surgery (track-type curves, speed-conditioned LL/FL).
+  4. Task #38 qualifying parser for rain-out lineups -- still open.
+  5. Ingest O'Reilly + Trucks historical DFS salary workbooks.
+  6. dfs_ownership table returns 404 -- DDL never ran.
+  7. ROTATE THE EXPOSED GITHUB TOKEN. Still outstanding, still in the transcript.
+
+STANDING DOCTRINE UNCHANGED: flag threshold stays 10% until the #69 archive reaches 15-20
+boards, then ONE empirical sweep. No 'leans' tier. NEW: bet COUNT, not weights, is the
+leading hypothesis for that sweep to test first.
+
+OPERATOR JUDGEMENT CALLS TO RESPECT (all verified correct today):
+  - 'Austin J Hill' and 'Austin Hill' are DIFFERENT drivers. Do not merge.
+  - 'Jason A White' and 'Jason M White' are different drivers; loop_data's plain
+    'Jason White' (9 rows) is still unattributed between them. OPEN.
+  - Road course weakness stays parked until the offseason (n=2 proves nothing).
