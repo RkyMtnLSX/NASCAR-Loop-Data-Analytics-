@@ -486,13 +486,13 @@ function runRaceSim(drivers, simConfig) {
     if (active.length > 0) {
       // rounding remainder goes to the LEADER (was: last active driver - caused tail FL artifact)
       let llW = 0
-      const llw = active.map((s, r) => { const w = r < __LLC.length ? __LLC[r] : __LLC[__LLC.length - 1] * Math.pow(0.75, r - __LLC.length + 1); llW += w; return w })
+      const llw = active.map((s, r) => { const c = r < __LLC.length ? __LLC[r] : __LLC[__LLC.length - 1] * Math.pow(0.75, r - __LLC.length + 1); const sp = drivers[s.i].__spdPct != null ? drivers[s.i].__spdPct : 0.5; const w = c * Math.max(0.1, 1 + 1.1 * (sp - 0.5)); llW += w; return w })
       let remLL = totalRaceLaps
       for (let r = active.length - 1; r >= 1; r--) { const ll = Math.max(0, Math.min(Math.round(llw[r] / llW * totalRaceLaps), remLL)); simLL[active[r].i] = ll; remLL -= ll }
       simLL[active[0].i] = remLL
       active.forEach((s) => { sumLapsLed[s.i] += simLL[s.i] })
       let flWt = 0
-      const flw = active.map((s, r) => { const w = r < __FLC.length ? __FLC[r] : __FLC[__FLC.length - 1] * Math.pow(0.85, r - __FLC.length + 1); flWt += w; return w })
+      const flw = active.map((s, r) => { const c = r < __FLC.length ? __FLC[r] : __FLC[__FLC.length - 1] * Math.pow(0.85, r - __FLC.length + 1); const sp = drivers[s.i].__spdPct != null ? drivers[s.i].__spdPct : 0.5; const w = c * Math.max(0.1, 1 + 1.0 * (sp - 0.5)); flWt += w; return w })
       let remFL = totalRaceLaps
       for (let r = active.length - 1; r >= 1; r--) { const fl = Math.max(0, Math.min(Math.round(flw[r] / flWt * totalRaceLaps), remFL)); simFastLaps[active[r].i] = fl; remFL -= fl }
       simFastLaps[active[0].i] = remFL
@@ -1039,6 +1039,16 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
           __pj.forEach((d, i) => { d.startPos = i + 1 })
         }
 
+        // task #71 part 2 (2026-07-28): speed-conditioned dominance. Practice pace predicts
+        // LL/FL share BEYOND group x finish position (residual r .121 t 7.3 LL, r .200 t 12.2 FL,
+        // n 3,555; effect multiplicative, front-bucket slope/share ratio ~1.1). Pctile of the
+        // sim's practice metric (lrpTime: best5 cup/trucks, overall_avg oreilly); no practice
+        // -> neutral 0.5. Consumed by runRaceSim's dominator allocation.
+        {
+          const __wt = drivers.filter(d => d.lrpTime != null && isFinite(d.lrpTime) && d.lrpTime > 0).sort((a, b) => a.lrpTime - b.lrpTime)
+          __wt.forEach((d, i) => { d.__spdPct = __wt.length > 1 ? 1 - i / (__wt.length - 1) : 0.5 })
+        }
+
         // Lineup-state badge: what does startPos actually use for this run?
         const __lnQ = drivers.filter(d => { const q = qualMap.get(normalizeName(d.name)); return q && q.qualifying_position }).length
         const __lnPrac = drivers.filter(d => d.startPos !== null && !d.__startProjected).length
@@ -1310,7 +1320,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
       race_year:  config.race_year || new Date().getFullYear(),
       race_number: raceNumMap[series] ? parseInt(raceNumMap[series]) : null,
       stage: simStage,
-      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'pairing-first', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06-fenced', domCurves: 'gxc-v3', startProj: 'trail10-v2.2-shaded', flagGuard: 'conf-v1', marketAnchor: 'v1.4-multimkt', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
+      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'pairing-first', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06-fenced', domCurves: 'gxc-v3', domSpeed: 'mult-v1', startProj: 'trail10-v2.2-shaded', flagGuard: 'conf-v1', marketAnchor: 'v1.4-multimkt', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
       results: simResults.map(d => ({
         driver_name:  d.name,
         car_number:   d.carNumber,
