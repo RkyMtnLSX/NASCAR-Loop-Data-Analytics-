@@ -3854,3 +3854,8 @@ All UI labels for the practice metric now say Practice Pace: weight panel 'Pract
 ## 2026-07-28 — admin card notes for wreck-v1.1 semantics (4a6df603)
 
 Caution Rate card hint now shows which wreck pool the preset selects: <=5 cautions 'wrecks: calm pool (sims land under DNF budget)', <=8 'typical pool (~on DNF budget)', else 'chaotic pool (sims land over DNF budget)' — mirrors the __cb bucket runRaceSim actually uses. DNF Rate card hint changed from 'X% DNF probability per car' to 'X% DNF budget per car - spent as correlated wreck events + independent mechanicals (wreck-v1.1)'. Operator-facing semantics now match the model. Verified live.
+
+
+## 2026-07-28 — SHIPPED trail10-v3.1-sampledPD: DK place diff uses per-sim sampled start (ff93ac90)
+
+Audit finding #2 closed. Under #73 start sampling, each sim's finish reflected a SAMPLED start but DK place differential was computed off the FIXED projected start — the within-sim start/PD correlation was lost, miscalibrating pre-quali DFS sample rows (ceilings/floors), which feed the optimizer. Fix: the sampling-eligible drivers' projected grid slots are sorted once, then permuted per sim by the sampled order — grid stays collision-free, PD now co-varies with the start that actually drove the sim's finish. Guards: any null/non-finite slot disables the override (falls back to fixed start); drivers outside the sampling set and real-lineup runs are untouched (sampling only engages pre-quali with >=3 eligible). Mean projDK barely moves (mean sampled slot ~ fixed slot); the fix is to the JOINT distribution. Stamp startProj 'trail10-v3.1-sampledPD'. First live use: Iowa pre-practice sims.
