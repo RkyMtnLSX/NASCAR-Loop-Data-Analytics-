@@ -1820,3 +1820,6 @@ Inline "thin" badge overflowed the 64px 2T column ("4.4..." truncation). Tag rem
 ## 2026-07-28 - SHIPPED task #70: DNQ handling (2000978e + 86ccd710, builds green)
 
 Spreadsheet uploads mark DNQ in the START column: excelParser maps DNQ/DNS/WD -> sentinel -1 -> practice_sessions.qualifying_position; SimulationCenter hard-excludes -1 drivers before scoring (deterministic, independent of the >=20 trim, immune to projected-start fill); board + DFS inherit. Blank-start heuristic remains as fallback. #70 closed.
+
+
+**2026-07-28 (#51 step 1 SHIPPED):** dnfModel 'wreck-v1' live — correlated accident DNFs via per-group bootstrap of 359 real races' wreck event lists (weekend-feed finishing_status join; loop_data finish_status proven unusable — blank most seasons). dnfRate stays the total budget; mechanical layer independent; budget verified on-target post overlap fix (a4f838ce, f916b2d1). Open gates need live boards: INT win-market Brier non-degradation + Burton-tail vs observed — first read at Iowa. #51 step 2 (org-correlated noise) queued behind that. Details in BACKTEST_LOG.
