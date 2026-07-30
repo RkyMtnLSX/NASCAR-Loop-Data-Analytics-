@@ -989,6 +989,10 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
             if (!name) return null
             const qual  = qualMap.get(normName)
             const prac  = practiceMap.get(normName)
+            // task #70 (2026-07-28): DNQ sentinel (-1 start from the practice/quali upload)
+            // hard-excludes the driver from the sim field -> board -> DFS pool. Deterministic,
+            // independent of the >=20-starts trim heuristic, immune to projected-start fill.
+            if ((qual && parseFloat(qual.qualifying_position) === -1) || (prac && parseFloat(prac.qualifying_position) === -1)) return null
             return {
               name,
               carNumber:     e.car_number   || null,
