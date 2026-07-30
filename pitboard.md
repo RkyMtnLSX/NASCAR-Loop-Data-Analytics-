@@ -1823,3 +1823,6 @@ Spreadsheet uploads mark DNQ in the START column: excelParser maps DNQ/DNS/WD ->
 
 
 **2026-07-28 (#51 step 1 SHIPPED):** dnfModel 'wreck-v1' live — correlated accident DNFs via per-group bootstrap of 359 real races' wreck event lists (weekend-feed finishing_status join; loop_data finish_status proven unusable — blank most seasons). dnfRate stays the total budget; mechanical layer independent; budget verified on-target post overlap fix (a4f838ce, f916b2d1). Open gates need live boards: INT win-market Brier non-degradation + Burton-tail vs observed — first read at Iowa. #51 step 2 (org-correlated noise) queued behind that. Details in BACKTEST_LOG.
+
+
+**2026-07-28 (wreck-v1.1-cb + cleanup):** Wreck pools now conditioned on the caution preset (calm/typical/chaotic terciles per group) — caution, dominator curves, and attrition tell one story per sim; preset modulates DNFs around the dnfRate budget by design. Dead metrics shortRunPace/tireFalloff/raceCraft fully removed (0.00 in every preset); longRunPace and winConversion kept (both still feed the sim). Commits 9a3d4e09 + 6f863f74 (lint fix). Open small fix: DK place-diff should use sampled per-sim start when #73 sampling is active. Details in BACKTEST_LOG.
