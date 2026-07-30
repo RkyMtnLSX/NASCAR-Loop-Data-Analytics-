@@ -1764,7 +1764,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
             <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
               {[
                 { key: 'corrHistory',  label: 'Corr. Track History' },
-                { key: 'longRunPace',  label: 'Practice Pace (All Laps)' },
+                { key: 'longRunPace',  label: 'Practice Pace (Best 5 \/ Avg)' },
                 { key: 'startPos',     label: 'Starting Position' },
               { key: 'trackHistory', label: 'Track History' },
                 { key: 'pitCrew',      label: 'Pit Crew' },
@@ -1929,7 +1929,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
                       ...(showBreakdown ? [
                         // zero-weight columns hidden per active profile (2026-07-18)
                         { key: null, label: 'Hist',  sortable: false, title: 'Corr. history score', wkey: 'corrHistory' },
-                        { key: null, label: 'LRP',   sortable: false, title: 'Long run pace score', wkey: 'longRunPace' },
+                        { key: null, label: 'Prac',  sortable: false, title: 'Practice pace score \u2014 best 5-lap avg (Cup\/Trucks), overall avg (O\'Reilly)', wkey: 'longRunPace' },
                         { key: null, label: 'Start', sortable: false, title: 'Starting pos score', wkey: 'startPos' },
                         { key: null, label: 'Pit', sortable: false, title: 'Pit crew score (season median 4-tire box time)', wkey: 'pitCrew' },
                         { key: null, label: 'Track', sortable: false, title: 'Specific track history score', wkey: 'trackHistory' },
