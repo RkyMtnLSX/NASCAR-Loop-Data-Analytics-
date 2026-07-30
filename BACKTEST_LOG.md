@@ -3776,3 +3776,10 @@ Cup Indy R22 raw lap-notes contain exactly ONE real penalty (No.10 blend line - 
 ## 2026-07-28 - PASSED & SHIPPED: task #73 distributional start sampling (trail10-v3, 77b5ad69)
 
 Pre-registered gate: toy-MC favorite calibration, 333 races 2023+, per-sim draws from trailing-10 hybrid start history ranked into a coherent grid. RESULT: favorite gap 14.8 vs shade 18.3 vs actual-grid 19.1 - beats both. Implementation: __projStartH lists -> __startHist on drivers; __spW/__spUsed exposed; startSampling {entries,w} into runRaceSim; per-sim adj = w*(sampled - fixed) so the 0.7 shade CANCELS exactly when sampling engages; <3-eligible boards degrade to v2.2 unchanged; DNQ excluded pre-sampling; real lineups untouched. Stamp 'trail10-v3-sampled', bundle verified. Live check queued: Iowa pre-vs-post quali deltas.
+
+## 2026-07-28 - TASK #51 REVIVED: wreck-event distributions MEASURED (lap-notes archive, 361 races 2022-26)
+
+Per track group (multi-car accident notes, sizes = upper envelope pending severity join):
+SHORT n96: 3.68 wrecks/race, size 3/5/11/21 (med/p75/p95/max), 1.13 wrecks>=5/race, 31% late.
+INT n159: 3.38, 4/6/12/27, 1.50, 32%. SS n63: 4.27, 6/11/18/33, 2.76, 43% late. ROAD n43: 5.86, 4/8/12/20, 2.81, 36%.
+Headline: SS averages ~3 five-plus-car wrecks/race with p95 = half the field, 43% in the final quarter - vs 38 independent DNF coins in the sim. One phenomenon behind SS Spearman .19, Burton tail thinness, Indy 9-car conversion failure. Next: severity join (P(DNF|wreck), survivor position loss) + finish_status cause split. Gates pre-registered: reproduce measured distributions, pin total DNF rate, INT Brier must not degrade.
