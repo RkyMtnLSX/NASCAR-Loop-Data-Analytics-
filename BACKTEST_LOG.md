@@ -3849,3 +3849,8 @@ Operator audit of the weight table revealed winConversion (0.20 raw / 18.9% effe
 ## 2026-07-28 — practice pace rename (a33a1003)
 
 All UI labels for the practice metric now say Practice Pace: weight panel 'Practice Pace (Best 5 / Avg)' (was 'Practice Pace (All Laps)' — inaccurate for cup/trucks which use best5), board column 'Prac' with tooltip 'Practice pace score — best 5-lap avg (Cup/Trucks), overall avg (O'Reilly)' (was 'LRP' / 'Long run pace score'). Internal keys (longRunPace, lrpTime, scores.lrp) deliberately UNCHANGED — they are persisted in published board rows and payload configs; renaming them would orphan historical boards for zero visible gain. Verified live.
+
+
+## 2026-07-28 — admin card notes for wreck-v1.1 semantics (4a6df603)
+
+Caution Rate card hint now shows which wreck pool the preset selects: <=5 cautions 'wrecks: calm pool (sims land under DNF budget)', <=8 'typical pool (~on DNF budget)', else 'chaotic pool (sims land over DNF budget)' — mirrors the __cb bucket runRaceSim actually uses. DNF Rate card hint changed from 'X% DNF probability per car' to 'X% DNF budget per car - spent as correlated wreck events + independent mechanicals (wreck-v1.1)'. Operator-facing semantics now match the model. Verified live.
