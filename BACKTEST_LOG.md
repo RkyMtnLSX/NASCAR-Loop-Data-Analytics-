@@ -3772,3 +3772,7 @@ Riggs proj-49/actual-130 motivated the dominator fixes but must NOT be a target:
 ## 2026-07-28 - PENALTY COVERAGE INVESTIGATED: parser exonerated, SOURCE incomplete (no fix possible)
 
 Cup Indy R22 raw lap-notes contain exactly ONE real penalty (No.10 blend line - captured correctly); parser got 1/1 available. No official penalty feed exists (all candidate endpoints 403). NASCAR lap-note penalty coverage is scorer-dependent by race (NW rich, Indy near-empty) -> pit_penalties is a FLOOR, not a census. Display-only status unchanged. CAVEAT on 07-23 speeding work: direction stands (under-capture attenuates), chronic rates are lower bounds, race-varying capture adds unseen noise. 19% 'other' = classification margin, separate from coverage. No code change.
+
+## 2026-07-28 - PASSED & SHIPPED: task #73 distributional start sampling (trail10-v3, 77b5ad69)
+
+Pre-registered gate: toy-MC favorite calibration, 333 races 2023+, per-sim draws from trailing-10 hybrid start history ranked into a coherent grid. RESULT: favorite gap 14.8 vs shade 18.3 vs actual-grid 19.1 - beats both. Implementation: __projStartH lists -> __startHist on drivers; __spW/__spUsed exposed; startSampling {entries,w} into runRaceSim; per-sim adj = w*(sampled - fixed) so the 0.7 shade CANCELS exactly when sampling engages; <3-eligible boards degrade to v2.2 unchanged; DNQ excluded pre-sampling; real lineups untouched. Stamp 'trail10-v3-sampled', bundle verified. Live check queued: Iowa pre-vs-post quali deltas.
