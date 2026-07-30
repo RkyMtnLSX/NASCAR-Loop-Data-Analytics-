@@ -56,7 +56,11 @@ export function parsePracticeExcel(file, series = 'cup') {
           const row = rows[i]
           const driverName = String(row[driverColIndex] || '').trim()
           if (!driverName) continue
-          const startPos = startColIndex !== -1 ? parseInt(row[startColIndex]) || null : null
+          // task #70 (2026-07-28): 'DNQ' (or DNS/WD) in the start column -> sentinel -1.
+          // Flows into practice_sessions.qualifying_position; the sim hard-excludes -1
+          // drivers from the field so DNQs never reach the board or the DFS pool.
+          const __rawStart = startColIndex !== -1 ? String(row[startColIndex] == null ? '' : row[startColIndex]).trim() : ''
+          const startPos = /^(dnq|dns|wd)\.?$/i.test(__rawStart) ? -1 : (startColIndex !== -1 ? parseInt(__rawStart) || null : null)
           const carNumber  = carColIndex !== -1 ? String(row[carColIndex] || '').trim() : null
           const lapData = {}
           for (const { index, lapNum } of lapColumns) {
