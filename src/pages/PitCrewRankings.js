@@ -238,7 +238,7 @@ export default function PitCrewRankings() {
                   <td style={{ ...td('center'), fontWeight: 700 }}>{c.adj.toFixed(2)}</td>
                   <td style={{ ...td('center'), color: 'var(--text-secondary)' }}>{c.iqr.toFixed(2)}</td>
                   <td style={{ ...td('center'), color: 'var(--text-secondary)' }}>{(c.bomb * 100).toFixed(0)}%</td>
-                  <td style={{ ...td('center'), color: 'var(--text-secondary)' }} title={c.n2 + ' two-tire stops'}>{c.t2m != null ? c.t2m.toFixed(2) : '\u2014'}{c.t2m != null && c.n2 < LOWN ? <span style={{ marginLeft: 4, fontSize: '0.62rem', border: '1px solid var(--border)', borderRadius: 4, padding: '0px 3px' }}>thin</span> : null}</td>
+                  <td style={{ ...td('center'), color: 'var(--text-secondary)' }} title={c.n2 + ' two-tire stops'}>{c.t2m != null ? c.t2m.toFixed(2) : '\u2014'}{/* thin tag removed 2026-07-28: overflowed the 64px col into 4.4...; sample size lives in the hover title */}</td>
                   <td style={td('center')} title={c.penRate.toFixed(2) + ' crew penalties per race'}>{c.cp}</td>
                   <td style={td('center')}>{c.dp}</td>
                   <td style={td('center')}>
