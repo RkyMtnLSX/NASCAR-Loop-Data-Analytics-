@@ -44,27 +44,9 @@ export default function Landing() {
             NASCAR Analytics Platform
           </div>
 
-          <h1 style={{
-            fontSize: 'clamp(2rem, 5vw, 3rem)',
-            fontWeight: 700,
-            letterSpacing: '-0.04em',
-            color: 'var(--text-primary)',
-            lineHeight: 1.1,
-            marginBottom: 16,
-          }}>
-            The model behind<br />
-            <span style={{ color: 'var(--text-primary)' }}>every bet and lineup.</span>
-          </h1>
+          <img src="/pitboard-logo.png" alt="PitBoard" style={{ width: 'min(440px, 85vw)', height: 'auto', display: 'block', margin: '0 auto 36px' }} />
 
-          <p style={{
-            fontSize: '1rem',
-            color: 'var(--text-secondary)',
-            lineHeight: 1.7,
-            marginBottom: 32,
-          }}>
-            A Monte Carlo model prices every driver in every market: win, top finishes, matchups, and DFS {'\u2014'}
-            lined up against DraftKings, FanDuel, and Hard Rock. Betting edges and optimal lineups, every race week.
-          </p>
+          
 
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             <Link to="/subscribe" className="btn btn-primary" style={{ padding: '10px 24px', background: '#ffffff', color: '#0e0f13', border: 'none' }}>
