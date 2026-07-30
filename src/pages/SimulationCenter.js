@@ -139,6 +139,13 @@ const WRECK_P = { SHORT: { a: 0.165, b: 0.179, c: 0.261 }, INT: { a: 0.200, b: 0
 // draws (30k-sim MC), undershooting the dnfRate budget. Values below are raw x realized
 // factor (0.940 / 0.895 / 0.829 / 0.926) so realized accident DNFs land ON budget.
 const WRECK_EV_EXP = { SHORT: 2.73, INT: 3.11, SS: 8.76, ROAD: 2.84 }
+// gxc-v3.1-dnfLL (2026-07-28): DNF'd drivers keep the laps they led before wrecking. Measured
+// share of laps led by eventual DNFers (weekend-feed statuses x loop laps_led, 370 races):
+// SHORT 2.0% / INT 8.2% / SS 17.3% / ROAD 4.1% — old sim credited 0%. DNFers join LL/FL
+// allocation ranked by score at weight min(1, dnfLap x B), B calibrated per group by MC.
+// B >= 6 saturates (full credit past ~17% distance): at INT/SS led laps are effectively banked.
+// Saturated fit lands SS ~14% vs 17.3 measured — residual is unmodeled leader-wreck correlation.
+const WRECK_LL_B = { SHORT: 0.71, INT: 6, SS: 6, ROAD: 0.77 }
 // wreck-v1.1 (2026-07-28): pools bucketed by event count terciles (calm/typical/chaotic) and
 // selected by the caution preset bucket (__cb low/mid/high) so wreck frequency, dominator LL
 // curves, and noise tell ONE story per sim. [size, lapFraction] per event, one inner array per
@@ -520,22 +527,26 @@ function runRaceSim(drivers, simConfig) {
     for (let j = 0; j < n; j++) posMatrix[sim * n + j] = simPos[j]
 
     const active = scored.filter(s => !s.dnf)
+    const __bLL = WRECK_LL_B[trackGroup] || 0
+    const __wLL = (sv) => sv.dnf ? Math.min(1, (sv.dnfLap || 0) * __bLL) : 1
+    const __pool = scored.slice().sort((a, b) => b.score - a.score)
+    const __lead = __pool.findIndex(sv => !sv.dnf)
     const simLL = new Float64Array(n)
     const simFastLaps = new Int32Array(n)
     if (active.length > 0) {
       // rounding remainder goes to the LEADER (was: last active driver - caused tail FL artifact)
       let llW = 0
-      const llw = active.map((s, r) => { const c = r < __LLC.length ? __LLC[r] : __LLC[__LLC.length - 1] * Math.pow(0.75, r - __LLC.length + 1); const sp = drivers[s.i].__spdPct != null ? drivers[s.i].__spdPct : 0.5; const w = c * Math.max(0.1, 1 + 1.1 * (sp - 0.5)); llW += w; return w })
+      const llw = __pool.map((s, r) => { const c = r < __LLC.length ? __LLC[r] : __LLC[__LLC.length - 1] * Math.pow(0.75, r - __LLC.length + 1); const sp = drivers[s.i].__spdPct != null ? drivers[s.i].__spdPct : 0.5; const w = c * Math.max(0.1, 1 + 1.1 * (sp - 0.5)) * __wLL(s); llW += w; return w })
       let remLL = totalRaceLaps
-      for (let r = active.length - 1; r >= 1; r--) { const ll = Math.max(0, Math.min(Math.round(llw[r] / llW * totalRaceLaps), remLL)); simLL[active[r].i] = ll; remLL -= ll }
-      simLL[active[0].i] = remLL
-      active.forEach((s) => { sumLapsLed[s.i] += simLL[s.i] })
+      for (let r = __pool.length - 1; r >= 0; r--) { if (r === __lead) continue; const ll = Math.max(0, Math.min(Math.round(llw[r] / llW * totalRaceLaps), remLL)); simLL[__pool[r].i] = ll; remLL -= ll }
+      simLL[__pool[__lead].i] = remLL
+      scored.forEach((s) => { sumLapsLed[s.i] += simLL[s.i] })
       let flWt = 0
-      const flw = active.map((s, r) => { const c = r < __FLC.length ? __FLC[r] : __FLC[__FLC.length - 1] * Math.pow(0.85, r - __FLC.length + 1); const sp = drivers[s.i].__spdPct != null ? drivers[s.i].__spdPct : 0.5; const w = c * Math.max(0.1, 1 + 1.0 * (sp - 0.5)); flWt += w; return w })
+      const flw = __pool.map((s, r) => { const c = r < __FLC.length ? __FLC[r] : __FLC[__FLC.length - 1] * Math.pow(0.85, r - __FLC.length + 1); const sp = drivers[s.i].__spdPct != null ? drivers[s.i].__spdPct : 0.5; const w = c * Math.max(0.1, 1 + 1.0 * (sp - 0.5)) * __wLL(s); flWt += w; return w })
       let remFL = totalRaceLaps
-      for (let r = active.length - 1; r >= 1; r--) { const fl = Math.max(0, Math.min(Math.round(flw[r] / flWt * totalRaceLaps), remFL)); simFastLaps[active[r].i] = fl; remFL -= fl }
-      simFastLaps[active[0].i] = remFL
-      active.forEach((s) => { sumFastLaps[s.i] += simFastLaps[s.i] })
+      for (let r = __pool.length - 1; r >= 0; r--) { if (r === __lead) continue; const fl = Math.max(0, Math.min(Math.round(flw[r] / flWt * totalRaceLaps), remFL)); simFastLaps[__pool[r].i] = fl; remFL -= fl }
+      simFastLaps[__pool[__lead].i] = remFL
+      scored.forEach((s) => { sumFastLaps[s.i] += simFastLaps[s.i] })
     }
 
     const __srow = (sim % sampleStride === 0 && dkSamples.length < SAMPLE_TARGET) ? new Array(n).fill(0) : null
@@ -1365,7 +1376,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
       race_year:  config.race_year || new Date().getFullYear(),
       race_number: raceNumMap[series] ? parseInt(raceNumMap[series]) : null,
       stage: simStage,
-      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'pairing-first', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06-fenced', domCurves: 'gxc-v3', domSpeed: 'mult-v1', startProj: 'trail10-v3.1-sampledPD', flagGuard: 'conf-v1', dnfModel: 'wreck-v1.1-cb', marketAnchor: 'v1.4-multimkt', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
+      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'pairing-first', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06-fenced', domCurves: 'gxc-v3.1-dnfLL', domSpeed: 'mult-v1', startProj: 'trail10-v3.1-sampledPD', flagGuard: 'conf-v1', dnfModel: 'wreck-v1.1-cb', marketAnchor: 'v1.4-multimkt', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
       results: simResults.map(d => ({
         driver_name:  d.name,
         car_number:   d.carNumber,
