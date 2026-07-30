@@ -433,6 +433,10 @@ function runRaceSim(drivers, simConfig) {
   if (!n) return []
   const __wScale = __wm ? Math.max(0.3, Math.min(2.5, (n * dnfRate * __wm.accShare) / __wm.pre)) : 0
   const __mechRate = __wm ? dnfRate * (1 - __wm.accShare) : 0
+  // trail10-v3.1 (2026-07-28): per-sim sampled starts also feed DK place differential.
+  // Eligible drivers' grid slots are permuted by the sim's sampled order (grid stays
+  // collision-free); null/missing slots disable the override (falls back to fixed start).
+  const __ssSlots = (startSampling && startSampling.entries.length >= 3) ? (() => { const v = startSampling.entries.map(e => drivers[e.i].startPos); return v.every(x => x != null && isFinite(x)) ? v.slice().sort((a, b) => a - b) : null })() : null
 
   const sumFinish      = new Float64Array(n)
   const sumDK          = new Float64Array(n)
@@ -451,14 +455,15 @@ function runRaceSim(drivers, simConfig) {
     // ranks the draws into a coherent grid, and adjusts scores by w*(sampled - fixed).
     // The 0.7 shade on the fixed component cancels exactly, so sampling runs unshaded -
     // toy-MC favorite gap 14.8 vs shade 18.3 vs actual-grid 19.1 (BACKTEST_LOG same date).
-    let __adj = null
+    let __adj = null, __simStart = null
     if (startSampling && startSampling.entries.length >= 3) {
       const E = startSampling.entries
       const draws = E.map(e => e.hist[(Math.random() * e.hist.length) | 0] + gaussNoise() * 0.03)
       const ord2 = E.map((e, x) => x).sort((a, b) => draws[a] - draws[b])
       __adj = new Float64Array(n)
       const km = E.length
-      ord2.forEach((ei, r2) => { const e = E[ei]; __adj[e.i] = startSampling.w * ((km > 1 ? (1 - r2 / (km - 1)) * 100 : 50) - e.fixed) })
+      if (__ssSlots) __simStart = new Float64Array(n).fill(-1)
+      ord2.forEach((ei, r2) => { const e = E[ei]; __adj[e.i] = startSampling.w * ((km > 1 ? (1 - r2 / (km - 1)) * 100 : 50) - e.fixed); if (__simStart) __simStart[e.i] = __ssSlots[r2] })
     }
     const scored = drivers.map((d, i) => {
       let effLap = 0
@@ -536,7 +541,7 @@ function runRaceSim(drivers, simConfig) {
     const __srow = (sim % sampleStride === 0 && dkSamples.length < SAMPLE_TARGET) ? new Array(n).fill(0) : null
     scored.forEach(s => {
       const finPos = simPos[s.i]
-      const startPos = drivers[s.i].startPos ?? finPos
+      const startPos = (__simStart && __simStart[s.i] >= 0) ? __simStart[s.i] : (drivers[s.i].startPos ?? finPos)
       const ll = simLL[s.i]
       const __dk = dkFinishPts(finPos) + (startPos - finPos) + (ll * 0.25) + (simFastLaps[s.i] * 0.45)
       sumDK[s.i] += __dk
@@ -1360,7 +1365,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
       race_year:  config.race_year || new Date().getFullYear(),
       race_number: raceNumMap[series] ? parseInt(raceNumMap[series]) : null,
       stage: simStage,
-      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'pairing-first', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06-fenced', domCurves: 'gxc-v3', domSpeed: 'mult-v1', startProj: 'trail10-v3-sampled', flagGuard: 'conf-v1', dnfModel: 'wreck-v1.1-cb', marketAnchor: 'v1.4-multimkt', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
+      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'pairing-first', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06-fenced', domCurves: 'gxc-v3', domSpeed: 'mult-v1', startProj: 'trail10-v3.1-sampledPD', flagGuard: 'conf-v1', dnfModel: 'wreck-v1.1-cb', marketAnchor: 'v1.4-multimkt', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
       results: simResults.map(d => ({
         driver_name:  d.name,
         car_number:   d.carNumber,
