@@ -1812,3 +1812,7 @@ OPERATOR JUDGEMENT CALLS TO RESPECT (all verified correct today):
 ## 2026-07-28 - 2T column fix: cap at series clean 4T median (f5c0aca4, build green; Brandon Jones 35.44s case)
 
 Lower-series TWO_WHEEL rows are largely SPLIT 4-tire service (rights one stop, lefts the next - consecutive R/L pairs in the raw data) + wait-inflated caution service (35-95s); polluted distribution -> 2T Tukey fence ~120s filtered nothing (series 2T q3 54.3). Fix on principle: a competitive 2T stop must be FASTER than a 4T stop -> 2T filter capped at series clean 4T median. Jones 35.44 -> ~11.8s. Cup unaffected.
+
+## 2026-07-28 - 2T thin-tag overflow fixed (f28132ba, build green) + GITHUB TOKEN ROTATED
+
+Inline "thin" badge overflowed the 64px 2T column ("4.4..." truncation). Tag removed; sample size stays in hover title. TOKEN: old exposed classic token DEAD (401 as of 2026-07-28). NEW RULE: replacement token is NOT persisted in this doc/repo/anywhere - operator provides at session start when shipping is needed; sessions without it read+analyze only. Chat-only handoff, used directly in API calls, never pasted into web forms.
