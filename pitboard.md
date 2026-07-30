@@ -1816,3 +1816,7 @@ Lower-series TWO_WHEEL rows are largely SPLIT 4-tire service (rights one stop, l
 ## 2026-07-28 - 2T thin-tag overflow fixed (f28132ba, build green) + GITHUB TOKEN ROTATED
 
 Inline "thin" badge overflowed the 64px 2T column ("4.4..." truncation). Tag removed; sample size stays in hover title. TOKEN: old exposed classic token DEAD (401 as of 2026-07-28). NEW RULE: replacement token is NOT persisted in this doc/repo/anywhere - operator provides at session start when shipping is needed; sessions without it read+analyze only. Chat-only handoff, used directly in API calls, never pasted into web forms.
+
+## 2026-07-28 - SHIPPED task #70: DNQ handling (2000978e + 86ccd710, builds green)
+
+Spreadsheet uploads mark DNQ in the START column: excelParser maps DNQ/DNS/WD -> sentinel -1 -> practice_sessions.qualifying_position; SimulationCenter hard-excludes -1 drivers before scoring (deterministic, independent of the >=20 trim, immune to projected-start fill); board + DFS inherit. Blank-start heuristic remains as fallback. #70 closed.
