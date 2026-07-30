@@ -1564,7 +1564,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
                   }}>{p.label}</button>
                 ))}
               </div>
-              <div style={hintStyle}>~{cautionPreset.value} cautions &middot; noise width &plusmn;{cautionPreset.noise}{cautionAutoNote ? ' \u00b7 ' + cautionAutoNote : ''}</div>
+              <div style={hintStyle}>~{cautionPreset.value} cautions &middot; noise width &plusmn;{cautionPreset.noise}{cautionAutoNote ? ' \u00b7 ' + cautionAutoNote : ''}{cautionPreset.value <= 5 ? ' \u00b7 wrecks: calm pool (sims land under DNF budget)' : cautionPreset.value <= 8 ? ' \u00b7 wrecks: typical pool (~on DNF budget)' : ' \u00b7 wrecks: chaotic pool (sims land over DNF budget)'}</div>
             </div>
 
             <div style={{ padding: '12px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 8 }}>
@@ -1582,7 +1582,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
                 ))}
               </div>
               <div style={hintStyle}>
-                {(dnfPreset.value * 100).toFixed(1)}% DNF probability per car
+                {(dnfPreset.value * 100).toFixed(1)}% DNF budget per car \u00b7 spent as correlated wreck events + independent mechanicals (wreck-v1.1)
                 {dnfPreset.auto ? (dnfPreset.nTrack > 0
                   ? ' \u00b7 measured from ' + dnfPreset.nTrack + ' prior race' + (dnfPreset.nTrack === 1 ? '' : 's') + ' at this track'
                   : ' \u00b7 no track history \u2192 ' + (config.correlation_label || 'group') + ' rate') : ' \u00b7 manual override'}
