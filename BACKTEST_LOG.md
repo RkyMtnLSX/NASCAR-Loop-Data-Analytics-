@@ -3844,3 +3844,8 @@ Remaining for #51 step 1: implement in runRaceSim (inline per-group event-set bo
 ## 2026-07-28 — winConversion surfaced in UI (72e8cf03)
 
 Operator audit of the weight table revealed winConversion (0.20 raw / 18.9% effective in the O'Reilly SS preset ONLY) had zero UI presence — no weight-panel row, no board column, not adjustable. It was never cut (that was raceCraft, 07-12); it was just invisible. Now: weight panel row 'Win Conversion' (shows 0% outside O'Reilly SS), board column 'Win' + score cell (weight-gated — renders only when the active preset weights it), and guards added so nudging a key absent from the current preset starts from 0 instead of NaN. Verified live. Also confirmed for the record: lrpTime ('long-run pace') IS practice pace — best5 for cup/trucks (overall_avg fallback), overall_avg for oreilly; the long/short naming is a fossil now that shortRunPace is deleted. Weight panel already labels it 'Practice Pace (All Laps)'.
+
+
+## 2026-07-28 — practice pace rename (a33a1003)
+
+All UI labels for the practice metric now say Practice Pace: weight panel 'Practice Pace (Best 5 / Avg)' (was 'Practice Pace (All Laps)' — inaccurate for cup/trucks which use best5), board column 'Prac' with tooltip 'Practice pace score — best 5-lap avg (Cup/Trucks), overall avg (O'Reilly)' (was 'LRP' / 'Long run pace score'). Internal keys (longRunPace, lrpTime, scores.lrp) deliberately UNCHANGED — they are persisted in published board rows and payload configs; renaming them would orphan historical boards for zero visible gain. Verified live.
