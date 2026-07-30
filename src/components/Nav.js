@@ -93,7 +93,7 @@ export default function Nav({ isAdmin, onAdminClick }) {
       }}>
         {/* Logo */}
         <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
-          <span style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '0.1em', color: '#ffffff', textTransform: 'uppercase' }}>PitBoard</span>
+          <img src="/pitboard-logo.png" alt="PitBoard" style={{ height: 38, width: 'auto', display: 'block' }} />
         </Link>
 
         {/* Nav links */}
