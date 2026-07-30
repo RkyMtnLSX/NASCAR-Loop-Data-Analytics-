@@ -1461,7 +1461,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
   const adjustWeight = (key, delta) => {
     setWeights(prev => ({
       ...prev,
-      [key]: Math.max(0, Math.min(1, +(prev[key] + delta).toFixed(2))),
+      [key]: Math.max(0, Math.min(1, +((prev[key] || 0) + delta).toFixed(2))),
     }))
   }
 
@@ -1768,13 +1768,14 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
                 { key: 'startPos',     label: 'Starting Position' },
               { key: 'trackHistory', label: 'Track History' },
                 { key: 'pitCrew',      label: 'Pit Crew' },
+                { key: 'winConversion', label: 'Win Conversion' },
               ].map(({ key, label }) => (
                 <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: 5, minWidth: 130 }}>
                   <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{label}</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <button onClick={() => adjustWeight(key, -0.05)} style={nudgeBtn}>&#8722;</button>
                     <div style={{ width: 44, textAlign: 'center', fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '1.03rem', color: 'var(--text-primary)' }}>
-                      {Math.round(weights[key] * 100)}%
+                      {Math.round((weights[key] || 0) * 100)}%
                     </div>
                     <button onClick={() => adjustWeight(key, 0.05)} style={nudgeBtn}>+</button>
                   </div>
@@ -1932,6 +1933,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
                         { key: null, label: 'Start', sortable: false, title: 'Starting pos score', wkey: 'startPos' },
                         { key: null, label: 'Pit', sortable: false, title: 'Pit crew score (season median 4-tire box time)', wkey: 'pitCrew' },
                         { key: null, label: 'Track', sortable: false, title: 'Specific track history score', wkey: 'trackHistory' },
+                        { key: null, label: 'Win', sortable: false, title: 'Win conversion score — active only where the preset weights it (O\'Reilly superspeedways)', wkey: 'winConversion' },
                         { key: 'speedScore', label: 'Speed', title: 'Composite speed score' },
                       ].filter(c => !c.wkey || (weights[c.wkey] || 0) > 0) : []),
                     ].map((col, ci) => (
@@ -2022,7 +2024,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
 
                         {showBreakdown && (
                           <>
-                            {[['corr','corrHistory'],['lrp','longRunPace'],['sp','startPos'],['pit','pitCrew'],['track','trackHistory']].filter(pp => (weights[pp[1]] || 0) > 0).map(pp => pp[0]).map(k => (
+                            {[['corr','corrHistory'],['lrp','longRunPace'],['sp','startPos'],['pit','pitCrew'],['track','trackHistory'],['win','winConversion']].filter(pp => (weights[pp[1]] || 0) > 0).map(pp => pp[0]).map(k => (
                               <td key={k} style={{ padding: '7px 10px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                                 {row.scores?.[k] != null ? row.scores[k] : '--'}{row.scores && row.scores.anchored && row.scores.anchored[k] ? '*' : ''}
                               </td>
