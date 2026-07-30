@@ -3803,3 +3803,19 @@ Size dependence is modest (SHORT 16.5% at size 2-4 -> 26.1% at 10+; SS flat 27-3
 **Gate targets** (distributions the event sim must reproduce). accDNF/race p25/50/75/95: SHORT 1/2/4/9 max 13; INT 1/3/5/10 max 15; SS 5/9/11/14 max 19; ROAD 0/1/4/7 max 10. Wreck-count/race p25/50/75/95: SHORT 2/3/6/8; INT 2/3/5/9; SS 3/4/6/8; ROAD 4/5/8/10 (full histograms measured).
 
 **Design locked by measurement:** mechanical DNFs stay independent draws pinned at ~1.4-1.7/race (2.35 ROAD); accident DNFs become event-based — draw wreck count + sizes from group histograms, victims picked as position-adjacent clusters, each involved driver DNFs at P(accDNF|group,size), survivors take a small score penalty (+1.6 to +2.9 positions). Notes capture only 61-79% of accident DNFs, so the residual ~25-35% remains as independent accident draws. Pre-registered gates unchanged: reproduce wreck count/size dists; accDNF/race distribution per group (esp. the SS tail); INT win-market Brier must NOT degrade; Burton-tail longshot frequencies move toward observed. Next: toy prototype, then runRaceSim.
+
+
+## 2026-07-28 — #51 toy prototype PASSES distribution gate
+
+Event-based accident sampler (bootstrap a real race's event-size list per group, victims = position-adjacent clusters from a uniform seed, each involved driver DNFs at measured P(accDNF|group,size), dedupe within race) reproduces observed accDNF/race distributions with NO residual term needed — the noted events' size x P already covers the full accident budget (cluster overlap absorbs the notes-capture gap):
+
+| group | sim mean / obs mean | sim p25/50/75/95 | obs p25/50/75/95 |
+|---|---|---|---|
+| SHORT | 2.69 / 2.91 | 1/2/4/8 | 1/2/4/9 |
+| INT | 3.10 / 3.44 | 1/2/5/9 | 1/3/5/10 |
+| SS | 8.18 / 8.24 | 4/8/12/17 | 5/9/11/14 |
+| ROAD | 2.79 / 2.35 | 1/2/4/8 | 0/1/4/7 |
+
+(5,000 sims/group; sim tails slightly fatter than obs max, expected from n=43-167 observed races.) Mechanical DNFs to be layered as independent draws pinned at group means (SHORT 1.69, INT 1.44, SS 1.45, ROAD 2.35 per race). One earlier bug caught in-session: expected event DNFs must sum size x P per DRIVER, not P per event — first pass double-counted via an inflated residual.
+
+Remaining for #51 step 1: implement in runRaceSim (inline per-group event-set bootstrap table ~370 compact arrays, survivor score penalty, mechanical layer), then full gates: INT win-market Brier non-degradation + Burton-tail check vs current independent-DNF baseline.
