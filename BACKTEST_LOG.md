@@ -3783,3 +3783,23 @@ Per track group (multi-car accident notes, sizes = upper envelope pending severi
 SHORT n96: 3.68 wrecks/race, size 3/5/11/21 (med/p75/p95/max), 1.13 wrecks>=5/race, 31% late.
 INT n159: 3.38, 4/6/12/27, 1.50, 32%. SS n63: 4.27, 6/11/18/33, 2.76, 43% late. ROAD n43: 5.86, 4/8/12/20, 2.81, 36%.
 Headline: SS averages ~3 five-plus-car wrecks/race with p95 = half the field, 43% in the final quarter - vs 38 independent DNF coins in the sim. One phenomenon behind SS Spearman .19, Burton tail thinness, Indy 9-car conversion failure. Next: severity join (P(DNF|wreck), survivor position loss) + finish_status cause split. Gates pre-registered: reproduce measured distributions, pin total DNF rate, INT Brier must not degrade.
+
+
+## 2026-07-28 — #51 measurement phase 2: wreck severity join (weekend-feed statuses)
+
+**Source correction.** loop_data.finish_status is unusable for DNF measurement: zero DNFs recorded in cup 2022-24, oreilly 2023-25, trucks 2023-24 (only the 2022 backfills carry real statuses — oreilly 2022 18.7%, trucks 2022 13.0% — plus partial 2026). Severity source switched to NASCAR weekend-feed.json finishing_status: all 370 races harvested, joins to lap-note DriverIDs directly on driver_id (no name mapping). Status vocabulary across 370 races: Accident 1,366 + DVP 93 vs ~600 mechanical across ~45 cause labels, Running 11,536.
+
+**Severity by track group** (wreck = accident/spin/crash note with >=2 DriverIDs; accDNF = Accident/DVP/Damage):
+
+| group | races | DNFs/race | accident share | mech/race | P(accDNF given in wreck) | notes capture of accDNFs | survivor cost (pos) |
+|---|---|---|---|---|---|---|---|
+| SHORT | 87 | 4.60 | 63% | 1.69 | 19.1% | 67% | +1.6 |
+| INT | 167 | 4.89 | 70% | 1.44 | 20.6% | 61% | +2.5 |
+| SS | 62 | 9.69 | 85% | 1.45 | 32.4% | 79% | +2.9 |
+| ROAD | 43 | 4.70 | 50% | 2.35 | 9.8% | 69% | +2.7 |
+
+Size dependence is modest (SHORT 16.5% at size 2-4 -> 26.1% at 10+; SS flat 27-34%; INT 19-24%). Timing: SS early wrecks are deadlier (36% early vs 28% late); ROAD reversed (8% vs 13%). Involved drivers' start pctile 0.462 — involvement is near-uniform across the grid, slight back bias.
+
+**Gate targets** (distributions the event sim must reproduce). accDNF/race p25/50/75/95: SHORT 1/2/4/9 max 13; INT 1/3/5/10 max 15; SS 5/9/11/14 max 19; ROAD 0/1/4/7 max 10. Wreck-count/race p25/50/75/95: SHORT 2/3/6/8; INT 2/3/5/9; SS 3/4/6/8; ROAD 4/5/8/10 (full histograms measured).
+
+**Design locked by measurement:** mechanical DNFs stay independent draws pinned at ~1.4-1.7/race (2.35 ROAD); accident DNFs become event-based — draw wreck count + sizes from group histograms, victims picked as position-adjacent clusters, each involved driver DNFs at P(accDNF|group,size), survivors take a small score penalty (+1.6 to +2.9 positions). Notes capture only 61-79% of accident DNFs, so the residual ~25-35% remains as independent accident draws. Pre-registered gates unchanged: reproduce wreck count/size dists; accDNF/race distribution per group (esp. the SS tail); INT win-market Brier must NOT degrade; Burton-tail longshot frequencies move toward observed. Next: toy prototype, then runRaceSim.
