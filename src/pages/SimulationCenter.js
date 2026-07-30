@@ -409,10 +409,7 @@ function buildSpeedScores(drivers, weights) {
       scores: {
         corr: Math.round(c),
         lrp:  Math.round(lrp),
-        srp:  Math.round(srp),
         sp:   Math.round(sp),
-        fall: Math.round(fl),
-        rc:   Math.round(rc),
         win:  Math.round(wc),
         pit:  Math.round(pit),
         track: Math.round(t),
