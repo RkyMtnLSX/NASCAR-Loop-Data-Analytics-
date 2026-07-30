@@ -410,6 +410,8 @@ function buildSpeedScores(drivers, weights) {
     return {
       ...d,
       speedScore,
+      __spW: w.startPos,
+      __spUsed: sp,
       scores: {
         corr: Math.round(c),
         lrp:  Math.round(lrp),
@@ -427,7 +429,7 @@ function buildSpeedScores(drivers, weights) {
 }
 
 function runRaceSim(drivers, simConfig) {
-  const { numSims, cautionPreset, dnfRate, totalRaceLaps, trackGroup } = simConfig
+  const { numSims, cautionPreset, dnfRate, totalRaceLaps, trackGroup, startSampling } = simConfig
   const noiseWidth = cautionPreset.noise
   const __cb = cautionPreset.value <= 5 ? 'low' : cautionPreset.value <= 8 ? 'mid' : 'high'
   const __LLC = ((LL_CURVES_G[trackGroup] || {})[__cb]) || LL_CURVES[__cb]
@@ -449,6 +451,20 @@ function runRaceSim(drivers, simConfig) {
   const posMatrix      = new Int16Array(numSims * n)
 
   for (let sim = 0; sim < numSims; sim++) {
+    // task #73 (2026-07-28): DISTRIBUTIONAL START SAMPLING on projected-lineup boards.
+    // Each sim draws every projected driver's start from his trailing-10 (hybrid) history,
+    // ranks the draws into a coherent grid, and adjusts scores by w*(sampled - fixed).
+    // The 0.7 shade on the fixed component cancels exactly, so sampling runs unshaded -
+    // toy-MC favorite gap 14.8 vs shade 18.3 vs actual-grid 19.1 (BACKTEST_LOG same date).
+    let __adj = null
+    if (startSampling && startSampling.entries.length >= 3) {
+      const E = startSampling.entries
+      const draws = E.map(e => e.hist[(Math.random() * e.hist.length) | 0] + gaussNoise() * 0.03)
+      const ord2 = E.map((e, x) => x).sort((a, b) => draws[a] - draws[b])
+      __adj = new Float64Array(n)
+      const km = E.length
+      ord2.forEach((ei, r2) => { const e = E[ei]; __adj[e.i] = startSampling.w * ((km > 1 ? (1 - r2 / (km - 1)) * 100 : 50) - e.fixed) })
+    }
     const scored = drivers.map((d, i) => {
       let effLap = 0
       const __ld = d.lapsDown || 0
@@ -459,7 +475,7 @@ function runRaceSim(drivers, simConfig) {
       }
       return {
         i,
-        score: d.speedScore + gaussNoise() * noiseWidth,
+        score: d.speedScore + (__adj ? __adj[i] : 0) + gaussNoise() * noiseWidth,
         dnf:   Math.random() < dnfRate,
         effLap,
       }
@@ -955,6 +971,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
         // compressed toward mid-field = conservative under the fixed 0.33 weight. Badge says
         // 'projected'; the real grid takes over automatically once qualifying loads.
         let __projStart = new Map()
+        const __projStartH = new Map()   // task #73: last-10 lists for per-sim start sampling
         try {
           const { data: __pstarts } = await supabase.from('loop_data')
             .select('driver_name, start_position, year, race_number, track_name')
@@ -978,7 +995,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
           Object.keys(__phist).forEach(dn => {
             const cA = __cat ? (__phistC[dn] || []) : []
             const a = (cA.length >= 3) ? cA : __phist[dn]
-            if (a.length >= 3) { const last = a.slice(-10); __projStart.set(dn, last.reduce((x, y) => x + y, 0) / last.length) }
+            if (a.length >= 3) { const last = a.slice(-10); __projStart.set(dn, last.reduce((x, y) => x + y, 0) / last.length); __projStartH.set(dn, last) }
           })
         } catch (e) { __projStart = new Map() }
 
@@ -999,6 +1016,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
               organization:  e.organization || null,
               manufacturer:  e.manufacturer || null,
               __startProjected: !(qual && qual.qualifying_position) && !(prac && prac.qualifying_position) && __projStart.has(normName),
+              __startHist: (!(qual && qual.qualifying_position) && !(prac && prac.qualifying_position) && __projStartH.has(normName)) ? __projStartH.get(normName) : null,
               startPos:      qual && qual.qualifying_position ? parseFloat(qual.qualifying_position) : (prac && prac.qualifying_position ? parseFloat(prac.qualifying_position) : (__projStart.has(normName) ? Math.max(1, Math.round(__projStart.get(normName) * driverSource.length)) : null)),
               qualTime:      qual ? parseFloat(qual.lap_time)       || null : null,
               lrpTime:       prac ? ((series !== 'oreilly' && parseFloat(prac.best5)) || parseFloat(prac.overall_avg) || null) : null, // SHIPPED 2026-07-16: best5 for cup+trucks (log 4-1-2 + regression); oreilly keeps overall_avg per its own evidence; falls back when best5 null
@@ -1283,6 +1301,11 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
         dnfRate: dnfPreset.value,
         totalRaceLaps,
         trackGroup: __trackGroup(config && config.track_name),
+        startSampling: (() => {
+          const E = []
+          driversWithScores.forEach((d, i) => { if (d.__startProjected && d.__startHist && d.__startHist.length >= 3 && d.__spUsed != null) E.push({ i, hist: d.__startHist, fixed: d.__spUsed }) })
+          return E.length >= 3 ? { entries: E, w: driversWithScores[0].__spW || 0 } : null
+        })(),
       })
       setSimResults(results)
       setRunning(false)
@@ -1324,7 +1347,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
       race_year:  config.race_year || new Date().getFullYear(),
       race_number: raceNumMap[series] ? parseInt(raceNumMap[series]) : null,
       stage: simStage,
-      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'pairing-first', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06-fenced', domCurves: 'gxc-v3', domSpeed: 'mult-v1', startProj: 'trail10-v2.2-shaded', flagGuard: 'conf-v1', marketAnchor: 'v1.4-multimkt', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
+      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'pairing-first', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06-fenced', domCurves: 'gxc-v3', domSpeed: 'mult-v1', startProj: 'trail10-v3-sampled', flagGuard: 'conf-v1', marketAnchor: 'v1.4-multimkt', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
       results: simResults.map(d => ({
         driver_name:  d.name,
         car_number:   d.carNumber,
