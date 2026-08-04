@@ -1614,13 +1614,13 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
                 <span style={{ color: 'var(--text-secondary)', fontSize: '0.94rem' }}>laps</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
-                <span style={{ color: 'var(--text-secondary)', fontSize: '0.82rem' }}>Stage 1</span>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '0.82rem' }}>S1 ends</span>
                 <input type="number" value={stage1Laps} min={0} max={999} onChange={e => setStage1Laps(parseInt(e.target.value) || 0)} style={{ width: 56, padding: '4px 7px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text)' }} />
-                <span style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', marginLeft: 6 }}>Stage 2</span>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', marginLeft: 6 }}>S2 ends</span>
                 <input type="number" value={stage2Laps} min={0} max={999} onChange={e => setStage2Laps(parseInt(e.target.value) || 0)} style={{ width: 56, padding: '4px 7px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text)' }} />
                 <span style={{ color: 'var(--text-secondary)', fontSize: '0.82rem' }}>laps</span>
               </div>
-              <div style={hintStyle}>Race length feeds the laps-led model. Stage lengths are captured with the sim for the future caution/pit layer but do not affect results yet.</div>
+              <div style={hintStyle}>Race length feeds the laps-led model. Stage fields are the published stage END laps (e.g. Stages 70/210/350 \u2192 enter 70 and 210) \u2014 captured with the sim for the future caution/pit layer, do not affect results yet.</div>
             </div>
           </div>
 
