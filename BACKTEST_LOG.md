@@ -3873,3 +3873,14 @@ Audit finding #2 closed. Under #73 start sampling, each sim's finish reflected a
 ## 2026-08-03 — stage fields defined as published stage END laps (e8361b9f + 32dc9817)
 
 Operator caught label ambiguity setting up Iowa (Stages 70/210/350): Admin's 'Stage 1/2 Laps' fields implied LENGTHS but the natural entry (and what was entered) is NASCAR's published stage END laps — stage 2 'laps: 210' is really end-lap 210, length 140. Official semantic is now END LAPS, matching the broadcast format: Admin labels 'Stage 1/2 Ends (Lap)', SimulationCenter race-length card shows 'S1 ends / S2 ends' with hint 'published stage END laps (e.g. Stages 70/210/350 -> enter 70 and 210)'. No stored data changes (existing values were already end laps); DB columns stage1_laps/stage2_laps and payload keys stage1Laps/stage2Laps keep their names but now unambiguously hold end laps — any future caution/pit layer must read them as such. Nothing computes with them yet. Verified live.
+
+
+## 2026-08-03 — Iowa Cup pre-practice board: first live output of the new stack (board 10c71c9b)
+
+First board ever produced by wreck-v1.1-cb + gxc-v3.1-dnfLL + trail10-v3.1-sampledPD together. Config: projected lineup (sampling engaged), Medium caution (typical wreck pool), DNF Auto 7.12% (2 Iowa races), 350 laps, stages 70/210 (end-lap semantics), 50k sims, Hard Rock the only book posted (Monday).
+
+Sanity: LL and FL each sum to exactly 350 (dnfLL allocation conserves the race). Hierarchy: Blaney 17.9% / Hamlin 15.0% / Larson 12.3%, clean tier break after. Burton-tail present — backmarkers carry 1-2% top-10 (Hill 1.1, Zilisch 1.2) vs the old hard zeros. Realized DNF mean 6.2% vs 7.12% budget = ratio 0.87, EXACTLY the documented mid-pool under-budget prediction (SHORT mid 2.7 vs 3.1 = 0.87) — wreck-v1.1 behaving as shipped. Observation (emergent, not measured): per-driver DNF runs a 5.3% -> 8.1% front-to-tail gradient, partly wreck-cluster field-edge behavior; directionally realistic but keep an eye on it.
+
+Flags: Larson win EV +23 vs HR only 10%+ flag. Single-book Monday caveat — watch-item until DK/FD post and re-run; real candidate only if it survives a multi-book anchor.
+
+Gates still open (need post-race): INT Brier N/A this week (SHORT track); Burton-tail vs observed and trail10-v3.1 pre-vs-post-quali delta get their first data points from this weekend.
