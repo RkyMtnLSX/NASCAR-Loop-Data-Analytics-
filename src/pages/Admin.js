@@ -228,7 +228,7 @@ function WeekendConfig() {
               </div>
 
               <div>
-                <label style={labelStyle}>Stage 1 Laps</label>
+                <label style={labelStyle}>Stage 1 Ends (Lap)</label>
                 <input
                   type="number"
                   value={cfg.stage1_laps || ''}
@@ -238,7 +238,7 @@ function WeekendConfig() {
               </div>
 
               <div>
-                <label style={labelStyle}>Stage 2 Laps</label>
+                <label style={labelStyle}>Stage 2 Ends (Lap)</label>
                 <input
                   type="number"
                   value={cfg.stage2_laps || ''}
