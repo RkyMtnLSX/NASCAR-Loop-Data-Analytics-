@@ -269,6 +269,15 @@ export default function SimResults() {
       {data && (
         <div style={{ marginBottom: 16, padding: '10px 14px', background: 'var(--bg-surface)', borderRadius: 8, display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ fontWeight: 700, color: 'var(--accent)' }}>{data.track_name}</span>
+          <span style={{
+            padding: '2px 10px', borderRadius: 12, fontSize: '0.72rem', fontWeight: 700,
+            letterSpacing: '0.05em', textTransform: 'uppercase',
+            background: data.stage === 'post' ? 'rgba(34,197,94,0.15)' : 'rgba(250,204,21,0.15)',
+            color: data.stage === 'post' ? '#22c55e' : '#facc15',
+            border: '1px solid ' + (data.stage === 'post' ? 'rgba(34,197,94,0.4)' : 'rgba(250,204,21,0.4)'),
+          }}>
+            {data.stage === 'post' ? 'Post-Practice/Quali' : 'Pre-Practice/Quali (projected grid)'}
+          </span>
           <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
             Published {new Date(data.published_at).toLocaleString()}
           </span>
