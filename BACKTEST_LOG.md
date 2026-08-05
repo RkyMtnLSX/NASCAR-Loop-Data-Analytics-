@@ -3900,3 +3900,6 @@ Conclusion: ~6.3-6.4 positions is the practical ceiling for history-based grid p
 **Change (borrowed drivers only).** Pairing now prefers rows in THIS week's entered car (from entry_list), last 2 seasons, prior season x0.6, min 2 rows; falls back to current-season any-car blend, then raw-src as before. Stamp borrowMode 'pairing-first-car'. Chastain's car-matched rating ~108 (vs 91.6 blended) — expect low-to-mid-teens win pct on re-run, consistent with the +450 market. Blast radius: only names present in crossover_borrows.
 
 **Also noted:** borrow panel silently clamps blend weight to [0,1] — operator entered 2.0, stored 1.0. Board mv was null (no O'Reilly odds pasted at publish) so no market-anchor safety net on the bad price. Re-run required to take effect.
+
+
+**2026-08-03 addendum:** operator re-ran O'Reilly Iowa — Chastain FMV +658 (13.2%) post pairing-first-car, inside the predicted low-to-mid-teens window vs 365's +450 (~15-16% de-vigged). Model slightly longer than market on a public-name favorite = expected calibration posture; no flag. Fix verified live end-to-end.
