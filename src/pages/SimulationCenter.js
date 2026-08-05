@@ -829,20 +829,20 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
         let __pairMap = {}
         let __entCarMap = {}
         try {
-          if (Object.keys(__borrowMap).length) {
+          if ((entries || []).length) {
             // car-matched pairing (2026-08-03): multi-car ringers (e.g. Chastain JRM 9 vs JAR 32) must not
             // blend rides. Prefer rows in THIS week's entered car (last 2 seasons, prior season x0.6),
             // then current-season any-car, then raw-src fallback below.
-            ;(entries || []).forEach(en => { const __n2 = normalizeName((en.driver_name || '').trim()); if (__borrowMap[__n2] && en.car_number != null) __entCarMap[__n2] = String(en.car_number).trim() })
+            ;(entries || []).forEach(en => { const __n2 = normalizeName((en.driver_name || '').trim()); if (en.car_number != null) __entCarMap[__n2] = String(en.car_number).trim() })
             const __py = cfg.race_year || new Date().getFullYear()
             const { data: __prs } = await supabase.from('loop_data').select('driver_name, driver_rating, year, car_number').eq('series', s).in('year', [__py, __py - 1])
             ;(__prs || []).forEach(r => {
               const __pn = normalizeName((r.driver_name || '').trim())
-              if (!__borrowMap[__pn]) return
+              if (!__entCarMap[__pn]) return
               const __rt = parseFloat(r.driver_rating)
               if (isNaN(__rt)) return
               const __pm = (__pairMap[__pn] = __pairMap[__pn] || { cur: [], byCar: {} })
-              if (parseInt(r.year) === __py) __pm.cur.push(__rt)
+              if (parseInt(r.year) === __py) { __pm.cur.push(__rt); __pm.curN = (__pm.curN || 0) + 1 }
               const __cn = String(r.car_number == null ? '' : r.car_number).trim()
               if (__cn) (__pm.byCar[__cn] = __pm.byCar[__cn] || []).push({ rt: __rt, yr: parseInt(r.year) })
             })
@@ -935,17 +935,22 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
             const bw = __borrowMap[name]
             const __pmE = __pairMap[name]
             const __carNow = __entCarMap[name]
+            const __carRows = (__pmE && __carNow) ? (__pmE.byCar[__carNow] || []) : []
+            const __multiCar = __pmE ? Object.keys(__pmE.byCar).length >= 2 : false
+            const __partTime = __pmE ? ((__pmE.curN || 0) <= 15) : false
             let __pairRating = null
-            if (__pmE && __carNow && (__pmE.byCar[__carNow] || []).length >= 2) {
+            if (__carRows.length >= (bw ? 2 : 3) && (bw || (__multiCar && __partTime))) {
+              // car-auto-v1 (2026-08-03): part-time multi-car drivers rate from THIS week's car - no borrow entry needed
               const __py2 = cfg.race_year || new Date().getFullYear()
               let __wS = 0, __vS = 0
-              __pmE.byCar[__carNow].forEach(x => { const w2 = x.yr === __py2 ? 1 : 0.6; __wS += w2; __vS += x.rt * w2 })
+              __carRows.forEach(x => { const w2 = x.yr === __py2 ? 1 : 0.6; __wS += w2; __vS += x.rt * w2 })
               __pairRating = __vS / __wS
-            } else if (__pmE && __pmE.cur.length >= 2) {
+            } else if (bw && __pmE && __pmE.cur.length >= 2) {
               __pairRating = __pmE.cur.reduce((a, v) => a + v, 0) / __pmE.cur.length
             }
-            if (bw && __pairRating != null) {
-              avgRating = (avgRating == null) ? __pairRating : (1 - bw.w) * avgRating + bw.w * __pairRating
+            if (__pairRating != null) {
+              const __wB = bw ? bw.w : 1
+              avgRating = (avgRating == null) ? __pairRating : (1 - __wB) * avgRating + __wB * __pairRating
             } else if (bw) {
               const srcRows = rows.filter(r => r.sr === bw.src && r.rating !== null)
               if (srcRows.length) {
@@ -1036,20 +1041,26 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
           // .656 overall, finish-model t 22.3 vs 21.0 pooled (BACKTEST_LOG same date).
           const __cat = isSuperspeedway(cfg.track_name) ? 'SS' : (isRoadCourse(cfg.track_name) ? 'ROAD' : null)
           const __rowCat = tn => isSuperspeedway(tn) ? 'SS' : (isRoadCourse(tn) ? 'ROAD' : null)
-          const __phist = {}, __phistC = {}, __phistCar = {} // car-matched start history for borrowed multi-car ringers (2026-08-03)
+          const __phist = {}, __phistC = {}, __phistCar = {}, __phistCars = {}, __phistCurN = {} // car-auto-v1: car-matched start history for part-time multi-car drivers
+          const __entCarAll = {}
+          ;(entries || []).forEach(en => { if (en.car_number != null) __entCarAll[normalizeName((en.driver_name || '').trim())] = String(en.car_number).trim() })
           Object.keys(__pbr).map(Number).sort((a, b) => a - b).forEach(k => {
             const el = __pbr[k]; if (el.length < 15) return
             const rc = __rowCat(el[0].track_name)
             el.forEach(r => { const dn = normalizeName(r.driver_name); const v = r.start_position / el.length
               ;(__phist[dn] = __phist[dn] || []).push(v)
               if (__cat && rc === __cat) (__phistC[dn] = __phistC[dn] || []).push(v)
-              const __bc = __entCarMap[dn]
-              if (__bc && String(r.car_number == null ? '' : r.car_number).trim() === __bc) (__phistCar[dn] = __phistCar[dn] || []).push(v) })
+              const __cnP = String(r.car_number == null ? '' : r.car_number).trim()
+              if (__cnP) { (__phistCars[dn] = __phistCars[dn] || {})[__cnP] = 1 }
+              if (parseInt(r.year) === (cfg.race_year || new Date().getFullYear())) __phistCurN[dn] = (__phistCurN[dn] || 0) + 1
+              const __bc = __entCarAll[dn]
+              if (__bc && __cnP === __bc) (__phistCar[dn] = __phistCar[dn] || []).push(v) })
           })
           Object.keys(__phist).forEach(dn => {
             const cCar = __phistCar[dn] || []
+            const __mcP = Object.keys(__phistCars[dn] || {}).length >= 2 && (__phistCurN[dn] || 0) <= 15
             const cA = __cat ? (__phistC[dn] || []) : []
-            const a = (cCar.length >= 3) ? cCar : ((cA.length >= 3) ? cA : __phist[dn])
+            const a = (__mcP && cCar.length >= 3) ? cCar : ((cA.length >= 3) ? cA : __phist[dn])
             if (a.length >= 3) { const last = a.slice(-10); __projStart.set(dn, last.reduce((x, y) => x + y, 0) / last.length); __projStartH.set(dn, last) }
           })
         window.__pbStartDiag = { borrowKeys: Object.keys(__borrowMap), entCarMap: Object.assign({}, __entCarMap), entriesN: (entries || []).length, carHistLens: Object.keys(__phistCar).reduce((o, k) => { o[k] = __phistCar[k].length; return o }, {}), projN: __projStart.size }
@@ -1400,7 +1411,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
       race_year:  config.race_year || new Date().getFullYear(),
       race_number: raceNumMap[series] ? parseInt(raceNumMap[series]) : null,
       stage: simStage,
-      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'pairing-first-car', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06-fenced', domCurves: 'gxc-v3.1-dnfLL', domSpeed: 'mult-v1', startProj: 'trail10-v3.2-sampledPD-car', flagGuard: 'conf-v1', dnfModel: 'wreck-v1.1-cb', marketAnchor: 'v1.4-multimkt', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, startDiag: (window.__pbStartDiag || null), simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
+      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'car-auto-v1', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06-fenced', domCurves: 'gxc-v3.1-dnfLL', domSpeed: 'mult-v1', startProj: 'trail10-v3.3-carAuto', flagGuard: 'conf-v1', dnfModel: 'wreck-v1.1-cb', marketAnchor: 'v1.4-multimkt', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, startDiag: (window.__pbStartDiag || null), simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
       results: simResults.map(d => ({
         driver_name:  d.name,
         car_number:   d.carNumber,
