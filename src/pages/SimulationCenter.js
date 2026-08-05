@@ -1024,7 +1024,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
         const __projStartH = new Map()   // task #73: last-10 lists for per-sim start sampling
         try {
           const { data: __pstarts } = await supabase.from('loop_data')
-            .select('driver_name, start_position, year, race_number, track_name')
+            .select('driver_name, start_position, year, race_number, track_name, car_number')
             .eq('series', s).gte('year', 2025).not('start_position', 'is', null).limit(6000)
           const __pbr = {}
           ;(__pstarts || []).forEach(r => { const k = r.year * 100 + r.race_number; (__pbr[k] = __pbr[k] || []).push(r) })
@@ -1034,17 +1034,20 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
           // .656 overall, finish-model t 22.3 vs 21.0 pooled (BACKTEST_LOG same date).
           const __cat = isSuperspeedway(cfg.track_name) ? 'SS' : (isRoadCourse(cfg.track_name) ? 'ROAD' : null)
           const __rowCat = tn => isSuperspeedway(tn) ? 'SS' : (isRoadCourse(tn) ? 'ROAD' : null)
-          const __phist = {}, __phistC = {}
+          const __phist = {}, __phistC = {}, __phistCar = {} // car-matched start history for borrowed multi-car ringers (2026-08-03)
           Object.keys(__pbr).map(Number).sort((a, b) => a - b).forEach(k => {
             const el = __pbr[k]; if (el.length < 15) return
             const rc = __rowCat(el[0].track_name)
             el.forEach(r => { const dn = normalizeName(r.driver_name); const v = r.start_position / el.length
               ;(__phist[dn] = __phist[dn] || []).push(v)
-              if (__cat && rc === __cat) (__phistC[dn] = __phistC[dn] || []).push(v) })
+              if (__cat && rc === __cat) (__phistC[dn] = __phistC[dn] || []).push(v)
+              const __bc = __entCarMap[dn]
+              if (__bc && String(r.car_number == null ? '' : r.car_number).trim() === __bc) (__phistCar[dn] = __phistCar[dn] || []).push(v) })
           })
           Object.keys(__phist).forEach(dn => {
+            const cCar = __phistCar[dn] || []
             const cA = __cat ? (__phistC[dn] || []) : []
-            const a = (cA.length >= 3) ? cA : __phist[dn]
+            const a = (cCar.length >= 3) ? cCar : ((cA.length >= 3) ? cA : __phist[dn])
             if (a.length >= 3) { const last = a.slice(-10); __projStart.set(dn, last.reduce((x, y) => x + y, 0) / last.length); __projStartH.set(dn, last) }
           })
         } catch (e) { __projStart = new Map() }
@@ -1394,7 +1397,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
       race_year:  config.race_year || new Date().getFullYear(),
       race_number: raceNumMap[series] ? parseInt(raceNumMap[series]) : null,
       stage: simStage,
-      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'pairing-first-car', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06-fenced', domCurves: 'gxc-v3.1-dnfLL', domSpeed: 'mult-v1', startProj: 'trail10-v3.1-sampledPD', flagGuard: 'conf-v1', dnfModel: 'wreck-v1.1-cb', marketAnchor: 'v1.4-multimkt', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
+      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'pairing-first-car', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06-fenced', domCurves: 'gxc-v3.1-dnfLL', domSpeed: 'mult-v1', startProj: 'trail10-v3.2-sampledPD-car', flagGuard: 'conf-v1', dnfModel: 'wreck-v1.1-cb', marketAnchor: 'v1.4-multimkt', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
       results: simResults.map(d => ({
         driver_name:  d.name,
         car_number:   d.carNumber,
