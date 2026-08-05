@@ -3884,3 +3884,10 @@ Sanity: LL and FL each sum to exactly 350 (dnfLL allocation conserves the race).
 Flags: Larson win EV +23 vs HR only 10%+ flag. Single-book Monday caveat — watch-item until DK/FD post and re-run; real candidate only if it survives a multi-book anchor.
 
 Gates still open (need post-race): INT Brier N/A this week (SHORT track); Burton-tail vs observed and trail10-v3.1 pre-vs-post-quali delta get their first data points from this weekend.
+
+
+## 2026-08-03 — projected-start accuracy measured: trail10 is at the history-method ceiling (no change shipped)
+
+Operator asked whether start projections are accurate. Direct backtest, 338 races 2023+ (all three series, rank-vs-rank MAE among projection-eligible drivers): trail10 hybrid 6.36 positions overall (SHORT 6.19 / INT 6.35 / SS 6.98 / ROAD 6.02). Beats last-race-start baseline (7.51) everywhere; ties season-average at SHORT/INT; the shipped SS/ROAD conditioning earns its keep exactly there (SS 6.98 vs 7.42 unconditioned, ROAD 6.02 vs 6.43). Rear-start-penalty filtering variant (drop history entries pctile>0.72 when trailing median<0.45, 3.6% of entries) improves ALL by only 0.02 positions — NOT shipped, negligible.
+
+Conclusion: ~6.3-6.4 positions is the practical ceiling for history-based grid projection; the residual is qualifying's own noise. This is precisely the error bar #73 sampling was built for (sampled grids reproduce the actual-grid favorite-gap profile, 14.8 vs 19.1) — the point estimate is mediocre BY NATURE, the distribution around it is honest, and the sim consumes the distribution. Only new information (practice speed) beats it, and the practice-to-quali window is minutes on modern schedules — not worth building. Question considered answered pending the routine live pre-vs-post-quali delta at Iowa.
