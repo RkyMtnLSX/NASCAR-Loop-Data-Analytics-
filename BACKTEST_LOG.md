@@ -3903,3 +3903,6 @@ Conclusion: ~6.3-6.4 positions is the practical ceiling for history-based grid p
 
 
 **2026-08-03 addendum:** operator re-ran O'Reilly Iowa — Chastain FMV +658 (13.2%) post pairing-first-car, inside the predicted low-to-mid-teens window vs 365's +450 (~15-16% de-vigged). Model slightly longer than market on a public-name favorite = expected calibration posture; no flag. Fix verified live end-to-end.
+
+
+**2026-08-03 (UI):** Sim results pages (all three series) now show a stage badge on the published board — yellow 'Pre-Practice/Quali (projected grid)' vs green 'Post-Practice/Quali' — from the stored stage field (a29746a0). Operator request; subscribers can now tell projected-grid boards from real-grid boards at a glance.
