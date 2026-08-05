@@ -3906,3 +3906,8 @@ Conclusion: ~6.3-6.4 positions is the practical ceiling for history-based grid p
 
 
 **2026-08-03 (UI):** Sim results pages (all three series) now show a stage badge on the published board — yellow 'Pre-Practice/Quali (projected grid)' vs green 'Post-Practice/Quali' — from the stored stage field (a29746a0). Operator request; subscribers can now tell projected-grid boards from real-grid boards at a glance.
+
+
+## 2026-08-03 — SHIPPED trail10-v3.2-sampledPD-car: start projection car-matched for ringers (37bcd5ec)
+
+Second limb of the multi-car ringer disease: Chastain projected P17 on the O'Reilly Iowa grid because trailing-10 blended JRM #9 qualifying (avg P9-10: 8/9/1/14 in 2026) with JAR #32 (avg P24: 30/21/29/15) and a P38 Martinsville outlier in a third car. Fix mirrors pairing-first-car exactly: the start-projection history now prefers rows in THIS week's entered car (>=3 rows since 2025) for drivers in crossover_borrows; falls back to category-conditioned then pooled history unchanged. Car-matched, he projects ~P9 — what a JRM 9 actually does. Per-sim sampling (#73) inherits the car-matched history list automatically, so his sampled grid distribution tightens to the correct car too. Blast radius: borrowed drivers only; regular drivers and post-quali real grids untouched. Stamp startProj 'trail10-v3.2-sampledPD-car'. Re-run needed.
