@@ -3933,3 +3933,8 @@ Expected on re-run: Chastain rating ~108 car-matched + projected start ~P3 (car-
 
 
 **2026-08-03 observation (no action):** Pre-practice O'Reilly board with HR odds pasted: market anchor lifted Chastain 11.0 -> 20.2% and Crews -> 16.2% (fills for empty practice slots draw from win-odds pctile; top-2 market rank fills near ceiling). 20.2% exceeds de-vigged market ~15-16% — possible anchor overshoot for extreme favorites on pre-practice boards. Flag guard correctly suppressed (mev -32, no circular flag). By doctrine (anecdote-not-benchmark) NOT retuned; logged as measurable watch item: test across accruing pre-practice boards whether anchored favorites systematically price above de-vigged market; if so, shade the fill mapping. Self-corrects post-practice when real laps replace fills.
+
+
+## 2026-08-03 — SHIPPED trail10-v3.4-eqStart: equipment-start fallback (36a16e48, operator-directed)
+
+Drivers with no usable loop history (Carson Brown #32, Derek Lemke #91, Tyler Tomassi #53 at Iowa) had NO projected start — null startPos, excluded from grid sampling. Operator's call: fall back on the equipment — the car number's series grid history under ANY driver. Implementation: projection block now also aggregates start pctiles per car number (2025+); entered drivers missing a projection after all driver-history paths get the car's last-10 grid history (>=3 rows required). Per-sim start sampling inherits the car's distribution — appropriate spread for an unknown driver in known equipment. Chain is now: own car-matched (part-time multi-car) -> own category-conditioned -> own pooled -> CAR's history -> null (truly new car+driver). Stamp startProj 'trail10-v3.4-eqStart'. Re-run picks it up.
