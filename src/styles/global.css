@@ -296,3 +296,17 @@ select option { background-color: #181b22; color: #e6e6e6; }
 
 /* Bare selects/inputs get the dark theme (styled ones override inline) */
 select, input:not([type="file"]):not([type="checkbox"]):not([type="radio"]) { background-color: #1a1a24; color: #e6e6e6; border: 1px solid var(--border, #333); border-radius: 4px; }
+
+
+/* ============================================================
+   Scroll affordance (2026-08-03): wide data tables were silently
+   clipped on Windows (overlay scrollbars invisible until hover).
+   Permanently visible, high-contrast scrollbars site-wide.
+   ============================================================ */
+::-webkit-scrollbar { height: 12px; width: 12px; }
+::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); border-radius: 6px; }
+::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 6px; border: 2px solid rgba(0,0,0,0.4); }
+::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+::-webkit-scrollbar-corner { background: transparent; }
+/* Firefox */
+* { scrollbar-width: auto; scrollbar-color: #4b5563 rgba(255,255,255,0.06); }
