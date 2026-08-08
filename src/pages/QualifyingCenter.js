@@ -584,23 +584,23 @@ export default function QualifyingCenter({ isSubscriber }) {
                 <tr>
                   <th style={Object.assign({}, thStyle, { textAlign: 'center', width: 36 })}>#</th>
                   <th onClick={function() { handleSort('name') }} style={Object.assign({}, thStyle, { textAlign: 'left', paddingLeft: 14, minWidth: 170, position: 'sticky', left: 0, zIndex: 2, cursor: 'pointer', background: 'var(--bg-surface)', borderRight: '2px solid var(--border)', boxShadow: '4px 0 8px -2px rgba(0,0,0,0.6)' })}>Driver{sortArrow('name')}</th>
-                  {hasDrawOrder && <th onClick={function() { handleSort('drawOrder') }} style={Object.assign({}, thStyle, { color: '#f59e0b', cursor: 'pointer', minWidth: 120 })}>Qualifying Order{sortArrow('drawOrder')}</th>}
-                  <th onClick={function() { handleSort('trackAvg') }} style={Object.assign({}, thStyle, { minWidth: 72, color: 'var(--accent)', cursor: 'pointer' })}>
+                  {hasDrawOrder && <th onClick={function() { handleSort('drawOrder') }} style={Object.assign({}, thStyle, { cursor: 'pointer', minWidth: 120, color: sortBy === 'drawOrder' ? 'var(--accent)' : 'var(--text-secondary)' })}>Qualifying Order{sortArrow('drawOrder')}</th>}
+                  <th onClick={function() { handleSort('trackAvg') }} style={Object.assign({}, thStyle, { minWidth: 72, cursor: 'pointer', color: sortBy === 'trackAvg' ? 'var(--accent)' : 'var(--text-secondary)' })}>
                     Avg{sortArrow('trackAvg')}<br /><span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>{trackAbbr(config.track_name)}</span>
                   </th>
                   {histCols.length > 0 && (
-                    <th colSpan={histCols.length} style={Object.assign({}, thStyle, { borderLeft: '2px solid rgba(99,102,241,0.3)', color: 'var(--accent)', opacity: 0.7 })}>
+                    <th colSpan={histCols.length} style={Object.assign({}, thStyle, { borderLeft: '2px solid var(--border)', color: 'var(--text-secondary)' })}>
                       {config.track_name.split(' ').slice(0, 2).join(' ')} History
                     </th>
                   )}
                   {showCorrAvgCol && (
-                    <th onClick={function() { handleSort('corrYearAvg') }} style={Object.assign({}, thStyle, { borderLeft: '2px solid rgba(99,102,241,0.5)', color: '#a78bfa', cursor: 'pointer' })}>
+                    <th onClick={function() { handleSort('corrYearAvg') }} style={Object.assign({}, thStyle, { borderLeft: '2px solid var(--border)', cursor: 'pointer', color: sortBy === 'corrYearAvg' ? 'var(--accent)' : 'var(--text-secondary)' })}>
                       {show2025 ? '2026/2025' : '2026'}<br />Avg{sortArrow('corrYearAvg')}
                     </th>
                   )}
                   {featuredCurrYear.map(function(col) {
                     var pk = col.pk
-                    return <th key={col.key} onClick={function() { handleSort(pk) }} style={Object.assign({}, thStyle, { borderLeft: '2px solid rgba(99,102,241,0.5)', color: 'var(--accent)', cursor: 'pointer' })}>{col.label}{sortArrow(pk)}</th>
+                    return <th key={col.key} onClick={function() { handleSort(pk) }} style={Object.assign({}, thStyle, { borderLeft: '2px solid var(--border)', cursor: 'pointer', color: sortBy === pk ? 'var(--accent)' : 'var(--text-secondary)' })}>{col.label}{sortArrow(pk)}</th>
                   })}
                   {corrCols.length > 0 && (
                     <th colSpan={corrCols.length} style={Object.assign({}, thStyle, { borderLeft: '2px solid var(--border)', color: 'var(--text-secondary)' })}>
@@ -647,7 +647,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                         {row.org && <div style={{ fontSize: '0.77rem', color: 'var(--text-muted)', fontWeight: 400 }}>{row.org}</div>}
                       </td>
                       {hasDrawOrder && (
-                        <td style={Object.assign({}, tdBase, { color: row.drawOrder != null ? '#f59e0b' : 'var(--text-muted)', fontWeight: row.drawOrder != null ? 700 : 400, minWidth: 120 })}>
+                        <td style={Object.assign({}, tdBase, { color: row.drawOrder != null ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: row.drawOrder != null ? 700 : 400, minWidth: 120 })}>
                           {row.drawOrder != null ? row.drawOrder : '–'}
                         </td>
                       )}
@@ -730,7 +730,7 @@ export default function QualifyingCenter({ isSubscriber }) {
               <p style={{ fontSize: '0.94rem', color: 'var(--text-muted)', marginBottom: 16, lineHeight: 1.6 }}>
                 Monte Carlo simulation (2,000 runs) using historical qualifying positions.
                 {simCorrYears.length > 0 && (
-                  <span style={{ color: '#f59e0b' }}> Using {simCorrYears.join(', ')} data.</span>
+                  <span style={{ color: 'var(--text-secondary)' }}> Using {simCorrYears.join(', ')} data.</span>
                 )}
                 <span style={{ color: '#94a3b8', marginLeft: 4 }}>{QUAL_FORMAT_LABELS[fmt].label} · floor: {nudgeVal}</span>
               </p>
