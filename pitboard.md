@@ -1864,3 +1864,17 @@ Spreadsheet uploads mark DNQ in the START column: excelParser maps DNQ/DNS/WD ->
   from same-day practice->race slates, common for oreilly but not universal. Iowa Cup counter-
   example: practice/quali ended Saturday, race 1pm Sunday - that post market hangs overnight
   and IS CLV-informative. Judge each board by window length, not by series.
+
+## 2026-08-08 - clv_log pre/post erasure: root cause, fix, reconstruction (commit dff09fdd)
+- ROOT CAUSE: Grade Center "Log to season" deleted ALL clv_log rows for series+year+race_number
+  before inserting - no stage scoping, and clv_log had no stage column. Logging post after pre
+  erased the pre set. Operator caught it ("i feel like it erases one of them") - correct.
+- FIX: stage column added (operator ran SQL); delete now stage-scoped; inserts carry stage.
+- DAMAGE + RECONSTRUCTION: cup-22 pre (23 bets) was erased; rebuilt from flagged_bets (bet odds)
+  x odds_snapshots race-morning capture (close odds), same (close_implied - bet_implied)*100
+  formula: avg -0.33, 7/23 positive. trucks-16 post (14) and oreilly-22 post (9) also inserted -
+  all 0.0 CLV (structural short-window zeros, see addendum above). Reconstructed rows carry
+  2026-08-08 captured_at. Legacy null stages backfilled by flag-count match: cup-22 post,
+  trucks-16 pre, oreilly-22 pre, oreilly-23 pre; trucks-15 and cup-21 left null (pre-stage-
+  tracking era, no unvoided flag sets to match).
+- Ledger after repair: 172 rows, season avg CLV +0.67.
