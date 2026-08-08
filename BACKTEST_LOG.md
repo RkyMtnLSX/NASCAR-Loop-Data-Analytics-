@@ -4014,3 +4014,29 @@ Also removed: stale "V5 WEIGHTS" header in practiceGrader.js (longRunPace .50/sh
 .15/consistency .10/bestLap .10) - dead doc describing a formula that never survived 7/4; it nearly
 caused an unvalidated "fix" this session. The log outranks code comments.
 Grades are computed at upload: stored grades unchanged until sessions are re-uploaded.
+
+### GRADE FORMULA -> v6-tc: tire-corrected ranked metrics (commit 1fec32de, 2026-08-08)
+Trigger: Gilliland A+/100 over Blaney at Iowa Cup - 44 laps in 10-15 lap sticker bursts (2 tire
+sets allocated, operator confirmed set change) out-averaging Blaney 91-lap grind incl. 30-lap
+runs at 24.05. Same mechanism as Sieg case same day: per-lap averages subsidize fresh tires.
+FIX SHIPPED: per session, fit field-wide falloff slope beta (s per lap-on-tires) by pooled
+within-stint demeaned regression on clean laps (x = lap-in-stint capped 40, stint >= 4 clean);
+normalize every clean lap to lap-5 tire age (t - beta*(idx-5)); recompute all five ranked
+inputs (avgPaceTC/best5TC/bestLapTC/overallTC/longRunTC) on corrected laps. Composite weights
+unchanged (.40/.40/.20, missing longRun -> 25). gc group correction retargeted to TC keys.
+STORED + DISPLAY metrics stay raw (same doctrine as gc: correct the ranked copy only).
+BACKTEST (38 races w/ lap-level data in practice_laps, final session per race, ranked within
+practice_group, finishes from loop_data; baseline = identical pipeline with beta=0 = v5-lr20):
+- winner mean grade rank: 7.32 -> 6.24
+- top5 finishers mean rank: 10.07 -> 8.91
+- grade-top5 hitting finish-top5: 1.84 -> 2.11 per race
+- full-field Spearman: .436 -> .454
+- per-race W/L: winner rank W17/L10/T11; rho W25/L13 (sign test p ~ .04)
+- median fitted beta 0.035 s/lap (physically sensible)
+Wins every metric simultaneously - largest grader improvement on record. Iowa sanity: Cup ->
+Gibbs 1 / Blaney 2 / Gilliland 3 / Bell 4; Oreilly -> Chastain 1 (30-lap runs finally priced),
+Love 2, K.Sieg 7 -> 11.
+LIMITATION: lap-in-stint is a tire-age PROXY - a stint break resets age even if tires kept;
+with 2-set allocations the reset usually matches a set change. Track-evolution correction
+(needs the new per-lap timestamps) remains queued separately and stacks on top later.
+Grades computed at upload: re-upload a session sheet to regrade it under v6-tc.
