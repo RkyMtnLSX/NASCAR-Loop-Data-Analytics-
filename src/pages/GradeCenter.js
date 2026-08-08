@@ -142,8 +142,11 @@ function ClvPanel({ series, stage }) {
   async function logSeason(){
     if(!sim||!rows)return; const graded=rows.filter(x=>x.clv!=null);
     if(!graded.length){ setMsg('Nothing to log.'); return; }
-    await supabase.from('clv_log').delete().eq('series',sim.series).eq('race_year',sim.race_year).eq('race_number',sim.race_number);
-    const ins=graded.map(x=>({ series:sim.series, race_year:sim.race_year, race_number:sim.race_number, track_name:sim.track_name, driver_name:x.driver, market:x.mk, sim_prob:x.simProb, bet_odds:x.betOdds, close_odds:x.closeOdds, bet_implied:__impl(x.betOdds), close_implied:__impl(x.closeOdds), clv:x.clv, edge_at_bet:x.ev }));
+    // stage-scoped replace (2026-08-08): pre and post are SEPARATE bet sets - logging one
+    // must never erase the other (operator caught pre rows vanishing after post log)
+    const delQ = supabase.from('clv_log').delete().eq('series',sim.series).eq('race_year',sim.race_year).eq('race_number',sim.race_number)
+    await (sim.stage ? delQ.eq('stage', sim.stage) : delQ.is('stage', null));
+    const ins=graded.map(x=>({ series:sim.series, race_year:sim.race_year, race_number:sim.race_number, stage:sim.stage||null, track_name:sim.track_name, driver_name:x.driver, market:x.mk, sim_prob:x.simProb, bet_odds:x.betOdds, close_odds:x.closeOdds, bet_implied:__impl(x.betOdds), close_implied:__impl(x.closeOdds), clv:x.clv, edge_at_bet:x.ev }));
     const { error } = await supabase.from('clv_log').insert(ins);
     setMsg(error?('Log error: '+error.message):('Logged '+ins.length+' bets to season CLV.'));
     loadSeason();
