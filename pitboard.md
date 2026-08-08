@@ -1890,3 +1890,12 @@ Spreadsheet uploads mark DNQ in the START column: excelParser maps DNQ/DNS/WD ->
   shipping anything. Data exists: practice_laps table has lap-level rows for stored sessions.
 - Priority: ahead of track-evolution correction (that one needs new timestamped data to accrue;
   this one is backtestable today). NOT race-weekend work - queued for the week.
+
+## 2026-08-08 - Grader v6-tc SHIPPED (commits 1fec32de, 22de7d39) - supersedes queued item
+- Tire-corrected pace shipped same night it was queued: backtest won decisively (winner rank
+  7.32->6.24, rho .436->.454 W25/L13, all metrics improve; BACKTEST_LOG entry). Ranked inputs
+  corrected, stored/display raw, weights unchanged, gc on TC keys. Re-upload Iowa sheets to
+  regrade under v6-tc.
+- Also found: sheet builder renumbers laps sequentially which would DESTROY stint detection if
+  its output were uploaded (operator manual sheets preserve lap-position gaps - that is why
+  stints work). FIX QUEUED for sheet builder: preserve original lap indices.
