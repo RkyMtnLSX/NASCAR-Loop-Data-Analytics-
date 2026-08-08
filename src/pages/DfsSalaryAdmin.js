@@ -34,6 +34,9 @@ export default function DfsSalaryAdmin() {
   const [paste, setPaste] = useState('')
   const [msg, setMsg] = useState('')
   const [saveMsg, setSaveMsg] = useState('')
+  const [ownPaste, setOwnPaste] = useState('')
+  const [ownType, setOwnType] = useState('gpp')
+  const [ownMsg, setOwnMsg] = useState('')
 
   useEffect(() => {
     let alive = true
@@ -59,6 +62,48 @@ export default function DfsSalaryAdmin() {
 
   const salCount = Object.values(salaries).filter(v => v > 0).length
   const setSal = (name, val) => setSalaries(s => ({ ...s, [name]: val === '' ? 0 : Math.round(+val) || 0 }))
+  // ── Ownership ingest (2026-08-08): DK contest-standings CSV carries a player
+  // block with %Drafted. One row per driver per contest type per race.
+  const parseOwnership = (text) => {
+    const byNorm = {}
+    drivers.forEach(d => { byNorm[norm(d.name)] = d.name })
+    const found = {}
+    ;(text || '').split(/\r?\n/).forEach(line => {
+      const cells = line.split(',').map(c => c.trim())
+      let name = null, pct = null
+      for (const cell of cells) {
+        const pm = cell.match(/^(\d+(?:\.\d+)?)%$/)
+        if (pm) { pct = parseFloat(pm[1]); continue }
+        const nc = norm(cell)
+        if (byNorm[nc]) name = byNorm[nc]
+      }
+      if (name && pct != null && pct >= 0 && pct <= 100) found[name] = pct
+    })
+    return found
+  }
+  const doOwnIngest = async (text) => {
+    const found = parseOwnership(text)
+    const n = Object.keys(found).length
+    if (!n) { setOwnMsg('No driver ownership rows recognized in that paste/file.'); return }
+    const rows2 = Object.keys(found).map(name => ({
+      series, race_year: race && race.year, race_number: race && race.rn,
+      track_name: race && race.track, driver_name: name,
+      own_pct: found[name], contest_type: ownType,
+    }))
+    const { error } = await supabase.from('dfs_ownership')
+      .upsert(rows2, { onConflict: 'series,race_year,race_number,driver_name,contest_type' })
+    setOwnMsg(error
+      ? 'Save failed: ' + error.message + (error.message.includes('does not exist') ? ' - run dfs_ownership_schema.sql in Supabase first.' : '')
+      : 'Saved ownership for ' + n + ' drivers (' + ownType.toUpperCase() + ').')
+  }
+  const doOwnFile = (e) => {
+    const file = e.target.files && e.target.files[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => { setOwnPaste(String(ev.target.result || '')); doOwnIngest(String(ev.target.result || '')) }
+    reader.readAsText(file)
+    e.target.value = ''
+  }
   const doFile = (e) => {
     const file = e.target.files && e.target.files[0]
     if (!file) return
@@ -150,6 +195,28 @@ export default function DfsSalaryAdmin() {
               })}
             </tbody>
           </table>
+        </div>
+
+        <div style={{ marginTop: 26, paddingTop: 16, borderTop: '1px solid var(--border,#2a2d34)' }}>
+          <h3 style={{ margin: '0 0 4px', fontSize: 16 }}>Ownership (post-contest)</h3>
+          <div style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 13, marginBottom: 10 }}>
+            After the race, export the DK contest standings CSV (it contains %Drafted per driver) and upload it here.
+            This builds the ground-truth table the ownership-projection model will train on.
+          </div>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
+            <select value={ownType} onChange={e => setOwnType(e.target.value)} style={{ ...inp, padding: '6px 10px' }}>
+              <option value="gpp">GPP / Tournament</option>
+              <option value="cash">Cash / 50-50</option>
+            </select>
+            <label style={{ padding: '6px 14px', borderRadius: 8, cursor: 'pointer', border: '1px solid #e8b923', background: 'transparent', color: '#e8b923', fontWeight: 600 }}>
+              Upload contest standings CSV
+              <input type="file" accept=".csv,text/csv" onChange={doOwnFile} style={{ display: 'none' }} />
+            </label>
+            <button onClick={() => doOwnIngest(ownPaste)} style={{ padding: '6px 14px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: 'transparent', color: 'var(--text,#e8eaed)' }}>Import from paste</button>
+            {ownMsg && <span style={{ color: ownMsg.includes('failed') || ownMsg.includes('No driver') ? '#ef4444' : '#22c55e', fontSize: 13 }}>{ownMsg}</span>}
+          </div>
+          <textarea value={ownPaste} onChange={e => setOwnPaste(e.target.value)} placeholder="Or paste the contest standings CSV text here\u2026"
+            style={{ width: '100%', minHeight: 60, ...inp, fontFamily: 'monospace', fontSize: 12 }} />
         </div>
       </>}
     </div>
