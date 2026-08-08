@@ -224,9 +224,9 @@ export default function PitCrewRankings() {
         return (
           <div style={{ margin: '0 0 18px', padding: '14px 18px', background: 'var(--bg-surface)', border: '1px solid var(--accent)', borderRadius: 8, maxWidth: 560 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <strong>#{A.car} {A.org || ''}</strong>
+              <strong style={{ display: 'flex', alignItems: 'center', gap: 4 }}><CarNum car={A.car} series={series} />{A.org || ''}</strong>
               <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>vs</span>
-              <strong>#{B.car} {B.org || ''}</strong>
+              <strong style={{ display: 'flex', alignItems: 'center', gap: 4 }}><CarNum car={B.car} series={series} />{B.org || ''}</strong>
             </div>
             <div style={{ textAlign: 'center', marginBottom: 8, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
               Race-by-race median head-to-head: <strong style={{ color: aw > bw ? '#22c55e' : 'var(--text-primary)' }}>{aw}</strong>
