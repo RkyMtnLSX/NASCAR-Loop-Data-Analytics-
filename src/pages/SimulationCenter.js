@@ -382,7 +382,7 @@ function buildSpeedScores(drivers, weights) {
     const __thinD = ((d.nCorrRaces || 0) < 5) && d.practiceScore == null // v1.1: thin = same def as the EDGE gate // MARKET ANCHOR 2026-07-22: de-vigged win-odds pctile replaces neutral as the ignorance fill (salary-proxy backtest: MAE .204 vs .282, level miss 24pts — BACKTEST_LOG)
     const __eqFill = __eqS != null ? __eqS * __eqConf + __mkA * (1 - __eqConf) : __mkA
     let c = rawC * conf + __eqFill * (1 - conf)
-    if (conf >= 1 && __eqS != null && __eqM != null && d.modalCar && d.carNumber && String(d.carNumber).trim() !== d.modalCar) {
+    if (conf >= 1 && !d.__carMatched && __eqS != null && __eqM != null && d.modalCar && d.carNumber && String(d.carNumber).trim() !== d.modalCar) { // car-auto-v2: delta skipped when rating already car-matched (double-count guard)
       const __dConf = Math.min(1, Math.min(d.nEquipRaces, d.nModalEquip) / 4)
       c = Math.max(0, Math.min(100, c + 0.25 * __dConf * __eqScl * (__eqS - __eqM)))
     }
@@ -938,7 +938,9 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
             const __carRows = (__pmE && __carNow) ? (__pmE.byCar[__carNow] || []) : []
             const __multiCar = __pmE ? Object.keys(__pmE.byCar).length >= 2 : false
             let __pairRating = null
+            let __carMatchedF = false
             if (__carRows.length >= (bw ? 2 : 3) && (bw || __multiCar)) {
+              __carMatchedF = true
               // car-auto-v1 (2026-08-03): part-time multi-car drivers rate from THIS week's car - no borrow entry needed
               const __py2 = cfg.race_year || new Date().getFullYear()
               let __wS = 0, __vS = 0
@@ -962,7 +964,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
             baseRows.forEach(r => { if (r.sr === s && r.car) carCnt[r.car] = (carCnt[r.car] || 0) + 1 })
             let modalCar = null, modalCarN = 0
             Object.keys(carCnt).forEach(cn => { if (carCnt[cn] > modalCarN) { modalCar = cn; modalCarN = carCnt[cn] } })
-            return [name, { avg: avgFin, avgRating, winConv, n: baseRows.length, modalCar }]
+            return [name, { avg: avgFin, avgRating, winConv, n: baseRows.length, modalCar, carMatched: __carMatchedF }]
           })
         )
 
@@ -1100,6 +1102,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
               corrAvgFinish: corrAvgMap.get(normalizeName(name))?.avg       ?? null,
               corrAvgRating: corrAvgMap.get(normalizeName(name))?.avgRating ?? null,
               corrWinConv:   corrAvgMap.get(normalizeName(name))?.winConv   ?? null,
+              __carMatched:  corrAvgMap.get(normalizeName(name))?.carMatched || false,
               equipRating:   e.car_number ? (carAvgMap.get(String(e.car_number).trim())?.avgRating ?? null) : null,
               nEquipRaces:   e.car_number ? (carAvgMap.get(String(e.car_number).trim())?.n ?? 0) : 0,
               modalCar:      corrAvgMap.get(normalizeName(name))?.modalCar ?? null,
@@ -1714,7 +1717,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
                       )}
                       {rideRows.length > 0 && (
                         <div>
-                          <div style={{ color: 'var(--text-muted)', marginBottom: 2 }}>Ride change (quarter-strength delta):</div>
+                          <div style={{ color: 'var(--text-muted)', marginBottom: 2 }}>Ride change (quarter-strength delta \u00b7 auto-skipped for car-matched drivers):</div>
                           {rideRows.map(d => (
                             <div key={d.name} style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                               <span style={{ minWidth: 170 }}>{d.name}</span>
