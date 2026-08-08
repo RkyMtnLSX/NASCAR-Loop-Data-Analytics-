@@ -3984,3 +3984,33 @@ dfs_ownership table created (operator ran dfs_ownership_schema.sql — select po
 **Tier-2 validation (operator's independent lap source, O'Reilly Iowa practice, 1,503 truth laps):** watcher TIMES are exact — measured laps match at the 0.01s level for all alignment-clean drivers; best laps 37/37 (the one 'mismatch' was the truth sheet's own rounding: Poole 24.5 vs our 24.48). Reconstructed (est=1) laps: median error 0.004s on steady runs; big misses only on pit-spanning gaps. The 304 missing laps scatter across the entire v3 era (episodic cup-feed poisoning), confirming the v4 root-cause diagnosis; v4's stretch shows no holes. Six backmarkers 'misalign' vs the third-party sheet purely by numbering convention (feed counts garage sits as laps; 57 laps >300s in capture) — filter >60s before computing metrics. VERDICT: v4 certified.
 
 **New tool: pitboard_practice_sheet.py + MAKE_PRACTICE_SHEET.bat (cockpit).** Converts any watcher capture into the operator's upload-sheet format (POS/Driver/AVG LAP/LAP 1..N): flying-laps-only (>1.5x driver median dropped), sequential renumbering, sorted by avg; xlsx via openpyxl or csv fallback. Validated against the manual O'Reilly sheet: 37/37 drivers, median AVG-LAP diff 0.017s (worst 0.46s = Love, v3-era coverage holes). Ritual: after each practice, run the bat -> upload the SHEET file.
+
+### GRADE FORMULA -> v5-lr20: pace .40 / speed .40 / longRun .20 (commit 6a5dc1c5, 2026-08-08)
+Trigger: operator flagged Kyle Sieg graded 95/P2 on Iowa O-Reilly card with stored long_run 25.098
+vs Jesse Love 24.647 (~0.45s off) - "cars with no long run speed rarely win."
+NEW QUESTION, not a re-litigation: all prior grader backtests scored FULL-FIELD Spearman. Operator
+doctrine stated 2026-08-08: the card is a user-facing eyeball tool for betting decisions and does
+NOT feed the sim - so the right metric is winner/top-5 identification, never previously tested.
+Backtest: 41 races, all 3 series 2026, final session per race, rank-scaled within practice_group,
+finish joined from loop_data. Clean sample = 33 races with >=30% long_run coverage (column only
+stored since 7/4; all-null races are neutral ties, low-coverage early races excluded).
+Variants (missing longRun -> 50 neutral unless noted):
+- CURRENT pace.50/speed.50:           winner mean rank 7.66, top5 10.60, hits 1.81, rho .444
+- pace.40/speed.40/LR.20 neutral:     winner 7.32, top5 10.36, hits 1.85, rho .446
+- pace.35/speed.35/LR.30 neutral:     winner 7.56, top5 10.28, hits 1.98, rho .442
+- LR.50/speed.50 (replace pace half): winner 8.66 - WORSE, reconfirms 7/4 rejection of LR-as-pace
+- **pace.40/speed.40/LR.20 missing->25 PENALTY: winner 7.32, top5 10.24, hits 1.95, rho .450 <- SHIPPED**
+Clean-sample head-to-head vs current: winner rank 7.71->7.32, W13/L6/T12 (p~.08); full-field rho
+.441->.447 (W18/L13). Directional, NOT significant - shipped anyway because: (1) display-only blast
+radius (sim reads raw overall_avg/best5; practice_score only NULL-checked by the 7/22 EDGE gate -
+verified in code this session); (2) wins or ties every metric including the old full-field one;
+(3) penalty variant beat neutral, confirming the domain prior. Iowa spot check: Sieg 95.8->79.2
+(P2->P7), Love stays P1, Chastain ~80.6 unchanged.
+NOT SHIPPED TO SIM: this backtest scored the grade composite alone and says nothing about sim
+calibration. Precedent: 7/4 sim A/B rejected avg_pace input (favorite gap +4.2 -> +9.2) - a metric
+that helps the grade can hurt sim calibration. QUEUED: proper sim A/B (long-run-blended practice
+input vs current, finish MAE + favorite calibration) after wreck-model gates grade.
+Also removed: stale "V5 WEIGHTS" header in practiceGrader.js (longRunPace .50/shortRun .15/falloff
+.15/consistency .10/bestLap .10) - dead doc describing a formula that never survived 7/4; it nearly
+caused an unvalidated "fix" this session. The log outranks code comments.
+Grades are computed at upload: stored grades unchanged until sessions are re-uploaded.
