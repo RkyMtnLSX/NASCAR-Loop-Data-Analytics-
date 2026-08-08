@@ -1852,3 +1852,11 @@ Spreadsheet uploads mark DNQ in the START column: excelParser maps DNQ/DNS/WD ->
   picking (post-quali bat run grabbed the 2-lap quali file); flying-lap filter tightened
   1.5x -> 1.2x median (32s pit-in laps leaked into AVG, Kes/Bell); watcher now writes per-lap
   discovery timestamps (captured_at was file-write time - track-evolution work needs real ones).
+
+## 2026-08-08 - CLV discipline addendum (operator note)
+- Oreilly/xfinity POST-practice markets often hang only ~2 hours before close: bet line == close
+  line structurally, CLV 0.0 regardless of bet quality. These rows are CLV-UNINFORMATIVE, not
+  CLV-neutral evidence. Exclude them when reading the season CLV average; grade that segment on
+  hit rate vs implied only. #69 threshold sweep should weight Cup + pre-sim flags where the
+  market has time to move. Corollary: in no-reprice windows there is no cost to betting as soon
+  as a flag qualifies - the close will never validate, only results.
