@@ -1911,3 +1911,9 @@ Spreadsheet uploads mark DNQ in the START column: excelParser maps DNQ/DNS/WD ->
   validation target (driver rating) adopted for future grader tests. Re-upload Iowa sheets:
   Cup card becomes Blaney 1st. Queued: .5/.3/.2 reweight re-test at ~150 races; gated tire-
   management display column (earned by 15+ lap run, dash otherwise); evolution term; sim A/B.
+
+## 2026-08-08 - Grader v6.2 shipped (commit db25d6f2)
+- Speed half = RAW best5 (operator proposal): corrected laps barred from the speed half; pace
+  and long-run stay tire-corrected. 97-race tie-or-better on every metric (BACKTEST_LOG).
+  Personal-slope correction tested and REJECTED (W39/L53); cap sweep monotone toward A=40.
+  Re-upload Iowa sheets: Oreilly card -> Love 1st, Chastain 4th; Cup -> Blaney 1st holds.
