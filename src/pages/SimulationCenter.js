@@ -711,6 +711,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
   const [sortDir, setSortDir]               = useState('desc')
   const [showBreakdown, setShowBreakdown]   = useState(false)
   const [published,     setPublished]       = useState(false)
+  const [runNote, setRunNote] = useState('') // operator note stored with published board (2026-08-08)
   const [oddsWinTxt, setOddsWinTxt] = useState('')
   const [oddsT10Txt, setOddsT10Txt] = useState('')
   const [oddsFdTxt, setOddsFdTxt] = useState('')
@@ -1421,7 +1422,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
       race_year:  config.race_year || new Date().getFullYear(),
       race_number: raceNumMap[series] ? parseInt(raceNumMap[series]) : null,
       stage: simStage,
-      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'car-auto-v2', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06-fenced', domCurves: 'gxc-v3.1-dnfLL', domSpeed: 'mult-v1', startProj: 'trail10-v3.5-eqStart', flagGuard: 'conf-v1', dnfModel: 'wreck-v1.1-cb', marketAnchor: 'v1.4-multimkt', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
+      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'car-auto-v2', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06-fenced', domCurves: 'gxc-v3.1-dnfLL', domSpeed: 'mult-v1', startProj: 'trail10-v3.5-eqStart', flagGuard: 'conf-v1', dnfModel: 'wreck-v1.1-cb', marketAnchor: 'v1.4-multimkt', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), runNote: (runNote.trim() ? runNote.trim() : null), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
       results: simResults.map(d => ({
         driver_name:  d.name,
         car_number:   d.carNumber,
@@ -1896,7 +1897,8 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
   <button onClick={() => setSimStage('post')} style={{ padding: '6px 12px', borderRadius: 6, border: 'none', cursor: 'pointer', background: simStage === 'post' ? '#e8b923' : 'rgba(128,128,128,0.2)', color: simStage === 'post' ? '#000' : 'inherit', fontWeight: 600 }}>Post</button>
   <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>(before / after practice + qualifying) - stored separately, won't overwrite the other stage</span>
 </div>
-<button onClick={publishResults} style={{
+<input value={runNote} onChange={e => setRunNote(e.target.value)} placeholder="Run note - why this (re)run? saved with the board" maxLength={200} style={{ width: 300, marginRight: 10, padding: '9px 11px', background: 'var(--bg-elevated)', color: 'var(--text-primary)', border: '1px solid #3a3d44', borderRadius: 6, fontSize: '0.85rem' }} />
+              <button onClick={publishResults} style={{
                 padding: '10px 28px', background: published ? 'var(--bg-elevated)' : '#1a6b2e',
                 color: published ? 'var(--text-muted)' : '#e8f5e9',
                 border: 'none', borderRadius: 8, fontWeight: 700,
