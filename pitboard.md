@@ -1905,3 +1905,9 @@ Spreadsheet uploads mark DNQ in the START column: excelParser maps DNQ/DNS/WD ->
   gc correction self-disables on single-group sessions (gs.length < 2 gate) - leave the code
   in place, historical A/B sessions still need it for regrades/backtests. Tire-correction
   slope fitting is exact (single field) going forward. practice_group will simply be null/X.
+
+## 2026-08-08 - v6.1 pace swap shipped (commit 8a0b30ff); v6-tc confirmed on 97 races
+- Grader pace half = tire-corrected all-clean-lap mean (see BACKTEST_LOG). Race-speed
+  validation target (driver rating) adopted for future grader tests. Re-upload Iowa sheets:
+  Cup card becomes Blaney 1st. Queued: .5/.3/.2 reweight re-test at ~150 races; gated tire-
+  management display column (earned by 15+ lap run, dash otherwise); evolution term; sim A/B.
