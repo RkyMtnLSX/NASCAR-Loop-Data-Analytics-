@@ -1878,3 +1878,15 @@ Spreadsheet uploads mark DNQ in the START column: excelParser maps DNQ/DNS/WD ->
   trucks-16 pre, oreilly-22 pre, oreilly-23 pre; trucks-15 and cup-21 left null (pre-stage-
   tracking era, no unvoided flag sets to match).
 - Ledger after repair: 172 rows, season avg CLV +0.67.
+
+## 2026-08-08 - QUEUED: tire-corrected pace for practice grader (next grader experiment)
+- Trigger: Gilliland A+/100 over Blaney at Iowa Cup (44 laps of 10-15 lap bursts vs 91 laps
+  incl. 30-lap runs at 24.05). Same disease as Sieg earlier today, one level deeper: avgPace +
+  best5 (80% of composite) are per-lap averages that structurally flatter short fresh-tire
+  sessions; the longRun 20% cannot outvote them when a driver leads both averages at once.
+- FIX TO TEST: fit field-wide tire-falloff curve (lap time vs lap-in-run), normalize every lap
+  to common tire age, recompute pace metrics on corrected laps, re-run the 2026-08-08
+  winner-focused backtest (winner rank / top5 rank / hits / full-field rho) vs v5-lr20 before
+  shipping anything. Data exists: practice_laps table has lap-level rows for stored sessions.
+- Priority: ahead of track-evolution correction (that one needs new timestamped data to accrue;
+  this one is backtestable today). NOT race-weekend work - queued for the week.
