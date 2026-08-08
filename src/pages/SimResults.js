@@ -282,6 +282,11 @@ export default function SimResults() {
             Published {new Date(data.published_at).toLocaleString()}
           </span>
           <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{results.length} drivers</span>
+          {data.config && data.config.runNote && (
+            <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', fontStyle: 'italic', maxWidth: 420, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={data.config.runNote}>
+              Note: {data.config.runNote}
+            </span>
+          )}
           {data.config && data.config.lineup && (
             <span title="Where the Start column came from when this board was published" style={{ padding: '2px 10px', borderRadius: 999, border: '1px solid var(--border)', fontSize: '0.75rem', color: data.config.lineup === 'none' ? '#dd8844' : data.config.lineup === 'qualifying' ? '#3fb950' : '#e8c766' }}>
               lineup: {data.config.lineup}
