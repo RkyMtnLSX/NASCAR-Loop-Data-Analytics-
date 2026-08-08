@@ -264,7 +264,7 @@ export default function PitCrewRankings() {
             <colgroup>
               <col style={{ width: 50 }} />
               <col style={{ width: 52 }} />
-              <col style={{ width: 44 }} />
+              <col style={{ width: 58 }} />
               <col style={{ width: 68 }} />
               <col />
               <col />
@@ -300,7 +300,7 @@ export default function PitCrewRankings() {
                   <td style={{ ...td('center'), fontWeight: 700, overflow: 'visible', textOverflow: 'clip' }}>{MEDAL[i] ? <span style={{ fontSize: '1.15rem', lineHeight: 1 }}>{MEDAL[i]}</span> : (i + 1)}</td>
                   <td style={{ ...td('center'), fontWeight: 700, color: c.delta == null ? 'var(--text-muted)' : c.delta > 0 ? '#22c55e' : c.delta < 0 ? '#ef4444' : 'var(--text-muted)' }}>{c.delta == null ? '\u2014' : c.delta > 0 ? '+' + c.delta : c.delta === 0 ? '=' : c.delta}</td>
                   <td style={{ ...td('center') }} onClick={(e) => { e.stopPropagation(); toggleCmp(c.car + '|' + (c.org || '')) }}>
-                    <span style={{ cursor: 'pointer', padding: '2px 8px', borderRadius: 4, fontSize: '0.78rem', border: '1px solid ' + (cmp.includes(c.car + '|' + (c.org || '')) ? 'var(--accent)' : 'var(--border)'), color: cmp.includes(c.car + '|' + (c.org || '')) ? 'var(--accent)' : 'var(--text-muted)' }}>{cmp.includes(c.car + '|' + (c.org || '')) ? '\u2713' : '+'}</span>
+                    <span style={{ cursor: 'pointer', padding: '2px 6px', borderRadius: 4, fontSize: '0.78rem', border: '1px solid ' + (cmp.includes(c.car + '|' + (c.org || '')) ? 'var(--accent)' : 'var(--border)'), color: cmp.includes(c.car + '|' + (c.org || '')) ? 'var(--accent)' : 'var(--text-muted)' }}>{cmp.includes(c.car + '|' + (c.org || '')) ? '\u2713' : '+'}</span>
                   </td>
                   <td style={td('left')}><CarNum car={c.car} series={series} /></td>
                   <td style={td('left')}>{c.org || '\u2014'}</td>
