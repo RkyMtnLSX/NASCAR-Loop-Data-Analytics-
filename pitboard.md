@@ -1843,3 +1843,12 @@ Spreadsheet uploads mark DNQ in the START column: excelParser maps DNQ/DNS/WD ->
 - Grade tooltip updated; stale V5 WEIGHTS header removed from practiceGrader.js.
 - Stored grades regrade only on re-upload. QUEUED: sim A/B of long-run-blended practice input
   (finish MAE + favorite calibration) after wreck gates.
+
+## 2026-08-08 - Run notes on published boards (commits 5185dcfc, cad57678)
+- Sim Center: text input next to Publish; note saved as config.runNote on the published row
+  (no schema change). Sim Results: note shown italic next to the stage badge.
+- Purpose: record WHY a board was re-run (e.g. cars sent to the rear at Iowa) so re-sims are
+  auditable later. Also today: sheet builder prefers practice captures over quali when auto-
+  picking (post-quali bat run grabbed the 2-lap quali file); flying-lap filter tightened
+  1.5x -> 1.2x median (32s pit-in laps leaked into AVG, Kes/Bell); watcher now writes per-lap
+  discovery timestamps (captured_at was file-write time - track-evolution work needs real ones).
