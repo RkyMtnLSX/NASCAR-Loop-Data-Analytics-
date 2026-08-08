@@ -3944,3 +3944,8 @@ Drivers with no usable loop history (Carson Brown #32, Derek Lemke #91, Tyler To
 
 
 **2026-08-07 (launch polish 1):** Qualifying Center header cleanup (afdeedd7) — removed static rainbow (orange Qualifying Order, gold Avg, purple 2026 Avg, accent history group); all headers uniform var(--text-secondary), accent now RESERVED for the active sort column (sort-aware conditional on every sortable th). Draw-order data cells orange -> primary; sim-note orange -> secondary. Design rule going forward, applied page-by-page as touched: muted uniform headers, color only for meaning (active sort, heatmaps, badges).
+
+
+## 2026-08-07 — SHIPPED car-auto-v2: part-time gate dropped (d93aa82b, operator catch)
+
+Operator spotted the second multi-car pattern car-auto-v1 missed: Rajah Caruth, entered in the #88 at Iowa, has run a FULL 22-race 2026 O'Reilly schedule split across two rides — #88 (12 races, avg rating 84.5, quali P1-P13) and #32 (12 races, avg 61.8, quali P25-P38). A 23-point rating split between his own cars, but v1's part-timer gate (<=15 season races) excluded him, so both rides pooled into a ~73 midfielder. Fix: gate is now simply >=2 distinct cars in the 2-season window AND >=3 rows in THIS week's entered car — no schedule-size condition. Single-car regulars unchanged; one-off relief drives harmless (entered car dominates); mid-season team switchers now rate in their current ride (consistent with driver-x-equipment doctrine). Stamps: borrowMode 'car-auto-v2', startProj 'trail10-v3.5-eqStart'. Expected on re-run: Caruth rating ~84.5 car-matched, projected start ~P8 from #88 grid history. Ringer-handling lineage now: pairing-first (RLS-dead, never ran) -> pairing-first-car -> car-auto-v1 (part-timers) -> car-auto-v2 (any multi-car).
