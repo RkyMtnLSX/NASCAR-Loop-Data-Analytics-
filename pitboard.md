@@ -1899,3 +1899,9 @@ Spreadsheet uploads mark DNQ in the START column: excelParser maps DNQ/DNS/WD ->
 - Also found: sheet builder renumbers laps sequentially which would DESTROY stint detection if
   its output were uploaded (operator manual sheets preserve lap-position gaps - that is why
   stints work). FIX QUEUED for sheet builder: preserve original lap indices.
+
+## 2026-08-08 - Operator note: no more A/B group practices going forward
+- Per NASCAR format change (#56, 50-min single practices), split-group sessions are dead.
+  gc correction self-disables on single-group sessions (gs.length < 2 gate) - leave the code
+  in place, historical A/B sessions still need it for regrades/backtests. Tire-correction
+  slope fitting is exact (single field) going forward. practice_group will simply be null/X.
