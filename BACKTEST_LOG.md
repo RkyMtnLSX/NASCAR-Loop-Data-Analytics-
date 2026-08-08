@@ -4040,3 +4040,24 @@ LIMITATION: lap-in-stint is a tire-age PROXY - a stint break resets age even if 
 with 2-set allocations the reset usually matches a set change. Track-evolution correction
 (needs the new per-lap timestamps) remains queued separately and stacks on top later.
 Grades computed at upload: re-upload a session sheet to regrade it under v6-tc.
+
+### v6-tc CONFIRMED AT 97 RACES + v6.1 pace swap (commit 8a0b30ff, 2026-08-08)
+Operator flagged the 38-race sample was too thin - practice_laps backfill actually spans
+2023-2026 (97 scoreable races: 1x2023, 12x2024, 46x2025, 38x2026). Full-sample rerun, plus a
+NEW validation target: grade rank vs RACE-DAY DRIVER RATING rank (race speed), which practice
+actually measures - finish adds strategy/wreck lottery (rho .66 vs .45 on 2026 data).
+97-race results (per-race Spearman means):
+- v5 (uncorrected):        rhoSpeed .602, rhoFinish .407, winner rank 7.50
+- v6-tc (tire-corrected):  rhoSpeed .637, rhoFinish .439, winner rank 6.73 - W63/L33 vs v5
+  on rhoSpeed (p < .002). Tire correction CONFIRMED at scale, strongest result in this log.
+- pace-swap variants (overallTC pace half, and .5/.3/.2 reweight): rhoSpeed .637/.636 -
+  statistical ties (W50/L47, W51/L46), winner rank 6.50/6.43.
+SHIPPED v6.1: pace half now ranks overallTC (mean of ALL corrected clean laps, lap-weighted)
+instead of avgPaceTC (equal-weighted stints). Backtest tie -> tiebreak on construct: equal
+stint weighting was the last structural bias (Blaney 91-lap Iowa session ranked below
+50-lap sessions despite being faster in every window; avgPace historical edge over the
+plain mean existed only because worn laps used to poison the mean - tire correction removed
+that). Weights unchanged (.40/.40/.20). Reweight (.5/.3/.2) NOT shipped - logged for re-test
+at ~150 races. Shrinkage by lap count tested and REJECTED (rhoSpeed .643, W12/L26).
+Iowa sanity post-swap: Cup Blaney/Gibbs/Bell/Gilliland/Chastain; Oreilly Chastain/Love/
+Allgaier/Creed/Sawalich.
