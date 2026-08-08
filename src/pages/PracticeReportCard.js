@@ -233,7 +233,7 @@ export default function PracticeReportCard({ isSubscriber }) {
                   <th className="left">Driver</th>
                   {hasGroup && <th style={{ width: 60 }}>Group</th>}
                   <th className="th-tip" data-tip="Starting position for this race.">Start</th>
-                  <th className="th-tip" data-tip="Overall practice grade — blends avg run pace (40%), best 5-lap speed (40%) and long-run pace (20%), each ranked vs the field. No long run counts against the grade - winning cars sustain pace.">Grade</th>
+                  <th className="th-tip" data-tip="Overall practice grade — blends avg run pace (40%), best 5-lap speed (40%) and long-run pace (20%). Every lap is tire-corrected (normalized to equal tire age using the session's falloff rate) before ranking, so fresh-tire bursts don't out-grade long-run pace. No long run counts against the grade - winning cars sustain pace.">Grade</th>
                   <th className="th-tip" data-tip="Letter-aligned score: A+ 97-100, A 93-96.9 ... F 40-59.9. The session's top car is always 100.">Score</th>
                   <th className="th-tip" data-tip="Single fastest lap of the session - raw one-lap speed." onClick={() => sortBy('best_lap')} style={{ cursor: 'pointer' }}>Best Lap{sortArrow('best_lap')}</th>
                   <th className="th-tip" data-tip="Average of each run's average lap time - each run weighted equally, so one short outlier run can swing it. Lower is faster." onClick={() => sortBy('avg_pace')} style={{ cursor: 'pointer' }}>Avg Pace{sortArrow('avg_pace')}</th>
