@@ -87,6 +87,7 @@ export default function PitCrewRankings() {
   const [loading, setLoading] = useState(true)
   const [sort, setSort] = useState('adj')  // 'adj' | 'median' | 'iqr' | 'n'
   const [open, setOpen] = useState(null)
+  const [cmp, setCmp] = useState([])
 
   useEffect(() => {
     let cancelled = false
@@ -132,6 +133,7 @@ export default function PitCrewRankings() {
       const all2 = all.filter((r) => +r.tires_changed === 2).map((r) => +r.box_time).sort((a, b) => a - b)
       const t2q1 = all2[Math.floor(all2.length * 0.25)] || 0, t2q3 = all2[Math.floor(all2.length * 0.75)] || 0
       const fence2 = all2.length >= 30 ? t2q3 + 1.5 * (t2q3 - t2q1) : Infinity   // 2-tire stops get their OWN fence (different timescale)
+      const maxRn = all.reduce((m, r) => Math.max(m, r.race_number || 0), 0)
       const out = Object.values(crews).filter((c) => c.t.filter((t) => t <= fence).length >= MIN_STOPS).map((c) => {
         const ct = c.t.filter((t) => t <= fence)
         const b = [...ct].sort((a, b) => a - b)
@@ -153,14 +155,20 @@ export default function PitCrewRankings() {
         const ct2 = c.t2.filter((t) => t <= Math.min(fence2, seriesMed))
         const rlist = Object.keys(c.rd).map(Number).sort((a, b) => a - b).map((rn) => { const cts = c.rd[rn].ts.filter((t) => t <= fence); return cts.length ? { rn: rn, med: median(cts), n: cts.length, best: Math.min.apply(null, cts), track: c.rd[rn].track } : null }).filter(Boolean)
         const bestStop = rlist.reduce((m, x) => (m && m.best <= x.best ? m : x), null)
-        return { car: c.car, org: c.org, driver: driver, rotating: rotating, median: med, adj: med + (cp / races) * PEN_SEC, penRate: cp / races, cp: cp, dp: dp, bomb: ct.filter((t) => t > seriesMed * BOMB_X).length / ct.length, iqr: q3 - q1, t2m: ct2.length >= 3 ? median(ct2) : null, n2: ct2.length, n: ct.length, rlist: rlist, bestStop: bestStop, pens: (penR[String(c.car)] || {}) }
+        return { car: c.car, org: c.org, driver: driver, rotating: rotating, median: med, adj: med + (cp / races) * PEN_SEC, penRate: cp / races, cp: cp, dp: dp, bomb: ct.filter((t) => t > seriesMed * BOMB_X).length / ct.length, iqr: q3 - q1, t2m: ct2.length >= 3 ? median(ct2) : null, n2: ct2.length, n: ct.length, rlist: rlist, bestStop: bestStop, pens: (penR[String(c.car)] || {}), prevAdj: (() => { const pts = Object.keys(c.rd).map(Number).filter((rn) => rn !== maxRn).reduce((acc, rn) => acc.concat(c.rd[rn].ts), []).filter((t) => t <= fence); if (pts.length < MIN_STOPS) return null; const pRaces = races - (c.rs[maxRn] ? 1 : 0); if (pRaces < 1) return null; const pCp = cp - (((penR[String(c.car)] || {})[maxRn] || {}).c || 0); return median(pts) + (Math.max(0, pCp) / pRaces) * PEN_SEC })() }
       })
+      // power-rank movement: rank now vs rank with the latest race excluded (2026-08-08, operator request)
+      const curR = [...out].sort((a, b) => a.adj - b.adj); curR.forEach((r, i2) => { r.__cr = i2 + 1 })
+      const pvR = out.filter((r) => r.prevAdj != null).sort((a, b) => a.prevAdj - b.prevAdj); pvR.forEach((r, i2) => { r.__pr = i2 + 1 })
+      out.forEach((r) => { r.delta = (r.prevAdj != null && r.__pr != null) ? r.__pr - r.__cr : null })
       setRows(out)
       setLoading(false)
     })()
     return () => { cancelled = true }
   }, [series])
 
+  const cmpRows = cmp.map((k) => rows.find((r) => r.car + '|' + (r.org || '') === k)).filter(Boolean)
+  const toggleCmp = (key) => setCmp((p) => p.includes(key) ? p.filter((x) => x !== key) : [...p.slice(-1), key])
   const sorted = [...rows].sort((a, b) =>
     sort === 'n' ? b.n - a.n : sort === 'iqr' ? a.iqr - b.iqr : sort === '2t' ? ((a.t2m == null ? 1e9 : a.t2m) - (b.t2m == null ? 1e9 : b.t2m)) : a.adj - b.adj)
 
@@ -192,6 +200,60 @@ export default function PitCrewRankings() {
         })}
       </div>
 
+      {cmpRows.length === 2 && (() => {
+        const A = cmpRows[0], B = cmpRows[1]
+        const shared = A.rlist.filter((x) => B.rlist.some((y) => y.rn === x.rn)).map((x) => x.rn).sort((a, b) => a - b)
+        let aw = 0, bw = 0
+        const perRace = shared.map((rn) => {
+          const a = A.rlist.find((x) => x.rn === rn), b = B.rlist.find((x) => x.rn === rn)
+          if (a.med < b.med) aw++; else if (b.med < a.med) bw++
+          return { rn, track: (a.track || '').split(' ').slice(0, 2).join(' '), am: a.med, bm: b.med }
+        })
+        const statRow = (label, av, bv, fmt, lower) => {
+          const aWin = av != null && bv != null && (lower ? av < bv : av > bv)
+          const bWin = av != null && bv != null && (lower ? bv < av : bv > av)
+          return (
+            <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid var(--border)', fontSize: '0.85rem' }}>
+              <span style={{ width: 110, fontWeight: aWin ? 700 : 400, color: aWin ? '#22c55e' : 'var(--text-primary)' }}>{av != null ? fmt(av) : '\u2014'}</span>
+              <span style={{ color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: '0.05em' }}>{label}</span>
+              <span style={{ width: 110, textAlign: 'right', fontWeight: bWin ? 700 : 400, color: bWin ? '#22c55e' : 'var(--text-primary)' }}>{bv != null ? fmt(bv) : '\u2014'}</span>
+            </div>
+          )
+        }
+        const s2 = (v) => v.toFixed(2)
+        return (
+          <div style={{ margin: '0 0 18px', padding: '14px 18px', background: 'var(--bg-surface)', border: '1px solid var(--accent)', borderRadius: 8, maxWidth: 560 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <strong>#{A.car} {A.org || ''}</strong>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>vs</span>
+              <strong>#{B.car} {B.org || ''}</strong>
+            </div>
+            <div style={{ textAlign: 'center', marginBottom: 8, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+              Race-by-race median head-to-head: <strong style={{ color: aw > bw ? '#22c55e' : 'var(--text-primary)' }}>{aw}</strong>
+              {' \u2013 '}
+              <strong style={{ color: bw > aw ? '#22c55e' : 'var(--text-primary)' }}>{bw}</strong>
+              {shared.length !== aw + bw ? ' (' + (shared.length - aw - bw) + ' even)' : ''} across {shared.length} shared races
+            </div>
+            {statRow('Adj (s)', A.adj, B.adj, s2, true)}
+            {statRow('Median 4T', A.median, B.median, s2, true)}
+            {statRow('Best stop', A.bestStop && A.bestStop.best, B.bestStop && B.bestStop.best, s2, true)}
+            {statRow('2T median', A.t2m, B.t2m, s2, true)}
+            {statRow('Consistency', A.iqr, B.iqr, s2, true)}
+            {statRow('Pen / race', A.penRate, B.penRate, s2, true)}
+            {statRow('Stops', A.n, B.n, (v) => v, false)}
+            <div style={{ marginTop: 10, maxHeight: 160, overflowY: 'auto' }}>
+              {perRace.map((r) => (
+                <div key={r.rn} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', padding: '2px 0', color: 'var(--text-secondary)' }}>
+                  <span style={{ width: 110, color: r.am < r.bm ? '#22c55e' : 'var(--text-secondary)' }}>{r.am.toFixed(2)}</span>
+                  <span style={{ color: 'var(--text-muted)' }}>R{r.rn} {r.track}</span>
+                  <span style={{ width: 110, textAlign: 'right', color: r.bm < r.am ? '#22c55e' : 'var(--text-secondary)' }}>{r.bm.toFixed(2)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )
+      })()}
+
       {loading ? (
         <p style={{ color: 'var(--text-secondary)' }}>Loading pit data\u2026</p>
       ) : sorted.length === 0 ? (
@@ -201,6 +263,8 @@ export default function PitCrewRankings() {
           <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
             <colgroup>
               <col style={{ width: 50 }} />
+              <col style={{ width: 52 }} />
+              <col style={{ width: 44 }} />
               <col style={{ width: 68 }} />
               <col />
               <col />
@@ -215,6 +279,8 @@ export default function PitCrewRankings() {
             <thead>
               <tr>
                 <th style={th({ align: 'center' })}>#</th>
+                <th style={th({ align: 'center' })} title={'Rank movement vs before the latest race'}>{'\u0394'}</th>
+                <th style={th({ align: 'center' })} title={'Select two crews to compare'}>Cmp</th>
                 <th style={th({ align: 'left' })}>Car</th>
                 <th style={th({ align: 'left' })}>Organization</th>
                 <th style={th({ align: 'left' })}>Driver</th>
@@ -232,6 +298,10 @@ export default function PitCrewRankings() {
                 <React.Fragment key={c.car + '|' + (c.org || '')}>
                 <tr onClick={() => setOpen(open === c.car + '|' + (c.org || '') ? null : c.car + '|' + (c.org || ''))} style={{ cursor: 'pointer', background: i % 2 ? 'transparent' : 'var(--bg-elevated)' }}>
                   <td style={{ ...td('center'), fontWeight: 700, overflow: 'visible', textOverflow: 'clip' }}>{MEDAL[i] ? <span style={{ fontSize: '1.15rem', lineHeight: 1 }}>{MEDAL[i]}</span> : (i + 1)}</td>
+                  <td style={{ ...td('center'), fontWeight: 700, color: c.delta == null ? 'var(--text-muted)' : c.delta > 0 ? '#22c55e' : c.delta < 0 ? '#ef4444' : 'var(--text-muted)' }}>{c.delta == null ? '\u2014' : c.delta > 0 ? '+' + c.delta : c.delta === 0 ? '=' : c.delta}</td>
+                  <td style={{ ...td('center') }} onClick={(e) => { e.stopPropagation(); toggleCmp(c.car + '|' + (c.org || '')) }}>
+                    <span style={{ cursor: 'pointer', padding: '2px 8px', borderRadius: 4, fontSize: '0.78rem', border: '1px solid ' + (cmp.includes(c.car + '|' + (c.org || '')) ? 'var(--accent)' : 'var(--border)'), color: cmp.includes(c.car + '|' + (c.org || '')) ? 'var(--accent)' : 'var(--text-muted)' }}>{cmp.includes(c.car + '|' + (c.org || '')) ? '\u2713' : '+'}</span>
+                  </td>
                   <td style={td('left')}><CarNum car={c.car} series={series} /></td>
                   <td style={td('left')}>{c.org || '\u2014'}</td>
                   <td style={{ ...td('left'), color: 'var(--text-secondary)', fontStyle: c.rotating ? 'italic' : 'normal' }}>{c.driver || '\u2014'}</td>
@@ -246,7 +316,7 @@ export default function PitCrewRankings() {
                   </td>
                 </tr>
                 {open === c.car + '|' + (c.org || '') && (
-                  <tr><td colSpan={11} style={{ padding: '12px 16px 18px', background: 'var(--bg-surface)', borderTop: '1px solid var(--border)' }}><CrewDetail c={c} /></td></tr>
+                  <tr><td colSpan={13} style={{ padding: '12px 16px 18px', background: 'var(--bg-surface)', borderTop: '1px solid var(--border)' }}><CrewDetail c={c} /></td></tr>
                 )}
                 </React.Fragment>
               ))}
