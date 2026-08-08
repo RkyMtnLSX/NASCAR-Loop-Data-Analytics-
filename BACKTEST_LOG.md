@@ -3941,3 +3941,6 @@ Drivers with no usable loop history (Carson Brown #32, Derek Lemke #91, Tyler To
 
 
 **2026-08-03 (UI x2):** Pit Crew Rankings medal-cell ellipsis fixed (rank column clipped the 1.35rem emoji at 50px -> stray dots; now overflow visible + 1.15rem, 526252b3). Site-wide scroll affordance: permanently visible high-contrast scrollbars on all scroll containers via global.css (Windows overlay scrollbars hid the fact that wide tables scroll; e725fb93). Verified live on Loop Data.
+
+
+**2026-08-07 (launch polish 1):** Qualifying Center header cleanup (afdeedd7) — removed static rainbow (orange Qualifying Order, gold Avg, purple 2026 Avg, accent history group); all headers uniform var(--text-secondary), accent now RESERVED for the active sort column (sort-aware conditional on every sortable th). Draw-order data cells orange -> primary; sim-note orange -> secondary. Design rule going forward, applied page-by-page as touched: muted uniform headers, color only for meaning (active sort, heatmaps, badges).
