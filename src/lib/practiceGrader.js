@@ -3,6 +3,7 @@
 // NASCAR Practice Session Grader — GRADE v6-tc (2026-08-08)
 // v6-tc: all five ranked inputs are TIRE-CORRECTED copies (see gradePracticeSession).
 // v6.1: pace half ranks overallTC (all corrected clean laps) - no stint-count artifact.
+// v6.2: speed half ranks RAW best5/bestLap - corrected laps barred from the speed half.
 // Composite = pace*.40 + speed*.40 + longRun*.20
 //   pace   : avgPace rank (per-stint cleaned averages; overallAvg fallback)
 //   speed  : best5 rank (5 fastest laps; bestLap fallback) — shipped 2026-07-17
@@ -302,13 +303,13 @@ export function gradePracticeSession(drivers, priorRatings) {
       return true
     }
     const c1 = correctKey('avgPaceTC', '__gcAvgPace')
-    const c2 = correctKey('bestLapTC', '__gcBestLap')
+    const c2 = correctKey('bestLap', '__gcBestLap')
     const c3 = correctKey('overallTC', '__gcOverallAvg')
-    const c4 = correctKey('best5TC', '__gcBest5') // SHIPPED 2026-07-17: grade speed half
+    const c4 = correctKey('best5', '__gcBest5') // SHIPPED 2026-07-17: grade speed half
     const c5 = correctKey('longRunTC', '__gcLongRun') // SHIPPED 2026-08-08: long-run component
     gc = c1 || c2 || c3 || c4 || c5
   }
-  const apS = rankScale(gc ? '__gcOverallAvg' : 'overallTC') /* v6.1 2026-08-08: pace half = corrected ALL-clean-lap mean (lap-weighted). Equal-stint avgPace demoted Blaney (Iowa 91-lap grind vs short stints). 97-race backtest: statistical tie with avgPaceTC (rhoSpeed .637 both, W50/L47) - swap chosen on construct (no stint-count artifact). */, alS = rankScale(gc ? '__gcOverallAvg' : 'overallTC'), blS = rankScale(gc ? '__gcBestLap' : 'bestLapTC'), b5S = rankScale(gc ? '__gcBest5' : 'best5TC'), lrS = rankScale(gc ? '__gcLongRun' : 'longRunTC')
+  const apS = rankScale(gc ? '__gcOverallAvg' : 'overallTC') /* v6.1 2026-08-08: pace half = corrected ALL-clean-lap mean (lap-weighted). Equal-stint avgPace demoted Blaney (Iowa 91-lap grind vs short stints). 97-race backtest: statistical tie with avgPaceTC (rhoSpeed .637 both, W50/L47) - swap chosen on construct (no stint-count artifact). */, alS = rankScale(gc ? '__gcOverallAvg' : 'overallTC'), blS = rankScale(gc ? '__gcBestLap' : 'bestLap') /* v6.2: RAW - actual laps only */, b5S = rankScale(gc ? '__gcBest5' : 'best5') /* v6.2 2026-08-08: speed half is RAW best5 - pure peak speed that actually happened, same input the sim uses. Tire-corrected laps are barred from the speed half (a corrected lap-40 could impersonate a flyer: Chastain Iowa 24.65 -> 24.02 'equivalent' beating Love's real 24.12). 97-race backtest: finish rho tie (.435/.436), race-speed .640 vs .637, winner rank 6.32 vs 6.50 - equal or slightly better everywhere. Pace + longRun halves stay tire-corrected. */, lrS = rankScale(gc ? '__gcLongRun' : 'longRunTC')
   const scored = gradable.map(d => {
     const pace = apS.has(d) ? apS.get(d) : (alS.has(d) ? alS.get(d) : 50)
     // SHIPPED 2026-07-17: speed half is best5 (mean of 5 fastest laps; bestLap fallback).
