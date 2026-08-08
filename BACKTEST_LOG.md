@@ -4061,3 +4061,22 @@ that). Weights unchanged (.40/.40/.20). Reweight (.5/.3/.2) NOT shipped - logged
 at ~150 races. Shrinkage by lap count tested and REJECTED (rhoSpeed .643, W12/L26).
 Iowa sanity post-swap: Cup Blaney/Gibbs/Bell/Gilliland/Chastain; Oreilly Chastain/Love/
 Allgaier/Creed/Sawalich.
+
+### v6.2: speed half = RAW best5 (commit db25d6f2, 2026-08-08) + saturation/personal-slope tests
+Operator disputed Chastain 100/P1 over Love on the Iowa Oreilly card (Love faster on every
+window he ran, 42 vs 45 laps). Investigation found the corrected speed half let extrapolated
+laps impersonate flyers (Chastain lap-40 24.65 -> 24.02 "equivalent" outranking Love real
+24.12). Three fixes tested on the 97-race harness (rhoSpeed = grade rank vs race driver
+rating; all vs live v6.1):
+1. PERSONAL-slope correction (shrunken own falloff): rhoSpeed .631, W39/L53 - REJECTED.
+   Flat personal falloff IS race-speed signal; correcting it away hurts.
+2. Saturation cap sweep (A=15/20/25/30/40): monotone worse as cap shrinks (.632->.637);
+   A=25 within noise (W30/L35/T32) but arbitrary knob - NOT shipped.
+3. OPERATOR PROPOSAL - speed half ranks RAW best5 (bestLap fallback), like the sim input;
+   pace + longRun halves stay tire-corrected at A=40:
+   finish rho .435 vs .436 (tie, W46/L51); top5 rank 9.63/9.65 (tie); winner rank 6.32 vs
+   6.50; rhoSpeed .640 vs .637 (W49/L48). Equal-or-slightly-better everywhere. <- SHIPPED
+   Rationale: statistical tie + cleanest construct (only actually-driven laps in the speed
+   half) + card credibility both series (Oreilly: Love/Creed/Allgaier/Chastain; Cup:
+   Blaney/Gibbs/Bell/Gilliland). NOT claimed as a prediction improvement - it is a tie.
+gc correction retargeted back to raw bestLap/best5 for the speed half.
