@@ -1,24 +1,20 @@
 /* eslint-disable */
 // ============================================================
-// NASCAR Practice Session Grader — V5
-// Stint-aware methodology
-// V5 changes:
-//   - longRunPace weight raised to 0.50 (speed is king)
-//   - stintAvgPace removed (redundant with raw long run pace)
-//   - shortRunPace reduced to 0.15; consistency to 0.10; bestLap raised to 0.10
-//   - Long run pace: all laps across all stints, drop any lap >8% slower than session median
-//   - Tire falloff: longest stint only, >=10-lap minimum (was length-weighted avg)
-//   - Mock qual stints detected and excluded from short run pace
-//   - Median fill for drivers missing lrp or srp (not penalized)
+// NASCAR Practice Session Grader — GRADE v5-lr20 (2026-08-08)
+// Composite = pace*.40 + speed*.40 + longRun*.20
+//   pace   : avgPace rank (per-stint cleaned averages; overallAvg fallback)
+//   speed  : best5 rank (5 fastest laps; bestLap fallback) — shipped 2026-07-17
+//   longRun: long_run rank (worn-tire pace, all stints); drivers with NO long
+//            run get 25, penalized not neutral — winning cars sustain pace.
+// Backtest 2026-08-08, 41 races all series (clean 33 w/ long-run coverage):
+//   winner mean grade rank 7.7->7.3, top5 mean rank 10.6->10.2, top5 hits
+//   1.81->1.95, full-field Spearman .441->.447, per-race W13/L6/T12.
+//   Metric = winner/top-5 identification: the card is a user-facing eyeball
+//   tool and does NOT feed the simulation (sim reads raw overall_avg/best5;
+//   practice_score only null-checked by the EDGE gate).
+// History: 7/4 AllLaps.50/BestLap.50 (0.306 full-field); 7/17 speed->best5
+//   (W47/L23); 8/8 +longRun*.20 w/ missing penalty. See BACKTEST_LOG.md.
 // ============================================================
-
-const WEIGHTS = {
-  longRunPace:  0.50,
-  shortRunPace: 0.15,
-  tireFalloff:  0.15,
-  consistency:  0.10,
-  bestLap:      0.10,
-}
 
 const MIN_MEANINGFUL_LAPS = 3
 const FALLOFF_MIN_LAPS    = 10
@@ -261,16 +257,19 @@ export function gradePracticeSession(drivers, priorRatings) {
     const c2 = correctKey('bestLap', '__gcBestLap')
     const c3 = correctKey('overallAvg', '__gcOverallAvg')
     const c4 = correctKey('best5', '__gcBest5') // SHIPPED 2026-07-17: grade speed half
-    gc = c1 || c2 || c3 || c4
+    const c5 = correctKey('longRun', '__gcLongRun') // SHIPPED 2026-08-08: long-run component
+    gc = c1 || c2 || c3 || c4 || c5
   }
-  const apS = rankScale(gc ? '__gcAvgPace' : 'avgPace'), alS = rankScale(gc ? '__gcOverallAvg' : 'overallAvg'), blS = rankScale(gc ? '__gcBestLap' : 'bestLap'), b5S = rankScale(gc ? '__gcBest5' : 'best5')
+  const apS = rankScale(gc ? '__gcAvgPace' : 'avgPace'), alS = rankScale(gc ? '__gcOverallAvg' : 'overallAvg'), blS = rankScale(gc ? '__gcBestLap' : 'bestLap'), b5S = rankScale(gc ? '__gcBest5' : 'best5'), lrS = rankScale(gc ? '__gcLongRun' : 'longRun')
   const scored = gradable.map(d => {
     const pace = apS.has(d) ? apS.get(d) : (alS.has(d) ? alS.get(d) : 50)
     // SHIPPED 2026-07-17: speed half is best5 (mean of 5 fastest laps; bestLap fallback).
     // Backtest, 70 labeled sessions: finish corr cup .320->.338, oreilly .492->.522,
     // trucks .482->.491; per-session W47/L23 vs bestLap half (see BACKTEST_LOG).
     const bl = b5S.has(d) ? b5S.get(d) : (blS.has(d) ? blS.get(d) : 50)
-    return { ...d, composite: Math.round((pace * 0.50 + bl * 0.50) * 10) / 10 }
+    // SHIPPED 2026-08-08 v5-lr20: third component longRun, missing = 25 (penalty).
+    const lr = lrS.has(d) ? lrS.get(d) : 25
+    return { ...d, composite: Math.round((pace * 0.40 + bl * 0.40 + lr * 0.20) * 10) / 10 }
   })
   scored.sort((a, b) => b.composite - a.composite)
   const total = scored.length
