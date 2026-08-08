@@ -59,11 +59,26 @@ export default function DfsSalaryAdmin() {
 
   const salCount = Object.values(salaries).filter(v => v > 0).length
   const setSal = (name, val) => setSalaries(s => ({ ...s, [name]: val === '' ? 0 : Math.round(+val) || 0 }))
+  const doFile = (e) => {
+    const file = e.target.files && e.target.files[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      const text = String(ev.target.result || '')
+      setPaste(text)
+      const { out, unmatched, ids } = parseSalaries(text, drivers)
+      setSalaries(s => ({ ...s, ...out, __ids: { ...(s.__ids || {}), ...ids } }))
+      const n = Object.keys(out).length, ni = Object.keys(ids).length
+      setMsg('File: matched ' + n + ' driver' + (n === 1 ? '' : 's') + ', ' + ni + ' DK IDs captured.' + (unmatched.length ? ' Unmatched: ' + unmatched.length + ' (edit below).' : '') + (ni < n ? ' WARNING: some drivers have no DK ID - lineup export will be incomplete.' : ''))
+    }
+    reader.readAsText(file)
+    e.target.value = ''
+  }
   const doPaste = () => {
     const { out, unmatched, ids } = parseSalaries(paste, drivers)
     setSalaries(s => ({ ...s, ...out, __ids: { ...(s.__ids || {}), ...ids } }))
     const n = Object.keys(out).length
-    setMsg('Matched ' + n + ' driver' + (n === 1 ? '' : 's') + '.' + (unmatched.length ? ' Unmatched: ' + unmatched.length + ' (edit below).' : ''))
+    const ni = Object.keys(ids).length; setMsg('Matched ' + n + ' driver' + (n === 1 ? '' : 's') + ', ' + ni + ' DK IDs.' + (unmatched.length ? ' Unmatched: ' + unmatched.length + ' (edit below).' : '') + (ni === 0 ? ' NOTE: no DK IDs in paste - upload the DK CSV file for lineup-export IDs.' : ''))
   }
   const clearAll = () => { setSalaries({}); setMsg('Cleared (not yet saved).') }
   const save = async () => {
@@ -101,6 +116,10 @@ export default function DfsSalaryAdmin() {
           style={{ width: '100%', minHeight: 80, ...inp, fontFamily: 'monospace', fontSize: 12 }} />
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', margin: '8px 0 14px', flexWrap: 'wrap' }}>
           <button onClick={doPaste} style={{ padding: '6px 14px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: 'transparent', color: 'var(--text,#e8eaed)' }}>Import from paste</button>
+          <label style={{ padding: '6px 14px', borderRadius: 8, cursor: 'pointer', border: '1px solid #e8b923', background: 'transparent', color: '#e8b923', fontWeight: 600 }}>
+            Upload DK CSV file
+            <input type="file" accept=".csv,text/csv" onChange={doFile} style={{ display: 'none' }} />
+          </label>
           <button onClick={save} style={{ padding: '6px 16px', borderRadius: 8, cursor: 'pointer', border: 'none', background: '#e8b923', color: '#111', fontWeight: 700 }}>Save salaries</button>
           <button onClick={clearAll} style={{ padding: '6px 12px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: 'transparent', color: 'var(--text-secondary,#9aa0aa)' }}>Clear</button>
           {msg && <span style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 12 }}>{msg}</span>}
