@@ -937,9 +937,8 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
             const __carNow = __entCarMap[name]
             const __carRows = (__pmE && __carNow) ? (__pmE.byCar[__carNow] || []) : []
             const __multiCar = __pmE ? Object.keys(__pmE.byCar).length >= 2 : false
-            const __partTime = __pmE ? ((__pmE.curN || 0) <= 15) : false
             let __pairRating = null
-            if (__carRows.length >= (bw ? 2 : 3) && (bw || (__multiCar && __partTime))) {
+            if (__carRows.length >= (bw ? 2 : 3) && (bw || __multiCar)) {
               // car-auto-v1 (2026-08-03): part-time multi-car drivers rate from THIS week's car - no borrow entry needed
               const __py2 = cfg.race_year || new Date().getFullYear()
               let __wS = 0, __vS = 0
@@ -1058,7 +1057,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
           })
           Object.keys(__phist).forEach(dn => {
             const cCar = __phistCar[dn] || []
-            const __mcP = Object.keys(__phistCars[dn] || {}).length >= 2 && (__phistCurN[dn] || 0) <= 15
+            const __mcP = Object.keys(__phistCars[dn] || {}).length >= 2 // car-auto-v2 (2026-08-07): part-time gate dropped - full-schedule two-car drivers (Caruth 88/32) were pooling rides
             const cA = __cat ? (__phistC[dn] || []) : []
             const a = (__mcP && cCar.length >= 3) ? cCar : ((cA.length >= 3) ? cA : __phist[dn])
             if (a.length >= 3) { const last = a.slice(-10); __projStart.set(dn, last.reduce((x, y) => x + y, 0) / last.length); __projStartH.set(dn, last) }
@@ -1419,7 +1418,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
       race_year:  config.race_year || new Date().getFullYear(),
       race_number: raceNumMap[series] ? parseInt(raceNumMap[series]) : null,
       stage: simStage,
-      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'car-auto-v1', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06-fenced', domCurves: 'gxc-v3.1-dnfLL', domSpeed: 'mult-v1', startProj: 'trail10-v3.4-eqStart', flagGuard: 'conf-v1', dnfModel: 'wreck-v1.1-cb', marketAnchor: 'v1.4-multimkt', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
+      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'car-auto-v2', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06-fenced', domCurves: 'gxc-v3.1-dnfLL', domSpeed: 'mult-v1', startProj: 'trail10-v3.5-eqStart', flagGuard: 'conf-v1', dnfModel: 'wreck-v1.1-cb', marketAnchor: 'v1.4-multimkt', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
       results: simResults.map(d => ({
         driver_name:  d.name,
         car_number:   d.carNumber,
