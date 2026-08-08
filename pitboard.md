@@ -1835,3 +1835,11 @@ Spreadsheet uploads mark DNQ in the START column: excelParser maps DNQ/DNS/WD ->
 
 
 **2026-08-08 (queued, operator-approved):** Flagged-bets archive should carry the issuing board's model stamps per flag row (dnfModel/domCurves/startProj/borrowMode etc. — currently one join away via sim_results config; denormalize at flag-write time). Purpose: lets the #69 threshold sweep segment flag performance by model era ("did flags issued by buggy-era boards underperform?") and makes mid-week model-fix wobble auditable. Context: Sawalich O'Reilly Iowa flags were bet off a pre-car-auto-v2 board; post-fix value thinned (win +3000 EV +9, t5 +350 EV +4 — still positive, bet stands, graded at taken price vs close per doctrine). Flags are never retro-edited or voided on model improvements; archive integrity is the point.
+
+## 2026-08-08 - Practice grader v5-lr20 (commit 6a5dc1c5)
+- Grade composite now pace .40 / speed .40 / longRun .20; drivers with NO long run are penalized
+  (25 rank-scale), not neutral. Winner-focused backtest (41 races) in BACKTEST_LOG. Display-only:
+  sim untouched (reads raw overall_avg/best5; practice_score only null-checked by EDGE gate).
+- Grade tooltip updated; stale V5 WEIGHTS header removed from practiceGrader.js.
+- Stored grades regrade only on re-upload. QUEUED: sim A/B of long-run-blended practice input
+  (finish MAE + favorite calibration) after wreck gates.
