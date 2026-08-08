@@ -1860,3 +1860,7 @@ Spreadsheet uploads mark DNQ in the START column: excelParser maps DNQ/DNS/WD ->
   hit rate vs implied only. #69 threshold sweep should weight Cup + pre-sim flags where the
   market has time to move. Corollary: in no-reprice windows there is no cost to betting as soon
   as a flag qualifies - the close will never validate, only results.
+- SCHEDULE-DEPENDENT, not series-fixed (operator correction, same day): the short window comes
+  from same-day practice->race slates, common for oreilly but not universal. Iowa Cup counter-
+  example: practice/quali ended Saturday, race 1pm Sunday - that post market hangs overnight
+  and IS CLV-informative. Judge each board by window length, not by series.
