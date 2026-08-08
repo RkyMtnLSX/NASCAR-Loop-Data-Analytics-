@@ -1,6 +1,7 @@
 /* eslint-disable */
 // ============================================================
-// NASCAR Practice Session Grader — GRADE v5-lr20 (2026-08-08)
+// NASCAR Practice Session Grader — GRADE v6-tc (2026-08-08)
+// v6-tc: all five ranked inputs are TIRE-CORRECTED copies (see gradePracticeSession).
 // Composite = pace*.40 + speed*.40 + longRun*.20
 //   pace   : avgPace rank (per-stint cleaned averages; overallAvg fallback)
 //   speed  : best5 rank (5 fastest laps; bestLap fallback) — shipped 2026-07-17
@@ -154,6 +155,51 @@ export function gradePracticeSession(drivers, priorRatings) {
   const wavg = (arr, vf, wf) => { let sv = 0, sw = 0; arr.forEach(r => { const v = vf(r); if (v == null) return; const w = wf(r); sv += v * w; sw += w }); return sw ? sv / sw : null }
   const rnd = (x, p) => x == null ? null : Math.round(x * p) / p
 
+  // TIRE-CORRECTED PACE (v6-tc, 2026-08-08): fit the session's falloff slope (sec per
+  // lap-on-tires) via within-stint demeaned regression on clean laps, then normalize every
+  // lap to lap-5 tire age for the RANKED metric copies (avgPaceTC/best5TC/longRunTC/...).
+  // STORED + DISPLAY metrics stay raw. Kills fresh-tire subsidy (Gilliland 44-lap sticker
+  // session out-averaging Blaney's 91-lap grind; Sieg short-burst A). Backtest 38 races:
+  // winner rank 7.32->6.24, top5 10.07->8.91, hits 1.84->2.11, rho .436->.454, W25/L13
+  // on rho (see BACKTEST_LOG 2026-08-08). Two tire sets per session make lap-in-stint an
+  // approximate tire-age proxy - stint break resets age, which matches a set change.
+  let __tcSxy = 0, __tcSxx = 0
+  drivers.forEach(dr => {
+    parseStints(dr.lapData || {}).forEach(st => {
+      const times = st.map(x => x[1])
+      const srt = [...times].sort((a, b) => a - b)
+      const med = srt[Math.floor(srt.length / 2)]
+      const pts = []
+      st.forEach((x, i) => { if (x[1] <= med * 1.06) pts.push([Math.min(i + 1, 40), x[1]]) })
+      if (pts.length < 4) return
+      const mx = pts.reduce((a, p) => a + p[0], 0) / pts.length
+      const my = pts.reduce((a, p) => a + p[1], 0) / pts.length
+      pts.forEach(p => { __tcSxy += (p[0] - mx) * (p[1] - my); __tcSxx += (p[0] - mx) * (p[0] - mx) })
+    })
+  })
+  const __tcBeta = __tcSxx ? __tcSxy / __tcSxx : 0
+  const __tcMet = (stints) => {
+    const stClean = []
+    stints.forEach(st => {
+      const times = st.map(x => x[1])
+      const srt = [...times].sort((a, b) => a - b)
+      const med = srt[Math.floor(srt.length / 2)]
+      const cl = []
+      st.forEach((x, i) => { if (x[1] <= med * 1.06) cl.push(x[1] - __tcBeta * (Math.min(i + 1, 40) - 5)) })
+      if (cl.length) stClean.push(cl)
+    })
+    const av = (a) => a.reduce((x, y) => x + y, 0) / a.length
+    const grad = stClean.filter(c => c.length >= MIN_LAPS)
+    const lrs = stClean.filter(c => c.length >= 10)
+    const allC = [].concat(...stClean).sort((a, b) => a - b)
+    return {
+      avgPaceTC: grad.length ? av(grad.map(av)) : null,
+      longRunTC: lrs.length ? lrs.reduce((sv, c) => sv + av(c) * c.length, 0) / lrs.reduce((sv, c) => sv + c.length, 0) : null,
+      best5TC: allC.length ? av(allC.slice(0, Math.min(5, allC.length))) : null,
+      bestLapTC: allC.length ? allC[0] : null,
+      overallTC: allC.length ? av(allC) : null,
+    }
+  }
   const parsed = drivers.map(dr => {
     const stints = parseStints(dr.lapData || {})
     const allLaps = stints.flat()
@@ -209,6 +255,7 @@ export function gradePracticeSession(drivers, priorRatings) {
       overallAvg: rnd(overallAvg, 1000), lateRunAvg: rnd(lateRunAvg, 1000), bestLap: rnd(bestLap, 1000), best5: rnd(best5, 1000),
       trendSlope: rnd(falloff, 10000), consistency: rnd(consistency, 1000),
       avgPace: rnd(avgPace, 1000), bestStint: rnd(bestStint, 1000), longRun: rnd(longRun, 1000),
+      ...__tcMet(stints),
       notes: JSON.stringify({ gl: __graded, fr: __fresh }), inc: false }
   })
 
@@ -253,14 +300,14 @@ export function gradePracticeSession(drivers, priorRatings) {
       gradable.forEach(d => { if (d[key] != null && d.group && offs[d.group] != null) d[gcKey] = d[key] - (offs[d.group] - center) })
       return true
     }
-    const c1 = correctKey('avgPace', '__gcAvgPace')
-    const c2 = correctKey('bestLap', '__gcBestLap')
-    const c3 = correctKey('overallAvg', '__gcOverallAvg')
-    const c4 = correctKey('best5', '__gcBest5') // SHIPPED 2026-07-17: grade speed half
-    const c5 = correctKey('longRun', '__gcLongRun') // SHIPPED 2026-08-08: long-run component
+    const c1 = correctKey('avgPaceTC', '__gcAvgPace')
+    const c2 = correctKey('bestLapTC', '__gcBestLap')
+    const c3 = correctKey('overallTC', '__gcOverallAvg')
+    const c4 = correctKey('best5TC', '__gcBest5') // SHIPPED 2026-07-17: grade speed half
+    const c5 = correctKey('longRunTC', '__gcLongRun') // SHIPPED 2026-08-08: long-run component
     gc = c1 || c2 || c3 || c4 || c5
   }
-  const apS = rankScale(gc ? '__gcAvgPace' : 'avgPace'), alS = rankScale(gc ? '__gcOverallAvg' : 'overallAvg'), blS = rankScale(gc ? '__gcBestLap' : 'bestLap'), b5S = rankScale(gc ? '__gcBest5' : 'best5'), lrS = rankScale(gc ? '__gcLongRun' : 'longRun')
+  const apS = rankScale(gc ? '__gcAvgPace' : 'avgPaceTC'), alS = rankScale(gc ? '__gcOverallAvg' : 'overallTC'), blS = rankScale(gc ? '__gcBestLap' : 'bestLapTC'), b5S = rankScale(gc ? '__gcBest5' : 'best5TC'), lrS = rankScale(gc ? '__gcLongRun' : 'longRunTC')
   const scored = gradable.map(d => {
     const pace = apS.has(d) ? apS.get(d) : (alS.has(d) ? alS.get(d) : 50)
     // SHIPPED 2026-07-17: speed half is best5 (mean of 5 fastest laps; bestLap fallback).
