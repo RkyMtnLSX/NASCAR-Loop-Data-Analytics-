@@ -1998,3 +1998,11 @@ Spreadsheet uploads mark DNQ in the START column: excelParser maps DNQ/DNS/WD ->
   My Bets tool (commit 069b5f40): market gains Group (beat rivals) with a rival multiselect,
   stored in my_bets.group_drivers (SQL run). Personal bets -> my_bets; sim auto flags ->
   flagged_bets; group grading logic lives in both graders either way.
+
+## 2026-08-09 - My Bets extracted to its own admin tab (commits c48aa8c7, ee226f0f, 4d69f1c1)
+- New page src/pages/MyBetsAdmin.js, Admin tab next to Flagged Bets. Embedded My Bets block
+  fully removed from SimulationCenter (JSX + helpers + state, residual-checked).
+- Upgrades over the embedded version: race dropdown across past races, loop-data grading per
+  bet (Fin / WIN-loss / P/L at stake, group bets = beat all rivals), settled count + net units
+  per race, sim% vs current published board, delete per row. Logs against the latest published
+  board for the selected series.
