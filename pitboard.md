@@ -1993,3 +1993,8 @@ Spreadsheet uploads mark DNQ in the START column: excelParser maps DNQ/DNS/WD ->
   snapshots for these markets) - expected.
 - Trigger: Iowa Group (Chastain P9 / Buescher P27 / Bowman P30 / Preece P35) - sim 71.8%
   Chastain (fair -254), books hanging +115. Operator can now log it and it grades tonight.
+- CORRECTED same morning (operator: no write controls on public pages): logger REMOVED from
+  the public results tray (commit 4b9d2eb8; Start column stays) and moved into the ADMIN
+  My Bets tool (commit 069b5f40): market gains Group (beat rivals) with a rival multiselect,
+  stored in my_bets.group_drivers (SQL run). Personal bets -> my_bets; sim auto flags ->
+  flagged_bets; group grading logic lives in both graders either way.
