@@ -9,7 +9,7 @@ const LBL = { win: 'Win', t3: 'Top 3', t5: 'Top 5', t10: 'Top 10', group: 'Group
 const am = (o) => (o == null ? '-' : (o > 0 ? '+' + o : String(o)))
 const dec = (o) => (o > 0 ? o / 100 + 1 : 100 / Math.abs(o) + 1)
 const impl = (o) => (o == null ? null : (o > 0 ? 100 / (o + 100) : (-o) / ((-o) + 100)))
-const nrm = (x) => (x || '').toLowerCase().replace(/[^a-z0-9]/g, '') // A.J. == AJ (2026-08-09)
+const nrm = (x) => (x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '') // A.J. == AJ, Suárez == Suarez (2026-08-09)
 
 export default function MyBetsAdmin() {
   const [series, setSeries] = useState('cup')
