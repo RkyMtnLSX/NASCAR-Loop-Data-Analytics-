@@ -1966,3 +1966,20 @@ Spreadsheet uploads mark DNQ in the START column: excelParser maps DNQ/DNS/WD ->
   (Logano -220 / Larson -200 cup t10 were badged +24% - never a subscriber suggestion).
   Legend text updated. DISPLAY ONLY: flag writer still logs to -250 for research; edge-
   inversion finding makes big-edge favorite claims the least trustworthy class anyway.
+
+## 2026-08-09 - Race-morning queue (McDowell Group F analysis + watcher)
+- QUEUED (before Richmond practice Fri): watcher captures the live-feed pit_stops array per
+  vehicle (pit_in/out elapsed, duration, type). Practice stops log as blank/OTHER (no explicit
+  tire label) but dwell + 2-set allocation makes set changes inferable; stop boundaries become
+  ground truth for tire-age/evolution modeling. BONUS: race feeds carry explicit tire-change
+  types (FOUR WHEEL etc.) - untapped validation data for pit crew rankings.
+- QUEUED (this week, cheap pre-test before any sim A/B): track-type-conditioned trailing driver
+  rating (shrunk toward pooled) vs pooled rating, scored against finish + race rating on loop
+  data. Only if conditioning wins does a sim A/B queue. Prior unfriendly: short-flat separation
+  lost twice for start projection. Trigger case: DK Group F Iowa - sim 43% McDowell (grid-led),
+  loop data layers walked it to ~20-22% (Preece 33->5 Iowa 2025; SVG 2026 short-flat surge
+  invisible to pooled ratings). Books priced form, sim priced grid; truth in between; +1400
+  still value vs ~+350-400 fair. Another live case of edge-inversion (big claimed edges shrink
+  under scrutiny).
+- WATCH: sim within-race weighting may lean grid-heavy vs driver track-type form at short
+  flats. No retune off one market (Riggs).
