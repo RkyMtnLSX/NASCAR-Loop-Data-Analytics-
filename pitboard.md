@@ -2039,3 +2039,12 @@ Spreadsheet uploads mark DNQ in the START column: excelParser maps DNQ/DNS/WD ->
   as post bets. Writer-side once-only logging still QUEUED (this fixes grading regardless).
 - Operator action: re-grade cup-23 post - Larson/Logano pre-owned sets drop out, +EV count
   shrinks to true post-only positions.
+
+## 2026-08-09 - Suárez accent join (commits 300c5cb1, ad4c077f)
+- Operator caught Suárez ungraded in Flagged Bets. The same-day AJ fix copied an INCOMPLETE
+  normalizer into FlaggedBetsAdmin/MyBetsAdmin (stripped punctuation but not accents - the
+  regex deleted the accented letter outright: danielsurez vs danielsuarez). Both now match
+  Grade Center: NFD accent-fold THEN strip non-alphanumerics. One shared rule everywhere:
+  names join on folded alphanumerics only. Lesson: when fixing name joins, fix the SHARED
+  definition once - three copies exist (GradeCenter, FlaggedBetsAdmin, MyBetsAdmin) and they
+  must stay identical.
