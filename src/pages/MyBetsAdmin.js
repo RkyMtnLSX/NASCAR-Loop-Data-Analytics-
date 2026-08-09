@@ -9,6 +9,7 @@ const LBL = { win: 'Win', t3: 'Top 3', t5: 'Top 5', t10: 'Top 10', group: 'Group
 const am = (o) => (o == null ? '-' : (o > 0 ? '+' + o : String(o)))
 const dec = (o) => (o > 0 ? o / 100 + 1 : 100 / Math.abs(o) + 1)
 const impl = (o) => (o == null ? null : (o > 0 ? 100 / (o + 100) : (-o) / ((-o) + 100)))
+const nrm = (x) => (x || '').toLowerCase().replace(/[^a-z0-9]/g, '') // A.J. == AJ (2026-08-09)
 
 export default function MyBetsAdmin() {
   const [series, setSeries] = useState('cup')
@@ -42,7 +43,7 @@ export default function MyBetsAdmin() {
     setRows(data || [])
     const { data: ld } = await supabase.from('loop_data').select('driver_name,finish_position').eq('series', series).eq('year', yr).eq('race_number', rn).limit(60)
     const m = {}
-    ;(ld || []).forEach(r => { m[r.driver_name] = r.finish_position })
+    ;(ld || []).forEach(r => { m[nrm(r.driver_name)] = r.finish_position })
     setFin(m)
   }
   async function addBet() {
@@ -69,10 +70,10 @@ export default function MyBetsAdmin() {
     return mk === 'win' ? r.win_pct : mk === 't3' ? r.top3_pct : mk === 't5' ? r.top5_pct : r.top10_pct
   }
   const graded = rows.map(r => {
-    const fp = fin[r.driver_name]
+    const fp = fin[nrm(r.driver_name)]
     let hit = (fp != null && NEED[r.market]) ? fp <= NEED[r.market] : null
     if (r.market === 'group' && r.group_drivers && fp != null) {
-      const rv = r.group_drivers.split(',').map(x => fin[x.trim()]).filter(x => x != null)
+      const rv = r.group_drivers.split(',').map(x => fin[nrm(x)]).filter(x => x != null)
       hit = rv.length ? rv.every(x => fp < x) : null
     }
     const st = r.stake != null ? r.stake : 1
