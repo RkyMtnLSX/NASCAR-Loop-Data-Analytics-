@@ -1931,3 +1931,19 @@ Spreadsheet uploads mark DNQ in the START column: excelParser maps DNQ/DNS/WD ->
   source of truth for positions (same principle as CLV stage fix earlier today).
 - Operator action: re-grade the two Iowa oreilly rows in Grade Center after deploy to overwrite
   the phantom -100% season-log entries.
+
+## 2026-08-08 - Flag policy session (commit 070c3626) + hard-gate analysis
+- Market-agrees HARD GATE tested against the 118 graded flags (4 races): gate keeps 17 bets
+  (1 hit, -11u) and DELETES 12 of 13 winners incl. all 5 Iowa oreilly winners. REJECTED -
+  with 2-3 books (FD often absent) the no-vig consensus is too thin to gate on. mev stays
+  display-only. 86% of logged flags are model-vs-market; that question goes to #69 with
+  full data, not a gate.
+- Flag WRITER drift found and fixed: was logging any ev>0 with no fav cap (Blaney t10 -475,
+  Reddick -275, 40 sub-10-edge rows). Now enforces the STATED rules at write: ev >= 10 and
+  no favs shorter than -250. Historical rows left untouched (archive integrity).
+- Full-log reality check: 118 flags flat-staked = -58.2u across 4 races (win market 0-fer;
+  hits cluster t3/t5 +160..+800). Iowa +5u came from operator curation (Sawalich ladder,
+  Creed>Hill matchup at -120 vs -156 fair). QUEUED: staking layer (fractional Kelly column,
+  one allocation per driver ladder, per-race exposure cap) - display-only, on Market Value.
+- Operator style notes: ladders are house style (rungs share one allocation); matchup pricer
+  still queued (Creed>Hill was found manually).
