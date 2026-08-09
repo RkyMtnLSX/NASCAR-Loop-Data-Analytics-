@@ -2029,3 +2029,13 @@ Spreadsheet uploads mark DNQ in the START column: excelParser maps DNQ/DNS/WD ->
   (cup-23 post has 25 flags from ~2x publishes of ~12 positions). Positions should log ONCE
   at first qualification (the price you could actually get); re-publishes should skip
   already-flagged driver+market for the race+stage. QUEUED for this week.
+
+## 2026-08-09 - Post-grade double-count guards (commit da8ac894)
+- Operator caught Larson graded on BOTH boards (bet pre, re-flagged by post re-publishes).
+  The takenFlags grading path (added 8/8) skipped the pre-owned dedupe entirely, AND writer
+  re-publish duplicates each graded separately. Fixed: takenFlags now (1) collapses duplicate
+  driver+market rows keeping the FIRST flag (created_at order = the price actually available
+  when first flagged), (2) honors preOwned - positions taken on the pre board are not re-graded
+  as post bets. Writer-side once-only logging still QUEUED (this fixes grading regardless).
+- Operator action: re-grade cup-23 post - Larson/Logano pre-owned sets drop out, +EV count
+  shrinks to true post-only positions.
