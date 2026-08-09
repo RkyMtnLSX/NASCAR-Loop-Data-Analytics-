@@ -101,9 +101,21 @@ export default function MyBetsAdmin() {
             <option value="win">Win</option><option value="t3">Top 3</option><option value="t5">Top 5</option><option value="t10">Top 10</option><option value="group">Group (beat rivals)</option>
           </select>
           {form.market === 'group' ? (
-            <select multiple size={4} value={form.rivals} title="Ctrl/Cmd-click each rival your driver must beat" onChange={e => setForm(f => ({ ...f, rivals: Array.from(e.target.selectedOptions).map(o => o.value) }))} style={{ ...inp, minWidth: 160 }}>
-              {drivers.filter(d => d !== form.driver).map(d => <option key={d} value={d}>{d}</option>)}
-            </select>
+            <div style={{ width: '100%', order: 5 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', margin: '4px 0' }}>Click each rival {form.driver || 'your driver'} must beat:</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, maxWidth: 720 }}>
+                {drivers.filter(d => d !== form.driver).map(d => {
+                  const on = form.rivals.includes(d)
+                  return (
+                    <span key={d} onClick={() => setForm(f => ({ ...f, rivals: on ? f.rivals.filter(x => x !== d) : [...f.rivals, d] }))}
+                      style={{ cursor: 'pointer', padding: '3px 10px', borderRadius: 999, fontSize: 12, border: '1px solid ' + (on ? 'var(--accent)' : 'var(--border)'), background: on ? 'rgba(232,185,35,0.15)' : 'transparent', color: on ? 'var(--accent)' : 'var(--text-secondary)' }}>
+                      {d}{on ? ' x' : ''}
+                    </span>
+                  )
+                })}
+              </div>
+              {form.rivals.length ? <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4 }}>{(form.driver || '?') + ' to beat: ' + form.rivals.join(', ')}</div> : null}
+            </div>
           ) : null}
           <input value={form.odds} onChange={e => setForm(f => ({ ...f, odds: e.target.value }))} placeholder="odds e.g. +115" style={{ ...inp, width: 90 }} />
           <input value={form.stake} onChange={e => setForm(f => ({ ...f, stake: e.target.value }))} placeholder="stake" style={{ ...inp, width: 64 }} />
