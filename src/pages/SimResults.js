@@ -35,10 +35,12 @@ const __srBtn = { padding: '7px 14px', borderRadius: 6, border: '1px solid var(-
 function SrTable({ data, col1 }) {
   if (!data || !data.length) return null
   const hasFin = data[0].avgFin !== undefined
+  const hasStart = data[0].start != null
   return (
     <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 8 }}>
       <thead><tr>
         <th style={{ ...__srTh, textAlign: 'left' }}>{col1}</th>
+        {hasStart ? <th style={{ ...__srTh, textAlign: 'right' }}>Start</th> : null}
         {hasFin ? <th style={{ ...__srTh, textAlign: 'right' }}>Avg Finish</th> : null}
         <th style={{ ...__srTh, textAlign: 'right' }}>Win %</th>
         <th style={{ ...__srTh, textAlign: 'right' }}>FMV</th>
@@ -47,6 +49,7 @@ function SrTable({ data, col1 }) {
         {data.map((r, i) => (
           <tr key={i}>
             <td style={__srTd}>{r.name}</td>
+            {hasStart ? <td style={{ ...__srTd, textAlign: 'right', color: 'var(--text-secondary, #9a9a9a)' }}>P{r.start}</td> : null}
             {hasFin ? <td style={{ ...__srTd, textAlign: 'right' }}>{r.avgFin.toFixed(1)}</td> : null}
             <td style={{ ...__srTd, textAlign: 'right' }}>{r.winPct.toFixed(1)}%</td>
             <td style={{ ...__srTd, textAlign: 'right', color: 'var(--accent, #22c55e)', fontWeight: 600 }}>{r.fmv}</td>
@@ -56,7 +59,7 @@ function SrTable({ data, col1 }) {
     </table>
   )
 }
-function CompareTray({ sel, config, onToggle, onClear }) {
+function CompareTray({ sel, config, results, onToggle, onClear }) {
   const [res, setRes] = useState(null)
   useEffect(() => {
     const M = __decodeMtx(config)
@@ -69,8 +72,9 @@ function CompareTray({ sel, config, onToggle, onClear }) {
       for (let g = 0; g < cols.length; g++) { const p = M.mtx[s * M.nD + cols[g]]; finSum[g] += p; if (p < best) { best = p; bi = g } }
       wins[bi]++
     }
-    setRes(cols.map((c, g) => ({ name: M.order[c], avgFin: finSum[g] / M.simN, winPct: 100 * wins[g] / M.simN, fmv: fmvAmerican(wins[g] / M.simN) })).sort((a, b) => b.winPct - a.winPct))
-  }, [sel, config])
+    const __startBy = {}; (results || []).forEach(function (d) { __startBy[d.driver_name] = d.start_pos });
+    setRes(cols.map((c, g) => ({ name: M.order[c], start: (__startBy[M.order[c]] != null ? __startBy[M.order[c]] : null), avgFin: finSum[g] / M.simN, winPct: 100 * wins[g] / M.simN, fmv: fmvAmerican(wins[g] / M.simN) })).sort((a, b) => b.winPct - a.winPct))
+  }, [sel, config, results])
   const hasMtx = !!__decodeMtx(config)
   return (
     <div className="card" style={{ marginBottom: 16, borderColor: sel.length >= 2 ? 'var(--accent)' : 'var(--border)' }}>
@@ -300,7 +304,7 @@ export default function SimResults() {
 
       {!loading && !error && sorted.length > 0 && (
         <>
-          <CompareTray sel={sel} config={data && data.config} onToggle={togSel} onClear={() => setSel([])} />
+          <CompareTray sel={sel} config={data && data.config} results={results} onToggle={togSel} onClear={() => setSel([])} />
           <div style={{ display: 'flex', gap: 6, margin: '2px 0 14px', flexWrap: 'wrap' }}>
             {[['proj', 'Projections'], ['mv', 'Market Value'], ['markets', 'Mfr & Team']].map((ct) => (
               <button key={ct[0]} onClick={() => setTab(ct[0])} style={{ padding: '7px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', background: tab === ct[0] ? 'var(--accent)' : 'var(--bg-surface)', color: tab === ct[0] ? '#111' : 'var(--text-secondary)' }}>{ct[1]}</button>
