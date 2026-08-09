@@ -28,7 +28,7 @@ function __parseFinish(txt, board) {
   return { actualMap, matched, unmatched }
 }
 
-function __gradeRace(board, actualMap, preOwned, dkActMap) {
+function __gradeRace(board, actualMap, preOwned, dkActMap, takenFlags) {
   const dec = a => a > 0 ? a / 100 + 1 : 100 / Math.abs(a) + 1
   const Ncut = { win: 1, t3: 3, t5: 5, t10: 10 }
   const rows = board.map(d => ({ name: d.driver_name, car: String(d.car_number), pf: d.proj_finish, p50: (d.finish_p50 != null ? +d.finish_p50 : null), win: d.win_pct, t3: d.top3_pct, t5: d.top5_pct, t10: d.top10_pct, mv: d.mv, dkp: d.proj_dk != null ? d.proj_dk : null, dka: dkActMap ? dkActMap[String(d.car_number)] : null, act: actualMap[String(d.car_number)] })).filter(d => d.act != null)
@@ -56,7 +56,20 @@ function __gradeRace(board, actualMap, preOwned, dkActMap) {
   metrics.prec = { win: prec('win', 1), t3: prec('t3', 3), t5: prec('t5', 5), t10: prec('t10', 10) }
   const evFlags = []
   var MIN_EDGE_BET = 10; var MAX_FAV_BET = -250; // house rule 2026-07-10: only edges >= 10% (and no favs shorter than -250) count as logged bets
+  // 2026-08-08: grade TAKEN positions (flagged_bets) when available - board snapshots get
+  // re-published as odds arrive, so recomputing edges graded bets never taken and missed
+  // real winners (Iowa oreilly pre showed -100% vs actual +5u across 25 flags).
+  if (takenFlags && takenFlags.length) {
+    const __actBy = {}
+    rows.forEach(r => { __actBy[(r.name || '').toLowerCase().trim()] = r.act })
+    takenFlags.forEach(f => {
+      const a = __actBy[(f.driver_name || '').toLowerCase().trim()]
+      if (a == null) return
+      evFlags.push({ driver: f.driver_name, market: f.market, price: f.best_price, book: (f.book || '').toUpperCase(), ev: f.ev, mev: f.mev, hit: a <= Ncut[f.market] })
+    })
+  } else {
   rows.forEach(r => { if (!r.mv) return; ['win', 't3', 't5', 't10'].forEach(mk => { const m = r.mv[mk]; if (!m || m.ev == null || m.ev < MIN_EDGE_BET) return; if (m.best != null && m.best < 0 && m.best < MAX_FAV_BET) return; if (preOwned && preOwned.has(r.name + '|' + mk)) return; evFlags.push({ driver: r.name, market: mk, price: m.best, book: (m.bb || '').toUpperCase(), ev: m.ev, mev: m.mev, hit: r.act <= Ncut[mk] }) }) })
+  }
   const roiOf = fl => { if (!fl.length) return { bets: 0, profit: 0, roi: 0 }; const ret = fl.reduce((s, f) => s + (f.hit ? dec(f.price) : 0), 0); return { bets: fl.length, profit: +(ret - fl.length).toFixed(2), roi: +(((ret - fl.length) / fl.length) * 100).toFixed(1) } }
   const roi = { all: roiOf(evFlags), win: roiOf(evFlags.filter(f => f.market === 'win')), exwin: roiOf(evFlags.filter(f => f.market !== 'win')), consensus: roiOf(evFlags.filter(f => f.mev > 0)) }
   const detail = rows.slice().sort((a, b) => a.act - b.act).map(r => ({ name: r.name, car: r.car, pf: r.pf, act: r.act, win: r.win, flags: evFlags.filter(f => f.driver === r.name).map(f => f.market) }))
@@ -238,7 +251,8 @@ export default function GradeCenter() {
     const parsed = __parseFinish(gradeTxt, row.results)
     if (Object.keys(parsed.actualMap).length < 3) { setPrev(null); setMsg('Could not read the finishing order - paste one driver per line, winner first.'); return }
     const __preOwned = gradeStage === 'post' ? await __preOwnedFlags(series, row) : null
-    const g = __gradeRace(row.results, parsed.actualMap, __preOwned)
+    const { data: __tf } = await supabase.from('flagged_bets').select('driver_name,market,best_price,ev,mev,book').eq('series', series).eq('race_year', row.race_year).eq('race_number', row.race_number).eq('stage', gradeStage).is('voided_at', null)
+    const g = __gradeRace(row.results, parsed.actualMap, __preOwned, undefined, __tf || [])
     setPrev({ metrics: g.metrics, evFlags: g.evFlags, roi: g.roi, detail: g.detail, parsed: parsed, simId: row.id, track: row.track_name, year: row.race_year, config: row.config })
     setMsg(parsed.matched.length + ' matched' + (parsed.unmatched.length ? ', ' + parsed.unmatched.length + ' skipped' : '') + '.')
   }
@@ -276,7 +290,8 @@ export default function GradeCenter() {
       dkActMap[car] = (fin <= 40 ? __dkTbl[fin] : 0) + (st - fin) + (parseFloat(l.laps_led) || 0) * 0.25 + (parseFloat(l.fastest_laps) || 0) * 0.45 })
     if (Object.keys(actualMap).length < 3) { setPrev(null); setMsg('Could not match loop-data drivers to the published sim.'); return }
     const __preOwned2 = gradeStage === 'post' ? await __preOwnedFlags(series, row) : null
-    const g = __gradeRace(row.results, actualMap, __preOwned2, dkActMap)
+    const { data: __tf2 } = await supabase.from('flagged_bets').select('driver_name,market,best_price,ev,mev,book').eq('series', series).eq('race_year', row.race_year).eq('race_number', row.race_number).eq('stage', gradeStage).is('voided_at', null)
+    const g = __gradeRace(row.results, actualMap, __preOwned2, dkActMap, __tf2 || [])
     // CLV (2026-07-18): closing line = last odds snapshot cluster for this race; CLV compares the
     // odds stamped on the published board (bettable at publish) vs the close, same book per play.
     try {
