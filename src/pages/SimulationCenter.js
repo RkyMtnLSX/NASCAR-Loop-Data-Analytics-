@@ -695,7 +695,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
   const [rainOut, setRainOut] = useState(false)
   const [lapsDownOverrides, setLapsDownOverrides] = useState({})
   const [myBets, setMyBets] = useState([])
-  const [betForm, setBetForm] = useState({ driver: '', market: 'win', odds: '', stake: '' })
+  const [betForm, setBetForm] = useState({ driver: '', market: 'win', odds: '', stake: '', rivals: [] })
   const [cautionPreset, setCautionPreset]   = useState(CAUTION_PRESETS[1])
   const [cautionAutoNote, setCautionAutoNote] = useState('')
   const [dnfPreset, setDnfPreset]           = useState(DNF_PRESETS[1])
@@ -1322,9 +1322,10 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
     if (!betForm.driver || betForm.odds === '') { alert('Pick a driver and enter odds.'); return }
     if (!__betRace) { alert('No race loaded - run or publish a sim for this race first, then log the bet.'); return }
     try {
-      const { error } = await supabase.from('my_bets').insert({ series, race_year: __betYear, race_number: __betRace, track_name: __betTrack, driver_name: betForm.driver, market: betForm.market, odds: parseInt(betForm.odds), stake: betForm.stake ? parseFloat(betForm.stake) : null })
+      if (betForm.market === 'group' && (!betForm.rivals || !betForm.rivals.length)) { alert('Pick at least one rival for a group bet.'); return }
+      const { error } = await supabase.from('my_bets').insert({ series, race_year: __betYear, race_number: __betRace, track_name: __betTrack, driver_name: betForm.driver, market: betForm.market, odds: parseInt(betForm.odds), stake: betForm.stake ? parseFloat(betForm.stake) : null, group_drivers: (betForm.market === 'group' ? betForm.rivals.join(', ') : null) })
       if (error) { alert('Save failed: ' + error.message); return }
-      setBetForm({ driver: '', market: 'win', odds: '', stake: '' })
+      setBetForm({ driver: '', market: 'win', odds: '', stake: '', rivals: [] })
       loadMyBets()
     } catch (e2) { alert('Save failed: ' + (e2 && e2.message ? e2.message : e2)) }
   }
@@ -1787,6 +1788,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
               const impl = (o) => o > 0 ? 100 / (o + 100) : (-o) / (-o + 100)
               const toWin = (o, st) => st == null ? null : (o > 0 ? st * o / 100 : st * 100 / (-o))
               const simP = (nm, mk) => {
+                if (mk === 'group') return null // group prob lives in the matchup tray, not a stored column
                 if (!simResults) return null
                 const r = simResults.find(x => x.name === nm || x.driver_name === nm)
                 if (!r) return null
@@ -1802,8 +1804,11 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
                       {rawDrivers.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
                     </select>
                     <select value={betForm.market} onChange={e => setBetForm(f => ({ ...f, market: e.target.value }))} style={{ padding: '4px 8px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text-secondary)', fontSize: 12 }}>
-                      <option value="win">Win</option><option value="t3">Top 3</option><option value="t5">Top 5</option><option value="t10">Top 10</option>
+                      <option value="win">Win</option><option value="t3">Top 3</option><option value="t5">Top 5</option><option value="t10">Top 10</option><option value="group">Group (beat rivals)</option>
                     </select>
+                    {betForm.market === 'group' ? <select multiple size={4} value={betForm.rivals} onChange={e => setBetForm(f => ({ ...f, rivals: Array.from(e.target.selectedOptions).map(o => o.value) }))} title="Ctrl/Cmd-click the rivals your driver must beat" style={{ padding: '4px 8px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text-secondary)', fontSize: 12, minWidth: 150 }}>
+                      {rawDrivers.filter(d => d.name !== betForm.driver).map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
+                    </select> : null}
                     <input value={betForm.odds} onChange={e => setBetForm(f => ({ ...f, odds: e.target.value }))} placeholder="odds e.g. 1600" style={{ width: 100, padding: '4px 8px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text-secondary)', fontSize: 12 }} />
                     <input value={betForm.stake} onChange={e => setBetForm(f => ({ ...f, stake: e.target.value }))} placeholder="stake" style={{ width: 76, padding: '4px 8px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text-secondary)', fontSize: 12 }} />
                     <button onClick={addMyBet} style={{ padding: '4px 12px', background: '#4a90d9', border: 'none', borderRadius: 6, color: '#fff', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>+ Log bet</button>
@@ -1815,7 +1820,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
                         {myBets.map(b => { const sp = simP(b.driver_name, b.market); const ip = impl(b.odds) * 100; const tw = toWin(b.odds, b.stake); return (
                           <tr key={b.id} style={{ borderTop: '1px solid var(--border)' }}>
                             <td style={{ padding: '2px 6px' }}>{b.driver_name}</td>
-                            <td style={{ padding: '2px 6px' }}>{b.market}</td>
+                            <td style={{ padding: '2px 6px' }} title={b.group_drivers ? ('beats: ' + b.group_drivers) : undefined}>{b.market === 'group' ? 'group*' : b.market}</td>
                             <td style={{ padding: '2px 6px', fontFamily: 'var(--font-mono)' }}>{b.odds > 0 ? '+' + b.odds : b.odds}</td>
                             <td style={{ padding: '2px 6px' }}>{ip.toFixed(1)}%</td>
                             <td style={{ padding: '2px 6px', color: sp != null && sp > ip ? '#5bd97a' : 'var(--text-secondary)' }}>{sp != null ? sp.toFixed(1) + '%' : '-'}</td>
