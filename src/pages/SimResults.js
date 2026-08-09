@@ -407,7 +407,7 @@ export default function SimResults() {
   var MINP = { win: 2, t3: 5, t5: 8, t10: 12, win_pct: 2, top3_pct: 5, top5_pct: 8, top10_pct: 12 }; // tail guard 2026-07-09 (see SimulationCenter __marketValue)
   var rows = withMv.map(function (d) { var m = d.mv[key]; if (!m) return null; var p = (d[SF[mvMkt]] || 0) / 100; return { name: d.driver_name, dk: m.dk, fd: m.fd, hr: m.hr, best: m.best, bb: (m.bb || '').toUpperCase(), modelPct: d[SF[mvMkt]] || 0, fair: fairOdds(p), ev: m.ev, mev: m.mev }; }).filter(function (r) { return r && r.best != null && r.modelPct >= (MINP[key] != null ? MINP[key] : 0); });
   rows.sort(function (a, b) { return mvSort === 'best' ? (dec(b.best) - dec(a.best)) : mvSort === 'model' ? (b.modelPct - a.modelPct) : (b.ev - a.ev); });
-  var MIN_EDGE_PUBLIC = 10; var MAX_FAV_PUBLIC = -250; // house rule 2026-07-10: public boards never surface edges below 10% or favs shorter than -250
+  var MIN_EDGE_PUBLIC = 10; var MAX_FAV_PUBLIC = -150; // house rule 2026-07-10, tightened 2026-08-08: laying serious juice on position markets is never a subscriber suggestion (Logano -220 / Larson -200 t10 case); flags still LOG to -250 for research
   if (mvQual) { rows = rows.filter(function (r) { return r.ev !== null && r.ev >= MIN_EDGE_PUBLIC && r.mev > 0 && !(r.best < 0 && r.best < MAX_FAV_PUBLIC); }); }
   var odds = mvUnits === 'odds';
   var thc = { padding: '7px 6px', color: '#8a8a8a', fontSize: 11, fontWeight: 500, borderBottom: '0.5px solid #333' };
@@ -420,7 +420,7 @@ export default function SimResults() {
       <div style={{ marginBottom: 10 }}>{['Win', 'Top 3', 'Top 5', 'Top 10'].map(function (k) { return <button key={k} onClick={function () { setMvMkt(k); }} style={{ padding: '6px 14px', borderRadius: 999, border: '0.5px solid ' + (mvMkt === k ? '#e8c766' : '#333'), background: mvMkt === k ? '#262626' : 'transparent', color: mvMkt === k ? '#f5c518' : '#9a9a9a', fontSize: 13, cursor: 'pointer', marginRight: 4 }}>{k}</button>; })}</div>
       <div style={{ display: 'flex', gap: 16, alignItems: 'center', fontSize: 12, color: '#888', marginBottom: 10 }}>
         <span>units <span style={{ border: '0.5px solid #333', borderRadius: 6, overflow: 'hidden', display: 'inline-flex' }}>{seg(mvUnits, setMvUnits, 'odds', 'Odds')}{seg(mvUnits, setMvUnits, 'pct', '%')}</span></span>
-        <span>sort <span style={{ border: '0.5px solid #333', borderRadius: 6, overflow: 'hidden', display: 'inline-flex' }}>{seg(mvSort, setMvSort, 'edge', 'Edge')}{seg(mvSort, setMvSort, 'best', 'Best')}{seg(mvSort, setMvSort, 'model', 'Model')}</span></span> <span style={{ marginLeft: 4 }}>bets <button onClick={function () { setMvQual(!mvQual); }} style={{ cursor: 'pointer', border: '0.5px solid #333', borderRadius: 6, padding: '2px 8px', background: mvQual ? '#123d24' : 'transparent', color: mvQual ? '#3fb950' : '#888', fontSize: 12 }}>Qualified only</button></span><span style={{ color: '#666' }}>qualified = 10%+ edge, market agrees, no favs past -250</span><span style={{ marginLeft: 8, color: '#3fb950' }}>{rows.length} qualify</span>
+        <span>sort <span style={{ border: '0.5px solid #333', borderRadius: 6, overflow: 'hidden', display: 'inline-flex' }}>{seg(mvSort, setMvSort, 'edge', 'Edge')}{seg(mvSort, setMvSort, 'best', 'Best')}{seg(mvSort, setMvSort, 'model', 'Model')}</span></span> <span style={{ marginLeft: 4 }}>bets <button onClick={function () { setMvQual(!mvQual); }} style={{ cursor: 'pointer', border: '0.5px solid #333', borderRadius: 6, padding: '2px 8px', background: mvQual ? '#123d24' : 'transparent', color: mvQual ? '#3fb950' : '#888', fontSize: 12 }}>Qualified only</button></span><span style={{ color: '#666' }}>qualified = 10%+ edge, market agrees, no favs past -150</span><span style={{ marginLeft: 8, color: '#3fb950' }}>{rows.length} qualify</span>
       </div>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, tableLayout: 'fixed' }}>
         <thead><tr>
@@ -444,7 +444,7 @@ export default function SimResults() {
               <td style={{ padding: '7px 6px', textAlign: 'right' }}>{oc(r.hr, r.best)}</td>
               <td style={{ padding: '7px 6px', textAlign: 'right', color: '#3fb950', fontWeight: 500 }}>{fo(r.best)}<img src={'/book-' + r.bb.toLowerCase() + '.png'} alt={r.bb} style={{ maxHeight: 26, maxWidth: 60, verticalAlign: 'middle', marginLeft: 3 }} /></td>
               <td style={{ padding: '7px 6px', textAlign: 'right' }}>{mod}</td>
-              <td style={{ padding: '7px 6px', textAlign: 'right' }}>{(r.ev != null && r.ev >= 10) ? <span><span style={{ background: '#123d24', color: '#3fb950', padding: '2px 6px', borderRadius: 999, fontWeight: 500 }}>+{r.ev}%</span>{(r.mev != null && r.mev > 0) ? <span style={{ fontSize: 9, color: '#3fb950', marginLeft: 3 }}>mkt</span> : null}</span> : <span style={{ color: '#555' }}>-</span>}</td>
+              <td style={{ padding: '7px 6px', textAlign: 'right' }}>{(r.ev != null && r.ev >= 10 && !(r.best < 0 && r.best < -150)) ? <span><span style={{ background: '#123d24', color: '#3fb950', padding: '2px 6px', borderRadius: 999, fontWeight: 500 }}>+{r.ev}%</span>{(r.mev != null && r.mev > 0) ? <span style={{ fontSize: 9, color: '#3fb950', marginLeft: 3 }}>mkt</span> : null}</span> : <span style={{ color: '#555' }}>-</span>}</td>
             </tr>;
           })}
         </tbody>
