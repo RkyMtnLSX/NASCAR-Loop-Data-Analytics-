@@ -2017,3 +2017,15 @@ Spreadsheet uploads mark DNQ in the START column: excelParser maps DNQ/DNS/WD ->
   entry, never retro-edit existing rows. Also consider widening the closing paste beyond 3 books.
 - Context validation: Blaney win opened +450, closed +240 (full market) - the pre board
   +5.4 avg CLV weekend was real and likely UNDERSTATED by the best-close method.
+
+## 2026-08-09 - Post-race: A.J./AJ name-join bug (commits d3c6d78f, 63b03b90, 1c4b2fe0)
+- Operator caught Allmendinger missing from grading despite a flagged t10 and a P8 finish (HIT
+  at +1400). Cause: grader normalization turned periods into SPACES - loop_data "A.J.
+  Allmendinger" -> "a j allmendinger" vs board "aj allmendinger" -> silent drop (same family
+  as the Sanchez alias). Fix: all three graders (Grade Center incl. takenFlags + group rivals,
+  Flagged Bets, My Bets) now join on alphanumeric-only names (strip punctuation entirely).
+- Operator action: re-grade cup-23 pre - AJ +1400 t10 hit now counts.
+- ALSO FOUND, NOT YET FIXED: flag writer re-logs the same driver+market on every re-publish
+  (cup-23 post has 25 flags from ~2x publishes of ~12 positions). Positions should log ONCE
+  at first qualification (the price you could actually get); re-publishes should skip
+  already-flagged driver+market for the race+stage. QUEUED for this week.
