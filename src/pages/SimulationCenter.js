@@ -1449,8 +1449,14 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
           })
         })
         if (__fb.length) {
-          await supabase.from('flagged_bets').delete().eq('series', series).eq('race_year', payload.race_year).eq('race_number', payload.race_number).eq('stage', simStage)
-          await supabase.from('flagged_bets').insert(__fb)
+          // ONCE-ONLY POSITIONS (2026-08-09): never delete/replace. The FIRST flag for a
+          // driver+market is the position, at the price actually available when it first
+          // qualified - re-publishes only ADD newly-qualifying positions. Old behavior
+          // (delete + reinsert) re-priced every flag on re-publish and wiped voided rows.
+          const { data: __ex } = await supabase.from('flagged_bets').select('driver_name,market').eq('series', series).eq('race_year', payload.race_year).eq('race_number', payload.race_number).eq('stage', simStage)
+          const __have = new Set((__ex || []).map(x => (x.driver_name || '').toLowerCase() + '|' + x.market))
+          const __new = __fb.filter(f => !__have.has((f.driver_name || '').toLowerCase() + '|' + f.market))
+          if (__new.length) await supabase.from('flagged_bets').insert(__new)
         }
       } catch (e) {}
       setPublished(true)
