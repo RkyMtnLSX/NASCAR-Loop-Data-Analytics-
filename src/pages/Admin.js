@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import DfsSalaryAdmin from './DfsSalaryAdmin'
 import FlaggedBetsAdmin from './FlaggedBetsAdmin'
+import MyBetsAdmin from './MyBetsAdmin'
 import LineMovementAdmin from './LineMovementAdmin'
 import FastestLapOddsAdmin from './FastestLapOddsAdmin'
 import { parsePracticeExcel } from '../lib/excelParser'
@@ -2198,7 +2199,7 @@ export default function Admin() {
 
   const __tabBar = (
     <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid rgba(128,128,128,0.25)', marginBottom: 16 }}>
-      {[['admin', 'Admin'], ['sim', 'Sim Admin'], ['grader', 'Sim Grader'], ['flags', 'Flagged Bets'], ['load', 'Load Data'], ['dfs', 'DFS'], ['lines', 'Line Movement'], ['flodds', 'Fastest Lap Odds']].map(t => (
+      {[['admin', 'Admin'], ['sim', 'Sim Admin'], ['grader', 'Sim Grader'], ['flags', 'Flagged Bets'], ['mybets', 'My Bets'], ['load', 'Load Data'], ['dfs', 'DFS'], ['lines', 'Line Movement'], ['flodds', 'Fastest Lap Odds']].map(t => (
         <button key={t[0]} onClick={() => setAdminTab(t[0])} style={{ padding: '8px 16px', border: 'none', background: 'none', borderBottom: adminTab === t[0] ? '2px solid #e8b923' : '2px solid transparent', color: adminTab === t[0] ? '#e8b923' : 'var(--text-muted)', fontWeight: 600, cursor: 'pointer', fontSize: '0.95rem' }}>{t[1]}</button>
       ))}
     </div>
@@ -2214,6 +2215,7 @@ export default function Admin() {
       </div>
 
       {adminTab === 'flags' && <FlaggedBetsAdmin />}
+      {adminTab === 'mybets' && <MyBetsAdmin />}
       {adminTab === 'dfs' && <DfsSalaryAdmin />}
       {adminTab === 'lines' && <LineMovementAdmin />}
       {adminTab === 'flodds' && <FastestLapOddsAdmin />}
