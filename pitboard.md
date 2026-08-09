@@ -1960,3 +1960,9 @@ Spreadsheet uploads mark DNQ in the START column: excelParser maps DNQ/DNS/WD ->
   have blocked tonight actual winning bets from the ledger. Policy: log every positive-ev
   flag (storage is research data); thresholds/gates live in displays and reports only.
   The -250 fav cap at write STAYS (nonsense positions at any edge).
+
+## 2026-08-08 - Display fav cap tightened to -150 (commit e70c5fb7)
+- Market Value edge badge + qualified filter now blank any favorite shorter than -150
+  (Logano -220 / Larson -200 cup t10 were badged +24% - never a subscriber suggestion).
+  Legend text updated. DISPLAY ONLY: flag writer still logs to -250 for research; edge-
+  inversion finding makes big-edge favorite claims the least trustworthy class anyway.
