@@ -61,22 +61,7 @@ function SrTable({ data, col1 }) {
 }
 function CompareTray({ sel, config, results, meta, onToggle, onClear }) {
   const [res, setRes] = useState(null)
-  const [pick, setPick] = useState('')
-  const [px, setPx] = useState('')
-  const [logMsg, setLogMsg] = useState('')
-  // custom group-bet logging (2026-08-09, operator request - Chastain +115 Group case)
-  const logGroup = async () => {
-    if (!res || !meta) return
-    const nm = pick || res[0].name
-    const row = res.find(r => r.name === nm)
-    const p = parseInt(String(px).replace('+', ''), 10)
-    if (!row || isNaN(p) || (p > -100 && p < 100)) { setLogMsg('Enter American odds, e.g. +115 or -130.'); return }
-    const decOdds = p > 0 ? p / 100 + 1 : 100 / Math.abs(p) + 1
-    const ev = Math.round(((row.winPct / 100) * decOdds - 1) * 100)
-    const rivals = res.filter(r => r.name !== nm).map(r => r.name).join(', ')
-    const { error } = await supabase.from('flagged_bets').insert({ series: meta.series, race_year: meta.race_year, race_number: meta.race_number, track_name: meta.track_name, stage: meta.stage, driver_name: nm, market: 'group', sim_prob: +(row.winPct.toFixed(1)), best_price: p, book: 'MANUAL', ev: ev, mev: null, medge: null, group_drivers: rivals })
-    setLogMsg(error ? 'Log failed: ' + error.message : 'Logged: ' + nm + ' ' + (p > 0 ? '+' + p : p) + ' to beat ' + res.length + '-driver group (ev ' + ev + '%)')
-  }
+
   useEffect(() => {
     const M = __decodeMtx(config)
     if (!M || sel.length < 2) { setRes(null); return }
@@ -110,17 +95,6 @@ function CompareTray({ sel, config, results, meta, onToggle, onClear }) {
       ) : null}
       {!hasMtx && sel.length >= 2 ? <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 10 }}>Re-run and publish this sim to enable exact matchup math (per-sim data isn't stored on this older board).</div> : null}
       {res ? <SrTable data={res} col1="Driver" /> : null}
-      {res && meta ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Log group bet:</span>
-          <select value={pick || res[0].name} onChange={e => setPick(e.target.value)} style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 8px', fontSize: '0.8rem' }}>
-            {res.map(r => <option key={r.name} value={r.name}>{r.name}</option>)}
-          </select>
-          <input value={px} onChange={e => setPx(e.target.value)} placeholder="+115" style={{ width: 64, background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 8px', fontSize: '0.8rem' }} />
-          <button style={__srBtn} onClick={logGroup}>Log bet</button>
-          {logMsg ? <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{logMsg}</span> : null}
-        </div>
-      ) : null}
     </div>
   )
 }
