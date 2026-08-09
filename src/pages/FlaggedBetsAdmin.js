@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 
 const NEED = { win: 1, t3: 3, t5: 5, t10: 10 }
-const LBL = { win: 'Win', t3: 'Top 3', t5: 'Top 5', t10: 'Top 10' }
+const LBL = { win: 'Win', t3: 'Top 3', t5: 'Top 5', t10: 'Top 10', group: 'Group' }
 const am = (o) => (o == null ? '-' : (o > 0 ? '+' + o : String(o)))
 
 export default function FlaggedBetsAdmin() {
@@ -84,7 +84,12 @@ export default function FlaggedBetsAdmin() {
     const out = rows.filter(r => showVoided || !r.voided_at).map(r => {
       const fp = fin[r.driver_name]
       const nd = NEED[r.market]
-      const hit = (fp != null && nd) ? fp <= nd : null
+      let hit = (fp != null && nd) ? fp <= nd : null
+      // custom group bets (2026-08-09): win the group = beat every listed rival's finish
+      if (r.market === 'group' && r.group_drivers && fp != null) {
+        const rv = r.group_drivers.split(',').map(x => fin[x.trim()]).filter(x => x != null)
+        hit = rv.length ? rv.every(x => fp < x) : null
+      }
       const pl = hit == null ? null : (hit ? (r.best_price > 0 ? r.best_price / 100 : 100 / Math.abs(r.best_price)) : -1)
       return Object.assign({}, r, { fp: fp == null ? null : fp, hit: hit, pl: pl })
     })
