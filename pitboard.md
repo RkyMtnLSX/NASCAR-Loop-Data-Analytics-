@@ -1917,3 +1917,17 @@ Spreadsheet uploads mark DNQ in the START column: excelParser maps DNQ/DNS/WD ->
   and long-run stay tire-corrected. 97-race tie-or-better on every metric (BACKTEST_LOG).
   Personal-slope correction tested and REJECTED (W39/L53); cap sweep monotone toward A=40.
   Re-upload Iowa sheets: Oreilly card -> Love 1st, Chastain 4th; Cup -> Blaney 1st holds.
+
+## 2026-08-08 - Season log graded phantom bets; now grades taken positions (commit e6c5841f)
+- BUG (operator caught: "sim grader does not jive with flagged bets"): Grade Center season log
+  rebuilt its +EV bet set from the published board stored mv (edge >= 10, fav cap) instead of
+  reading flagged_bets. Board snapshots get RE-PUBLISHED as odds arrive, and the recompute
+  ignores the market-agrees gate - so it graded bets never taken (Clements t5) and missed real
+  winners flagged earlier (Creed/Sawalich pre). Iowa oreilly showed -100% vs the true ledger:
+  25 flags, 5 winners (Creed t5 +225, Sawalich t3 +750 / t5 +350 pre; Caruth t3 +800 / t5 +375
+  post), +5.0u flat.
+- FIX: __gradeRace takes the race+stage unvoided flagged_bets and grades THOSE when present;
+  board recompute remains only as fallback for pre-flag-era races. flagged_bets is the single
+  source of truth for positions (same principle as CLV stage fix earlier today).
+- Operator action: re-grade the two Iowa oreilly rows in Grade Center after deploy to overwrite
+  the phantom -100% season-log entries.
