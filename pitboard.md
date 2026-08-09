@@ -2048,3 +2048,15 @@ Spreadsheet uploads mark DNQ in the START column: excelParser maps DNQ/DNS/WD ->
   names join on folded alphanumerics only. Lesson: when fixing name joins, fix the SHARED
   definition once - three copies exist (GradeCenter, FlaggedBetsAdmin, MyBetsAdmin) and they
   must stay identical.
+
+## 2026-08-09 - Flag ledger clarity: append-only writer + owned/dup badges (commits fde5a267, 466b85d8)
+- WRITER WAS DELETE-AND-REPLACE per stage on every publish (worse than duplication): re-publishes
+  re-priced every flag to latest odds (violating "logged at the price you got") and the delete
+  wiped voided rows. Now APPEND-ONLY: first flag per driver+market per stage is the position,
+  re-publishes only add newly-qualifying positions, voids and original prices immutable.
+- Flagged Bets admin: post rows whose driver+market was already flagged pre show italic
+  "owned pre" instead of a P/L (position graded once, at the pre price); same-stage repeats
+  (historical, pre-fix era) show "dup". Result column no longer implies double-counting.
+- Ledger doctrine, final form: flagged_bets = every model opinion, once per stage, first price;
+  odds_snapshots = price evolution; my_bets = actual money; grading = one position per
+  driver+market with pre-ownership honored.
