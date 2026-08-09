@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 const NEED = { win: 1, t3: 3, t5: 5, t10: 10 }
 const LBL = { win: 'Win', t3: 'Top 3', t5: 'Top 5', t10: 'Top 10', group: 'Group' }
 const am = (o) => (o == null ? '-' : (o > 0 ? '+' + o : String(o)))
+const nrm = (x) => (x || '').toLowerCase().replace(/[^a-z0-9]/g, '') // A.J. == AJ (2026-08-09)
 
 export default function FlaggedBetsAdmin() {
   const [races, setRaces] = useState([])
@@ -44,7 +45,7 @@ export default function FlaggedBetsAdmin() {
     const { data: ld } = await supabase.from('loop_data')
       .select('driver_name,finish_position').eq('series', series).eq('year', yr).eq('race_number', rn).limit(200)
     const f = {}
-    ;(ld || []).forEach(r => { f[r.driver_name] = r.finish_position })
+    ;(ld || []).forEach(r => { f[nrm(r.driver_name)] = r.finish_position })
     setFin(f); setRows(data || []); setLoading(false)
   }
 
@@ -82,12 +83,12 @@ export default function FlaggedBetsAdmin() {
 
   const view = useMemo(() => {
     const out = rows.filter(r => showVoided || !r.voided_at).map(r => {
-      const fp = fin[r.driver_name]
+      const fp = fin[nrm(r.driver_name)]
       const nd = NEED[r.market]
       let hit = (fp != null && nd) ? fp <= nd : null
       // custom group bets (2026-08-09): win the group = beat every listed rival's finish
       if (r.market === 'group' && r.group_drivers && fp != null) {
-        const rv = r.group_drivers.split(',').map(x => fin[x.trim()]).filter(x => x != null)
+        const rv = r.group_drivers.split(',').map(x => fin[nrm(x)]).filter(x => x != null)
         hit = rv.length ? rv.every(x => fp < x) : null
       }
       const pl = hit == null ? null : (hit ? (r.best_price > 0 ? r.best_price / 100 : 100 / Math.abs(r.best_price)) : -1)
