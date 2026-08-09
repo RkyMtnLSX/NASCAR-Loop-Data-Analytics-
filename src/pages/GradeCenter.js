@@ -60,14 +60,15 @@ function __gradeRace(board, actualMap, preOwned, dkActMap, takenFlags) {
   // re-published as odds arrive, so recomputing edges graded bets never taken and missed
   // real winners (Iowa oreilly pre showed -100% vs actual +5u across 25 flags).
   if (takenFlags && takenFlags.length) {
+    const __nm = x => (x || '').toLowerCase().replace(/[^a-z0-9]/g, '')
     const __actBy = {}
-    rows.forEach(r => { __actBy[(r.name || '').toLowerCase().trim()] = r.act })
+    rows.forEach(r => { __actBy[__nm(r.name)] = r.act })
     takenFlags.forEach(f => {
-      const a = __actBy[(f.driver_name || '').toLowerCase().trim()]
+      const a = __actBy[__nm(f.driver_name)]
       if (a == null) return
       let __hit
       if (f.market === 'group' && f.group_drivers) {
-        const rv = f.group_drivers.split(',').map(x => __actBy[(x || '').toLowerCase().trim()]).filter(x => x != null)
+        const rv = f.group_drivers.split(',').map(x => __actBy[__nm(x)]).filter(x => x != null)
         if (!rv.length) return
         __hit = rv.every(x => a < x)
       } else {
@@ -286,7 +287,7 @@ export default function GradeCenter() {
     const res = await supabase.from('loop_data').select('driver_name, finish_position, start_position, laps_led, fastest_laps').eq('race_id', target.id)
     let laps = res.data || []
     if (!laps.length) { setPrev(null); setMsg('No loop data found for ' + row.track_name + ' ' + row.race_year + ' (' + series + '). Load it in Admin, or paste the finish above.'); return }
-    const nrm = s => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/g, ' ').split(' ').filter(Boolean).join(' ')
+    const nrm = s => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '') // 2026-08-09: strip punctuation ENTIRELY - 'A.J. Allmendinger' (loop data) vs 'AJ Allmendinger' (board) became 'a j ...' vs 'aj ...' and silently dropped his P8 t10 +1400 HIT from grading
     const byName = {}
     row.results.forEach(d => { byName[nrm(d.driver_name)] = String(d.car_number) })
     const actualMap = {}
