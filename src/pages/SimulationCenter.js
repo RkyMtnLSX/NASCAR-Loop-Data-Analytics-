@@ -1464,7 +1464,10 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
             // fav cap enforced at write (2026-08-08, operator rule): never log flags shorter
             // than -250 - Blaney t10 -475 class bets are not positions anyone takes
             if (b.best < 0 && b.best < -250) return
-            if (b.ev < 10) return // house threshold: 10% edge until #69 sweep (was logging any ev>0 - 40 sub-10 rows drifted in)
+            // ev>=10 write-gate REVERTED same day (2026-08-08): sub-10 cohort holds 7 of 13
+            // ledger winners (incl. operator's cashed Sawalich/Creed bets, ev 4-6) at -1.33u
+            // vs the 10%+ cohort carrying ~all of -58u. Claimed edge is inversely related to
+            // realized value - log everything, gate displays/reports only. See #69.
             __fb.push({ series: series, race_year: payload.race_year, race_number: payload.race_number, track_name: payload.track_name, stage: simStage, driver_name: d.driver_name, market: mk, sim_prob: (d[pf] == null ? null : d[pf]), best_price: b.best, book: (b.bb || null), ev: b.ev, mev: (b.mev == null ? null : b.mev), medge: (b.medge == null ? null : b.medge) })
           })
         })
