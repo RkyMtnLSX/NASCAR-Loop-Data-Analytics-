@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 const NEED = { win: 1, t3: 3, t5: 5, t10: 10 }
 const LBL = { win: 'Win', t3: 'Top 3', t5: 'Top 5', t10: 'Top 10', group: 'Group' }
 const am = (o) => (o == null ? '-' : (o > 0 ? '+' + o : String(o)))
-const nrm = (x) => (x || '').toLowerCase().replace(/[^a-z0-9]/g, '') // A.J. == AJ (2026-08-09)
+const nrm = (x) => (x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '') // A.J. == AJ, Suárez == Suarez (2026-08-09)
 
 export default function FlaggedBetsAdmin() {
   const [races, setRaces] = useState([])
