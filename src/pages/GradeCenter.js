@@ -63,7 +63,15 @@ function __gradeRace(board, actualMap, preOwned, dkActMap, takenFlags) {
     const __nm = x => (x || '').toLowerCase().replace(/[^a-z0-9]/g, '')
     const __actBy = {}
     rows.forEach(r => { __actBy[__nm(r.name)] = r.act })
+    // 2026-08-09 double-count guards (operator caught Larson graded on BOTH boards):
+    // 1) re-publish duplicates: the writer re-logs each publish - FIRST flag is the position
+    // 2) pre-owned: positions taken on the PRE board are not new bets on the POST board
+    const __seen = new Set()
     takenFlags.forEach(f => {
+      const __key = __nm(f.driver_name) + '|' + f.market
+      if (__seen.has(__key)) return
+      __seen.add(__key)
+      if (preOwned && preOwned.has(f.driver_name + '|' + f.market)) return
       const a = __actBy[__nm(f.driver_name)]
       if (a == null) return
       let __hit
@@ -261,7 +269,7 @@ export default function GradeCenter() {
     const parsed = __parseFinish(gradeTxt, row.results)
     if (Object.keys(parsed.actualMap).length < 3) { setPrev(null); setMsg('Could not read the finishing order - paste one driver per line, winner first.'); return }
     const __preOwned = gradeStage === 'post' ? await __preOwnedFlags(series, row) : null
-    const { data: __tf } = await supabase.from('flagged_bets').select('driver_name,market,best_price,ev,mev,book,group_drivers').eq('series', series).eq('race_year', row.race_year).eq('race_number', row.race_number).eq('stage', gradeStage).is('voided_at', null)
+    const { data: __tf } = await supabase.from('flagged_bets').select('driver_name,market,best_price,ev,mev,book,group_drivers,created_at').eq('series', series).eq('race_year', row.race_year).eq('race_number', row.race_number).eq('stage', gradeStage).is('voided_at', null).order('created_at', { ascending: true })
     const g = __gradeRace(row.results, parsed.actualMap, __preOwned, undefined, __tf || [])
     setPrev({ metrics: g.metrics, evFlags: g.evFlags, roi: g.roi, detail: g.detail, parsed: parsed, simId: row.id, track: row.track_name, year: row.race_year, config: row.config })
     setMsg(parsed.matched.length + ' matched' + (parsed.unmatched.length ? ', ' + parsed.unmatched.length + ' skipped' : '') + '.')
@@ -300,7 +308,7 @@ export default function GradeCenter() {
       dkActMap[car] = (fin <= 40 ? __dkTbl[fin] : 0) + (st - fin) + (parseFloat(l.laps_led) || 0) * 0.25 + (parseFloat(l.fastest_laps) || 0) * 0.45 })
     if (Object.keys(actualMap).length < 3) { setPrev(null); setMsg('Could not match loop-data drivers to the published sim.'); return }
     const __preOwned2 = gradeStage === 'post' ? await __preOwnedFlags(series, row) : null
-    const { data: __tf2 } = await supabase.from('flagged_bets').select('driver_name,market,best_price,ev,mev,book,group_drivers').eq('series', series).eq('race_year', row.race_year).eq('race_number', row.race_number).eq('stage', gradeStage).is('voided_at', null)
+    const { data: __tf2 } = await supabase.from('flagged_bets').select('driver_name,market,best_price,ev,mev,book,group_drivers,created_at').eq('series', series).eq('race_year', row.race_year).eq('race_number', row.race_number).eq('stage', gradeStage).is('voided_at', null).order('created_at', { ascending: true })
     const g = __gradeRace(row.results, actualMap, __preOwned2, dkActMap, __tf2 || [])
     // CLV (2026-07-18): closing line = last odds snapshot cluster for this race; CLV compares the
     // odds stamped on the published board (bettable at publish) vs the close, same book per play.
