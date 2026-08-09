@@ -2006,3 +2006,14 @@ Spreadsheet uploads mark DNQ in the START column: excelParser maps DNQ/DNS/WD ->
   bet (Fin / WIN-loss / P/L at stake, group bets = beat all rivals), settled count + net units
   per race, sim% vs current published board, delete per row. Logs against the latest published
   board for the selected series.
+
+## 2026-08-09 - QUEUED: CLV vs close CONSENSUS instead of close-best (method change)
+- Larson case at Iowa: our 3-book close showed best +900 (Hard Rock, soft/unmoved) -> CLV 0.0.
+  Action Network full-market close was ~+750 consensus (DK/BetRivers +750, CZR +700, FD +600).
+  Against the real close our +900 entry = +1.8 pts CLV. Close-vs-BEST understates line-beating
+  whenever one of our 3 books fails to reprice; mirror risk of soft books inflating entry edges.
+- FIX TO QUEUE: grade CLV against close consensus (median across pasted books, or best after
+  dropping the softest outlier). Method change to the season ledger -> apply forward with a log
+  entry, never retro-edit existing rows. Also consider widening the closing paste beyond 3 books.
+- Context validation: Blaney win opened +450, closed +240 (full market) - the pre board
+  +5.4 avg CLV weekend was real and likely UNDERSTATED by the best-close method.
