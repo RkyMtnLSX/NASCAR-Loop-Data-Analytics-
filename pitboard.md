@@ -1947,3 +1947,16 @@ Spreadsheet uploads mark DNQ in the START column: excelParser maps DNQ/DNS/WD ->
   one allocation per driver ladder, per-race exposure cap) - display-only, on Market Value.
 - Operator style notes: ladders are house style (rungs share one allocation); matchup pricer
   still queued (Creed>Hill was found manually).
+
+## 2026-08-08 - Fav-cap voids + ev-gate reverted same day (commits 070c3626 -> b33a572d)
+- VOIDED (not deleted) the 2 fav-cap-violating flags via void_reason: Blaney t10 -475 (cup-23),
+  Reddick t10 -275 (cup-22, had hit +0.36u - drops from season log on regrade). Void machinery
+  is the archive-safe path for rule-violating writer output.
+- Sub-10-ev cohort (39 rows) NOT voided - KEY FINDING: it holds 7 of the ledger 13 winners,
+  including the operator actually-bet Sawalich t3 (ev 6) / t5 (ev 4) and Creed t5 (ev 4),
+  and grades -1.33u over 27 vs the 10%+ cohort carrying ~all of the -58u. CLAIMED EDGE IS
+  INVERSELY RELATED TO REALIZED VALUE (model overconfidence signature). Feed this to #69.
+- Consequence: the ev>=10 write-gate shipped earlier tonight was REVERTED same day - it would
+  have blocked tonight actual winning bets from the ledger. Policy: log every positive-ev
+  flag (storage is research data); thresholds/gates live in displays and reports only.
+  The -250 fav cap at write STAYS (nonsense positions at any edge).
