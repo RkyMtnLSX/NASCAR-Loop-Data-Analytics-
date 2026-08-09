@@ -94,6 +94,16 @@ export default function FlaggedBetsAdmin() {
       const pl = hit == null ? null : (hit ? (r.best_price > 0 ? r.best_price / 100 : 100 / Math.abs(r.best_price)) : -1)
       return Object.assign({}, r, { fp: fp == null ? null : fp, hit: hit, pl: pl })
     })
+    // position clarity (2026-08-09): the ledger keeps every model opinion, but the
+    // POSITION is the first flag per driver+market. Later rows get badges: same-stage
+    // repeat = 'dup' (pre-fix re-publishes), post row with pre position = 'owned pre'.
+    const __firstBy = {}
+    out.slice().sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).forEach(r => {
+      if (r.voided_at) return
+      const k = nrm(r.driver_name) + '|' + r.market
+      if (!__firstBy[k]) { __firstBy[k] = r; return }
+      r.__mark = (r.stage === __firstBy[k].stage) ? 'dup' : (r.stage === 'post' ? 'owned pre' : 'dup')
+    })
     out.sort((a, b) => {
       const x = a[sortKey] == null ? -1e9 : a[sortKey]
       const y = b[sortKey] == null ? -1e9 : b[sortKey]
@@ -217,7 +227,7 @@ export default function FlaggedBetsAdmin() {
                     <td style={Object.assign({}, td, { color: (r.medge || 0) >= 8 ? '#22c55e' : 'inherit' })}>{r.medge == null ? '-' : (+r.medge).toFixed(2)}</td>
                     <td style={Object.assign({}, td, { color: 'var(--text-muted)' })}>{r.fp == null ? '-' : r.fp}</td>
                     <td style={Object.assign({}, td, { fontWeight: 600, color: r.hit == null ? 'var(--text-muted)' : (r.hit ? '#22c55e' : '#ef4444') })}>
-                      {r.hit == null ? '-' : (r.hit ? ('+' + r.pl.toFixed(2) + 'u') : '-1.00u')}
+                      {r.__mark ? <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontStyle: 'italic' }} title="not counted - position graded once at first flag">{r.__mark}</span> : (r.hit == null ? '-' : (r.hit ? ('+' + r.pl.toFixed(2) + 'u') : '-1.00u'))}
                     </td>
                     <td style={Object.assign({}, td, { textAlign: 'left', fontSize: '0.75rem', color: dead ? '#ef4444' : '#22c55e' })}>
                       {dead ? ('VOID \u2014 ' + (r.void_reason || '')) : 'live'}
