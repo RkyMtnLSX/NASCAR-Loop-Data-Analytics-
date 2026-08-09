@@ -1983,3 +1983,13 @@ Spreadsheet uploads mark DNQ in the START column: excelParser maps DNQ/DNS/WD ->
   under scrutiny).
 - WATCH: sim within-race weighting may lean grid-heavy vs driver track-type form at short
   flats. No retune off one market (Riggs).
+
+## 2026-08-09 - Custom group-bet logging + matchup Start column (commits 9458c42b, 82eac6c6, bfa7781b, a3fddb34)
+- Matchup Compare now shows START column (board grid) and has a "Log group bet" row: pick the
+  backed driver, enter the book price, logs to flagged_bets as market=group with rivals in
+  group_drivers (SQL column added by operator), book=MANUAL, ev computed from tray winPct.
+- Grading: FlaggedBetsAdmin + Grade Center taken-positions path both grade group bets as
+  "backed driver beats every listed rival finish". CLV for custom groups is null (no
+  snapshots for these markets) - expected.
+- Trigger: Iowa Group (Chastain P9 / Buescher P27 / Bowman P30 / Preece P35) - sim 71.8%
+  Chastain (fair -254), books hanging +115. Operator can now log it and it grades tonight.
