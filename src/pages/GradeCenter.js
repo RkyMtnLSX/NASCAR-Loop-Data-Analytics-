@@ -392,17 +392,19 @@ export default function GradeCenter() {
             <div style={{ flex: '1 1 380px' }}>
               <div style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: 6 }}>Full field (proj vs actual)</div>
               <table style={{ width: '100%', fontSize: '0.8rem', borderCollapse: 'collapse' }}>
-                <thead><tr style={{ textAlign: 'left', color: 'var(--text-muted)' }}><th style={{ padding: '3px 6px' }}>Fin</th><th>Driver</th><th>Proj</th><th>Delta</th><th>Win%</th></tr></thead>
+                <thead><tr style={{ textAlign: 'left', color: 'var(--text-muted)' }}><th style={{ padding: '3px 6px' }}>Fin</th><th>Driver</th><th>Proj</th><th>Mdl Rk</th><th>Rk Δ</th><th>Delta</th><th>Win%</th></tr></thead>
                 <tbody>
-                  {prev.detail.map(d => (
+                  {(() => { const __rk = new Map([...prev.detail].sort((a, b) => a.pf - b.pf).map((x, i) => [x.car, i + 1])); return prev.detail.map(d => (
                     <tr key={d.car} style={{ borderTop: '1px solid rgba(128,128,128,0.18)' }}>
                       <td style={{ padding: '3px 6px' }}>{d.act}</td>
                       <td>{d.name}{d.flags.length ? ' *' : ''}</td>
                       <td>{d.pf}</td>
+                      <td>{__rk.get(d.car)}</td>
+                      <td style={{ color: (__rk.get(d.car) - d.act) >= 0 ? '#2e9e52' : '#dd3355' }}>{(__rk.get(d.car) - d.act) > 0 ? '+' : ''}{__rk.get(d.car) - d.act}</td>
                       <td style={{ color: (d.pf - d.act) >= 0 ? '#2e9e52' : '#dd3355' }}>{(d.pf - d.act) > 0 ? '+' : ''}{(d.pf - d.act).toFixed(1)}</td>
                       <td>{d.win}%</td>
                     </tr>
-                  ))}
+                  )) })()}
                 </tbody>
               </table>
             </div>
