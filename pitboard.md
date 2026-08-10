@@ -1967,7 +1967,7 @@ Spreadsheet uploads mark DNQ in the START column: excelParser maps DNQ/DNS/WD ->
   Legend text updated. DISPLAY ONLY: flag writer still logs to -250 for research; edge-
   inversion finding makes big-edge favorite claims the least trustworthy class anyway.
 
-## 2026-08-09 - Race-morning queue (McDowell Group F analysis + watcher)
+## 2026-08-09 - Race-morning queue (watcher + track-type pre-test)
 - QUEUED (before Richmond practice Fri): watcher captures the live-feed pit_stops array per
   vehicle (pit_in/out elapsed, duration, type). Practice stops log as blank/OTHER (no explicit
   tire label) but dwell + 2-set allocation makes set changes inferable; stop boundaries become
@@ -1976,11 +1976,7 @@ Spreadsheet uploads mark DNQ in the START column: excelParser maps DNQ/DNS/WD ->
 - QUEUED (this week, cheap pre-test before any sim A/B): track-type-conditioned trailing driver
   rating (shrunk toward pooled) vs pooled rating, scored against finish + race rating on loop
   data. Only if conditioning wins does a sim A/B queue. Prior unfriendly: short-flat separation
-  lost twice for start projection. Trigger case: DK Group F Iowa - sim 43% McDowell (grid-led),
-  loop data layers walked it to ~20-22% (Preece 33->5 Iowa 2025; SVG 2026 short-flat surge
-  invisible to pooled ratings). Books priced form, sim priced grid; truth in between; +1400
-  still value vs ~+350-400 fair. Another live case of edge-inversion (big claimed edges shrink
-  under scrutiny).
+  lost twice for start projection.
 - WATCH: sim within-race weighting may lean grid-heavy vs driver track-type form at short
   flats. No retune off one market (Riggs).
 
@@ -2061,10 +2057,3 @@ Spreadsheet uploads mark DNQ in the START column: excelParser maps DNQ/DNS/WD ->
   odds_snapshots = price evolution; my_bets = actual money; grading = one position per
   driver+market with pre-ownership honored.
 
-## 2026-08-09 - Post-race correction: McDowell Group F case is UNSCOREABLE
-- McDowell P25 was caused by an in-race SPEEDING PENALTY (operator note), not the grid-vs-form
-  question resolving. Do NOT read the Group F result as "books form-read beat the sim grid-read"
-  - the test was voided by race lottery. Track-type conditioning experiment keeps its trigger
-  as hypothesis only. (Operator also never placed the bet - limited at Bet365. Book limits are
-  a real constraint on expressing edges at soft books; worth remembering when sizing
-  expectations for subscriber-facing best-price advice.)
