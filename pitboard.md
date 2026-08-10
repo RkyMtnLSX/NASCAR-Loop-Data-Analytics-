@@ -2059,3 +2059,11 @@ Spreadsheet uploads mark DNQ in the START column: excelParser maps DNQ/DNS/WD ->
   odds_snapshots = price evolution; my_bets = actual money; grading = one position per
   driver+market with pre-ownership honored.
 
+
+## 2026-08-09 - Penalty parser miss: "improper pit entry" (local script fix + 1-row backfill)
+- Operator caught the #71 Iowa driver penalty absent from pit crew rankings. Lap note read
+  "#71 improper pit entry" - the penalties parser (pitboard_penalties_backfill.py) knew
+  "improper fueling" but not improper entry/exit. Added to PEN_SENT + DRIVER_PEN (compiles).
+  Missing R23 row inserted directly (car 71, driver, lap 214 note). Historical races may hold
+  more improper entry/exit misses - next full PENALTIES_BACKFILL_ALL run will catch them
+  (verify no duplicate note_id/car rows after running).
