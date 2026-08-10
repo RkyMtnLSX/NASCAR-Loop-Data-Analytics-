@@ -2060,3 +2060,11 @@ Spreadsheet uploads mark DNQ in the START column: excelParser maps DNQ/DNS/WD ->
 - Ledger doctrine, final form: flagged_bets = every model opinion, once per stage, first price;
   odds_snapshots = price evolution; my_bets = actual money; grading = one position per
   driver+market with pre-ownership honored.
+
+## 2026-08-09 - Post-race correction: McDowell Group F case is UNSCOREABLE
+- McDowell P25 was caused by an in-race SPEEDING PENALTY (operator note), not the grid-vs-form
+  question resolving. Do NOT read the Group F result as "books form-read beat the sim grid-read"
+  - the test was voided by race lottery. Track-type conditioning experiment keeps its trigger
+  as hypothesis only. (Operator also never placed the bet - limited at Bet365. Book limits are
+  a real constraint on expressing edges at soft books; worth remembering when sizing
+  expectations for subscriber-facing best-price advice.)
