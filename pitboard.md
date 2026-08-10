@@ -1978,7 +1978,9 @@ Spreadsheet uploads mark DNQ in the START column: excelParser maps DNQ/DNS/WD ->
   data. Only if conditioning wins does a sim A/B queue. Prior unfriendly: short-flat separation
   lost twice for start projection.
 - WATCH: sim within-race weighting may lean grid-heavy vs driver track-type form at short
-  flats. No retune off one market (Riggs).
+  flats. No retune off one market (Riggs). Clean worked example (operator, post-race): Iowa
+  group Chastain P9 vs P27/P30/P35 - sim 71.8% (fair -254), bet at +115 in my_bets, Chastain
+  P7 won the group easily. One race = example, not evidence; the pre-test decides.
 
 ## 2026-08-09 - Custom group-bet logging + matchup Start column (commits 9458c42b, 82eac6c6, bfa7781b, a3fddb34)
 - Matchup Compare now shows START column (board grid) and has a "Log group bet" row: pick the
