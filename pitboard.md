@@ -2067,3 +2067,13 @@ Spreadsheet uploads mark DNQ in the START column: excelParser maps DNQ/DNS/WD ->
   Missing R23 row inserted directly (car 71, driver, lap 214 note). Historical races may hold
   more improper entry/exit misses - next full PENALTIES_BACKFILL_ALL run will catch them
   (verify no duplicate note_id/car rows after running).
+
+## 2026-08-09 - Penalty parser audit (66 races of 2026 lap notes)
+- Empirical scan for penalty-shaped sentences the parser misses. ADDED: equipment/vehicle
+  interference (bare "#38 equipment interference" sentences, ~10 this season) to PEN_SENT;
+  removing equipment + vehicle interference to CREW_PEN (was classifying "other" = undotted).
+  Correctly excluded: lugnut/loose-wheel mentions (not penalties), mechanical black flags,
+  wave-arounds, crew-member contact incidents, and pre-race "to the rear (unapproved
+  adjustments)" grid penalties (wrong table). Rerun PENALTIES_BACKFILL_ALL to sweep history.
+- IDEA QUEUED: lap notes publish "To the rear: #43 (unapproved adjustments)" at race start -
+  could auto-populate the sim rear-start overrides instead of manual operator entry.
