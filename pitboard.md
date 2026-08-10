@@ -2077,3 +2077,22 @@ Spreadsheet uploads mark DNQ in the START column: excelParser maps DNQ/DNS/WD ->
   adjustments)" grid penalties (wrong table). Rerun PENALTIES_BACKFILL_ALL to sweep history.
 - IDEA QUEUED: lap notes publish "To the rear: #43 (unapproved adjustments)" at race start -
   could auto-populate the sim rear-start overrides instead of manual operator entry.
+
+## 2026-08-09 - IOWA WEEKEND WRAP (R23, both series)
+- OREILLY: graded MAE 7.64 / Spearman 0.489. Winner Kvapil (6.8% sim). Flags 25 -> 5 winners
+  +5.0u flat (Creed t5, Sawalich t3/t5 pre; Caruth t3/t5 post). Operator curated subset +
+  Creed>Hill matchup (-120 vs -156 fair) cashed. Post market = structural-zero CLV window.
+- CUP: graded MAE ~7.9-8.1 / Spearman ~0.37-0.41. Gibbs won (5.8% sim, 4th on practice card),
+  Bell P2, Blaney P3 (39.5%). Sim top-3 speed read (Blaney/Logano/Larson) validated by
+  RUNNING position; finishes wrecked by attrition (Logano issue while running 2nd, Larson toe
+  link P33, Reddick crash). Win-market flags 0-fer again - edge expresses in t3/t5 (see
+  edge-inversion note 8/8). AJ t10 +1400 HIT (+14u) restored by the name-join fix. Chastain
+  group bet (+115, my_bets) WON. PRE-BOARD CLV +5.41 avg across 13 flags (8 pos), Blaney t3
+  +155->-125 (+16.3); best CLV board on record, likely understated by close-best method.
+- MODEL VS FRIEND (planned Thursday, graded): race top-3 Gibbs/Bell/Blaney. His top-3
+  Blaney/Logano/Byron (P3/P14/P9); our pre top-3 Blaney/Hamlin/Larson (P3/P5/P33). ~Wash on
+  picks (1/3 podium each; our Hamlin P5 vs his Byron P9 edge to us). His Logano T5 +150 bet
+  (at his own FMV) LOST; our fair ~+220 said pass - price discipline point to our side.
+- First live weekend for the full rebuilt stack (v6.2 grader, trail10-v3.5, wreck-v1.1-cb,
+  car-auto-v2, append-only flags): profitable curated ledger, no stack failures, all
+  diagnostics pointing at already-queued experiments.
