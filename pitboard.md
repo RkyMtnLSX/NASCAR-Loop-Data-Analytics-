@@ -2093,6 +2093,8 @@ Spreadsheet uploads mark DNQ in the START column: excelParser maps DNQ/DNS/WD ->
   Blaney/Logano/Byron (P3/P14/P9); our pre top-3 Blaney/Hamlin/Larson (P3/P5/P33). ~Wash on
   picks (1/3 podium each; our Hamlin P5 vs his Byron P9 edge to us). His Logano T5 +150 bet
   (at his own FMV) LOST; our fair ~+220 said pass - price discipline point to our side.
+  His Byron +444 FMV (~18% win) vs our 3.6%: Byron quiet P9, never in contention - operator's
+  Thursday skepticism vindicated; 5x model-vs-market divergences are usually model error.
 - First live weekend for the full rebuilt stack (v6.2 grader, trail10-v3.5, wreck-v1.1-cb,
   car-auto-v2, append-only flags): profitable curated ledger, no stack failures, all
   diagnostics pointing at already-queued experiments.
