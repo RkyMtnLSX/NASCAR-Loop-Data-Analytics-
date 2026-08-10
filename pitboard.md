@@ -2074,7 +2074,8 @@ Spreadsheet uploads mark DNQ in the START column: excelParser maps DNQ/DNS/WD ->
   removing equipment + vehicle interference to CREW_PEN (was classifying "other" = undotted).
   Correctly excluded: lugnut/loose-wheel mentions (not penalties), mechanical black flags,
   wave-arounds, crew-member contact incidents, and pre-race "to the rear (unapproved
-  adjustments)" grid penalties (wrong table). Rerun PENALTIES_BACKFILL_ALL to sweep history.
+  adjustments)" grid penalties (wrong table). One PENALTIES_BACKFILL_ALL run sweeps history
+  (idempotent delete-then-insert; POST_RACE_UPDATE covers 2026 automatically).
 - IDEA QUEUED: lap notes publish "To the rear: #43 (unapproved adjustments)" at race start -
   could auto-populate the sim rear-start overrides instead of manual operator entry.
 
