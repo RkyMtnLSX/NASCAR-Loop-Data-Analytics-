@@ -207,6 +207,7 @@ export default function FlaggedBetsAdmin() {
               {th('mev', 'MEV')}
               {th('medge', 'Medge')}
               {th('fp', 'Fin')}
+              <th style={{ padding: '6px 8px' }}>Position</th>
               <th style={{ padding: '6px 8px' }}>Result</th>
               <th style={{ padding: '6px 8px', textAlign: 'left' }}>Status</th>
               <th style={{ padding: '6px 8px' }}>Action</th>
@@ -226,8 +227,9 @@ export default function FlaggedBetsAdmin() {
                     <td style={Object.assign({}, td, { color: 'var(--text-muted)' })}>{r.mev == null ? '-' : r.mev}</td>
                     <td style={Object.assign({}, td, { color: (r.medge || 0) >= 8 ? '#22c55e' : 'inherit' })}>{r.medge == null ? '-' : (+r.medge).toFixed(2)}</td>
                     <td style={Object.assign({}, td, { color: 'var(--text-muted)' })}>{r.fp == null ? '-' : r.fp}</td>
+                    <td style={Object.assign({}, td, { fontStyle: 'italic', color: 'var(--text-muted)', fontSize: 11 })} title={r.__mark ? 'not counted - position graded once at first flag' : 'the counted position (first flag at first price)'}>{r.__mark || 'position'}</td>
                     <td style={Object.assign({}, td, { fontWeight: 600, color: r.hit == null ? 'var(--text-muted)' : (r.hit ? '#22c55e' : '#ef4444') })}>
-                      {r.__mark ? <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontStyle: 'italic' }} title="not counted - position graded once at first flag">{r.__mark}</span> : (r.hit == null ? '-' : (r.hit ? ('+' + r.pl.toFixed(2) + 'u') : '-1.00u'))}
+                      {r.__mark ? <span style={{ color: 'var(--text-muted)' }}>-</span> : (r.hit == null ? '-' : (r.hit ? ('+' + r.pl.toFixed(2) + 'u') : '-1.00u'))}
                     </td>
                     <td style={Object.assign({}, td, { textAlign: 'left', fontSize: '0.75rem', color: dead ? '#ef4444' : '#22c55e' })}>
                       {dead ? ('VOID \u2014 ' + (r.void_reason || '')) : 'live'}
