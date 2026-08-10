@@ -2064,9 +2064,10 @@ Spreadsheet uploads mark DNQ in the START column: excelParser maps DNQ/DNS/WD ->
 - Operator caught the #71 Iowa driver penalty absent from pit crew rankings. Lap note read
   "#71 improper pit entry" - the penalties parser (pitboard_penalties_backfill.py) knew
   "improper fueling" but not improper entry/exit. Added to PEN_SENT + DRIVER_PEN (compiles).
-  Missing R23 row inserted directly (car 71, driver, lap 214 note). Historical races may hold
-  more improper entry/exit misses - next full PENALTIES_BACKFILL_ALL run will catch them
-  (verify no duplicate note_id/car rows after running).
+  Missing R23 row inserted directly (car 71, driver, lap 214 note). NOTE: the backfill is
+  idempotent delete-then-insert per year and POST_RACE_UPDATE runs it for 2026 - the manual
+  row gets cleanly replaced by the patched parser on the next run, no duplicate risk.
+  2022-2025 history needs one PENALTIES_BACKFILL_ALL (--year all) to sweep the new phrases.
 
 ## 2026-08-09 - Penalty parser audit (66 races of 2026 lap notes)
 - Empirical scan for penalty-shaped sentences the parser misses. ADDED: equipment/vehicle
