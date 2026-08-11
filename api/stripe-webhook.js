@@ -25,6 +25,10 @@ const upsert = async (row) => {
 }
 
 module.exports = async (req, res) => {
+  // env guard (2026-08-10): a present-but-EMPTY env var fails as a cryptic 401 downstream
+  for (const k of ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET', 'SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY']) {
+    if (!process.env[k] || !String(process.env[k]).trim()) return res.status(500).send('env missing or empty: ' + k)
+  }
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
   const chunks = []
   for await (const c of req) chunks.push(c)
