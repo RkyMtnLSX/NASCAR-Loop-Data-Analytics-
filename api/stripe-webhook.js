@@ -14,7 +14,14 @@ const sb = (path, opts) => fetch(process.env.SUPABASE_URL + '/rest/v1/' + path, 
   },
 }, opts))
 
-const upsert = (row) => sb('subscribers?on_conflict=user_id', { method: 'POST', body: JSON.stringify([row]) })
+const upsert = async (row) => {
+  const r = await sb('subscribers?on_conflict=user_id', { method: 'POST', body: JSON.stringify([row]) })
+  if (!r.ok) {
+    const t = await r.text()
+    console.error('subscribers upsert failed', r.status, t)
+    throw new Error('supabase write failed ' + r.status + ': ' + t.slice(0, 300))
+  }
+}
 
 module.exports = async (req, res) => {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
@@ -55,7 +62,8 @@ module.exports = async (req, res) => {
     }
     return res.status(200).json({ received: true })
   } catch (e) {
-    return res.status(500).send('handler error')
+    console.error('webhook handler error', e)
+    return res.status(500).send('handler error: ' + String((e && e.message) || e).slice(0, 400))
   }
 }
 
