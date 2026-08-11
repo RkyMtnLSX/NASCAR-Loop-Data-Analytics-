@@ -1864,6 +1864,15 @@ function LoadGreenFlagSpeed() {
     if (!raceNum) return setStatus({ error: 'Enter a race number.' })
     if (!raceDate) return setStatus({ error: 'Enter a race date.' })
     if (!parsed || !parsed.rows.length) return setStatus({ error: 'Upload and parse a PDF first.' })
+    // 2026-08-10: Iowa GFS loaded as Richmond because the dropdown kept a stale selection
+    // while the PDF said Iowa. Refuse to load when the parsed track clearly disagrees.
+    if (parsed.track && selTrack) {
+      const __tn = (x) => (x || '').toLowerCase().replace(/[^a-z]/g, '')
+      const a = __tn(parsed.track), b = __tn(selTrack)
+      if (a && b && !a.includes(b.slice(0, 6)) && !b.includes(a.slice(0, 6))) {
+        return setStatus({ error: 'TRACK MISMATCH: the PDF says "' + parsed.track + '" but the dropdown is set to "' + selTrack + '". Fix the track selection, then Load.' })
+      }
+    }
     setLoading(true); setStatus({ msg: 'Loading...' })
     try {
       const { data: existing } = await supabase.from('green_flag_speed').select('id').eq('series', series).eq('year', parseInt(year)).eq('race_number', parseInt(raceNum)).limit(1)
