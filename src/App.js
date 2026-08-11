@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import './styles/global.css'
 
 import Nav                from './components/Nav'
@@ -21,23 +21,21 @@ import GradeCenter        from './pages/GradeCenter'
 import SimResults         from './pages/SimResults'
 import DFSPage            from './pages/DFSPage'
 import Admin              from './pages/Admin'
+import Subscribe          from './pages/Subscribe'
+import useSubscriber      from './lib/useSubscriber'
 
 const ADMIN_PW = 'pitboard2026'
 
-function Subscribe() {
-  return (
-    <div className="page" style={{ maxWidth: 600 }}>
-      <div className="page-header">
-        <h1 className="page-title">Subscribe</h1>
-        <p className="page-subtitle">Get full access to all features</p>
-      </div>
-      <div className="card">
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-          Subscription payments coming soon via Stripe.
-        </p>
-      </div>
-    </div>
-  )
+// HARD PAYWALL (2026-08-09): everything except the landing page and /subscribe
+// requires an active membership. KILL-SWITCH below stays false until the Stripe
+// flow is verified end-to-end in test mode - flipping it live is a one-word change.
+const PAYWALL_ENABLED = false
+
+function PaywallGate({ ok, loading }) {
+  const loc = useLocation()
+  if (!PAYWALL_ENABLED || ok || loading) return null
+  if (loc.pathname === '/' || loc.pathname === '/subscribe') return null
+  return <Navigate to="/subscribe" replace />
 }
 
 function AdminGate() {
@@ -51,7 +49,8 @@ function AdminGate() {
 
 export default function App() {
   // Subscriber state — controls feature access (must remain true for all users)
-  const [isSubscriber] = useState(true)
+  const [isSubscriber] = useState(true) // per-page prop stays permissive; access enforced by PaywallGate redirect
+  const __sub = useSubscriber()
 
   const [isAdmin, setIsAdmin]     = useState(false)
   const [showLogin, setShowLogin] = useState(false)
@@ -77,6 +76,7 @@ export default function App() {
         onAdminClick={() => setShowLogin(true)}
         onSignOut={() => setIsAdmin(false)}
       />
+      <PaywallGate ok={__sub.isSubscriber || isAdmin} loading={__sub.loading} />
 
       {showLogin && (
         <div
