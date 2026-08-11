@@ -2184,3 +2184,9 @@ REMAINING (priority order):
 5. Vercel Hobby -> Pro before charging real money (commercial use ToS).
 6. LIVE cutover: repeat products/webhook in live mode, swap 4 env values, real-card test,
    then founding-member announcement.
+
+## 2026-08-10 - GFS Iowa loaded as Richmond (fixed, commit befdf96d)
+- Stale track dropdown + failed auto-match tagged Iowa 34 GFS rows as Richmond Raceway.
+  Rows retagged to Iowa Speedway via REST; loader now REFUSES when parsed PDF track and
+  selected track disagree (fuzzy compare). GFS parser also now reports skipped rows by car
+  (Jones/Reddick lap-5 crash = dash speed = correctly absent, not an alias bug).
