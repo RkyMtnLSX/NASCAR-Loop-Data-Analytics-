@@ -1,3 +1,4 @@
+// env nudge 1786417174341
 // Vercel serverless function - Stripe webhook. Verifies signature against the RAW
 // body, then writes subscription state to Supabase (service role; RLS blocks all
 // client writes). Handles: checkout.session.completed (monthly + week pass),
