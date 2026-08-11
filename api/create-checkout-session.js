@@ -1,3 +1,4 @@
+// env redeploy nudge 1786414767657
 // Vercel serverless function - creates a Stripe Checkout session for a signed-in
 // Supabase user. Plans: 'monthly' (subscription) | 'week' (one-time 7-day pass).
 // Env: STRIPE_SECRET_KEY, STRIPE_PRICE_MONTHLY, STRIPE_PRICE_WEEKPASS,
