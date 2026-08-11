@@ -1833,12 +1833,13 @@ function LoadGreenFlagSpeed() {
       let teamX = 200
       ys.forEach(y => { byY[y].forEach(o => { if (o.s === 'Team') teamX = o.x }) })
       const rows = []
+      const skipped = [] // 2026-08-10: name every dropped row - 34/36 at Iowa was silent
       ys.forEach(y => {
         const items = byY[y].slice().sort((a, b) => a.x - b.x)
         if (items.length < 5) return
         if (isNaN(parseInt(items[0].s)) || String(parseInt(items[0].s)) !== items[0].s) return
         const last = items[items.length - 1].s
-        if (last.indexOf('.') < 0 || isNaN(parseFloat(last)) || parseFloat(last) < 40) return
+        if (last.indexOf('.') < 0 || isNaN(parseFloat(last)) || parseFloat(last) < 40) { skipped.push('#' + (items[1] ? items[1].s : '?') + ' [speed col: ' + JSON.stringify(last) + ']'); return }
         const rank = parseInt(items[0].s)
         const car = items[1].s
         const gfs = parseFloat(last)
@@ -1854,7 +1855,7 @@ function LoadGreenFlagSpeed() {
       if (rname) setRaceName(rname)
       const matchTrack = tracks.find(tn => tn === track)
       if (matchTrack) setSelTrack(matchTrack)
-      setStatus({ msg: 'Parsed ' + rows.length + ' drivers from ' + (track || 'the PDF') + '. Review and Load.' })
+      setStatus({ msg: 'Parsed ' + rows.length + ' drivers from ' + (track || 'the PDF') + '.' + (skipped.length ? ' SKIPPED ' + skipped.length + ' row(s): ' + skipped.join(', ') + ' - dash/blank speed usually means no green-flag laps (early DNF), a number means a parse bug.' : '') + ' Review and Load.' })
     } catch (e) { setStatus({ error: 'PDF error: ' + (e.message || e) }) }
   }
 
