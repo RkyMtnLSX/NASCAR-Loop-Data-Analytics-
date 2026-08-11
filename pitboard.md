@@ -2100,3 +2100,26 @@ Spreadsheet uploads mark DNQ in the START column: excelParser maps DNQ/DNS/WD ->
 - First live weekend for the full rebuilt stack (v6.2 grader, trail10-v3.5, wreck-v1.1-cb,
   car-auto-v2, append-only flags): profitable curated ledger, no stack failures, all
   diagnostics pointing at already-queued experiments.
+
+## 2026-08-09 - PAYMENTS BUILD (Stripe + Supabase, sandbox)
+- Pricing decided: $24.99/mo FOUNDING (list $34.99 after launch, founders locked for life) +
+  $9.99 one-time 7-day week pass. No trials. Hard paywall; landing page will show STALE sample
+  content only. Rationale logged from competitor map (Racesheets 19.99/mo, Speedgeeks 60/mo,
+  WinTheRace 50/mo - the 25-35 middle was empty). Infra cost ~$46/mo fixed; ~2 subs break even.
+- Built: subscribers table + RLS (select own row only; writes via service role only);
+  api/create-checkout-session.js (verifies Supabase token, Stripe Checkout, client_reference_id
+  = user id); api/stripe-webhook.js (raw-body signature verify; handles checkout completed +
+  subscription updated/deleted; week pass = access_until now+7d); stripe dep; useSubscriber
+  hook; Subscribe page (signup/signin + founding/week-pass cards); PaywallGate redirect in
+  App.js behind PAYWALL_ENABLED = false KILL-SWITCH (stays off until end-to-end test passes).
+- Stripe sandbox: products + prices created (operator), webhook destination created (3 events
+  -> /api/stripe-webhook). Vercel env: 4 non-secret vars entered; 3 secrets entered by operator
+  (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, SUPABASE_SERVICE_ROLE_KEY) + redeploy.
+- LAUNCH BLOCKERS still open: (1) admin password lives in client bundle (REACT_APP_ADMIN_
+  PASSWORD + literal in App.js) - must move to Supabase auth roles before real users; (2)
+  Vercel on Hobby plan - commercial use requires Pro ($20/mo) before charging; (3) landing
+  page stale-sample redesign; (4) live-mode Stripe cutover after sandbox test (new prices,
+  webhook + secrets from live mode); (5) #64 RLS tightening.
+- TEST SCRIPT: /subscribe -> create account -> founding checkout w/ 4242 4242 4242 4242 ->
+  bounce back success -> subscribers row appears -> flip PAYWALL_ENABLED true -> verify gating
+  (non-sub redirected, sub + admin pass) -> week-pass flow -> cancel flow via Stripe dashboard.
