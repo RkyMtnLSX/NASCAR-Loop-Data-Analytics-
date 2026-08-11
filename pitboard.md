@@ -2123,3 +2123,64 @@ Spreadsheet uploads mark DNQ in the START column: excelParser maps DNQ/DNS/WD ->
 - TEST SCRIPT: /subscribe -> create account -> founding checkout w/ 4242 4242 4242 4242 ->
   bounce back success -> subscribers row appears -> flip PAYWALL_ENABLED true -> verify gating
   (non-sub redirected, sub + admin pass) -> week-pass flow -> cancel flow via Stripe dashboard.
+
+
+## 2026-08-10 - PAYMENTS: FIRST SUCCESSFUL SUBSCRIPTION (sandbox) - FULL STATE FOR NEXT SESSION
+STATUS: end-to-end VERIFIED in Stripe sandbox. Operator account (atmmstrs2@gmail.com) shows
+"Membership active - Founding monthly" via real Checkout (4242 card) -> webhook -> subscribers
+row -> useSubscriber read. This entry is the handoff; read it before touching payments.
+
+WHAT EXISTS (all deployed, main branch):
+- api/create-checkout-session.js: POST {plan:'monthly'|'week', token:<supabase access token>}
+  -> verifies user via SUPABASE_URL+ANON_KEY -> Stripe Checkout session (client_reference_id
+  = user id, customer_email) -> {url}. 405 on GET, 401 'sign in first' on bad token.
+- api/stripe-webhook.js: raw-body signature verify; env presence guard (returns 'env missing
+  or empty: KEY'); handles checkout.session.completed (monthly -> status active; week ->
+  access_until now+7d), customer.subscription.updated/deleted (status + current_period_end by
+  stripe_customer_id). Upsert failures now PROPAGATE as 500 with the supabase error text
+  (was silently 200 - never regress this).
+- subscribers table: user_id PK -> auth.users, email, stripe_customer_id, plan, status,
+  access_until, updated_at. RLS: authenticated SELECT own row only; writes service-role only.
+- src/lib/useSubscriber.js: {user,row,isSubscriber,loading,refresh}; isSubscriber = status
+  'active' OR access_until > now. Listens to auth state changes.
+- src/pages/Subscribe.js: signup/signin (email+password), founding card $24.99 (list $34.99
+  struck), week pass $9.99, success/cancelled banners, active-membership state, sign out.
+- App.js: PaywallGate redirect (all routes except / and /subscribe) behind PAYWALL_ENABLED =
+  false KILL-SWITCH near 'function AdminGate'. Flip to true only after gating test.
+
+CONFIG (sandbox values, all in place):
+- Stripe sandbox acct_1OF5dBBoJdzYFWwL: products/prices STRIPE_PRICE_MONTHLY=
+  price_1U34TbBoJdzYFWwLDhnkeM61 ($24.99 rec), STRIPE_PRICE_WEEKPASS=
+  price_1U34UHBoJdzYFWwLaZ1MhPqX ($9.99 one-time). Webhook 'memorable-glow'
+  we_1U3546BoJdzYFWwL0Pn3kRNd -> /api/stripe-webhook, events: checkout.session.completed,
+  customer.subscription.updated, customer.subscription.deleted.
+- Vercel env (Production+Preview): STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET,
+  SUPABASE_SERVICE_ROLE_KEY (sb_secret, new-style - works as apikey+Bearer),
+  STRIPE_PRICE_*, SUPABASE_URL, SUPABASE_ANON_KEY. Client keeps REACT_APP_* pair.
+- Supabase auth: Site URL = production domain; redirect allow-list set; CONFIRM EMAIL OFF
+  (instant signup - deliberate funnel choice); no more localhost links.
+
+DEBUG WAR STORIES (do not re-learn these):
+- Env var saved with value pasted into the NOTE field -> present-but-empty var -> PostgREST
+  'No API key found' -> webhook was 200-on-silent-failure. Fixed by moving value + the guard.
+  ALWAYS suspect the Vercel Note field on 'missing env' symptoms.
+- Env changes need a NEW deployment; resends racing a mid-build redeploy hit the old instance.
+- Operator DECLINED rotating the supabase secret key after it sat in the Note field +
+  screenshots (accepted risk, on record).
+- Signup confirmation emails originally pointed at localhost:3000 (default Site URL) and the
+  user landed on a dead page though confirmation itself succeeded.
+
+REMAINING (priority order):
+1. Nav sign-in for USERS + My Profile page (operator request): nav 'Sign In' currently opens
+   ADMIN password modal only; users have no entry point outside /subscribe. Profile page:
+   plan, renewal/access date, Stripe billing portal link (needs portal function or no-code
+   portal link), sign out. Put next to Subscribe route.
+2. Gating test: flip PAYWALL_ENABLED true; verify signed-out redirect, subscriber pass,
+   admin pass; week-pass purchase + expiry; cancel via Stripe -> subscription.deleted ->
+   access revoked.
+3. Landing page redesign: STALE sample content only (operator: no current data public).
+4. Admin auth: REACT_APP_ADMIN_PASSWORD + ADMIN_PW literal are in the client bundle -
+   LAUNCH BLOCKER, replace with Supabase auth role/allowlist.
+5. Vercel Hobby -> Pro before charging real money (commercial use ToS).
+6. LIVE cutover: repeat products/webhook in live mode, swap 4 env values, real-card test,
+   then founding-member announcement.
