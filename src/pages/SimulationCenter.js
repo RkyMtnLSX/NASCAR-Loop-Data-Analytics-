@@ -1370,6 +1370,18 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
       alert('Enter a Race # before publishing - published boards and grading join on it.')
       return
     }
+    // STAGE GUARD (2026-08-12): a trucks Richmond board went out tagged POST before any
+    // practice existed. If stage is post but no practice data is loaded for this race,
+    // make the operator confirm - usually it means the stage toggle is wrong.
+    if (simStage === 'post') {
+      try {
+        const __yr = (config && config.race_year) || new Date().getFullYear()
+        const { data: __ps } = await supabase.from('practice_sessions').select('id').eq('series', series).eq('race_number', parseInt(raceNumMap[series])).eq('year', __yr).limit(1)
+        if (!__ps || !__ps.length) {
+          if (!window.confirm('Stage is set to POST but NO practice data is loaded for ' + series + ' race #' + raceNumMap[series] + '.\n\nIf this is a pre-practice board, Cancel and switch the stage to PRE.\n\nPublish as POST anyway?')) return
+        }
+      } catch (e) {}
+    }
     // PUBLISH GUARDS (2026-07-22): empty odds -> blank Market Value; stale odds -> anchors/flags computed on old odds.
     const __oddsTxts = [oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt]
     const __oddsHashNow = __oddsTxts.map(x => (x || '').length + ':' + (x || '').slice(0, 40)).join('|')
