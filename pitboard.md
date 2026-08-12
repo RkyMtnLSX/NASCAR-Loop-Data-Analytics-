@@ -2198,9 +2198,13 @@ REMAINING (priority order):
   world; every SUBSCRIBER will be authenticated.
 - FIX RUN (operator, SQL): blanket "authenticated read" SELECT policy on every public table
   EXCEPT subscribers (stays own-row-only).
-- #64 RLS AUDIT PROMOTED TO LAUNCH BLOCKER, reverse direction: my_bets, flagged_bets, clv_log,
-  odds_snapshots, sim_grades etc. are readable by ANYONE (anon included). Before real users:
-  lock operator-private tables (admin-only or service-role-only), keep product tables public-
-  read or subscriber-read as the paywall demands. Note the paywall currently gates ROUTES,
-  not the REST API - data is fetchable directly regardless of PAYWALL_ENABLED; acceptable
-  for launch or not is an operator decision to make explicitly.
+- #64 RLS AUDIT PROMOTED TO LAUNCH BLOCKER - ACCESS MODEL DECIDED (operator, 8/12):
+  three tiers. ANON: nothing (hard paywall; landing page stale samples only - hardcode or a
+  small public table). SUBSCRIBERS (authenticated): read all product tables. ADMIN (operator
+  auth account): everything incl. operator tables (my_bets, flagged_bets, clv_log, sim_grades,
+  odds_snapshots...). Implement via an admins table (operator user_id) + RLS policies
+  USING (auth.uid() IN (SELECT user_id FROM admins)) on private tables; strip anon SELECT
+  policies from product tables at paywall flip. This SAME design replaces the client-bundled
+  ADMIN_PW (launch blocker): admin UI keys off the admins table, enforcement is server-side
+  RLS, not hidden buttons. Note: route paywall does not protect the REST API - the RLS work
+  above IS the API paywall.
