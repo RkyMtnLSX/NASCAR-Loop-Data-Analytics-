@@ -2190,3 +2190,17 @@ REMAINING (priority order):
   Rows retagged to Iowa Speedway via REST; loader now REFUSES when parsed PDF track and
   selected track disagree (fuzzy compare). GFS parser also now reports skipped rows by car
   (Jones/Reddick lap-5 crash = dash speed = correctly absent, not an alias bug).
+
+## 2026-08-10 - RLS: signed-in users saw EMPTY tables (fixed; #64 now launch-critical)
+- First-ever Supabase auth session (operator subscribing) broke the Weekend Config track
+  dropdown: tracks table had anon-only SELECT policies, so authenticated requests got zero
+  rows (same class as July crossover_borrows). Every table was built for an anonymous-reads
+  world; every SUBSCRIBER will be authenticated.
+- FIX RUN (operator, SQL): blanket "authenticated read" SELECT policy on every public table
+  EXCEPT subscribers (stays own-row-only).
+- #64 RLS AUDIT PROMOTED TO LAUNCH BLOCKER, reverse direction: my_bets, flagged_bets, clv_log,
+  odds_snapshots, sim_grades etc. are readable by ANYONE (anon included). Before real users:
+  lock operator-private tables (admin-only or service-role-only), keep product tables public-
+  read or subscriber-read as the paywall demands. Note the paywall currently gates ROUTES,
+  not the REST API - data is fetchable directly regardless of PAYWALL_ENABLED; acceptable
+  for launch or not is an operator decision to make explicitly.
