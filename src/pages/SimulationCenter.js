@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import useSubscriber from '../lib/useSubscriber'
 
-const ADMIN_PASSWORD = process.env.REACT_APP_ADMIN_PASSWORD
 
 const SERIES_TABS = [
   { value: 'cup',     label: 'Cup Series' },
@@ -723,10 +722,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
   const [showBorrows, setShowBorrows] = useState(false)
   const [simStage, setSimStage] = useState('post')  // post = POST-PRACTICE final board (race-day default). 2026-07-24: briefly flipped to 'pre' on a misread of stage semantics - reverted same day
   const [raceNumMap, setRaceNumMap] = useState({})
-  const [authed,        setAuthed]          = useState(false)
   const { isAdminUser } = useSubscriber() // master admin passes the gate (2026-08-12)
-  const [password,      setPassword]        = useState('')
-  const [authError,     setAuthError]       = useState('')
 
   useEffect(() => {
     let cancelled = false
@@ -1295,15 +1291,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
     }, [rawDrivers, weights, rainOut, eqOverrides, rearOverrides, lapsDownOverrides, __mktFill]
   )
 
-  function handleLogin(e) {
-    e.preventDefault()
-    if (password === ADMIN_PASSWORD) {
-      setAuthed(true)
-      setAuthError('')
-    } else {
-      setAuthError('Incorrect password')
-    }
-  }
+  
 
   // ODDS SNAPSHOTS (2026-07-18): every distinct odds paste is captured to odds_snapshots — the last
   // one before the race IS the closing line (operator re-sims up to green flag). Grade Center computes
@@ -1536,23 +1524,12 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
   const hasPractice = rawDrivers.some(d => d.lrpTime != null)
   const hasCorr     = rawDrivers.some(d => d.corrAvgFinish != null)
 
-  if (!authed && !isAdminUser && !embedded) {
+  if (!isAdminUser && !embedded) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-        <div className="card" style={{ width: '100%', maxWidth: 360 }}>
-          <h2 style={{ fontSize: '1.18rem', fontWeight: 600, marginBottom: 20 }}>Sim Center Admin</h2>
-          <form onSubmit={handleLogin}>
-            <div style={{ marginBottom: 12 }}>
-              <input type="password" placeholder="Admin password" value={password}
-                onChange={e => setPassword(e.target.value)}
-                style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', color: 'var(--text-primary)', fontSize: '1.03rem', boxSizing: 'border-box' }}
-              />
-            </div>
-            {authError && <div style={{ color: '#f87171', fontSize: '0.94rem', marginBottom: 10 }}>{authError}</div>}
-            <button type="submit" style={{ width: '100%', padding: '9px', background: 'var(--accent)', color: '#111', border: 'none', borderRadius: 'var(--radius-sm)', fontWeight: 700, cursor: 'pointer', fontSize: '1.03rem' }}>
-              Sign In
-            </button>
-          </form>
+      <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+        <div className="card" style={{ maxWidth: 400 }}>
+          <h2 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: 10 }}>Staff only</h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Sign in with the operator account to access the simulation center.</p>
         </div>
       </div>
     )
