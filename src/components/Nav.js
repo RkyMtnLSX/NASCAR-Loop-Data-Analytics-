@@ -141,6 +141,11 @@ export default function Nav({ isAdmin, onAdminClick }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {isAdmin ? (
             <>
+              {user && (
+                <Link to="/account" className="btn btn-ghost" style={{ fontSize: '0.75rem' }}>
+                  {(user.email || 'Account').split('@')[0]}
+                </Link>
+              )}
               <Link to="/admin" className="btn btn-ghost" style={{ fontSize: '0.75rem' }}>Admin</Link>
               <Link to="/simulation-center" className="btn btn-ghost" style={{ fontSize: '0.75rem' }}>Sim Center</Link>
             </>
