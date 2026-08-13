@@ -2208,3 +2208,17 @@ REMAINING (priority order):
   ADMIN_PW (launch blocker): admin UI keys off the admins table, enforcement is server-side
   RLS, not hidden buttons. Note: route paywall does not protect the REST API - the RLS work
   above IS the API paywall.
+
+## 2026-08-12 - Subscriber account UX shipped (commits 48e04054, 76799682, 40e45fcb, 67b7f8a6)
+- NAV (user-aware): signed OUT -> "Sign In" links to /subscribe + Subscribe button; signed IN
+  -> email-name chip links to /account; Subscribe button hides for active subscribers. Admin
+  password modal moved behind a subtle gear icon (low-opacity, title "Staff sign in") -
+  interim until the admins-table auth replaces ADMIN_PW (#64).
+- /account "My Profile": email, sign out, membership state (founding w/ paid-through date, or
+  week pass w/ access-until, or none -> See plans), "Manage billing" -> Stripe billing portal
+  via new api/create-portal-session.js (token-verified, customer looked up server-side).
+  Week passes have no portal (nothing to manage). /account exempt from PaywallGate.
+- CAVEAT: Stripe billing portal must be SAVED once in dashboard settings (test and live each)
+  or the portal call errors - Settings -> Billing -> Customer portal -> Save. Not yet done.
+- Remaining on payments track: gating flip test, stale-sample landing, admins-table RLS (#64
+  spec in the 8/10 entry), Vercel Pro, live-mode cutover.
