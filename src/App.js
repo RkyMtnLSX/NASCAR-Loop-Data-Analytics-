@@ -22,6 +22,7 @@ import SimResults         from './pages/SimResults'
 import DFSPage            from './pages/DFSPage'
 import Admin              from './pages/Admin'
 import Subscribe          from './pages/Subscribe'
+import Account            from './pages/Account'
 import useSubscriber      from './lib/useSubscriber'
 
 const ADMIN_PW = 'pitboard2026'
@@ -34,7 +35,7 @@ const PAYWALL_ENABLED = false
 function PaywallGate({ ok, loading }) {
   const loc = useLocation()
   if (!PAYWALL_ENABLED || ok || loading) return null
-  if (loc.pathname === '/' || loc.pathname === '/subscribe') return null
+  if (loc.pathname === '/' || loc.pathname === '/subscribe' || loc.pathname === '/account') return null
   return <Navigate to="/subscribe" replace />
 }
 
@@ -150,6 +151,7 @@ export default function App() {
         <Route path="/grade-center"     element={isAdmin ? <GradeCenter /> : <AdminGate />} />
         <Route path="/sim-results"        element={<SimResults />} />
         <Route path="/subscribe"          element={<Subscribe />} />
+        <Route path="/account"           element={<Account />} />
         <Route path="/admin"              element={isAdmin ? <Admin /> : <AdminGate />} />
         <Route path="/dfs"             element={<DFSPage />} />
       </Routes>
