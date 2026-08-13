@@ -1,3 +1,4 @@
+import XScroll from '../components/XScroll'
 import React, { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { useSearchParams } from 'react-router-dom'
@@ -312,7 +313,7 @@ export default function SimResults() {
             ))}
           </div>
           {tab === 'proj' && (
-            <div style={{ overflowX: 'auto' }}>
+            <XScroll style={{  }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
             <thead>
               <tr>
@@ -396,10 +397,10 @@ export default function SimResults() {
               ))}
             </tbody>
           </table>
-            </div>
+            </XScroll>
           )}
           {tab === 'mv' && (
-            <div style={{ overflowX: 'auto' }}>
+            <XScroll style={{  }}>
               {(() => {
   var withMv = (sorted || []).filter(function (d) { return d && d.mv; });
   if (!withMv.length) return null;
@@ -457,7 +458,7 @@ export default function SimResults() {
     </div>
   );
 })()}
-            </div>
+            </XScroll>
           )}
           {tab === 'markets' && <MarketTables results={results} config={data && data.config} />}
         </>
