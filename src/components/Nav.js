@@ -22,6 +22,42 @@ const SIM_LINKS = [
   { path: '/sim-results?series=trucks',  label: 'Truck Sim Results' },
 ]
 
+  function Dropdown({ links, open }) {
+    const location = useLocation()
+    // hoisted out of Nav 2026-08-12: inline definition remounted every render, killing the transition
+    // 2026-08-12: stays mounted; open animates fade + slide instead of popping in
+    return (
+      <div style={{
+        position: 'absolute', top: '100%', left: 0,
+        background: 'var(--bg-surface)', border: '1px solid var(--border)',
+        borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+        minWidth: 220, zIndex: 200, padding: '4px 0',
+        opacity: open ? 1 : 0,
+        transform: open ? 'translateY(0)' : 'translateY(-8px)',
+        visibility: open ? 'visible' : 'hidden',
+        pointerEvents: open ? 'auto' : 'none',
+        transition: 'opacity 0.22s ease, transform 0.22s ease, visibility 0.22s',
+      }}>
+        {links.map(link => (
+          <Link key={link.path} to={link.path} style={{
+            display: 'block', padding: '8px 16px', fontSize: '0.8125rem',
+            fontWeight: location.pathname === link.path ? 600 : 400,
+            color: location.pathname === link.path ? 'var(--accent)' : 'var(--text-primary)',
+            textDecoration: 'none',
+            background: location.pathname === link.path ? 'var(--bg-elevated)' : 'transparent',
+            transition: 'background 0.1s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = location.pathname === link.path ? 'var(--bg-elevated)' : 'transparent' }}
+          >
+            {link.label}
+          </Link>
+        ))}
+      </div>
+    )
+  }
+
+
 export default function Nav({ isAdmin }) {
   const location = useLocation()
   const { user, isSubscriber } = useSubscriber() // 2026-08-12: user-aware nav
@@ -51,39 +87,6 @@ export default function Nav({ isAdmin }) {
     textDecoration: 'none', transition: 'color 0.15s, background 0.15s',
     whiteSpace: 'nowrap',
   })
-
-  function Dropdown({ links, open }) {
-    // 2026-08-12: stays mounted; open animates fade + slide instead of popping in
-    return (
-      <div style={{
-        position: 'absolute', top: '100%', left: 0,
-        background: 'var(--bg-surface)', border: '1px solid var(--border)',
-        borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
-        minWidth: 220, zIndex: 200, padding: '4px 0',
-        opacity: open ? 1 : 0,
-        transform: open ? 'translateY(0)' : 'translateY(-8px)',
-        visibility: open ? 'visible' : 'hidden',
-        pointerEvents: open ? 'auto' : 'none',
-        transition: 'opacity 0.16s ease, transform 0.16s ease, visibility 0.16s',
-      }}>
-        {links.map(link => (
-          <Link key={link.path} to={link.path} style={{
-            display: 'block', padding: '8px 16px', fontSize: '0.8125rem',
-            fontWeight: location.pathname === link.path ? 600 : 400,
-            color: location.pathname === link.path ? 'var(--accent)' : 'var(--text-primary)',
-            textDecoration: 'none',
-            background: location.pathname === link.path ? 'var(--bg-elevated)' : 'transparent',
-            transition: 'background 0.1s',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = location.pathname === link.path ? 'var(--bg-elevated)' : 'transparent' }}
-          >
-            {link.label}
-          </Link>
-        ))}
-      </div>
-    )
-  }
 
   const dropBtn = (active) => ({
     ...linkStyle(active), border: 'none', cursor: 'pointer',
