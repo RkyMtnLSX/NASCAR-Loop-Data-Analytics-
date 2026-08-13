@@ -1,3 +1,4 @@
+import XScroll from '../components/XScroll'
 import React, { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { getExhibitionRaceIds, excludeExhibition } from '../lib/exhibitionGuard'
@@ -381,7 +382,7 @@ fontSize: '0.97rem', cursor: 'pointer',
 No data at this track.
 </div>
 ) : (
-<div style={{ overflowX: 'auto' }}>
+<XScroll style={{  }}>
 <table style={{ borderCollapse: 'separate', borderSpacing: 0, width: '100%', minWidth: 520 }}>
 <thead>
 <tr>
@@ -437,7 +438,7 @@ return (<div key={cd.driver} style={{ color: COMPARE_COLORS[ci], fontSize: '0.85
 })}
 </tbody>
 </table>
-</div>
+</XScroll>
 )}
 
 {compareDrivers&&compareDrivers.length>0&&(
@@ -547,7 +548,7 @@ return (
 <div style={{ marginBottom: 40 }}>
 <h3 style={sectionHead}>{title}</h3>
 {subtitle && <div style={trackSubtitle}>{subtitle}</div>}
-<div style={{ overflow: 'auto', maxHeight: '72vh', borderRadius: 8, border: '1px solid var(--border)' }}>
+<XScroll style={{ maxHeight: '72vh', borderRadius: 8, border: '1px solid var(--border)' }}>
 <table style={{ borderCollapse: 'separate', borderSpacing: 0, width: '100%' }}>
 <thead>
 <tr>
@@ -642,7 +643,7 @@ background: isActive
 })}
 </tbody>
 </table>
-</div>
+</XScroll>
 </div>
 )
 }
