@@ -53,14 +53,17 @@ export default function App() {
   const [isSubscriber] = useState(true) // per-page prop stays permissive; access enforced by PaywallGate redirect
   const __sub = useSubscriber()
 
-  const [isAdmin, setIsAdmin]     = useState(false)
+  const [pwAdmin, setPwAdmin]     = useState(false)
+  // master admin (2026-08-12): the operator's signed-in account grants admin via the
+  // admins table - the password modal is a legacy fallback slated for removal (#64)
+  const isAdmin = pwAdmin || __sub.isAdminUser
   const [showLogin, setShowLogin] = useState(false)
   const [pw, setPw]               = useState('')
   const [pwError, setPwError]     = useState(false)
 
   const handleLogin = () => {
     if (pw === ADMIN_PW) {
-      setIsAdmin(true)
+      setPwAdmin(true)
       setShowLogin(false)
       setPw('')
       setPwError(false)
@@ -75,7 +78,7 @@ export default function App() {
       <Nav
         isAdmin={isAdmin}
         onAdminClick={() => setShowLogin(true)}
-        onSignOut={() => setIsAdmin(false)}
+        onSignOut={() => setPwAdmin(false)}
       />
       <PaywallGate ok={__sub.isSubscriber || isAdmin} loading={__sub.loading} />
 
