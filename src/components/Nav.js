@@ -17,9 +17,9 @@ const LOOP_LINKS = [
 ]
 
 const SIM_LINKS = [
-  { path: '/sim-results?series=cup',     label: 'Cup Sim' },
-  { path: '/sim-results?series=oreilly', label: "O'Reilly Sim" },
-  { path: '/sim-results?series=trucks',  label: 'Truck Sim' },
+  { path: '/sim-results?series=cup',     label: 'Cup Sim Results' },
+  { path: '/sim-results?series=oreilly', label: "O'Reilly Sim Results" },
+  { path: '/sim-results?series=trucks',  label: 'Truck Sim Results' },
 ]
 
 export default function Nav({ isAdmin }) {
@@ -125,7 +125,7 @@ export default function Nav({ isAdmin }) {
           {/* Simulation dropdown */}
           <div style={{ position: 'relative' }} {...makeHover(setSimOpen, simTimer)}>
             <button style={dropBtn(isSimPage)}>
-              Sim Center
+              Simulation Center
               <span style={{ fontSize: '0.55rem', opacity: 0.7, marginTop: 1 }}>▾</span>
             </button>
             <Dropdown links={SIM_LINKS} open={simOpen} />
@@ -147,7 +147,7 @@ export default function Nav({ isAdmin }) {
                 </Link>
               )}
               <Link to="/admin" className="btn btn-ghost" style={{ fontSize: '0.75rem' }}>Admin</Link>
-              <Link to="/simulation-center" className="btn btn-ghost" style={{ fontSize: '0.75rem' }}>Sim Center</Link>
+              <Link to="/simulation-center" className="btn btn-ghost" style={{ fontSize: '0.75rem' }}>Sim Admin</Link>
             </>
           ) : (
             <>
