@@ -2243,3 +2243,6 @@ REMAINING (priority order):
 - Admin model final: admins table row = admin, everywhere, one sign-in. Remaining #64 half:
   table-lockdown SQL (operator tables -> admins-only; product tables -> subscriber-read;
   strip anon at paywall flip) per the 8/10 spec.
+
+## 2026-08-12 - NAV COPY (commit f4397d55)
+Center dropdown 'Sim Center' renamed 'Simulation Center'; items now 'Cup Sim Results / O'Reilly Sim Results / Truck Sim Results' (same /sim-results?series= routes). Admin-only top-right button renamed 'Sim Admin' (still /simulation-center). Admin + Sim Admin buttons render only inside the isAdmin branch - normal signed-in users see account chip only. Bundle verified.
