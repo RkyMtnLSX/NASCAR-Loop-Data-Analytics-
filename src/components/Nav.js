@@ -53,12 +53,18 @@ export default function Nav({ isAdmin }) {
   })
 
   function Dropdown({ links, open }) {
-    return open ? (
+    // 2026-08-12: stays mounted; open animates fade + slide instead of popping in
+    return (
       <div style={{
         position: 'absolute', top: '100%', left: 0,
         background: 'var(--bg-surface)', border: '1px solid var(--border)',
         borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
         minWidth: 220, zIndex: 200, padding: '4px 0',
+        opacity: open ? 1 : 0,
+        transform: open ? 'translateY(0)' : 'translateY(-8px)',
+        visibility: open ? 'visible' : 'hidden',
+        pointerEvents: open ? 'auto' : 'none',
+        transition: 'opacity 0.16s ease, transform 0.16s ease, visibility 0.16s',
       }}>
         {links.map(link => (
           <Link key={link.path} to={link.path} style={{
@@ -76,7 +82,7 @@ export default function Nav({ isAdmin }) {
           </Link>
         ))}
       </div>
-    ) : null
+    )
   }
 
   const dropBtn = (active) => ({
