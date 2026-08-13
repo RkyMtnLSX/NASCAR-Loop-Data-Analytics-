@@ -2246,3 +2246,5 @@ REMAINING (priority order):
 
 ## 2026-08-12 - NAV COPY (commit f4397d55)
 Center dropdown 'Sim Center' renamed 'Simulation Center'; items now 'Cup Sim Results / O'Reilly Sim Results / Truck Sim Results' (same /sim-results?series= routes). Admin-only top-right button renamed 'Sim Admin' (still /simulation-center). Admin + Sim Admin buttons render only inside the isAdmin branch - normal signed-in users see account chip only. Bundle verified.
+
+NAV DROPDOWN ANIMATION + TOP SCROLLBARS (2026-08-12 evening): (1) Dropdown was defined INSIDE Nav so every render remounted it - transitions never ran; hoisted to top-level component, menus now fade+slide 0.22s (commits d50ea403, 65ba720f). (2) New src/components/XScroll.js - horizontal scroll container with synced scrollbar ABOVE content (renders only when table overflows, two-way scrollLeft sync, ResizeObserver). Swapped into all 9 wide-table containers: QualifyingCenter x2, FastestLap x3, GreenFlagSpeed x2, LoopData x2 (incl. the maxHeight 72vh main table; modal overflowY untouched). All 4 pages verified live incl. sync. Pattern note: use XScroll instead of div overflowX auto for any future wide table.
