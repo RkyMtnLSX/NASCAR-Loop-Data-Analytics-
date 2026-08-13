@@ -25,7 +25,6 @@ import Subscribe          from './pages/Subscribe'
 import Account            from './pages/Account'
 import useSubscriber      from './lib/useSubscriber'
 
-const ADMIN_PW = 'pitboard2026'
 
 // HARD PAYWALL (2026-08-09): everything except the landing page and /subscribe
 // requires an active membership. KILL-SWITCH below stays false until the Stripe
@@ -53,89 +52,18 @@ export default function App() {
   const [isSubscriber] = useState(true) // per-page prop stays permissive; access enforced by PaywallGate redirect
   const __sub = useSubscriber()
 
-  const [pwAdmin, setPwAdmin]     = useState(false)
-  // master admin (2026-08-12): the operator's signed-in account grants admin via the
-  // admins table - the password modal is a legacy fallback slated for removal (#64)
-  const isAdmin = pwAdmin || __sub.isAdminUser
-  const [showLogin, setShowLogin] = useState(false)
-  const [pw, setPw]               = useState('')
-  const [pwError, setPwError]     = useState(false)
-
-  const handleLogin = () => {
-    if (pw === ADMIN_PW) {
-      setPwAdmin(true)
-      setShowLogin(false)
-      setPw('')
-      setPwError(false)
-    } else {
-      setPwError(true)
-    }
-  }
+  // master admin only (2026-08-12): password auth fully removed
+  const isAdmin = __sub.isAdminUser
 
   return (
     <BrowserRouter>
       <RacingStripes />
       <Nav
         isAdmin={isAdmin}
-        onAdminClick={() => setShowLogin(true)}
-        onSignOut={() => setPwAdmin(false)}
-      />
+        />
       <PaywallGate ok={__sub.isSubscriber || isAdmin} loading={__sub.loading} />
 
-      {showLogin && (
-        <div
-          style={{
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            zIndex: 1000,
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowLogin(false)
-              setPwError(false)
-              setPw('')
-            }
-          }}
-        >
-          <div style={{
-            background: 'var(--bg-card)', borderRadius: 12, padding: 32,
-            width: 320, boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-          }}>
-            <h2 style={{ margin: '0 0 20px', color: 'var(--text-primary)', fontSize: '1.1rem' }}>
-              Admin Sign In
-            </h2>
-            <input
-              type="password"
-              placeholder="Password"
-              value={pw}
-              onChange={(e) => { setPw(e.target.value); setPwError(false) }}
-              onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-              autoFocus
-              style={{
-                width: '100%', padding: '10px 12px', borderRadius: 8,
-                border: pwError ? '1px solid #f87171' : '1px solid var(--border)',
-                background: 'var(--bg-surface)', color: 'var(--text-primary)',
-                fontSize: '0.9rem', boxSizing: 'border-box', marginBottom: 8,
-              }}
-            />
-            {pwError && (
-              <p style={{ color: '#f87171', fontSize: '0.8rem', margin: '0 0 12px' }}>
-                Incorrect password
-              </p>
-            )}
-            <button
-              onClick={handleLogin}
-              style={{
-                width: '100%', padding: '10px', borderRadius: 8, border: 'none',
-                background: 'var(--accent)', color: '#111', fontWeight: 700,
-                fontSize: '0.9rem', cursor: 'pointer', marginTop: pwError ? 0 : 8,
-              }}
-            >
-              Sign In
-            </button>
-          </div>
-        </div>
-      )}
+      
 
       <Routes>
         <Route path="/"                   element={<Landing />} />
