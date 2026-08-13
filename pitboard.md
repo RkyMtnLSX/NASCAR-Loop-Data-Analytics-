@@ -2222,3 +2222,14 @@ REMAINING (priority order):
   or the portal call errors - Settings -> Billing -> Customer portal -> Save. Not yet done.
 - Remaining on payments track: gating flip test, stale-sample landing, admins-table RLS (#64
   spec in the 8/10 entry), Vercel Pro, live-mode cutover.
+
+## 2026-08-12 - MASTER ADMIN via admins table (commits 534cbc94, 9952d930, 7df5966d, c73a1e3f, 7213e966)
+- Operator decision: his account (atmmstrs2, uid d7a9f822-...) IS the master admin. admins
+  table created (RLS: check own row only; rows addable only via dashboard). useSubscriber
+  now returns isAdminUser. THREE password gates now honor it: App.js nav modal, Admin.js
+  internal "Admin Access" gate, SimulationCenter standalone gate. Signed in as operator =
+  full admin everywhere, zero passwords. Account chip added to admin nav branch (/account).
+- Password fallbacks (nav gear modal, in-page gates, ADMIN_PW, REACT_APP_ADMIN_PASSWORD)
+  still EXIST as legacy - REMOVE after operator confirms auto-admin on all pages; that
+  closes the password-in-bundle launch blocker. Then #64 table-lockdown SQL completes the
+  server-side story.
