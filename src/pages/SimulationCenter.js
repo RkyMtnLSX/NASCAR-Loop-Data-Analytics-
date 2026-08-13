@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
+import useSubscriber from '../lib/useSubscriber'
 
 const ADMIN_PASSWORD = process.env.REACT_APP_ADMIN_PASSWORD
 
@@ -723,6 +724,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
   const [simStage, setSimStage] = useState('post')  // post = POST-PRACTICE final board (race-day default). 2026-07-24: briefly flipped to 'pre' on a misread of stage semantics - reverted same day
   const [raceNumMap, setRaceNumMap] = useState({})
   const [authed,        setAuthed]          = useState(false)
+  const { isAdminUser } = useSubscriber() // master admin passes the gate (2026-08-12)
   const [password,      setPassword]        = useState('')
   const [authError,     setAuthError]       = useState('')
 
@@ -1534,7 +1536,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
   const hasPractice = rawDrivers.some(d => d.lrpTime != null)
   const hasCorr     = rawDrivers.some(d => d.corrAvgFinish != null)
 
-  if (!authed && !embedded) {
+  if (!authed && !isAdminUser && !embedded) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
         <div className="card" style={{ width: '100%', maxWidth: 360 }}>
