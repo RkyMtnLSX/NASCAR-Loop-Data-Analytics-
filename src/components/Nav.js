@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import useSubscriber from '../lib/useSubscriber'
 
 const PRACTICE_LINKS = [
   { path: '/practice',           label: 'Practice Report Cards' },
@@ -23,6 +24,7 @@ const SIM_LINKS = [
 
 export default function Nav({ isAdmin, onAdminClick }) {
   const location = useLocation()
+  const { user, isSubscriber } = useSubscriber() // 2026-08-12: user-aware nav
   const [practiceOpen, setPracticeOpen] = useState(false)
   const [loopOpen, setLoopOpen]         = useState(false)
   const [simOpen, setSimOpen]           = useState(false)
@@ -144,12 +146,23 @@ export default function Nav({ isAdmin, onAdminClick }) {
             </>
           ) : (
             <>
-              <button onClick={onAdminClick} className="btn btn-ghost" style={{ fontSize: '0.75rem' }}>
-                Sign In
+              {user ? (
+                <Link to="/account" className="btn btn-ghost" style={{ fontSize: '0.75rem' }}>
+                  {(user.email || 'Account').split('@')[0]}
+                </Link>
+              ) : (
+                <Link to="/subscribe" className="btn btn-ghost" style={{ fontSize: '0.75rem' }}>
+                  Sign In
+                </Link>
+              )}
+              {!isSubscriber && (
+                <Link to="/subscribe" className="btn btn-primary" style={{ fontSize: '0.75rem' }}>
+                  Subscribe
+                </Link>
+              )}
+              <button onClick={onAdminClick} className="btn btn-ghost" title="Staff sign in" style={{ fontSize: '0.75rem', opacity: 0.45, padding: '4px 7px' }}>
+                &#9881;
               </button>
-              <Link to="/subscribe" className="btn btn-primary" style={{ fontSize: '0.75rem' }}>
-                Subscribe
-              </Link>
             </>
           )}
         </div>
