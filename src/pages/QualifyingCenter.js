@@ -1,3 +1,4 @@
+import XScroll from '../components/XScroll'
 import React, { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 
@@ -578,7 +579,7 @@ export default function QualifyingCenter({ isSubscriber }) {
               )
             })}
           </div>
-          <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid var(--border)', marginBottom: 28 }}>
+          <XScroll style={{ borderRadius: 10, border: '1px solid var(--border)', marginBottom: 28 }}>
             <table style={{ borderCollapse: 'separate', borderSpacing: 0, width: '100%', whiteSpace: 'nowrap' }}>
               <thead>
                 <tr>
@@ -706,7 +707,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                 })}
               </tbody>
             </table>
-          </div>
+          </XScroll>
 
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 28, lineHeight: 1.6 }}>
             Avg column = mean qualifying position at {config.track_name} across {trackYears.join(', ') || 'selected years'}.
@@ -735,7 +736,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                 <span style={{ color: '#94a3b8', marginLeft: 4 }}>{QUAL_FORMAT_LABELS[fmt].label} · floor: {nudgeVal}</span>
               </p>
               {simResults && (
-                <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid var(--border)' }}>
+                <XScroll style={{ borderRadius: 10, border: '1px solid var(--border)' }}>
                   <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: '0.96rem' }}>
                     <thead>
                       <tr style={{ background: 'var(--bg-elevated)', borderBottom: '2px solid var(--border)' }}>
@@ -765,7 +766,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                       })}
                     </tbody>
                   </table>
-                </div>
+                </XScroll>
               )}
             </div>
           )}
