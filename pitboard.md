@@ -2233,3 +2233,13 @@ REMAINING (priority order):
   still EXIST as legacy - REMOVE after operator confirms auto-admin on all pages; that
   closes the password-in-bundle launch blocker. Then #64 table-lockdown SQL completes the
   server-side story.
+
+## 2026-08-12 - PASSWORD AUTH FULLY REMOVED (commits e6c96a0d, 95fe819d, 39c44f90, 961495f8)
+- Operator confirmed all three gates open via admins table -> deleted: nav gear + modal,
+  ADMIN_PW const, Admin.js "Admin Access" form + handleLogin + ADMIN_PASSWORD, Sim Center
+  gate + handleLogin + ADMIN_PASSWORD. Verified live bundle contains NO password literal.
+  Non-admins on admin routes get a "Staff only" card. LAUNCH BLOCKER (password-in-bundle)
+  CLOSED. REACT_APP_ADMIN_PASSWORD env var now unreferenced/inert - operator may delete.
+- Admin model final: admins table row = admin, everywhere, one sign-in. Remaining #64 half:
+  table-lockdown SQL (operator tables -> admins-only; product tables -> subscriber-read;
+  strip anon at paywall flip) per the 8/10 spec.
