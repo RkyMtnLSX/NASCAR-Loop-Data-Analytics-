@@ -1,3 +1,4 @@
+import XScroll from '../components/XScroll'
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 
@@ -105,7 +106,7 @@ function HeatMapView({ rows, byYear, series }) {
         ))}
         <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginLeft: 8 }}>{'—'} = DNP · dimmed = ran under 90% of race distance (green flag speed inflated)</span>
       </div>
-      <div style={{ overflowX: 'auto', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
+      <XScroll style={{ borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
         <table style={{ borderCollapse: 'collapse', width: '100%' }}>
           <thead>
             <tr>
@@ -143,7 +144,7 @@ function HeatMapView({ rows, byYear, series }) {
             })}
           </tbody>
         </table>
-      </div>
+      </XScroll>
     </div>
   )
 }
@@ -152,7 +153,7 @@ function RaceTable({ rows, series }) {
   if (!rows.length) return null
   const sorted = [...rows].sort((a, b) => parseFloat(b.green_flag_speed) - parseFloat(a.green_flag_speed))
   return (
-    <div style={{ overflowX: 'auto', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
+    <XScroll style={{ borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
       <table style={{ borderCollapse: 'collapse', width: '100%' }}>
         <thead><tr>
           <th style={{ ...numHead, textAlign: 'center', width: 60 }}>Rank</th>
@@ -173,7 +174,7 @@ function RaceTable({ rows, series }) {
           ))}
         </tbody>
       </table>
-    </div>
+    </XScroll>
   )
 }
 
