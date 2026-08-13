@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import DfsSalaryAdmin from './DfsSalaryAdmin'
 import FlaggedBetsAdmin from './FlaggedBetsAdmin'
 import MyBetsAdmin from './MyBetsAdmin'
+import useSubscriber from '../lib/useSubscriber'
 import LineMovementAdmin from './LineMovementAdmin'
 import FastestLapOddsAdmin from './FastestLapOddsAdmin'
 import { parsePracticeExcel } from '../lib/excelParser'
@@ -1924,6 +1925,8 @@ function LoadGreenFlagSpeed() {
 
 export default function Admin() {
   const [authed, setAuthed] = useState(false)
+  // master admin (2026-08-12): signed-in operator account passes the gate without the password
+  const { isAdminUser } = useSubscriber()
   const [password, setPassword] = useState('')
   const [authError, setAuthError] = useState('')
   const [adminTab, setAdminTab] = useState('admin')
@@ -2188,7 +2191,7 @@ export default function Admin() {
     }
   }
 
-  if (!authed) {
+  if (!authed && !isAdminUser) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
         <div className="card" style={{ width: '100%', maxWidth: 360 }}>
