@@ -60,8 +60,6 @@ function useWeekendRaceNum(series, setter) {
   }, [series]) // eslint-disable-line
 }
 
-const ADMIN_PASSWORD = process.env.REACT_APP_ADMIN_PASSWORD
-
 const SERIES_OPTIONS = [
   { value: 'cup', label: 'Cup Series' },
   { value: 'oreilly', label: "O'Reilly Series" },
@@ -1924,11 +1922,8 @@ function LoadGreenFlagSpeed() {
 }
 
 export default function Admin() {
-  const [authed, setAuthed] = useState(false)
   // master admin (2026-08-12): signed-in operator account passes the gate without the password
   const { isAdminUser } = useSubscriber()
-  const [password, setPassword] = useState('')
-  const [authError, setAuthError] = useState('')
   const [adminTab, setAdminTab] = useState('admin')
 
   const [series, setSeries] = useState('cup')
@@ -1948,15 +1943,7 @@ export default function Admin() {
   const [uploadStatus, setUploadStatus] = useState(null)
   const [preview, setPreview] = useState(null)
 
-  function handleLogin(e) {
-    e.preventDefault()
-    if (password === ADMIN_PASSWORD) {
-      setAuthed(true)
-      setAuthError('')
-    } else {
-      setAuthError('Incorrect password')
-    }
-  }
+  
 
   async function handleFileSelect(e) {
     const f = e.target.files[0]
@@ -2191,20 +2178,12 @@ export default function Admin() {
     }
   }
 
-  if (!authed && !isAdminUser) {
+  if (!isAdminUser) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-        <div className="card" style={{ width: '100%', maxWidth: 360 }}>
-          <h2 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: 20 }}>Admin Access</h2>
-          <form onSubmit={handleLogin}>
-            <div style={{ marginBottom: 12 }}>
-              <input type="password" placeholder="Admin password" value={password}
-                onChange={e => setPassword(e.target.value)}
-                style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', fontSize: '0.875rem', outline: 'none' }} />
-            </div>
-            {authError && <p style={{ color: '#E74C3C', fontSize: '0.75rem', marginBottom: 12 }}>{authError}</p>}
-            <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Sign in</button>
-          </form>
+      <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+        <div className="card" style={{ maxWidth: 400 }}>
+          <h2 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: 10 }}>Staff only</h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Sign in with the operator account to access admin tools.</p>
         </div>
       </div>
     )
