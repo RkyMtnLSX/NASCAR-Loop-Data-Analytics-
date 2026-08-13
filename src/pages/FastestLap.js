@@ -1,3 +1,4 @@
+import XScroll from '../components/XScroll'
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 
@@ -60,7 +61,7 @@ function RaceTable({ rows, raceName, track }) {
         <h3 style={sectionHead}>{raceName}</h3>
         {track && <div style={{fontSize:'0.75rem',color:'var(--text-muted)',marginBottom:10}}>{track}</div>}
       </div>
-      <div style={{overflowX:'auto',borderRadius:'var(--radius-md)',border:'1px solid var(--border)'}}>
+      <XScroll style={{borderRadius:'var(--radius-md)',border:'1px solid var(--border)'}}>
         <table style={{borderCollapse:'collapse',minWidth:760,width:'100%'}}>
           <thead><tr>
             <th style={stickyHead}>Driver</th>
@@ -94,7 +95,7 @@ function RaceTable({ rows, raceName, track }) {
             })}
           </tbody>
         </table>
-      </div>
+      </XScroll>
     </div>
   )
 }
@@ -116,7 +117,7 @@ function SeasonSummaryTable({ rows }) {
   labeled.sort((a, b) => { const va = sVal(a), vb = sVal(b); if (va < vb) return sAsc ? -1 : 1; if (va > vb) return sAsc ? 1 : -1; return 0 })
   if (!raceRows.length) return <div style={{color:'var(--text-muted)',fontSize:'0.875rem',padding:'24px 0'}}>No data available.</div>
   return (
-    <div style={{overflowX:'auto',borderRadius:'var(--radius-md)',border:'1px solid var(--border)'}}>
+    <XScroll style={{borderRadius:'var(--radius-md)',border:'1px solid var(--border)'}}>
       <table style={{borderCollapse:'collapse',minWidth:800,width:'100%'}}>
         <thead><tr>
           <th onClick={hClick('track')} style={{...stickyHead,cursor:'pointer',userSelect:'none'}}>Track{arrow('track')}</th>
@@ -146,7 +147,7 @@ function SeasonSummaryTable({ rows }) {
           })}
         </tbody>
       </table>
-    </div>
+    </XScroll>
   )
 }
 
@@ -189,7 +190,7 @@ function HeatMapView({ rows, year, trackType }) {
         ))}
         <span style={{fontSize:'0.7rem',color:'var(--text-muted)',marginLeft:8}}>{'\u2014'} = did not participate</span>
       </div>
-      <div style={{overflowX:'auto',borderRadius:'var(--radius-md)',border:'1px solid var(--border)'}}>
+      <XScroll style={{borderRadius:'var(--radius-md)',border:'1px solid var(--border)'}}>
         <table style={{borderCollapse:'collapse',width:'100%'}}>
           <thead>
             <tr>
@@ -221,7 +222,7 @@ function HeatMapView({ rows, year, trackType }) {
             })}
           </tbody>
         </table>
-      </div>
+      </XScroll>
       <div style={{marginTop:10,fontSize:'0.7rem',color:'var(--text-muted)'}}>{drivers.length} drivers \u00B7 {finalLabels.length} {finalLabels.length===1?'race':'races'}{trackType!=='All'&&` \u00B7 ${trackType} only`}</div>
     </div>
   )
