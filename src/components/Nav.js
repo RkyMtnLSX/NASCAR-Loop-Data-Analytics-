@@ -22,7 +22,7 @@ const SIM_LINKS = [
   { path: '/sim-results?series=trucks',  label: 'Truck Sim' },
 ]
 
-export default function Nav({ isAdmin, onAdminClick }) {
+export default function Nav({ isAdmin }) {
   const location = useLocation()
   const { user, isSubscriber } = useSubscriber() // 2026-08-12: user-aware nav
   const [practiceOpen, setPracticeOpen] = useState(false)
@@ -165,9 +165,6 @@ export default function Nav({ isAdmin, onAdminClick }) {
                   Subscribe
                 </Link>
               )}
-              <button onClick={onAdminClick} className="btn btn-ghost" title="Staff sign in" style={{ fontSize: '0.75rem', opacity: 0.45, padding: '4px 7px' }}>
-                &#9881;
-              </button>
             </>
           )}
         </div>
