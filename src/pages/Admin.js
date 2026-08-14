@@ -2150,6 +2150,8 @@ export default function Admin() {
               starting_position: d.start || null,
               lap_number: parseInt(lapNum),
               lap_time: t,
+              // 2026-08-14: per-lap capture timestamp from LAPS_RAW sheets (null for manual sheets)
+              captured_at: (d.lapTs && d.lapTs[lapNum]) || null,
             })
           }
         }
