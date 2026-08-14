@@ -74,6 +74,39 @@ export function parsePracticeExcel(file, series = 'cup') {
           const group = groupColIndex !== -1 ? (String(row[groupColIndex] || '').trim().toUpperCase() || null) : null
           if (Object.keys(lapData).length > 0) drivers.push({ driver: driverName, carNumber, start: startPos, group, lapData })
         }
+        // LAPS_RAW (2026-08-14): watcher-built sheets carry a second worksheet with
+        // ORIGINAL lap numbers (gaps preserve stint detection) and per-lap capture
+        // timestamps (track-evolution work). When present it replaces the page-1
+        // grid lapData, which is flying-filtered and renumbered sequentially.
+        // Manual sheets without it parse exactly as before.
+        try {
+          const rawName = workbook.SheetNames.find(n => String(n).trim().toLowerCase() === 'laps_raw')
+          if (rawName) {
+            const rr = XLSX.utils.sheet_to_json(workbook.Sheets[rawName], { header: 1 })
+            const hdr = (rr[0] || []).map(h => String(h || '').trim().toLowerCase())
+            const di = hdr.indexOf('driver'), li = hdr.indexOf('lap'), ti = hdr.indexOf('lap_time'), ci = hdr.indexOf('captured_at')
+            if (di !== -1 && li !== -1 && ti !== -1) {
+              const byDrv = {}
+              for (let ri = 1; ri < rr.length; ri++) {
+                const row = rr[ri] || []
+                const nm = String(row[di] || '').trim()
+                const ln = parseInt(row[li])
+                const tv = parseFloat(row[ti])
+                if (!nm || isNaN(ln) || isNaN(tv) || tv < 10 || tv > 500) continue
+                const b = byDrv[nm] = byDrv[nm] || { lapData: {}, lapTs: {} }
+                b.lapData[ln] = tv
+                if (ci !== -1 && row[ci]) b.lapTs[ln] = String(row[ci])
+              }
+              const nrm = x => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '')
+              const rawIdx = {}
+              Object.keys(byDrv).forEach(k => { rawIdx[nrm(k)] = byDrv[k] })
+              drivers.forEach(d => {
+                const hit = rawIdx[nrm(d.driver)]
+                if (hit && Object.keys(hit.lapData).length > 0) { d.lapData = hit.lapData; d.lapTs = hit.lapTs }
+              })
+            }
+          }
+        } catch (rawErr) {}
         if (drivers.length === 0) { reject(new Error('No valid driver data found')); return }
         resolve({ drivers, sheetName, totalDrivers: drivers.length })
       } catch (err) {
