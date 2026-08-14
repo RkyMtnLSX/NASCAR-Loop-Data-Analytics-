@@ -103,6 +103,27 @@ export default function PracticeReportCard({ isSubscriber }) {
           const ms = {}
           ;(lc || []).forEach(e => { const k = nn(e.driver_name); if (e.car_number != null && !m[k]) m[k] = e.car_number; if (e.start_position != null && ms[k] == null) ms[k] = e.start_position })
           out = out.map(r => ({ ...r, car_number: r.car_number || m[nn(r.driver_name)] || null, qualifying_position: r.qualifying_position != null ? r.qualifying_position : (ms[nn(r.driver_name)] != null ? ms[nn(r.driver_name)] : null) }))
+          // CAR FALLBACK stage 2 (2026-08-12): race not run yet -> loop_data has nothing
+          // at this track. Use the latest published sim board's lineup (entry-list sourced),
+          // then season-wide loop_data (numbers are stable within a season).
+          if (!out.every(r => r.car_number)) {
+            const { data: sb } = await supabase.from('sim_results')
+              .select('results')
+              .eq('series', session.series).eq('race_year', session.year)
+              .eq('track_name', session.track_name)
+              .order('published_at', { ascending: false }).limit(1)
+            const m2 = {}
+            ;((((sb || [])[0] || {}).results) || []).forEach(e => { const k = nn(e.driver_name); if (e.car_number != null && !m2[k]) m2[k] = e.car_number })
+            out = out.map(r => ({ ...r, car_number: r.car_number || m2[nn(r.driver_name)] || null }))
+          }
+          if (!out.every(r => r.car_number)) {
+            const { data: ly } = await supabase.from('loop_data')
+              .select('driver_name, car_number')
+              .eq('series', session.series).eq('year', session.year)
+            const m3 = {}
+            ;(ly || []).forEach(e => { const k = nn(e.driver_name); if (e.car_number != null) m3[k] = e.car_number })
+            out = out.map(r => ({ ...r, car_number: r.car_number || m3[nn(r.driver_name)] || null }))
+          }
         }
       } catch (e2) {}
       // 10/15/20-lap sustained averages from raw practice_laps (display only, falloff included)
