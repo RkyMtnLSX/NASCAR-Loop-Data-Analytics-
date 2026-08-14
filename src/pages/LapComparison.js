@@ -1,3 +1,4 @@
+import { gradePracticeSession } from '../lib/practiceGrader'
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import {
@@ -215,8 +216,20 @@ export default function LapComparison({ isSubscriber }) {
         })
 
       setAllDrivers(drivers)
-      // Default: select first 3 drivers
-      setSelectedDrivers(drivers.slice(0, 3).map(d => d.driver_name))
+      // Default (2026-08-14): top 4 by practice GRADE, not raw avg - tiny-sample
+      // drivers (Cody Ware, 4 laps) top the raw-avg sort. The grader is sample-aware.
+      try {
+        const __gIn = Object.values(map).map(d => {
+          const ld = {}
+          d.laps.forEach(l => { ld[l.lap] = l.time })
+          return { driver_name: d.driver_name, group: d.practice_group || null, lapData: ld }
+        })
+        const __gr = gradePracticeSession(__gIn, null) || []
+        const __top = __gr.slice().sort((x, y) => (x.rank || 999) - (y.rank || 999)).slice(0, 4).map(d => d.driver_name).filter(Boolean)
+        setSelectedDrivers(__top.length >= 2 ? __top : drivers.slice(0, 3).map(d => d.driver_name))
+      } catch (eG) {
+        setSelectedDrivers(drivers.slice(0, 3).map(d => d.driver_name))
+      }
     }
 
     load()
