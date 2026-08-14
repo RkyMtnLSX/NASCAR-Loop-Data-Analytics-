@@ -180,6 +180,119 @@ export function gradePracticeSession(drivers, priorRatings) {
     })
   })
   const __tcBeta = __tcSxx ? __tcSxy / __tcSxx : 0
+
+  // SESSION-TIME CORRECTION (v6.3-st, 2026-08-14): sessions open ~1.5-2.3s fast and decay
+  // over ~25min (fresh-sticker first-run window). Cup A/B experiment 2026-08-14: group B
+  // re-opened exactly as fast as A despite A's rubber - each GROUP gets its own clock.
+  // Tire correction is blind to this (within-stint age only, not compound freshness).
+  // Method: per-driver-demeaned tire-corrected clean-lap residuals, median per 5-min
+  // group-relative bucket (composition-robust), effects centered lap-weighted zero, each
+  // lap corrected by minus its bucket effect. Pace/longRun get tire+session; the raw
+  // speed half gets session-only (a green-track flyer is not comparable peak speed).
+  // ACTIVE only when >=60% of clean laps carry dr.lapTs timestamps and >=3 buckets have
+  // >=10 laps - historical sessions grade exactly as before. NO HISTORICAL BACKTEST
+  // POSSIBLE (timestamps exist 2026-08-14 forward): shipped on construct validity,
+  // PROSPECTIVE validation weekly vs race-day driver rating (BACKTEST_LOG 2026-08-14).
+  const __stFx = (() => {
+    try {
+      const g0 = {}
+      let nTs = 0, nClean = 0
+      const drvLaps = []
+      drivers.forEach(dr => {
+        const ts = dr.lapTs || {}
+        const gk = dr.group || '__all'
+        parseStints(dr.lapData || {}).forEach(st => {
+          const times = st.map(x => x[1])
+          const srt = [...times].sort((a, b) => a - b)
+          const med = srt[Math.floor(srt.length / 2)]
+          st.forEach((x, i) => {
+            if (x[1] > med * 1.06) return
+            nClean++
+            const tv = ts[x[0]]
+            if (!tv) return
+            const ms = Date.parse(tv)
+            if (isNaN(ms)) return
+            nTs++
+            if (g0[gk] == null || ms < g0[gk]) g0[gk] = ms
+            drvLaps.push({ gk, ms, y: x[1] - __tcBeta * (Math.min(i + 1, 40) - 5), dr })
+          })
+        })
+      })
+      if (!nClean || nTs / nClean < 0.6) return null
+      const by = new Map()
+      drvLaps.forEach(p => { const a = by.get(p.dr) || []; a.push(p); by.set(p.dr, a) })
+      const buckets = {}
+      by.forEach(arr => {
+        if (arr.length < 2) return
+        const m = arr.reduce((s2, p) => s2 + p.y, 0) / arr.length
+        arr.forEach(p => {
+          const bk = Math.floor(((p.ms - g0[p.gk]) / 60000) / 5)
+          ;(buckets[bk] = buckets[bk] || []).push(p.y - m)
+        })
+      })
+      const eff = {}
+      const bks = Object.keys(buckets).map(Number).sort((a, b) => a - b)
+      let big = 0
+      bks.forEach(bk => {
+        const v = buckets[bk].sort((a, b) => a - b)
+        if (v.length >= 10) { eff[bk] = v[Math.floor(v.length / 2)]; big++ }
+      })
+      if (big < 3) return null
+      bks.forEach(bk => {
+        if (eff[bk] != null) return
+        let best = null, bd = 1e9
+        Object.keys(eff).forEach(k => { const d2 = Math.abs(k - bk); if (d2 < bd) { bd = d2; best = +k } })
+        eff[bk] = best != null ? eff[best] : 0
+      })
+      let sw = 0, se = 0
+      bks.forEach(bk => { sw += buckets[bk].length; se += eff[bk] * buckets[bk].length })
+      const c0 = sw ? se / sw : 0
+      bks.forEach(bk => { eff[bk] -= c0 })
+      return { eff, g0 }
+    } catch (e) { return null }
+  })()
+  const __st = !!__stFx
+  const __stcMet = (dr, stints) => {
+    if (!__st) return {}
+    const ts = dr.lapTs || {}
+    const gk = dr.group || '__all'
+    const has0 = __stFx.g0[gk] != null
+    const f = (lapNum) => {
+      if (!has0) return 0
+      const tv = ts[lapNum]
+      if (!tv) return 0
+      const ms = Date.parse(tv)
+      if (isNaN(ms)) return 0
+      const e = __stFx.eff[Math.floor(((ms - __stFx.g0[gk]) / 60000) / 5)]
+      return e == null ? 0 : e
+    }
+    const paceCl = []
+    const rawAdj = []
+    stints.forEach(st => {
+      const times = st.map(x => x[1])
+      const srt = [...times].sort((a, b) => a - b)
+      const med = srt[Math.floor(srt.length / 2)]
+      const cl = []
+      st.forEach((x, i) => {
+        if (x[1] > med * 1.06) return
+        cl.push(x[1] - __tcBeta * (Math.min(i + 1, 40) - 5) - f(x[0]))
+        rawAdj.push(x[1] - f(x[0]))
+      })
+      if (cl.length) paceCl.push(cl)
+    })
+    const av = (a) => a.reduce((x, y) => x + y, 0) / a.length
+    const grad = paceCl.filter(c => c.length >= MIN_LAPS)
+    const lrs = paceCl.filter(c => c.length >= 10)
+    const allC = [].concat(...paceCl)
+    rawAdj.sort((a, b) => a - b)
+    return {
+      avgPaceSTC: grad.length ? av(grad.map(av)) : null,
+      overallSTC: allC.length ? av(allC) : null,
+      longRunSTC: lrs.length ? lrs.reduce((sv, c) => sv + av(c) * c.length, 0) / lrs.reduce((sv, c) => sv + c.length, 0) : null,
+      best5ST: rawAdj.length ? av(rawAdj.slice(0, Math.min(5, rawAdj.length))) : null,
+      bestLapST: rawAdj.length ? rawAdj[0] : null,
+    }
+  }
   const __tcMet = (stints) => {
     const stClean = []
     stints.forEach(st => {
@@ -258,6 +371,7 @@ export function gradePracticeSession(drivers, priorRatings) {
       trendSlope: rnd(falloff, 10000), consistency: rnd(consistency, 1000),
       avgPace: rnd(avgPace, 1000), bestStint: rnd(bestStint, 1000), longRun: rnd(longRun, 1000),
       ...__tcMet(stints),
+      ...__stcMet(dr, stints),
       notes: JSON.stringify({ gl: __graded, fr: __fresh }), inc: false }
   })
 
@@ -302,14 +416,14 @@ export function gradePracticeSession(drivers, priorRatings) {
       gradable.forEach(d => { if (d[key] != null && d.group && offs[d.group] != null) d[gcKey] = d[key] - (offs[d.group] - center) })
       return true
     }
-    const c1 = correctKey('avgPaceTC', '__gcAvgPace')
-    const c2 = correctKey('bestLap', '__gcBestLap')
-    const c3 = correctKey('overallTC', '__gcOverallAvg')
-    const c4 = correctKey('best5', '__gcBest5') // SHIPPED 2026-07-17: grade speed half
-    const c5 = correctKey('longRunTC', '__gcLongRun') // SHIPPED 2026-08-08: long-run component
+    const c1 = correctKey(__st ? 'avgPaceSTC' : 'avgPaceTC', '__gcAvgPace')
+    const c2 = correctKey(__st ? 'bestLapST' : 'bestLap', '__gcBestLap')
+    const c3 = correctKey(__st ? 'overallSTC' : 'overallTC', '__gcOverallAvg')
+    const c4 = correctKey(__st ? 'best5ST' : 'best5', '__gcBest5') // SHIPPED 2026-07-17: grade speed half
+    const c5 = correctKey(__st ? 'longRunSTC' : 'longRunTC', '__gcLongRun') // SHIPPED 2026-08-08: long-run component
     gc = c1 || c2 || c3 || c4 || c5
   }
-  const apS = rankScale(gc ? '__gcOverallAvg' : 'overallTC') /* v6.1 2026-08-08: pace half = corrected ALL-clean-lap mean (lap-weighted). Equal-stint avgPace demoted Blaney (Iowa 91-lap grind vs short stints). 97-race backtest: statistical tie with avgPaceTC (rhoSpeed .637 both, W50/L47) - swap chosen on construct (no stint-count artifact). */, alS = rankScale(gc ? '__gcOverallAvg' : 'overallTC'), blS = rankScale(gc ? '__gcBestLap' : 'bestLap') /* v6.2: RAW - actual laps only */, b5S = rankScale(gc ? '__gcBest5' : 'best5') /* v6.2 2026-08-08: speed half is RAW best5 - pure peak speed that actually happened, same input the sim uses. Tire-corrected laps are barred from the speed half (a corrected lap-40 could impersonate a flyer: Chastain Iowa 24.65 -> 24.02 'equivalent' beating Love's real 24.12). 97-race backtest: finish rho tie (.435/.436), race-speed .640 vs .637, winner rank 6.32 vs 6.50 - equal or slightly better everywhere. Pace + longRun halves stay tire-corrected. */, lrS = rankScale(gc ? '__gcLongRun' : 'longRunTC')
+  const apS = rankScale(gc ? '__gcOverallAvg' : (__st ? 'overallSTC' : 'overallTC')) /* v6.1 2026-08-08: pace half = corrected ALL-clean-lap mean (lap-weighted). Equal-stint avgPace demoted Blaney (Iowa 91-lap grind vs short stints). 97-race backtest: statistical tie with avgPaceTC (rhoSpeed .637 both, W50/L47) - swap chosen on construct (no stint-count artifact). */, alS = rankScale(gc ? '__gcOverallAvg' : (__st ? 'overallSTC' : 'overallTC')), blS = rankScale(gc ? '__gcBestLap' : (__st ? 'bestLapST' : 'bestLap')) /* v6.2: RAW - actual laps only */, b5S = rankScale(gc ? '__gcBest5' : (__st ? 'best5ST' : 'best5')) /* v6.2 2026-08-08: speed half is RAW best5 - pure peak speed that actually happened, same input the sim uses. Tire-corrected laps are barred from the speed half (a corrected lap-40 could impersonate a flyer: Chastain Iowa 24.65 -> 24.02 'equivalent' beating Love's real 24.12). 97-race backtest: finish rho tie (.435/.436), race-speed .640 vs .637, winner rank 6.32 vs 6.50 - equal or slightly better everywhere. Pace + longRun halves stay tire-corrected. */, lrS = rankScale(gc ? '__gcLongRun' : (__st ? 'longRunSTC' : 'longRunTC'))
   const scored = gradable.map(d => {
     const pace = apS.has(d) ? apS.get(d) : (alS.has(d) ? alS.get(d) : 50)
     // SHIPPED 2026-07-17: speed half is best5 (mean of 5 fastest laps; bestLap fallback).
