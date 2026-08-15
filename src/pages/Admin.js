@@ -800,6 +800,30 @@ function LoadNewRace() {
         laps_completed: parseInt(m[18]), driver_rating: parseFloat(m[19]),
       })
     }
+    // LAP RAPTOR REDESIGN (2026-08-14): new Loop Data table = Start Finish STATUS(text)
+    // ARP High Low GFP+/- GFP+ GFP- QP %QP FL T15 %T15 Led %Led. DROPPED site-wide:
+    // mid-race position, laps completed, driver rating (cPOMS/LSP are their new speed
+    // stats). Real finish statuses finally fix the junk finish_status for new races.
+    if (rows.length === 0) {
+      const newRowRe = /^(.+?)\s+(\d+)\s+(\d+)\s+([A-Za-z][A-Za-z ]*?)\s+([\d.]+)\s+(\d+)\s+(\d+)\s+(-?\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+([\d.]+)\s+(\d+)\s+(\d+)\s+([\d.]+)\s+(\d+)\s+([\d.]+)\s*$/gm
+      let m2
+      while ((m2 = newRowRe.exec(text)) !== null) {
+        rows.push({
+          driver_name: normalizeDriverName(m2[1].trim()),
+          start_position: parseInt(m2[2]), mid_race_position: null,
+          finish_position: parseInt(m2[3]),
+          finish_status: m2[4].trim().toLowerCase(),
+          avg_position: parseFloat(m2[5]),
+          high_position: parseInt(m2[6]), low_position: parseInt(m2[7]),
+          pass_diff: parseInt(m2[8]), green_flag_passes: parseInt(m2[9]),
+          green_flag_times_passed: parseInt(m2[10]), quality_passes: parseInt(m2[11]),
+          pct_quality_passes: parseFloat(m2[12]), fastest_laps: parseInt(m2[13]),
+          top15_laps: parseInt(m2[14]), pct_top15_laps: parseFloat(m2[15]),
+          laps_led: parseInt(m2[16]), pct_laps_led: parseFloat(m2[17]),
+          laps_completed: null, driver_rating: null,
+        })
+      }
+    }
     const __cautM = text.match(/Cautions:\s*(\d+)\s+for\s+(\d+)/i)
   const __leadM = text.match(/Lead changes:\s*(\d+)/i)
   const __spdM = text.match(/Average speed:\s*([\d.]+)/i)
@@ -875,7 +899,7 @@ function LoadNewRace() {
       ;(__elRows || []).forEach(e2 => { const k2 = __elNorm(e2.driver_name); if (k2 && e2.car_number) __carByDriver[k2] = String(e2.car_number).trim() })
       for (const row of rows) {
         await supabase.from('drivers').upsert({ name: row.driver_name, series }, { onConflict: 'name,series', ignoreDuplicates: true })
-        const finishStatus = (row.laps_completed && totalLaps && row.laps_completed < totalLaps * 0.9) ? 'dnf' : 'running'
+        const finishStatus = row.finish_status ? row.finish_status : ((row.laps_completed && totalLaps && row.laps_completed < totalLaps * 0.9) ? 'dnf' : 'running')
         const { error } = await supabase.from('loop_data').insert({
           race_id: raceId, driver_name: row.driver_name, series,
           car_number: __carByDriver[__elNorm(row.driver_name)] || null,
