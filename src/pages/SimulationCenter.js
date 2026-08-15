@@ -1431,6 +1431,26 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
     await supabase.from('sim_results').delete().eq('series', series).eq('stage', simStage).eq('race_year', payload.race_year).eq('race_number', payload.race_number)
     const { error } = await supabase.from('sim_results').insert(payload)
     if (!error) {
+      // FULL-RUN MATRIX (2026-08-15): store ALL draws in sim_matrices so Matchup
+      // Compare prices custom groups from the same run as the published markets
+      // (config carries only a 4k sample - Top Ford 63.6 vs matchup 64.5 wobble).
+      // Lazy-loaded by the tray only; board page loads unaffected.
+      try {
+        if (simResults.posMatrix && simResults.simN && __mtxOrder) {
+          const __nD2 = simResults.length
+          const __N2 = simResults.simN
+          const __pk2 = new Uint8Array(__N2 * __nD2)
+          for (let __s2 = 0; __s2 < __N2 * __nD2; __s2++) __pk2[__s2] = simResults.posMatrix[__s2]
+          let __b2 = ''
+          for (let __i2 = 0; __i2 < __pk2.length; __i2 += 8192) __b2 += String.fromCharCode.apply(null, __pk2.subarray(__i2, __i2 + 8192))
+          await supabase.from('sim_matrices').delete().eq('series', series).eq('race_year', payload.race_year).eq('race_number', payload.race_number).eq('stage', simStage)
+          await supabase.from('sim_matrices').insert({
+            series, race_year: payload.race_year, race_number: payload.race_number,
+            stage: simStage, track_name: payload.track_name,
+            sim_n: __N2, sim_order: __mtxOrder, matrix_b64: btoa(__b2),
+          })
+        }
+      } catch (eMx) {}
       try {
         const __samp = simResults.__dkSamples, __sdrv = simResults.__sampleDrivers
         if (__samp && __samp.length && __sdrv) {
