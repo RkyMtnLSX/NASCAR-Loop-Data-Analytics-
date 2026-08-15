@@ -421,9 +421,10 @@ export default function DFSPage() {
         <div style={card}>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 12 }}>
             <label style={{ fontSize: 13 }}>Lineups<br /><input type="number" value={numLineups} min={1} max={150} onChange={e => setNumLineups(Math.max(1, Math.min(150, +e.target.value || 1)))} style={{ width: 70, marginTop: 4, background: 'var(--bg,#0e0f13)', color: 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 6, padding: '5px 7px' }} /></label>
-            <label style={{ fontSize: 13 }}>Max exposure<br /><select value={maxExp} onChange={e => setMaxExp(+e.target.value)} style={{ marginTop: 4, background: 'var(--bg,#0e0f13)', color: 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 6, padding: '5px 7px' }}>
-              <option value={1}>No cap</option><option value={0.75}>75%</option><option value={0.6}>60%</option><option value={0.5}>50%</option><option value={0.4}>40%</option>
-            </select></label>
+            <label style={{ fontSize: 13 }}>Max exposure %<br /><input type="number" min={10} max={100} step={5}
+              value={Math.round(maxExp * 100)}
+              onChange={e => { const v = Math.max(10, Math.min(100, +e.target.value || 100)); setMaxExp(v / 100) }}
+              style={{ marginTop: 4, width: 72, background: 'var(--bg,#0e0f13)', color: 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 6, padding: '5px 7px' }} /></label>
             <label style={{ fontSize: 13 }}>Mode<br /><select value={mode} onChange={e => setMode(e.target.value)} style={{ marginTop: 4, background: 'var(--bg,#0e0f13)', color: 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 6, padding: '5px 7px' }}>
               <option value="gpp">GPP (ceiling)</option><option value="cash">Cash (average)</option>
             </select></label>
@@ -445,7 +446,7 @@ export default function DFSPage() {
                 <th style={{ padding: '7px 8px', textAlign: 'left' }}>Lock/Excl</th>
                 {th('name', 'Driver', 'left')}{th('startPos', 'Start')}{th('sal', 'Salary')}{th('projDK', 'Proj DK')}{th('ceil', 'Ceiling')}{th('value', 'Value')}{th('opt', 'Optimal%')}
                 {th('winPct', 'Win%')}{th('lapsLed', 'Laps Led')}{th('avgFast', 'Fast Laps')}{th('projFinish', 'Proj Fin')}
-                <th style={{ padding: '7px 8px', textAlign: 'right' }}>Expo</th>
+                <th style={{ padding: '7px 8px', textAlign: 'right' }}>Exposure</th>
               </tr></thead>
               <tbody>
                 {sorted.map(d => {
