@@ -310,7 +310,10 @@ export default function DFSPage() {
     const csv = 'D,D,D,D,D,D\n' + rows2.join('\n')
     const a = document.createElement('a')
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
-    a.download = 'pitboard_dk_' + series + '_lineups.csv'
+    // 2026-08-14: filename carries race + mode so the file is findable at DK upload time
+    const __trk = race && race.track ? String(race.track).replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_+|_+$/g, '') : 'race'
+    const __tag = (race && race.year ? race.year + '_' : '') + (race && race.rn != null ? 'R' + race.rn + '_' : '') + __trk
+    a.download = 'PitBoard_DK_' + series + '_' + __tag + '_' + (lineups[0] && lineups[0].ceil != null ? 'GPP' : 'cash') + '_lineups.csv'
     a.click(); URL.revokeObjectURL(a.href)
     setNote(missing.size ? 'CSV exported - WARNING: no DK ID for ' + missing.size + ' driver(s) (re-paste the full DK salary CSV in Salary Admin to capture IDs; DK upload needs them)' : 'CSV exported - DK upload ready (' + lineups.length + ' lineups)')
   }
