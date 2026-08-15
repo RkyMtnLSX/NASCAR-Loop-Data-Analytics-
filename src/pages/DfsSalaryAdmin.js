@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 
 const SERIES = [{ v: 'cup', label: 'Cup' }, { v: 'oreilly', label: "O'Reilly" }, { v: 'trucks', label: 'Trucks' }]
-const norm = (s) => (s || '').toString().toLowerCase().replace(/[^a-z ]/g, '').replace(/\s+/g, ' ').trim()
+const norm = (s) => (s || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z ]/g, '').replace(/\s+/g, ' ').trim() // 2026-08-14: NFD accent fold (Suarez matching), standard name-join rule
 
 function parseSalaries(text, drivers) {
   const lines = (text || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean)
