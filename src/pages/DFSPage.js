@@ -241,18 +241,28 @@ export default function DFSPage() {
     if (!meanRes.error) meanRes.lineups.forEach(lu => addCand(lu.drivers.map(d2 => d2.name)))
     const cands = Array.from(candMap2.values())
     if (!cands.length) { setNote('No cap-legal candidate lineups under current locks/excludes.'); setBuilding(false); return }
-    const nS2 = samples.rows.length
-    const idxCands = cands.map(names => names.map(nm => nmIdx[nm]))
+    // perf (2026-08-14): cap candidates at 2000 (by projected mean) and score on a
+    // ~2500-draw stride sample - p90 SE is fine there; full 10k sorts froze the tab.
+    let cands2 = cands
+    if (cands2.length > 2000) {
+      cands2 = cands2.map(n3 => [n3, n3.reduce((a3, nm) => a3 + (projByN[nm] || 0), 0)])
+        .sort((x3, y3) => y3[1] - x3[1]).slice(0, 2000).map(x3 => x3[0])
+    }
+    const strideS = Math.max(1, Math.floor(samples.rows.length / 2500))
+    const drawRows = []
+    for (let di = 0; di < samples.rows.length; di += strideS) drawRows.push(samples.rows[di])
+    const nS2 = drawRows.length
+    const idxCands = cands2.map(names => names.map(nm => nmIdx[nm]))
     const scored = []
     let ci = 0
-    const CH = 40
+    const CH = 100
     const step2 = () => {
-      const end2 = Math.min(cands.length, ci + CH)
+      const end2 = Math.min(cands2.length, ci + CH)
       for (; ci < end2; ci++) {
         const idxs = idxCands[ci]
         const tots = new Float64Array(nS2)
         for (let si2 = 0; si2 < nS2; si2++) {
-          const rw = samples.rows[si2]
+          const rw = drawRows[si2]
           tots[si2] = rw[idxs[0]] + rw[idxs[1]] + rw[idxs[2]] + rw[idxs[3]] + rw[idxs[4]] + rw[idxs[5]]
         }
         tots.sort()
@@ -260,17 +270,17 @@ export default function DFSPage() {
         let mn2 = 0; for (let x2 = 0; x2 < nS2; x2++) mn2 += tots[x2]
         mn2 /= nS2
         scored.push({
-          drivers: cands[ci].map(nm => ({ name: nm, car: carByN[nm], sal: salByN[nm], projDK: projByN[nm] || 0 })),
-          salary: cands[ci].reduce((a2, nm) => a2 + (salByN[nm] || 0), 0),
+          drivers: cands2[ci].map(nm => ({ name: nm, car: carByN[nm], sal: salByN[nm], projDK: projByN[nm] || 0 })),
+          salary: cands2[ci].reduce((a2, nm) => a2 + (salByN[nm] || 0), 0),
           proj: mn2, ceil: pk(0.9), floor: pk(0.25),
         })
       }
-      if (ci < cands.length) setTimeout(step2, 0)
+      if (ci < cands2.length) setTimeout(step2, 0)
       else {
         scored.sort((a2, b2) => b2.ceil - a2.ceil)
         const picked = applyExposure(scored, numLineups, maxExp, locks)
         setLineups(picked)
-        setNote('GPP mode: ' + cands.length + ' candidates scored across ' + nS2 + ' sim draws, ranked by p90 total.')
+        setNote('GPP mode: ' + cands2.length + ' candidates scored across ' + nS2 + ' sampled sim draws, ranked by p90 total.')
         setBuilding(false)
       }
     }
