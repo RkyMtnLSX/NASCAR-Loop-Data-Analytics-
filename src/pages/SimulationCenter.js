@@ -767,9 +767,16 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
           const __cs = ((__cr && __cr.data) || []).map(function (x) { return x.total_cautions }).filter(function (v) { return v != null })
           const __ci = __cs.length ? (function () { var a = __cs.reduce(function (p, q) { return p + q }, 0) / __cs.length; return a < 6 ? 0 : a < 11.5 ? 1 : 2 })() : 1
           setCautionPreset(getCautionPresets(s)[__ci])
-          const __dl = await __noEx(supabase.from('loop_data').select('race_id, laps_completed').eq('series', s).eq('track_name', cfg.track_name))
-          const __by = {}; (((__dl && __dl.data) || [])).forEach(function (r2) { (__by[r2.race_id] = __by[r2.race_id] || []).push(parseInt(r2.laps_completed) || 0) })
-          const __dnfs = Object.keys(__by).map(function (k) { var laps = __by[k]; var mx = Math.max.apply(null, laps.concat([1])); return laps.filter(function (l) { return l < 0.9 * mx }).length / laps.length })
+          const __dl = await __noEx(supabase.from('loop_data').select('race_id, laps_completed, finish_status').eq('series', s).eq('track_name', cfg.track_name))
+          const __by = {}; (((__dl && __dl.data) || [])).forEach(function (r2) { (__by[r2.race_id] = __by[r2.race_id] || []).push({ lc: parseInt(r2.laps_completed) || 0, fs: (r2.finish_status || '').toLowerCase() }) })
+          const __dnfs = Object.keys(__by).map(function (k) {
+            var rws = __by[k]
+            var mx = Math.max.apply(null, rws.map(function (r3) { return r3.lc }).concat([1]))
+            // 2026-08-14: Lap Raptor dropped laps_completed - new rows carry REAL finish
+            // statuses instead (old rows: valid laps + junk 'running'). Either signal
+            // marks a DNF; null-laps rows no longer count as 100pct DNF.
+            return rws.filter(function (r3) { return (r3.fs && r3.fs !== 'running') || (r3.lc > 0 && r3.lc < 0.9 * mx) }).length / rws.length
+          })
           const __tAvg = __dnfs.length ? (__dnfs.reduce(function (p, q) { return p + q }, 0) / __dnfs.length) : null
           const __rate = resolveDnfRate(s, cfg.correlation_label, __tAvg, __dnfs.length)
           setDnfPreset({ label: 'Auto', value: __rate, auto: true, nTrack: __dnfs.length })
