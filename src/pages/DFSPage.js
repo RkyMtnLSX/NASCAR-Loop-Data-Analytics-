@@ -115,12 +115,14 @@ export default function DFSPage() {
   const [optPct, setOptPct] = useState({})
   const [building, setBuilding] = useState(false)
   const [note, setNote] = useState('')
+  const [mode, setMode] = useState('gpp') // 2026-08-14: GPP ceiling default
+  const [simCands, setSimCands] = useState(null)
   const [sortKey, setSortKey] = useState('value')
   const [sortDir, setSortDir] = useState('desc')
 
   useEffect(() => {
     let alive = true
-    setLoading(true); setLineups([]); setOptPct({}); setLocks(new Set()); setExcludes(new Set()); setSalaries({}); setSamples(null); setNote('')
+    setLoading(true); setLineups([]); setOptPct({}); setSimCands(null); setLocks(new Set()); setExcludes(new Set()); setSalaries({}); setSamples(null); setNote('')
     ;(async () => {
       const { data } = await supabase.from('sim_results').select('track_name,race_year,race_number,results').eq('series', series).order('published_at', { ascending: false }).limit(1)   // FIX 2026-07-23: id is a UUID — ordering by it is RANDOM, served stale boards
       if (!alive) return
@@ -157,6 +159,7 @@ export default function DFSPage() {
     if (salByIdx.filter(v => v > 0).length < ROSTER) return
     let cancel = false
     const cnt = {}, nS = samples.rows.length
+    const candMap = new Map() // per-draw optimal lineups = GPP candidates
     let si = 0
     const CHUNK = 400
     const step = () => {
@@ -166,10 +169,10 @@ export default function DFSPage() {
         const rowS = samples.rows[si], p = []
         for (let j = 0; j < samples.drivers.length; j++) { const sal = salByIdx[j]; if (sal > 0) p.push({ name: samples.drivers[j], sal, val: rowS[j] }) }
         const lu = bestLineup(p)
-        if (lu) lu.forEach(nm => { cnt[nm] = (cnt[nm] || 0) + 1 })
+        if (lu) { lu.forEach(nm => { cnt[nm] = (cnt[nm] || 0) + 1 }); const ck = lu.slice().sort().join('|'); if (!candMap.has(ck)) candMap.set(ck, lu) }
       }
       if (si < nS) setTimeout(step, 0)
-      else if (!cancel) { const op = {}; Object.keys(cnt).forEach(nm => { op[nm] = cnt[nm] / nS * 100 }); setOptPct(op) }
+      else if (!cancel) { const op = {}; Object.keys(cnt).forEach(nm => { op[nm] = cnt[nm] / nS * 100 }); setOptPct(op); setSimCands(Array.from(candMap.values())) }
     }
     step()
     return () => { cancel = true }
@@ -212,8 +215,70 @@ export default function DFSPage() {
   const salCount = Object.values(salaries).filter(v => v > 0).length
   const canBuild = salCount >= ROSTER
   const toggle = (setFn, name) => setFn(prev => { const n = new Set(prev); n.has(name) ? n.delete(name) : n.add(name); return n })
+
+  // GPP CEILING MODE (2026-08-14): rank lineups by 90th-percentile TOTAL across the
+  // stored correlated sim draws instead of mean projection. Candidates = every draw's
+  // exact optimal lineup (deduped - each is a realizable race story, SaberSim-style)
+  // plus the top mean lineups for coverage. Receipts that motivated it: Iowa replay -
+  // mean-optimal cup lineup finished 1289/1417 while PD-ceiling builds won; top-heavy
+  // GPP payouts pay ceiling, not average. Cash mode keeps the mean objective.
+  const buildGpp = () => {
+    const nmIdx = {}
+    samples.drivers.forEach((nm, ix) => { nmIdx[nm] = ix })
+    const salByN = {}, carByN = {}, projByN = {}
+    rows.forEach(r2 => { salByN[r2.name] = r2.sal; carByN[r2.name] = r2.car; projByN[r2.name] = r2.projDK })
+    const lkArr = [...locks]
+    const feasible = names =>
+      names.length === ROSTER &&
+      names.every(nm => nmIdx[nm] != null && (salByN[nm] || 0) > 0 && !excludes.has(nm)) &&
+      lkArr.every(nm => names.indexOf(nm) !== -1) &&
+      names.reduce((a2, nm) => a2 + (salByN[nm] || 0), 0) <= CAP
+    const candMap2 = new Map()
+    const addCand = names => { const k2 = names.slice().sort().join('|'); if (!candMap2.has(k2) && feasible(names)) candMap2.set(k2, names) }
+    ;(simCands || []).forEach(addCand)
+    const pool2 = rows.map(r2 => ({ name: r2.name, car: r2.car, sal: r2.sal, projDK: r2.projDK }))
+    const meanRes = optimize(pool2, locks, excludes, 300)
+    if (!meanRes.error) meanRes.lineups.forEach(lu => addCand(lu.drivers.map(d2 => d2.name)))
+    const cands = Array.from(candMap2.values())
+    if (!cands.length) { setNote('No cap-legal candidate lineups under current locks/excludes.'); setBuilding(false); return }
+    const nS2 = samples.rows.length
+    const idxCands = cands.map(names => names.map(nm => nmIdx[nm]))
+    const scored = []
+    let ci = 0
+    const CH = 40
+    const step2 = () => {
+      const end2 = Math.min(cands.length, ci + CH)
+      for (; ci < end2; ci++) {
+        const idxs = idxCands[ci]
+        const tots = new Float64Array(nS2)
+        for (let si2 = 0; si2 < nS2; si2++) {
+          const rw = samples.rows[si2]
+          tots[si2] = rw[idxs[0]] + rw[idxs[1]] + rw[idxs[2]] + rw[idxs[3]] + rw[idxs[4]] + rw[idxs[5]]
+        }
+        tots.sort()
+        const pk = f3 => tots[Math.min(nS2 - 1, Math.floor(f3 * (nS2 - 1)))]
+        let mn2 = 0; for (let x2 = 0; x2 < nS2; x2++) mn2 += tots[x2]
+        mn2 /= nS2
+        scored.push({
+          drivers: cands[ci].map(nm => ({ name: nm, car: carByN[nm], sal: salByN[nm], projDK: projByN[nm] || 0 })),
+          salary: cands[ci].reduce((a2, nm) => a2 + (salByN[nm] || 0), 0),
+          proj: mn2, ceil: pk(0.9), floor: pk(0.25),
+        })
+      }
+      if (ci < cands.length) setTimeout(step2, 0)
+      else {
+        scored.sort((a2, b2) => b2.ceil - a2.ceil)
+        const picked = applyExposure(scored, numLineups, maxExp, locks)
+        setLineups(picked)
+        setNote('GPP mode: ' + cands.length + ' candidates scored across ' + nS2 + ' sim draws, ranked by p90 total.')
+        setBuilding(false)
+      }
+    }
+    step2()
+  }
   const build = () => {
     setBuilding(true); setLineups([]); setNote('')
+    if (mode === 'gpp' && samples && samples.drivers && samples.rows && samples.rows.length) { setTimeout(buildGpp, 30); return }
     setTimeout(() => {
       const pool = rows.map(r => ({ name: r.name, car: r.car, sal: r.sal, projDK: r.projDK }))
       const K = Math.min(1500, Math.max(numLineups * 20, 200))   // deeper pool so exposure caps can actually fill the request
@@ -274,6 +339,9 @@ export default function DFSPage() {
             <label style={{ fontSize: 13 }}>Max exposure<br /><select value={maxExp} onChange={e => setMaxExp(+e.target.value)} style={{ marginTop: 4, background: 'var(--bg,#0e0f13)', color: 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 6, padding: '5px 7px' }}>
               <option value={1}>No cap</option><option value={0.75}>75%</option><option value={0.6}>60%</option><option value={0.5}>50%</option><option value={0.4}>40%</option>
             </select></label>
+            <label style={{ fontSize: 13 }}>Mode<br /><select value={mode} onChange={e => setMode(e.target.value)} style={{ marginTop: 4, background: 'var(--bg,#0e0f13)', color: 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 6, padding: '5px 7px' }}>
+              <option value="gpp">GPP (ceiling)</option><option value="cash">Cash (average)</option>
+            </select></label>
             <button onClick={build} disabled={building || !canBuild} style={{ padding: '8px 18px', borderRadius: 8, cursor: building || !canBuild ? 'not-allowed' : 'pointer', border: 'none', background: !canBuild ? 'var(--border,#2a2d34)' : 'var(--accent,#e11d2a)', color: '#fff', fontWeight: 600 }}>
               {building ? 'Building\u2026' : 'Build lineups'}
             </button>
@@ -322,7 +390,7 @@ export default function DFSPage() {
         </div>
 
         {lineups.length > 0 && <div style={card}>
-          <div style={{ marginBottom: 10 }}><strong>{lineups.length} lineup{lineups.length === 1 ? '' : 's'}</strong> <span style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 13 }}>ranked by projected DK points</span></div>
+          <div style={{ marginBottom: 10 }}><strong>{lineups.length} lineup{lineups.length === 1 ? '' : 's'}</strong> <span style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 13 }}>{lineups[0] && lineups[0].ceil != null ? 'ranked by 90th-percentile total across sim draws' : 'ranked by projected DK points'}</span></div>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead><tr style={{ color: 'var(--text-secondary,#9aa0aa)' }}>
@@ -330,6 +398,8 @@ export default function DFSPage() {
                 <th style={{ padding: '6px 8px', textAlign: 'left' }}>Drivers</th>
                 <th style={{ padding: '6px 8px', textAlign: 'right' }}>Salary</th>
                 <th style={{ padding: '6px 8px', textAlign: 'right' }}>Proj DK</th>
+                <th style={{ padding: '6px 8px', textAlign: 'right' }}>Ceil (p90)</th>
+                <th style={{ padding: '6px 8px', textAlign: 'right' }}>Floor (p25)</th>
               </tr></thead>
               <tbody>
                 {lineups.map((lu, i) => (
@@ -338,6 +408,8 @@ export default function DFSPage() {
                     <td style={{ padding: '5px 8px' }}>{lu.drivers.slice().sort((a, b) => b.projDK - a.projDK).map(d => (d.car ? '#' + d.car + ' ' : '') + d.name).join(',  ')}</td>
                     <td style={{ padding: '5px 8px', textAlign: 'right' }}>{'$' + lu.salary.toLocaleString()}</td>
                     <td style={{ padding: '5px 8px', textAlign: 'right', fontWeight: 600 }}>{lu.proj.toFixed(1)}</td>
+                    <td style={{ padding: '5px 8px', textAlign: 'right', fontWeight: 600, color: 'var(--accent,#e11d2a)' }}>{lu.ceil != null ? lu.ceil.toFixed(1) : '-'}</td>
+                    <td style={{ padding: '5px 8px', textAlign: 'right', color: 'var(--text-secondary,#9aa0aa)' }}>{lu.floor != null ? lu.floor.toFixed(1) : '-'}</td>
                   </tr>
                 ))}
               </tbody>
