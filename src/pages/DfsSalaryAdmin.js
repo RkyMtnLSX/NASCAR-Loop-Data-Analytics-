@@ -95,14 +95,15 @@ export default function DfsSalaryAdmin() {
     const found = {}
     ;(text || '').split(/\r?\n/).forEach(line => {
       const cells = line.split(',').map(c => c.trim())
-      let name = null, pct = null
-      for (const cell of cells) {
+      let name = null, pct = null, fpts = null
+      for (let ci = 0; ci < cells.length; ci++) {
+        const cell = cells[ci]
         const pm = cell.match(/^(\d+(?:\.\d+)?)%$/)
-        if (pm) { pct = parseFloat(pm[1]); continue }
+        if (pm) { pct = parseFloat(pm[1]); const nx = parseFloat(cells[ci + 1]); if (isFinite(nx)) fpts = nx; continue }
         const nc = norm(cell)
         if (byNorm[nc]) { name = byNorm[nc] } else if (nc.includes(' ')) { const p2 = nc.split(' '); const k2 = p2[0] + ' ' + p2[p2.length - 1]; if (byFL[k2]) name = byFL[k2] }
       }
-      if (name && pct != null && pct >= 0 && pct <= 100) found[name] = pct
+      if (name && pct != null && pct >= 0 && pct <= 100) found[name] = { pct: pct, fpts: fpts }
     })
     return found
   }
@@ -120,13 +121,34 @@ export default function DfsSalaryAdmin() {
     const rows2 = Object.keys(found).map(name => ({
       series, race_year: sel.year, race_number: sel.race_number,
       track_name: sel.track_name, driver_name: name,
-      own_pct: found[name], contest_type: ownType,
+      own_pct: found[name].pct, fpts: found[name].fpts, contest_type: ownType,
     }))
+    // Contest field distribution (2026-08-14): entry rows carry Rank/EntryId/Points.
+    // Bank winner/median/percentiles + decile curve so the weekly optimizer-replay
+    // report can place our optimal lineup in the real contest field.
+    try {
+      const scores = []
+      ;(text || '').split(/\r?\n/).forEach(line2 => {
+        const c2 = line2.split(',')
+        if (c2.length >= 5 && /^\d{6,}$/.test((c2[1] || '').trim())) { const v = parseFloat(c2[4]); if (isFinite(v)) scores.push(v) }
+      })
+      if (scores.length >= 50) {
+        scores.sort((a, b) => b - a)
+        const pick = f2 => scores[Math.min(scores.length - 1, Math.floor(f2 * (scores.length - 1)))]
+        const dec = []; for (let k2 = 0; k2 <= 10; k2++) dec.push(pick(k2 / 10))
+        await supabase.from('dfs_contests').upsert({
+          series, race_year: sel.year, race_number: sel.race_number, track_name: sel.track_name,
+          contest_type: ownType, entries: scores.length, winner_score: scores[0],
+          median_score: pick(0.5), pct90: pick(0.1), pct75: pick(0.25), pct25: pick(0.75),
+          scores_sample: dec,
+        }, { onConflict: 'series,race_year,race_number,contest_type' })
+      }
+    } catch (e4) {}
     const { error } = await supabase.from('dfs_ownership')
       .upsert(rows2, { onConflict: 'series,race_year,race_number,driver_name,contest_type' })
     setOwnMsg(error
       ? 'Save failed: ' + error.message + (error.message.includes('does not exist') ? ' - run dfs_ownership_schema.sql in Supabase first.' : '')
-      : 'Saved ownership for ' + n + ' drivers (' + ownType.toUpperCase() + ', ' + sel.year + ' R' + sel.race_number + ' ' + sel.track_name + ').')
+      : 'Saved ownership + FPTS for ' + n + ' drivers (' + ownType.toUpperCase() + ', ' + sel.year + ' R' + sel.race_number + ' ' + sel.track_name + ').')
   }
   const doOwnFile = (e) => {
     const file = e.target.files && e.target.files[0]
