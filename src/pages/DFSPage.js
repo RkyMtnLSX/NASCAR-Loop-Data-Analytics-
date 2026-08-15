@@ -346,6 +346,34 @@ export default function DFSPage() {
       {!loading && !drivers.length && <div style={card}>No published simulation found for this series yet.</div>}
 
       {!loading && drivers.length > 0 && <>
+        {/* 2026-08-14: lineups render ABOVE the driver pool - post-build result first */}
+        {lineups.length > 0 && <div style={card}>
+          <div style={{ marginBottom: 10 }}><strong>{lineups.length} lineup{lineups.length === 1 ? '' : 's'}</strong> <span style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 13 }}>{lineups[0] && lineups[0].ceil != null ? 'ranked by 90th-percentile total across sim draws' : 'ranked by projected DK points'}</span></div>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead><tr style={{ color: 'var(--text-secondary,#9aa0aa)' }}>
+                <th style={{ padding: '6px 8px', textAlign: 'left' }}>#</th>
+                <th style={{ padding: '6px 8px', textAlign: 'left' }}>Drivers</th>
+                <th style={{ padding: '6px 8px', textAlign: 'right' }}>Salary</th>
+                <th style={{ padding: '6px 8px', textAlign: 'right' }}>Proj DK</th>
+                <th style={{ padding: '6px 8px', textAlign: 'right' }}>Ceil (p90)</th>
+                <th style={{ padding: '6px 8px', textAlign: 'right' }}>Floor (p25)</th>
+              </tr></thead>
+              <tbody>
+                {lineups.map((lu, i) => (
+                  <tr key={i} style={{ borderBottom: '1px solid var(--border,#22252b)' }}>
+                    <td style={{ padding: '5px 8px', color: 'var(--text-secondary,#9aa0aa)' }}>{i + 1}</td>
+                    <td style={{ padding: '5px 8px' }}>{lu.drivers.slice().sort((a, b) => b.projDK - a.projDK).map(d => (d.car ? '#' + d.car + ' ' : '') + d.name).join(',  ')}</td>
+                    <td style={{ padding: '5px 8px', textAlign: 'right' }}>{'$' + lu.salary.toLocaleString()}</td>
+                    <td style={{ padding: '5px 8px', textAlign: 'right', fontWeight: 600 }}>{lu.proj.toFixed(1)}</td>
+                    <td style={{ padding: '5px 8px', textAlign: 'right', fontWeight: 600, color: 'var(--accent,#e11d2a)' }}>{lu.ceil != null ? lu.ceil.toFixed(1) : '-'}</td>
+                    <td style={{ padding: '5px 8px', textAlign: 'right', color: 'var(--text-secondary,#9aa0aa)' }}>{lu.floor != null ? lu.floor.toFixed(1) : '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>}
         <div style={card}>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 12 }}>
             <label style={{ fontSize: 13 }}>Lineups<br /><input type="number" value={numLineups} min={1} max={150} onChange={e => setNumLineups(Math.max(1, Math.min(150, +e.target.value || 1)))} style={{ width: 70, marginTop: 4, background: 'var(--bg,#0e0f13)', color: 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 6, padding: '5px 7px' }} /></label>
@@ -402,33 +430,7 @@ export default function DFSPage() {
           </div>
         </div>
 
-        {lineups.length > 0 && <div style={card}>
-          <div style={{ marginBottom: 10 }}><strong>{lineups.length} lineup{lineups.length === 1 ? '' : 's'}</strong> <span style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 13 }}>{lineups[0] && lineups[0].ceil != null ? 'ranked by 90th-percentile total across sim draws' : 'ranked by projected DK points'}</span></div>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-              <thead><tr style={{ color: 'var(--text-secondary,#9aa0aa)' }}>
-                <th style={{ padding: '6px 8px', textAlign: 'left' }}>#</th>
-                <th style={{ padding: '6px 8px', textAlign: 'left' }}>Drivers</th>
-                <th style={{ padding: '6px 8px', textAlign: 'right' }}>Salary</th>
-                <th style={{ padding: '6px 8px', textAlign: 'right' }}>Proj DK</th>
-                <th style={{ padding: '6px 8px', textAlign: 'right' }}>Ceil (p90)</th>
-                <th style={{ padding: '6px 8px', textAlign: 'right' }}>Floor (p25)</th>
-              </tr></thead>
-              <tbody>
-                {lineups.map((lu, i) => (
-                  <tr key={i} style={{ borderBottom: '1px solid var(--border,#22252b)' }}>
-                    <td style={{ padding: '5px 8px', color: 'var(--text-secondary,#9aa0aa)' }}>{i + 1}</td>
-                    <td style={{ padding: '5px 8px' }}>{lu.drivers.slice().sort((a, b) => b.projDK - a.projDK).map(d => (d.car ? '#' + d.car + ' ' : '') + d.name).join(',  ')}</td>
-                    <td style={{ padding: '5px 8px', textAlign: 'right' }}>{'$' + lu.salary.toLocaleString()}</td>
-                    <td style={{ padding: '5px 8px', textAlign: 'right', fontWeight: 600 }}>{lu.proj.toFixed(1)}</td>
-                    <td style={{ padding: '5px 8px', textAlign: 'right', fontWeight: 600, color: 'var(--accent,#e11d2a)' }}>{lu.ceil != null ? lu.ceil.toFixed(1) : '-'}</td>
-                    <td style={{ padding: '5px 8px', textAlign: 'right', color: 'var(--text-secondary,#9aa0aa)' }}>{lu.floor != null ? lu.floor.toFixed(1) : '-'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>}
+        
       </>}
     </div>
   )
