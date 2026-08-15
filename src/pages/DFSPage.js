@@ -302,6 +302,50 @@ export default function DFSPage() {
     }, 30)
   }
 
+  // FILL RESERVED ENTRIES (2026-08-14): DK library uploads never touch entries already
+  // reserved in contests - DK only updates those in place via its Entries CSV (which
+  // carries Entry ID). This takes that file, writes our built lineups into the D slots
+  // (cycling when entries > lineups), and returns it ready to re-upload.
+  const fillEntriesCsv = (file) => {
+    if (!lineups.length || !file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      try {
+        const text = String(ev.target.result || '')
+        const parse = (line) => { const out = []; let cur = '', q = false; for (let i = 0; i < line.length; i++) { const ch = line[i]; if (q) { if (ch === '"') { if (line[i + 1] === '"') { cur += '"'; i++ } else q = false } else cur += ch } else { if (ch === '"') q = true; else if (ch === ',') { out.push(cur); cur = '' } else cur += ch } } out.push(cur); return out }
+        const ser = (cells) => cells.map(c => /[",]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c).join(',')
+        const lines = text.split(/\r?\n/)
+        const ids = (salaries && salaries.__ids) || {}
+        let hdrIdx = -1, eCol = -1
+        const dCols = []
+        for (let li = 0; li < lines.length; li++) {
+          const cells = parse(lines[li])
+          const ei = cells.findIndex(c => c.trim().toLowerCase() === 'entry id')
+          if (ei !== -1) { hdrIdx = li; eCol = ei; cells.forEach((c, ci2) => { if (c.trim() === 'D') dCols.push(ci2) }); break }
+        }
+        if (hdrIdx === -1 || dCols.length < ROSTER) { setNote('Could not find Entry ID / D columns - use the Entries CSV downloaded from the DK upload page.'); return }
+        let filled = 0
+        const missing = new Set()
+        for (let li = hdrIdx + 1; li < lines.length; li++) {
+          if (!lines[li]) continue
+          const cells = parse(lines[li])
+          if (!/^\d{6,}$/.test((cells[eCol] || '').trim())) continue
+          const lu = lineups[filled % lineups.length]
+          lu.drivers.forEach((d, k2) => { const id = ids[d.name]; if (!id) missing.add(d.name); cells[dCols[k2]] = id ? d.name + ' (' + id + ')' : d.name })
+          lines[li] = ser(cells)
+          filled++
+        }
+        if (!filled) { setNote('No reserved entries found in that file.'); return }
+        const a = document.createElement('a')
+        a.href = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv' }))
+        const __trk2 = race && race.track ? String(race.track).replace(/[^a-zA-Z0-9]+/g, '_') : 'race'
+        a.download = 'PitBoard_DK_ENTRIES_' + series + '_' + __trk2 + '_filled.csv'
+        a.click(); URL.revokeObjectURL(a.href)
+        setNote('Filled ' + filled + ' reserved entr' + (filled === 1 ? 'y' : 'ies') + ' - upload this file back on the DK Upload Lineups page and the reserved entries update in place.' + (missing.size ? ' WARNING: no DK ID for ' + [...missing].join(', ') : ''))
+      } catch (err2) { setNote('Entries fill failed: ' + err2.message) }
+    }
+    reader.readAsText(file)
+  }
   const exportCsv = () => {
     if (!lineups.length) return
     const ids = (salaries && salaries.__ids) || {}
@@ -387,6 +431,10 @@ export default function DFSPage() {
               {building ? 'Building\u2026' : 'Build lineups'}
             </button>
             {lineups.length > 0 && <button onClick={exportCsv} style={{ padding: '8px 14px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--accent,#e11d2a)', background: 'transparent', color: 'var(--accent,#e11d2a)', fontWeight: 600 }}>Export DK CSV</button>}
+            {lineups.length > 0 && <label style={{ padding: '8px 14px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--accent,#e11d2a)', color: 'var(--accent,#e11d2a)', fontWeight: 600, fontSize: 13 }}>
+              Fill reserved entries
+              <input type="file" accept=".csv,text/csv" style={{ display: 'none' }} onChange={e => { fillEntriesCsv(e.target.files && e.target.files[0]); e.target.value = '' }} />
+            </label>}
             <span style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 12 }}>{canBuild ? 'Cap $50,000 \u00b7 6 drivers \u00b7 Lock/Excl to steer' + (samples ? ' \u00b7 Optimal% from ' + samples.rows.length + ' sims \u00b7 Value = proj DK pts per $1K salary (higher = more points per dollar) \u00b7 Ceiling = 90th-percentile DK score (tournament upside)' : '') : 'Salaries not posted yet'}</span>
             {note && <span style={{ color: 'var(--accent,#e11d2a)', fontSize: 12 }}>{note}</span>}
           </div>
