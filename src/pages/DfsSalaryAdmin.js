@@ -37,6 +37,26 @@ export default function DfsSalaryAdmin() {
   const [ownPaste, setOwnPaste] = useState('')
   const [ownType, setOwnType] = useState('gpp')
   const [ownMsg, setOwnMsg] = useState('')
+  const [ownRaces, setOwnRaces] = useState([])
+  const [ownRaceKey, setOwnRaceKey] = useState('')
+
+  // Ownership race selector (2026-08-14): post-contest data is for a PAST race -
+  // it was being tagged to the current sim-board week. Completed races only.
+  useEffect(() => {
+    let alive = true
+    ;(async () => {
+      const today = new Date().toISOString().slice(0, 10)
+      const { data } = await supabase.from('races')
+        .select('id,year,race_number,track_name,race_date')
+        .eq('series', series).lte('race_date', today)
+        .order('race_date', { ascending: false }).limit(12)
+      if (!alive) return
+      const rs = data || []
+      setOwnRaces(rs)
+      setOwnRaceKey(rs.length ? rs[0].year + '|' + rs[0].race_number : '')
+    })()
+    return () => { alive = false }
+  }, [series])
 
   useEffect(() => {
     let alive = true
@@ -64,9 +84,10 @@ export default function DfsSalaryAdmin() {
   const setSal = (name, val) => setSalaries(s => ({ ...s, [name]: val === '' ? 0 : Math.round(+val) || 0 }))
   // ── Ownership ingest (2026-08-08): DK contest-standings CSV carries a player
   // block with %Drafted. One row per driver per contest type per race.
-  const parseOwnership = (text) => {
+  const parseOwnership = (text, extraNames) => {
     const byNorm = {}
     drivers.forEach(d => { byNorm[norm(d.name)] = d.name })
+    ;(extraNames || []).forEach(n2 => { byNorm[norm(n2)] = n2 }) // past-race field from loop_data
     const found = {}
     ;(text || '').split(/\r?\n/).forEach(line => {
       const cells = line.split(',').map(c => c.trim())
@@ -82,19 +103,26 @@ export default function DfsSalaryAdmin() {
     return found
   }
   const doOwnIngest = async (text) => {
-    const found = parseOwnership(text)
+    const sel = ownRaces.find(r2 => (r2.year + '|' + r2.race_number) === ownRaceKey)
+    if (!sel) { setOwnMsg('Pick which race this contest was for first.'); return }
+    let extra = []
+    try {
+      const { data: ld } = await supabase.from('loop_data').select('driver_name').eq('race_id', sel.id)
+      extra = [...new Set((ld || []).map(d2 => d2.driver_name))]
+    } catch (e3) {}
+    const found = parseOwnership(text, extra)
     const n = Object.keys(found).length
     if (!n) { setOwnMsg('No driver ownership rows recognized in that paste/file.'); return }
     const rows2 = Object.keys(found).map(name => ({
-      series, race_year: race && race.year, race_number: race && race.rn,
-      track_name: race && race.track, driver_name: name,
+      series, race_year: sel.year, race_number: sel.race_number,
+      track_name: sel.track_name, driver_name: name,
       own_pct: found[name], contest_type: ownType,
     }))
     const { error } = await supabase.from('dfs_ownership')
       .upsert(rows2, { onConflict: 'series,race_year,race_number,driver_name,contest_type' })
     setOwnMsg(error
       ? 'Save failed: ' + error.message + (error.message.includes('does not exist') ? ' - run dfs_ownership_schema.sql in Supabase first.' : '')
-      : 'Saved ownership for ' + n + ' drivers (' + ownType.toUpperCase() + ').')
+      : 'Saved ownership for ' + n + ' drivers (' + ownType.toUpperCase() + ', ' + sel.year + ' R' + sel.race_number + ' ' + sel.track_name + ').')
   }
   const doOwnFile = (e) => {
     const file = e.target.files && e.target.files[0]
@@ -204,6 +232,13 @@ export default function DfsSalaryAdmin() {
             This builds the ground-truth table the ownership-projection model will train on.
           </div>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
+            <select value={ownRaceKey} onChange={e => setOwnRaceKey(e.target.value)} style={{ ...inp, padding: '6px 10px' }}>
+              {ownRaces.map(r2 => (
+                <option key={r2.year + '|' + r2.race_number} value={r2.year + '|' + r2.race_number}>
+                  {r2.year} R{r2.race_number} · {r2.track_name}
+                </option>
+              ))}
+            </select>
             <select value={ownType} onChange={e => setOwnType(e.target.value)} style={{ ...inp, padding: '6px 10px' }}>
               <option value="gpp">GPP / Tournament</option>
               <option value="cash">Cash / 50-50</option>
