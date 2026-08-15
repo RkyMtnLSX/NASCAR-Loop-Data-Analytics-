@@ -62,9 +62,35 @@ function SrTable({ data, col1 }) {
 }
 function CompareTray({ sel, config, results, meta, onToggle, onClear }) {
   const [res, setRes] = useState(null)
+  const [fullM, setFullM] = useState(null)
+  // FULL-RUN MATRIX (2026-08-15): lazily pull ALL draws from sim_matrices so group
+  // prices agree with the published market boards exactly (config matrix is a 4k
+  // sample - the Top Ford 63.6 vs matchup 64.5 wobble). Falls back to the config
+  // sample for boards published before this table existed.
+  useEffect(() => {
+    setFullM(null)
+    if (!meta) return
+    let alive = true
+    ;(async () => {
+      try {
+        const { data: mrow } = await supabase.from('sim_matrices')
+          .select('sim_n, sim_order, matrix_b64')
+          .eq('series', meta.series).eq('race_year', meta.race_year)
+          .eq('race_number', meta.race_number).eq('stage', meta.stage)
+          .limit(1)
+        const m0 = mrow && mrow[0]
+        if (!alive || !m0 || !m0.matrix_b64 || !m0.sim_n || !m0.sim_order) return
+        const bin = atob(m0.matrix_b64)
+        const arr = new Uint8Array(bin.length)
+        for (let i2 = 0; i2 < bin.length; i2++) arr[i2] = bin.charCodeAt(i2)
+        setFullM({ mtx: arr, simN: m0.sim_n, order: m0.sim_order, nD: m0.sim_order.length })
+      } catch (e2) {}
+    })()
+    return () => { alive = false }
+  }, [meta && meta.series, meta && meta.race_year, meta && meta.race_number, meta && meta.stage])
 
   useEffect(() => {
-    const M = __decodeMtx(config)
+    const M = fullM || __decodeMtx(config)
     if (!M || sel.length < 2) { setRes(null); return }
     const cols = sel.map((nm) => M.order.indexOf(nm)).filter((c) => c >= 0)
     if (cols.length < 2) { setRes(null); return }
@@ -76,8 +102,8 @@ function CompareTray({ sel, config, results, meta, onToggle, onClear }) {
     }
     const __startBy = {}; (results || []).forEach(function (d) { __startBy[d.driver_name] = d.start_pos });
     setRes(cols.map((c, g) => ({ name: M.order[c], start: (__startBy[M.order[c]] != null ? __startBy[M.order[c]] : null), avgFin: finSum[g] / M.simN, winPct: 100 * wins[g] / M.simN, fmv: fmvAmerican(wins[g] / M.simN) })).sort((a, b) => b.winPct - a.winPct))
-  }, [sel, config, results])
-  const hasMtx = !!__decodeMtx(config)
+  }, [sel, config, results, fullM])
+  const hasMtx = !!(fullM || __decodeMtx(config))
   return (
     <div className="card" style={{ marginBottom: 16, borderColor: sel.length >= 2 ? 'var(--accent)' : 'var(--border)' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
