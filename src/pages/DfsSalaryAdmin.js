@@ -88,6 +88,10 @@ export default function DfsSalaryAdmin() {
     const byNorm = {}
     drivers.forEach(d => { byNorm[norm(d.name)] = d.name })
     ;(extraNames || []).forEach(n2 => { byNorm[norm(n2)] = n2 }) // past-race field from loop_data
+    // first+last fallback (2026-08-14): DK prints 'John H. Nemechek', loop_data has
+    // 'John Hunter Nemechek' - middle names/initials never norm-match. Key first+last too.
+    const byFL = {}
+    Object.keys(byNorm).forEach(k => { const p = k.split(' '); if (p.length >= 2) byFL[p[0] + ' ' + p[p.length - 1]] = byNorm[k] })
     const found = {}
     ;(text || '').split(/\r?\n/).forEach(line => {
       const cells = line.split(',').map(c => c.trim())
@@ -96,7 +100,7 @@ export default function DfsSalaryAdmin() {
         const pm = cell.match(/^(\d+(?:\.\d+)?)%$/)
         if (pm) { pct = parseFloat(pm[1]); continue }
         const nc = norm(cell)
-        if (byNorm[nc]) name = byNorm[nc]
+        if (byNorm[nc]) { name = byNorm[nc] } else if (nc.includes(' ')) { const p2 = nc.split(' '); const k2 = p2[0] + ' ' + p2[p2.length - 1]; if (byFL[k2]) name = byFL[k2] }
       }
       if (name && pct != null && pct >= 0 && pct <= 100) found[name] = pct
     })
