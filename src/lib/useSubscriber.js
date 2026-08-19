@@ -31,6 +31,10 @@ export default function useSubscriber() {
     const { data: sub } = supabase.auth.onAuthStateChange(() => load())
     return () => { if (sub && sub.subscription) sub.subscription.unsubscribe() }
   }, [load])
-  const isSubscriber = !!row && (row.status === 'active' || (row.access_until && new Date(row.access_until) > new Date()))
+  // Week-pass fix (2026-08-19, #64): status='active' alone is NOT enough — week
+  // passes keep a stale 'active' status forever (one-time payment, no Stripe
+  // subscription events). Monthly = status-driven; week pass = access_until-driven.
+  // Mirrors the has_access() SQL predicate in table_lockdown_64.sql exactly.
+  const isSubscriber = !!row && ((row.plan === 'monthly' && row.status === 'active') || (row.access_until && new Date(row.access_until) > new Date()))
   return { user, row, isSubscriber, isAdminUser: adminRow, loading, refresh: load }
 }
