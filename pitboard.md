@@ -1,3 +1,5 @@
+> SESSION START: read PITBOARD_MANUAL.md + PITBOARD_STATE.md first. This file is an append-only ARCHIVE (~50k tokens) - SEARCH it for specific history; do not read it in full.
+
 # PitBoard — Project Handoff Document
 
 <!-- ============================ SHARED-FILE PROTOCOL ============================
