@@ -13,6 +13,9 @@ Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2
       Live mode still needed at cutover.
 - [ ] Stale-sample landing page for anon — URGENCY UP: landing stat counters now read 0 for
       anon (RLS), hardcode or small public table.
+- [ ] Weekly auto-renew activation (operator): recurring $9.99/wk price in Stripe test
+      dashboard -> swap STRIPE_PRICE_WEEKPASS env in Vercel -> redeploy -> test purchase.
+      Weekly buy button BROKEN until done (code shipped 98a86ba). Repeat in live at cutover.
 - [ ] Vercel Hobby → Pro (~$20/mo, commercial use rights) — at live cutover, not before.
 - [ ] LIVE Stripe cutover: recreate products + webhook in live mode, swap 4 env values,
       real-card test.

@@ -2340,3 +2340,26 @@ SIM_MATRICES FULL-RUN STORAGE (2026-08-15, commits 6e0e4619 + b2835780): operato
   test (refresh-token rotation) - operator re-signs in, no data impact.
 - Sandbox payments track DONE. Remaining to launch: stale-sample landing page, Vercel Pro,
   LIVE Stripe cutover (products/webhook/env/portal-save in live mode + real-card test).
+
+## 2026-08-19 (night) - BRAND + SUBSCRIBE UI BATCH (commits 453043e, 98a86ba, ec903f8, 8c262b1, 12c393e)
+- Subscribe plan cards v2 (operator-directed): chip badge / plan name / big price / matching
+  full-width CTAs ("GET WEEKLY ACCESS" / "GET MONTHLY ACCESS"). Competitor-derived copy
+  removed on operator order (the example screenshots were a competitor's pricing page).
+  Tagline now "Full access to PitBoard Analytics".
+- WEEK PASS -> AUTO-RENEWING WEEKLY SUB (98a86ba, operator decision): checkout mode
+  'subscription' for both plans + plan in session/subscription metadata; webhook week branch
+  keys off metadata.plan (legacy mode='payment' branch kept for old passes); Account shows
+  "renews weekly" + portal button now available to weekly members. NOT LIVE until operator:
+  (1) creates recurring $9.99/wk price in Stripe test dashboard, (2) swaps
+  STRIPE_PRICE_WEEKPASS env value in Vercel, (3) redeploys, (4) test purchase. Weekly buy
+  button BROKEN until then (one-time price rejected in subscription mode).
+- SITE-WIDE ACCENT SWAP gold -> racing red (ec903f8): --accent #E10600 (fills, white text),
+  new --accent-text #FF5148 (text-on-dark: links, lap times, ratings, active labels),
+  --accent-dim red. 16 files. Series identity colors untouched (trucks yellow, oreilly blue).
+  Landing hero CTA red.
+- LOGO SHIP (8c262b1, 12c393e): PitBoardLogo component (outlined-vector, no webfont) from
+  operator's design handoff zip. Badge (34px) replaces nav text wordmark; full lockup
+  height 150 front-and-center on Race Weekend hero; favicons/apple-touch/og-image + head
+  tags installed. RacingStripes top decoration + "NASCAR Analytics Platform" hero chip
+  REMOVED (redundant with lockup). Brand rules in handoff README: never recolor bars,
+  scale only, min 26px plate.
