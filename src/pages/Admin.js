@@ -512,7 +512,7 @@ function EntryListManager() {
       </div>
 
       <div style={{ marginBottom: 16, padding: '12px 14px', background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 8 }}>
-        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--accent)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--accent-text)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           Import from PDF
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -536,7 +536,7 @@ function EntryListManager() {
 
       <div style={{ marginBottom: 12 }}>
         <button onClick={() => setShowBulk(p => !p)} style={btn({
-          background: 'transparent', color: 'var(--accent)',
+          background: 'transparent', color: 'var(--accent-text)',
           border: '1px solid var(--accent)', fontSize: '0.78rem', padding: '5px 12px',
         })}>
           {showBulk ? ' Hide Bulk Import' : ' Bulk Import (Jayski paste)'}
@@ -687,7 +687,7 @@ function QualSimConfig() {
                 padding: '4px 14px', borderRadius: 20, fontSize: '0.75rem', cursor: 'pointer',
                 border: `1px solid ${checked ? 'var(--accent)' : 'var(--border)'}`,
                 background: checked ? 'rgba(99,102,241,0.15)' : 'var(--bg-elevated)',
-                color: checked ? 'var(--accent)' : 'var(--text-secondary)',
+                color: checked ? 'var(--accent-text)' : 'var(--text-secondary)',
               }}>{yr}</button>
             )
           })}
@@ -1632,7 +1632,7 @@ function LoadFastestLaps() {
 
       {status && (
         <div style={{ marginTop: 12, fontSize: '0.8125rem',
-          color: status.type === 'success' ? '#22c55e' : status.type === 'info' ? 'var(--accent)' : '#ef4444' }}>
+          color: status.type === 'success' ? '#22c55e' : status.type === 'info' ? 'var(--accent-text)' : '#ef4444' }}>
           {status.msg}
         </div>
       )}
@@ -2340,7 +2340,7 @@ export default function Admin() {
                       <td style={{ fontFamily: 'var(--font-mono)' }}>{d.totalLaps}</td>
                       <td style={{ fontFamily: 'var(--font-mono)' }}>{d.overallAvg?.toFixed(3) || ''}</td>
                       <td style={{ fontFamily: 'var(--font-mono)' }}>{d.lateRunAvg?.toFixed(3) || ''}</td>
-                      <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent)' }}>{d.bestLap?.toFixed(3) || ''}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent-text)' }}>{d.bestLap?.toFixed(3) || ''}</td>
                       <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{d.composite?.toFixed(1) || ''}</td>
                       <td><span className="grade-pill" style={{ background: '#1A5276', color: '#fff' }}>{d.grade || ''}</span></td>
                     </tr>

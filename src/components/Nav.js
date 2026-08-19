@@ -42,7 +42,7 @@ const SIM_LINKS = [
           <Link key={link.path} to={link.path} style={{
             display: 'block', padding: '8px 16px', fontSize: '0.8125rem',
             fontWeight: location.pathname === link.path ? 600 : 400,
-            color: location.pathname === link.path ? 'var(--accent)' : 'var(--text-primary)',
+            color: location.pathname === link.path ? 'var(--accent-text)' : 'var(--text-primary)',
             textDecoration: 'none',
             background: location.pathname === link.path ? 'var(--bg-elevated)' : 'transparent',
             transition: 'background 0.1s',

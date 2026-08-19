@@ -24,8 +24,9 @@
   --text-muted:     #55556A;
 
   /* Accent — used sparingly */
-  --accent:         #E8C547;
-  --accent-dim:     #E8C54720;
+  --accent:         #E10600;
+  --accent-text:    #FF5148;
+  --accent-dim:     #E1060022;
 
   /* Grade colors */
   --grade-a-plus:   #145A32;
@@ -84,7 +85,7 @@ body {
 
 /* Links */
 a {
-  color: var(--accent);
+  color: var(--accent-text);
   text-decoration: none;
 }
 a:hover { text-decoration: underline; }
@@ -146,7 +147,7 @@ tr:hover td { background: var(--bg-hover); }
 
 .btn-primary {
   background: var(--accent);
-  color: #000;
+  color: #fff;
 }
 
 .btn-secondary {
@@ -289,7 +290,7 @@ tr:hover td { background: var(--bg-hover); }
 .mono { font-family: var(--font-mono); }
 .text-muted { color: var(--text-muted); }
 .text-secondary { color: var(--text-secondary); }
-.text-accent { color: var(--accent); }
+.text-accent { color: var(--accent-text); }
 
 /* Native select dropdown options: dark popup + light text (fixes invisible options) */
 select option { background-color: #181b22; color: #e6e6e6; }

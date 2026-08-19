@@ -1596,7 +1596,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
       {!loading && !error && config && (
         <>
           <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginBottom: 16, padding: '10px 16px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 8, flexWrap: 'wrap' }}>
-            <span style={{ fontWeight: 700, color: 'var(--accent)', fontSize: '1.03rem' }}>
+            <span style={{ fontWeight: 700, color: 'var(--accent-text)', fontSize: '1.03rem' }}>
               {config.track_label || config.track_name}
             </span>
             <span style={{ color: 'var(--text-muted)', fontSize: '0.89rem' }}>|</span>
@@ -1630,7 +1630,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
                 {getCautionPresets(series).map(p => (
                   <button key={p.label} onClick={() => setCautionPreset(p)} style={{
                     ...presetBtn, background: cautionPreset.value === p.value ? 'var(--accent)' : 'var(--bg-elevated)',
-                    color: cautionPreset.value === p.value ? '#111' : 'var(--text-secondary)',
+                    color: cautionPreset.value === p.value ? '#fff' : 'var(--text-secondary)',
                   }}>{p.label}</button>
                 ))}
               </div>
@@ -1642,12 +1642,12 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
               <div style={{ display: 'flex', gap: 6 }}>
                 <button style={{
                   ...presetBtn, background: dnfPreset.auto ? 'var(--accent)' : 'var(--bg-elevated)',
-                  color: dnfPreset.auto ? '#111' : 'var(--text-secondary)',
+                  color: dnfPreset.auto ? '#fff' : 'var(--text-secondary)',
                 }}>Auto</button>
                 {DNF_PRESETS.map(p => (
                   <button key={p.label} onClick={() => setDnfPreset(p)} style={{
                     ...presetBtn, background: (!dnfPreset.auto && dnfPreset.value === p.value) ? 'var(--accent)' : 'var(--bg-elevated)',
-                    color: (!dnfPreset.auto && dnfPreset.value === p.value) ? '#111' : 'var(--text-secondary)',
+                    color: (!dnfPreset.auto && dnfPreset.value === p.value) ? '#fff' : 'var(--text-secondary)',
                   }}>{p.label}</button>
                 ))}
               </div>
@@ -1815,7 +1815,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
             <button onClick={handleRun} disabled={running || !rawDrivers.length} style={{
               padding: '10px 28px', background: running ? 'var(--bg-elevated)' : 'var(--accent)',
-              color: running ? 'var(--text-muted)' : '#111', border: 'none', borderRadius: 8,
+              color: running ? 'var(--text-muted)' : '#fff', border: 'none', borderRadius: 8,
               fontWeight: 700, fontSize: '1.03rem', cursor: running ? 'default' : 'pointer',
               display: 'flex', alignItems: 'center', gap: 8, transition: 'background 0.15s',
             }}>
@@ -1967,7 +1967,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
                           padding: '8px 10px', fontWeight: 700, fontSize: '0.8rem',
                           textTransform: 'uppercase', letterSpacing: '0.04em',
                           textAlign: col.left ? 'left' : 'right',
-                          color: sortKey === col.key ? 'var(--accent)' : 'var(--text-secondary)',
+                          color: sortKey === col.key ? 'var(--accent-text)' : 'var(--text-secondary)',
                           cursor: col.sortable !== false && col.key ? 'pointer' : 'default',
                           userSelect: 'none',
                         }}>
@@ -2010,7 +2010,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
                           </span>
                         </td>
 
-                        <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700, color: ri < 3 ? 'var(--accent)' : 'var(--text-primary)' }}>
+                        <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700, color: ri < 3 ? 'var(--accent-text)' : 'var(--text-primary)' }}>
                           {fmt(row.projDK, 2)}
                         </td>
 
@@ -2053,7 +2053,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
                                 {row.scores?.[k] != null ? row.scores[k] : '--'}{row.scores && row.scores.anchored && row.scores.anchored[k] ? '*' : ''}
                               </td>
                             ))}
-                            <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--accent)', fontSize: '0.92rem' }}>
+                            <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--accent-text)', fontSize: '0.92rem' }}>
                               {row.speedScore != null ? Math.round(row.speedScore) : '--'}
                             </td>
                           </>

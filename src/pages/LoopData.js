@@ -316,7 +316,7 @@ position: 'relative',
 {/* Header */}
 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
 <div>
-<div style={{ fontSize: '1.36rem', fontWeight: 700, color: 'var(--accent)' }}>
+<div style={{ fontSize: '1.36rem', fontWeight: 700, color: 'var(--accent-text)' }}>
 {(series === 'cup' || series === 'oreilly' || series === 'trucks') && cardDriver.car_number && (
 <img src={(series === 'trucks' ? '/car-numbers-trucks/' : series === 'oreilly' ? '/car-numbers-oreilly/' : '/car-numbers/') + cardDriver.car_number + '.png'} alt={'#' + cardDriver.car_number} style={{ height: 48, width: 'auto', objectFit: 'contain', marginRight: 8, verticalAlign: 'middle' }} onError={e => { e.target.style.display = 'none' }} />
 )}
@@ -375,7 +375,7 @@ fontSize: '0.97rem', cursor: 'pointer',
 </div>
 </div>
 
-{compareDrivers&&compareDrivers.length>0&&<div style={{display:'flex',gap:16,marginBottom:8,fontSize:'0.85rem',flexWrap:'wrap'}}><span style={{color:'var(--accent)'}}>&#9679; {cardDriver.driver}</span>{compareDrivers.map((cd,ci)=><span key={cd.driver} style={{color:COMPARE_COLORS[ci]}}>&#9679; {cd.driver}</span>)}</div>}
+{compareDrivers&&compareDrivers.length>0&&<div style={{display:'flex',gap:16,marginBottom:8,fontSize:'0.85rem',flexWrap:'wrap'}}><span style={{color:'var(--accent-text)'}}>&#9679; {cardDriver.driver}</span>{compareDrivers.map((cd,ci)=><span key={cd.driver} style={{color:COMPARE_COLORS[ci]}}>&#9679; {cd.driver}</span>)}</div>}
 {/* Stats table */}
 {raceCols.length === 0 ? (
 <div style={{ color: 'var(--text-muted)', fontSize: '1.03rem', padding: '12px 0' }}>
@@ -422,7 +422,7 @@ return (
 background: finBg,
 verticalAlign: 'top',
 }}>
-<div style={{ color: 'var(--accent)', fontWeight: 500 }}>
+<div style={{ color: 'var(--accent-text)', fontWeight: 500 }}>
 {fmtRaw(pVal, col.decimals)}
 </div>
 {(compareDrivers||[]).map((cd,ci) => {
@@ -443,7 +443,7 @@ return (<div key={cd.driver} style={{ color: COMPARE_COLORS[ci], fontSize: '0.85
 
 {compareDrivers&&compareDrivers.length>0&&(
 <div style={{ marginTop: 12, display: 'flex', gap: 16, fontSize: '0.89rem', flexWrap: 'wrap' }}>
-<span style={{ color: 'var(--accent)', fontWeight: 600 }}>{cardDriver.driver} (primary)</span>
+<span style={{ color: 'var(--accent-text)', fontWeight: 600 }}>{cardDriver.driver} (primary)</span>
 {compareDrivers.map((cd,ci)=><span key={cd.driver} style={{ color: COMPARE_COLORS[ci], fontWeight: 600 }}>{cd.driver}</span>)}
 </div>
 )}
@@ -566,7 +566,7 @@ style={{
 textAlign: col.isText ? 'left' : 'right',
 minWidth: isCount ? 36 : col.minWidth,
 padding: isCount ? '10px 8px' : undefined,
-color: isActive ? 'var(--accent)'
+color: isActive ? 'var(--accent-text)'
 : isWin ? '#f59e0b'
 : isYear ? 'var(--text-primary)'
 : 'var(--text-secondary)',
@@ -624,7 +624,7 @@ return (
 ...numCell,
 textAlign: col.isText ? 'left' : 'right',
 padding: isCount ? '8px 8px' : undefined,
-color: col.highlight ? 'var(--accent)'
+color: col.highlight ? 'var(--accent-text)'
 : hasWin ? '#f59e0b'
 : isYear ? 'var(--text-primary)'
 : undefined,

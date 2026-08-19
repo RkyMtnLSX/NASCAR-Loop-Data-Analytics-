@@ -94,7 +94,7 @@ export default function Subscribe() {
         <div className="card" style={{ maxWidth: 420 }}>
           <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
             {[['signup', 'Create account'], ['signin', 'Sign in']].map(t => (
-              <button key={t[0]} onClick={() => { setMode(t[0]); setMsg('') }} style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid var(--border)', cursor: 'pointer', background: mode === t[0] ? 'var(--accent)' : 'transparent', color: mode === t[0] ? '#111' : 'var(--text-secondary)', fontWeight: 600 }}>{t[1]}</button>
+              <button key={t[0]} onClick={() => { setMode(t[0]); setMsg('') }} style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid var(--border)', cursor: 'pointer', background: mode === t[0] ? 'var(--accent)' : 'transparent', color: mode === t[0] ? '#fff' : 'var(--text-secondary)', fontWeight: 600 }}>{t[1]}</button>
             ))}
           </div>
           <input style={inp} type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />

@@ -33,7 +33,7 @@ function CarNum({ car, series }) {
 
 const stickyCell = (bg) => ({ position: 'sticky', left: 0, zIndex: 1, background: bg, padding: '8px 16px', fontSize: '0.8125rem', whiteSpace: 'nowrap', borderRight: '1px solid var(--border)', minWidth: 180 })
 const numCell = { padding: '8px 12px', fontSize: '0.8125rem', fontFamily: 'var(--font-mono)', textAlign: 'right', whiteSpace: 'nowrap' }
-const pillStyle = (active) => ({ padding: '5px 14px', borderRadius: 'var(--radius-md)', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: active ? 600 : 400, border: '1px solid ' + (active ? 'var(--accent)' : 'var(--border)'), background: active ? 'var(--accent)' : 'transparent', color: active ? '#000' : 'var(--text-secondary)', fontFamily: 'var(--font-sans)', transition: 'all 0.15s' })
+const pillStyle = (active) => ({ padding: '5px 14px', borderRadius: 'var(--radius-md)', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: active ? 600 : 400, border: '1px solid ' + (active ? 'var(--accent)' : 'var(--border)'), background: active ? 'var(--accent)' : 'transparent', color: active ? '#fff' : 'var(--text-secondary)', fontFamily: 'var(--font-sans)', transition: 'all 0.15s' })
 
 function __normName(s) { return String(s || '').toLowerCase().replace(/[^a-z ]/g, '').replace(/\s+(jr|sr|ii|iii|iv)$/, '').replace(/\s+/g, ' ').trim() }
 function shortTrackName(track) {
@@ -66,7 +66,7 @@ function RaceTable({ rows, raceName, track }) {
           <thead><tr>
             <th style={stickyHead}>Driver</th>
             <th style={numHead}>Car #</th>
-            <th style={{...numHead,color:'var(--accent)',fontWeight:700}}>Lap Time</th>
+            <th style={{...numHead,color:'var(--accent-text)',fontWeight:700}}>Lap Time</th>
             <th style={numHead}>Speed (mph)</th>
             <th style={numHead}>Lap #</th>
             <th style={numHead}>Start</th>
@@ -80,11 +80,11 @@ function RaceTable({ rows, raceName, track }) {
               return (
                 <tr key={i} style={{background:rowBg}}>
                   <td style={stickyCell(rowBg)}>
-                    <span style={{marginRight:6,fontSize:rank<=3?'1.2rem':'0.75rem',fontFamily:'var(--font-mono)',color:rank<=3?'var(--accent)':'var(--text-muted)',minWidth:26,display:'inline-block'}}>{MEDAL[rank]||rank}</span>
+                    <span style={{marginRight:6,fontSize:rank<=3?'1.2rem':'0.75rem',fontFamily:'var(--font-mono)',color:rank<=3?'var(--accent-text)':'var(--text-muted)',minWidth:26,display:'inline-block'}}>{MEDAL[rank]||rank}</span>
                     <span style={{fontWeight:rank<=3?700:400}}><CarNum car={r.car} />{r.driver}</span>
                   </td>
                   <td style={numCell}>{r.car}</td>
-                  <td style={{...numCell,color:'var(--accent)',fontWeight:rank===1?700:400}}>{r.fastest_time}</td>
+                  <td style={{...numCell,color:'var(--accent-text)',fontWeight:rank===1?700:400}}>{r.fastest_time}</td>
                   <td style={numCell}>{r.fastest_speed?parseFloat(r.fastest_speed).toFixed(2):'\u2014'}</td>
                   <td style={numCell}>{r.fastest_lap_num}</td>
                   <td style={numCell}>{r.start_pos}</td>
@@ -125,7 +125,7 @@ function SeasonSummaryTable({ rows }) {
           <th style={numHead}>Track Type</th>
           <th onClick={hClick('driver')} style={{...numHead,cursor:'pointer',userSelect:'none'}}>Driver{arrow('driver')}</th>
           <th style={numHead}>Car #</th>
-          <th onClick={hClick('time')} style={{...numHead,color:'var(--accent)',fontWeight:700,cursor:'pointer',userSelect:'none'}}>Fastest Time{arrow('time')}</th>
+          <th onClick={hClick('time')} style={{...numHead,color:'var(--accent-text)',fontWeight:700,cursor:'pointer',userSelect:'none'}}>Fastest Time{arrow('time')}</th>
           <th onClick={hClick('speed')} style={{...numHead,cursor:'pointer',userSelect:'none'}}>Speed (mph){arrow('speed')}</th>
         </tr></thead>
         <tbody>
@@ -140,7 +140,7 @@ function SeasonSummaryTable({ rows }) {
                 </td>
                 <td style={{...numCell,textAlign:'left',fontWeight:600}}><CarNum car={r.car} />{r.driver}</td>
                 <td style={numCell}>{r.car}</td>
-                <td style={{...numCell,color:'var(--accent)',fontWeight:600}}>{r.fastest_time}</td>
+                <td style={{...numCell,color:'var(--accent-text)',fontWeight:600}}>{r.fastest_time}</td>
                 <td style={numCell}>{r.fastest_speed?parseFloat(r.fastest_speed).toFixed(2):'\u2014'}</td>
               </tr>
             )
@@ -195,9 +195,9 @@ function HeatMapView({ rows, year, trackType }) {
           <thead>
             <tr>
               <th style={{...stickyHead,minWidth:180,zIndex:4}}>Driver</th>
-              {hasMulti&&<th onClick={()=>{ if(sortKey==='avg') setSortAsc(a=>!a); else { setSortKey('avg'); setSortAsc(true) } }} style={{...numHead,minWidth:52,fontWeight:700,color:'var(--accent)',textAlign:'center',cursor:'pointer',userSelect:'none'}}>Avg{sortKey==='avg'?(sortAsc?' \u2191':' \u2193'):''}</th>}
+              {hasMulti&&<th onClick={()=>{ if(sortKey==='avg') setSortAsc(a=>!a); else { setSortKey('avg'); setSortAsc(true) } }} style={{...numHead,minWidth:52,fontWeight:700,color:'var(--accent-text)',textAlign:'center',cursor:'pointer',userSelect:'none'}}>Avg{sortKey==='avg'?(sortAsc?' \u2191':' \u2193'):''}</th>}
               {finalLabels.map(r=>(
-                <th key={r.key} onClick={()=>{ if(sortKey===r.key) setSortAsc(a=>!a); else { setSortKey(r.key); setSortAsc(true) } }} style={{...numHead,minWidth:80,fontSize:'0.65rem',fontWeight:600,padding:'8px 6px',whiteSpace:'nowrap',cursor:'pointer',userSelect:'none',color:sortKey===r.key?'var(--accent)':undefined,textAlign:'center'}} title={r.name+' \u00B7 '+r.date+' \u00B7 click to sort'}>{r.label}{sortKey===r.key?(sortAsc?' \u2191':' \u2193'):''}</th>
+                <th key={r.key} onClick={()=>{ if(sortKey===r.key) setSortAsc(a=>!a); else { setSortKey(r.key); setSortAsc(true) } }} style={{...numHead,minWidth:80,fontSize:'0.65rem',fontWeight:600,padding:'8px 6px',whiteSpace:'nowrap',cursor:'pointer',userSelect:'none',color:sortKey===r.key?'var(--accent-text)':undefined,textAlign:'center'}} title={r.name+' \u00B7 '+r.date+' \u00B7 click to sort'}>{r.label}{sortKey===r.key?(sortAsc?' \u2191':' \u2193'):''}</th>
               ))}
             </tr>
           </thead>
@@ -211,7 +211,7 @@ function HeatMapView({ rows, year, trackType }) {
                     {isTop&&<span style={{marginRight:6,fontSize:'0.7rem'}}>{'\u26A1'}</span>}
                     <CarNum car={carMap.get(d.driver)} />{d.driver}
                   </td>
-                  {hasMulti&&<td style={{...numCell,fontWeight:700,background:rowBg,color:isTop?'var(--accent)':d.avg<=15?'var(--text-primary)':'var(--text-muted)'}}>{isFinite(d.avg)?d.avg.toFixed(1):'\u2014'}</td>}
+                  {hasMulti&&<td style={{...numCell,fontWeight:700,background:rowBg,color:isTop?'var(--accent-text)':d.avg<=15?'var(--text-primary)':'var(--text-muted)'}}>{isFinite(d.avg)?d.avg.toFixed(1):'\u2014'}</td>}
                   {finalLabels.map(r=>{
                     const rank=d.rankMap[r.key]
                     const bg=rank?rankColor(rank):null

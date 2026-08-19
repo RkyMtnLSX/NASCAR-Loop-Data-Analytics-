@@ -260,7 +260,7 @@ export default function PracticeLapTable({ isSubscriber }) {
                     <th style={stickyTh(104, 160)}>Driver</th>
                     <th
                       onClick={handleAvgSort}
-                      style={{ ...th, textAlign: 'right', paddingRight: 12, borderRight: '1px solid var(--border)', cursor: 'pointer', userSelect: 'none', color: sortByAvg ? 'var(--accent)' : 'var(--text-secondary)' }}
+                      style={{ ...th, textAlign: 'right', paddingRight: 12, borderRight: '1px solid var(--border)', cursor: 'pointer', userSelect: 'none', color: sortByAvg ? 'var(--accent-text)' : 'var(--text-secondary)' }}
                       title="Click to sort by Avg Lap"
                     >
                       Avg Lap {sortByAvg ? (sortAscAvg ? '▲' : '▼') : '⇅'}

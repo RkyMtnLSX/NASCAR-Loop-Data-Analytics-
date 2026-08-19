@@ -585,8 +585,8 @@ export default function QualifyingCenter({ isSubscriber }) {
                 <tr>
                   <th style={Object.assign({}, thStyle, { textAlign: 'center', width: 36 })}>#</th>
                   <th onClick={function() { handleSort('name') }} style={Object.assign({}, thStyle, { textAlign: 'left', paddingLeft: 14, minWidth: 170, position: 'sticky', left: 0, zIndex: 2, cursor: 'pointer', background: 'var(--bg-surface)', borderRight: '2px solid var(--border)', boxShadow: '4px 0 8px -2px rgba(0,0,0,0.6)' })}>Driver{sortArrow('name')}</th>
-                  {hasDrawOrder && <th onClick={function() { handleSort('drawOrder') }} style={Object.assign({}, thStyle, { cursor: 'pointer', minWidth: 120, color: sortBy === 'drawOrder' ? 'var(--accent)' : 'var(--text-secondary)' })}>Qualifying Order{sortArrow('drawOrder')}</th>}
-                  <th onClick={function() { handleSort('trackAvg') }} style={Object.assign({}, thStyle, { minWidth: 72, cursor: 'pointer', color: sortBy === 'trackAvg' ? 'var(--accent)' : 'var(--text-secondary)' })}>
+                  {hasDrawOrder && <th onClick={function() { handleSort('drawOrder') }} style={Object.assign({}, thStyle, { cursor: 'pointer', minWidth: 120, color: sortBy === 'drawOrder' ? 'var(--accent-text)' : 'var(--text-secondary)' })}>Qualifying Order{sortArrow('drawOrder')}</th>}
+                  <th onClick={function() { handleSort('trackAvg') }} style={Object.assign({}, thStyle, { minWidth: 72, cursor: 'pointer', color: sortBy === 'trackAvg' ? 'var(--accent-text)' : 'var(--text-secondary)' })}>
                     Avg{sortArrow('trackAvg')}<br /><span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>{trackAbbr(config.track_name)}</span>
                   </th>
                   {histCols.length > 0 && (
@@ -595,13 +595,13 @@ export default function QualifyingCenter({ isSubscriber }) {
                     </th>
                   )}
                   {showCorrAvgCol && (
-                    <th onClick={function() { handleSort('corrYearAvg') }} style={Object.assign({}, thStyle, { borderLeft: '2px solid var(--border)', cursor: 'pointer', color: sortBy === 'corrYearAvg' ? 'var(--accent)' : 'var(--text-secondary)' })}>
+                    <th onClick={function() { handleSort('corrYearAvg') }} style={Object.assign({}, thStyle, { borderLeft: '2px solid var(--border)', cursor: 'pointer', color: sortBy === 'corrYearAvg' ? 'var(--accent-text)' : 'var(--text-secondary)' })}>
                       {show2025 ? '2026/2025' : '2026'}<br />Avg{sortArrow('corrYearAvg')}
                     </th>
                   )}
                   {featuredCurrYear.map(function(col) {
                     var pk = col.pk
-                    return <th key={col.key} onClick={function() { handleSort(pk) }} style={Object.assign({}, thStyle, { borderLeft: '2px solid var(--border)', cursor: 'pointer', color: sortBy === pk ? 'var(--accent)' : 'var(--text-secondary)' })}>{col.label}{sortArrow(pk)}</th>
+                    return <th key={col.key} onClick={function() { handleSort(pk) }} style={Object.assign({}, thStyle, { borderLeft: '2px solid var(--border)', cursor: 'pointer', color: sortBy === pk ? 'var(--accent-text)' : 'var(--text-secondary)' })}>{col.label}{sortArrow(pk)}</th>
                   })}
                   {corrCols.length > 0 && (
                     <th colSpan={corrCols.length} style={Object.assign({}, thStyle, { borderLeft: '2px solid var(--border)', color: 'var(--text-secondary)' })}>
@@ -720,7 +720,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                 <h2 style={{ fontSize: '1.11rem', fontWeight: 600, margin: 0 }}>Qualifying Simulation</h2>
                 <span style={{
                   fontSize: '0.71rem', fontWeight: 700, letterSpacing: '0.08em', padding: '2px 7px', borderRadius: 20,
-                  background: 'rgba(99,102,241,0.12)', color: 'var(--accent)',
+                  background: 'rgba(99,102,241,0.12)', color: 'var(--accent-text)',
                   border: '1px solid rgba(99,102,241,0.3)', textTransform: 'uppercase',
                 }}>BETA</span>
                 <button className="btn btn-secondary" onClick={handleRunSim} disabled={simRunning}

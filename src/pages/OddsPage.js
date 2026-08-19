@@ -154,7 +154,7 @@ export default function OddsPage() {
       {error?.setup && (
         <div style={{ padding: '20px 24px', borderRadius: 10, marginBottom: 24,
           background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.25)' }}>
-          <div style={{ fontWeight: 700, fontSize: '0.875rem', marginBottom: 10, color: 'var(--accent)' }}>
+          <div style={{ fontWeight: 700, fontSize: '0.875rem', marginBottom: 10, color: 'var(--accent-text)' }}>
             ⚙ One-time setup required
           </div>
           <ol style={{ margin: 0, paddingLeft: 20, fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 2 }}>

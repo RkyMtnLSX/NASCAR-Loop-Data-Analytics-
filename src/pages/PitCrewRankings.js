@@ -75,7 +75,7 @@ const wrap = { maxWidth: 1120, margin: '0 auto', padding: '24px 16px 60px' }
 const h1 = { fontSize: '1.5rem', fontWeight: 700, margin: '0 0 4px' }
 const sub = { fontSize: '0.9rem', color: 'var(--text-secondary)', margin: '0 0 20px', lineHeight: 1.5 }
 const th = (o) => ({ padding: '9px 14px', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase',
-  letterSpacing: '0.05em', color: o.active ? 'var(--accent)' : 'var(--text-secondary)',
+  letterSpacing: '0.05em', color: o.active ? 'var(--accent-text)' : 'var(--text-secondary)',
   borderBottom: '1px solid var(--border)', cursor: o.sortable ? 'pointer' : 'default',
   whiteSpace: 'nowrap', userSelect: 'none', textAlign: o.align || 'center' })
 const td = (align) => ({ padding: '9px 14px', fontSize: '0.9rem', borderBottom: '1px solid var(--border)',
@@ -300,7 +300,7 @@ export default function PitCrewRankings() {
                   <td style={{ ...td('center'), fontWeight: 700, overflow: 'visible', textOverflow: 'clip' }}>{MEDAL[i] ? <span style={{ fontSize: '1.15rem', lineHeight: 1 }}>{MEDAL[i]}</span> : (i + 1)}</td>
                   <td style={{ ...td('center'), fontWeight: 700, color: c.delta == null ? 'var(--text-muted)' : c.delta > 0 ? '#22c55e' : c.delta < 0 ? '#ef4444' : 'var(--text-muted)' }}>{c.delta == null ? '\u2014' : c.delta > 0 ? '+' + c.delta : c.delta === 0 ? '=' : c.delta}</td>
                   <td style={{ ...td('center') }} onClick={(e) => { e.stopPropagation(); toggleCmp(c.car + '|' + (c.org || '')) }}>
-                    <span style={{ cursor: 'pointer', padding: '2px 6px', borderRadius: 4, fontSize: '0.78rem', border: '1px solid ' + (cmp.includes(c.car + '|' + (c.org || '')) ? 'var(--accent)' : 'var(--border)'), color: cmp.includes(c.car + '|' + (c.org || '')) ? 'var(--accent)' : 'var(--text-muted)' }}>{cmp.includes(c.car + '|' + (c.org || '')) ? '\u2713' : '+'}</span>
+                    <span style={{ cursor: 'pointer', padding: '2px 6px', borderRadius: 4, fontSize: '0.78rem', border: '1px solid ' + (cmp.includes(c.car + '|' + (c.org || '')) ? 'var(--accent)' : 'var(--border)'), color: cmp.includes(c.car + '|' + (c.org || '')) ? 'var(--accent-text)' : 'var(--text-muted)' }}>{cmp.includes(c.car + '|' + (c.org || '')) ? '\u2713' : '+'}</span>
                   </td>
                   <td style={td('left')}><CarNum car={c.car} series={series} /></td>
                   <td style={td('left')}>{c.org || '\u2014'}</td>

@@ -185,7 +185,7 @@ function ClvPanel({ series, stage }) {
   const ta={ width:'100%', minHeight:50, fontSize:12, background:'var(--bg-surface)', color:'var(--text)', border:'1px solid var(--border)', borderRadius:6, padding:6 };
   const th={ padding:'6px 10px', fontSize:'0.72rem', color:'var(--text-secondary)', textAlign:'right', borderBottom:'1px solid var(--border)' };
   const td={ padding:'6px 10px', fontSize:'0.85rem', textAlign:'right', borderBottom:'1px solid var(--border)' };
-  const btn={ padding:'7px 14px', borderRadius:6, border:'none', background:'var(--accent)', color:'#111', fontWeight:600, cursor:'pointer' };
+  const btn={ padding:'7px 14px', borderRadius:6, border:'none', background:'var(--accent)', color:'#fff', fontWeight:600, cursor:'pointer' };
   return (
     <div style={{ maxWidth:800 }}>
       <div style={{ fontSize:'0.85rem', color:'var(--text-muted)', marginBottom:10 }}>Load the sim you bet off (uses the series + stage selected above), then paste the closing odds. CLV diffs them against the bet-time odds saved on that sim, for every +EV bet it flagged. No re-run needed.</div>

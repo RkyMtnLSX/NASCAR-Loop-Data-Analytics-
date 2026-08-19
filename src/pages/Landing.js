@@ -67,7 +67,7 @@ export default function Landing() {
           </p>
 
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link to="/subscribe" className="btn btn-primary" style={{ padding: '10px 24px', background: '#ffffff', color: '#0e0f13', border: 'none' }}>
+            <Link to="/subscribe" className="btn btn-primary" style={{ padding: '10px 24px', border: 'none' }}>
               Get Full Access
             </Link>
             <Link to="/sim-results" className="btn btn-secondary" style={{ padding: '10px 24px' }}>
@@ -210,7 +210,7 @@ export default function Landing() {
                     padding: '2px 6px',
                     borderRadius: 3,
                     background: card.tag === 'Free preview' ? 'var(--accent-dim)' : 'var(--bg-elevated)',
-                    color: card.tag === 'Free preview' ? 'var(--accent)' : 'var(--text-muted)',
+                    color: card.tag === 'Free preview' ? 'var(--accent-text)' : 'var(--text-muted)',
                     border: `1px solid ${card.tag === 'Free preview' ? 'var(--accent)30' : 'var(--border)'}`,
                     whiteSpace: 'nowrap',
                     flexShrink: 0,

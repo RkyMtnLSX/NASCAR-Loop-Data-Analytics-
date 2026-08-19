@@ -256,7 +256,7 @@ export default function SimResults() {
   const __fmvCell = p => {
     if (p == null || p <= 0) return <span style={{ color: 'var(--text-muted)', opacity: 0.5 }}>-</span>
     const v = fmvAmerican(p / 100)
-    return <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent)' }}>{v}</span>
+    return <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent-text)' }}>{v}</span>
   }
   const tabStyle = (s) => ({
     padding: '8px 18px', border: 'none', borderRadius: 6, cursor: 'pointer',
@@ -300,7 +300,7 @@ export default function SimResults() {
 
       {data && (
         <div style={{ marginBottom: 16, padding: '10px 14px', background: 'var(--bg-surface)', borderRadius: 8, display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
-          <span style={{ fontWeight: 700, color: 'var(--accent)' }}>{data.track_name}</span>
+          <span style={{ fontWeight: 700, color: 'var(--accent-text)' }}>{data.track_name}</span>
           <span style={{
             padding: '2px 10px', borderRadius: 12, fontSize: '0.72rem', fontWeight: 700,
             letterSpacing: '0.05em', textTransform: 'uppercase',
@@ -335,7 +335,7 @@ export default function SimResults() {
           <CompareTray sel={sel} config={data && data.config} results={results} meta={data ? { series: data.series, race_year: data.race_year, race_number: data.race_number, track_name: data.track_name, stage: data.stage } : null} onToggle={togSel} onClear={() => setSel([])} />
           <div style={{ display: 'flex', gap: 6, margin: '2px 0 14px', flexWrap: 'wrap' }}>
             {[['proj', 'Projections'], ['mv', 'Market Value'], ['markets', 'Mfr & Team']].map((ct) => (
-              <button key={ct[0]} onClick={() => setTab(ct[0])} style={{ padding: '7px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', background: tab === ct[0] ? 'var(--accent)' : 'var(--bg-surface)', color: tab === ct[0] ? '#111' : 'var(--text-secondary)' }}>{ct[1]}</button>
+              <button key={ct[0]} onClick={() => setTab(ct[0])} style={{ padding: '7px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', background: tab === ct[0] ? 'var(--accent)' : 'var(--bg-surface)', color: tab === ct[0] ? '#fff' : 'var(--text-secondary)' }}>{ct[1]}</button>
             ))}
           </div>
           {tab === 'proj' && (
@@ -407,7 +407,7 @@ export default function SimResults() {
                   <td style={{ ...tdStyle, textAlign: 'center' }}>{d.proj_finish != null ? (+d.proj_finish).toFixed(1) : ''}</td>
                   <td style={{ ...tdStyle, textAlign: 'center' }}>{d.finish_p50 != null ? (+d.finish_p50).toFixed(1) : '-'}</td>
                   <td style={{ ...tdStyle, textAlign: 'center' }}>{(__p10Map && __p10Map[d.driver_name] != null) ? (+__p10Map[d.driver_name]).toFixed(1) : d.finish_p25 != null ? (+d.finish_p25).toFixed(1) : '-'}</td>
-                  <td style={{ ...tdStyle, textAlign: 'center', color: 'var(--accent)', fontWeight: 600 }}>{fmtDK(d.proj_dk)}</td>
+                  <td style={{ ...tdStyle, textAlign: 'center', color: 'var(--accent-text)', fontWeight: 600 }}>{fmtDK(d.proj_dk)}</td>
                   <td style={{ ...pctStyle(d.win_pct, 5), textAlign: 'center' }}>{fmt(d.win_pct)}</td>
                   <td style={{ ...tdStyle, textAlign: 'center' }}>{__fmvCell(d.win_pct)}</td>
                   <td style={{ ...pctStyle(d.top3_pct, 10), textAlign: 'center' }}>{fmt(d.top3_pct)}</td>

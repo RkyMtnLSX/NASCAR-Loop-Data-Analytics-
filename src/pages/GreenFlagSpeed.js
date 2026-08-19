@@ -111,9 +111,9 @@ function HeatMapView({ rows, byYear, series }) {
           <thead>
             <tr>
               <th style={{ ...stickyHead, minWidth: 180, zIndex: 4 }}>Driver</th>
-              {hasMulti && <th onClick={() => { if (sortKey === 'avg') setSortAsc(a => !a); else { setSortKey('avg'); setSortAsc(true) } }} style={{ ...numHead, minWidth: 52, fontWeight: 700, color: 'var(--accent)', textAlign: 'center', cursor: 'pointer', userSelect: 'none' }}>Avg{sortKey === 'avg' ? (sortAsc ? ' \u2191' : ' \u2193') : ''}</th>}
+              {hasMulti && <th onClick={() => { if (sortKey === 'avg') setSortAsc(a => !a); else { setSortKey('avg'); setSortAsc(true) } }} style={{ ...numHead, minWidth: 52, fontWeight: 700, color: 'var(--accent-text)', textAlign: 'center', cursor: 'pointer', userSelect: 'none' }}>Avg{sortKey === 'avg' ? (sortAsc ? ' \u2191' : ' \u2193') : ''}</th>}
               {finalLabels.map(r => (
-                <th key={r.key} onClick={() => { if (sortKey === r.key) setSortAsc(a => !a); else { setSortKey(r.key); setSortAsc(true) } }} style={{ ...numHead, minWidth: 80, fontSize: '0.65rem', fontWeight: 600, padding: '8px 6px', whiteSpace: 'nowrap', textAlign: 'center', cursor: 'pointer', userSelect: 'none', color: sortKey === r.key ? 'var(--accent)' : undefined }} title={r.name + ' - ' + r.date + ' - click to sort'}>{r.label}</th>
+                <th key={r.key} onClick={() => { if (sortKey === r.key) setSortAsc(a => !a); else { setSortKey(r.key); setSortAsc(true) } }} style={{ ...numHead, minWidth: 80, fontSize: '0.65rem', fontWeight: 600, padding: '8px 6px', whiteSpace: 'nowrap', textAlign: 'center', cursor: 'pointer', userSelect: 'none', color: sortKey === r.key ? 'var(--accent-text)' : undefined }} title={r.name + ' - ' + r.date + ' - click to sort'}>{r.label}</th>
               ))}
             </tr>
           </thead>
@@ -127,7 +127,7 @@ function HeatMapView({ rows, byYear, series }) {
                     {isTop && <span style={{ marginRight: 6, fontSize: '0.7rem' }}>{'⚡'}</span>}
                     <CarNum car={carMap.get(d.driver)} series={series} />{d.driver}
                   </td>
-                  {hasMulti && <td style={{ ...numCell, fontWeight: 700, background: rowBg, textAlign: 'center', color: isTop ? 'var(--accent)' : d.avg <= 15 ? 'var(--text-primary)' : 'var(--text-muted)' }}>{isFinite(d.avg) ? d.avg.toFixed(1) : '—'}</td>}
+                  {hasMulti && <td style={{ ...numCell, fontWeight: 700, background: rowBg, textAlign: 'center', color: isTop ? 'var(--accent-text)' : d.avg <= 15 ? 'var(--text-primary)' : 'var(--text-muted)' }}>{isFinite(d.avg) ? d.avg.toFixed(1) : '—'}</td>}
                   {finalLabels.map(r => {
                     const cell = d.rankMap[r.key]
                     if (!cell) return <td key={r.key} style={{ padding: '7px 8px', fontSize: '0.78rem', fontFamily: 'var(--font-mono)', textAlign: 'center', color: 'var(--text-muted)', background: rowBg }}>{'—'}</td>

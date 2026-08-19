@@ -88,7 +88,7 @@ export default function MyBetsAdmin() {
     <div>
       <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
         {[['cup', 'Cup'], ['oreilly', "O'Reilly"], ['trucks', 'Trucks']].map(t => (
-          <button key={t[0]} onClick={() => setSeries(t[0])} style={{ padding: '6px 14px', borderRadius: 6, border: '1px solid var(--border)', cursor: 'pointer', background: series === t[0] ? 'var(--accent)' : 'transparent', color: series === t[0] ? '#111' : 'var(--text-secondary)', fontWeight: 600 }}>{t[1]}</button>
+          <button key={t[0]} onClick={() => setSeries(t[0])} style={{ padding: '6px 14px', borderRadius: 6, border: '1px solid var(--border)', cursor: 'pointer', background: series === t[0] ? 'var(--accent)' : 'transparent', color: series === t[0] ? '#fff' : 'var(--text-secondary)', fontWeight: 600 }}>{t[1]}</button>
         ))}
       </div>
       <div className="card" style={{ marginBottom: 14 }}>
@@ -109,7 +109,7 @@ export default function MyBetsAdmin() {
                   const on = form.rivals.includes(d)
                   return (
                     <span key={d} onClick={() => setForm(f => ({ ...f, rivals: on ? f.rivals.filter(x => x !== d) : [...f.rivals, d] }))}
-                      style={{ cursor: 'pointer', padding: '3px 10px', borderRadius: 999, fontSize: 12, border: '1px solid ' + (on ? 'var(--accent)' : 'var(--border)'), background: on ? 'rgba(232,185,35,0.15)' : 'transparent', color: on ? 'var(--accent)' : 'var(--text-secondary)' }}>
+                      style={{ cursor: 'pointer', padding: '3px 10px', borderRadius: 999, fontSize: 12, border: '1px solid ' + (on ? 'var(--accent)' : 'var(--border)'), background: on ? 'rgba(232,185,35,0.15)' : 'transparent', color: on ? 'var(--accent-text)' : 'var(--text-secondary)' }}>
                       {d}{on ? ' x' : ''}
                     </span>
                   )

@@ -505,7 +505,7 @@ CREATE INDEX ON practice_laps (series, year, track_name, session_number);`}</pre
                                   {d.starting_position ? `P${d.starting_position}` : '--'}
                                 </td>
                                 <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{times.length}</td>
-                                <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--accent)', fontWeight: 600 }}>{fmtTime(best)}</td>
+                                <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--accent-text)', fontWeight: 600 }}>{fmtTime(best)}</td>
                                 <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{fmtTime(avg)}</td>
                                 {[5, 10, 15].map(n => { const v = bestNAvg(d.laps, n); return (<td key={n} style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>{v != null ? fmtTime(v) : '--'}</td>) })}
                                 
