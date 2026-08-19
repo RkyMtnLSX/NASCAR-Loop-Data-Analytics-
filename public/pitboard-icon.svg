@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Pit Board">
+  <defs><clipPath id="pbIconClip"><rect x="0" y="0" width="512" height="512" rx="112" ry="112"></rect></clipPath></defs>
+  <rect x="0" y="0" width="512" height="512" rx="112" ry="112" fill="#08090A"></rect>
+  <g clip-path="url(#pbIconClip)">
+    <g transform="translate(50.0 0) skewX(-9)">
+      <rect x="0" y="-256" width="91.0" height="1024" fill="#F7E11B"></rect>
+      <rect x="0" y="348.2" width="91.0" height="1024" fill="#C9A70F"></rect>
+    </g>
+    <g transform="translate(157.0 0) skewX(-9)">
+      <rect x="0" y="-256" width="91.0" height="1024" fill="#EE2E14"></rect>
+      <rect x="0" y="348.2" width="91.0" height="1024" fill="#B01F0D"></rect>
+    </g>
+    <g transform="translate(264.0 0) skewX(-9)">
+      <rect x="0" y="-256" width="91.0" height="1024" fill="#F02C7E"></rect>
+      <rect x="0" y="348.2" width="91.0" height="1024" fill="#6E0F38"></rect>
+    </g>
+    <g transform="translate(371.0 0) skewX(-9)">
+      <rect x="0" y="-256" width="91.0" height="1024" fill="#2B2AE3"></rect>
+      <rect x="0" y="348.2" width="91.0" height="1024" fill="#10107E"></rect>
+    </g>
+  </g>
+</svg>

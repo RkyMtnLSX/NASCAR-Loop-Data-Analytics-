@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import PitBoardLogo from '../components/PitBoardLogo'
 import { supabase } from '../lib/supabase'
 
 export default function Landing() {
@@ -26,6 +27,9 @@ export default function Landing() {
         textAlign: 'center',
       }}>
         <div style={{ maxWidth: 640, margin: '0 auto' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 28 }}>
+            <PitBoardLogo height={150} />
+          </div>
           <div style={{
             display: 'inline-flex',
             alignItems: 'center',

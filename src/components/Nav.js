@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import useSubscriber from '../lib/useSubscriber'
+import PitBoardLogo from './PitBoardLogo'
 
 const PRACTICE_LINKS = [
   { path: '/practice',           label: 'Practice Report Cards' },
@@ -103,8 +104,8 @@ export default function Nav({ isAdmin }) {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 52,
       }}>
         {/* Logo */}
-        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
-          <span style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '0.1em', color: '#ffffff', textTransform: 'uppercase' }}>PitBoard</span>
+        <Link to="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+          <PitBoardLogo height={34} variant="badge" />
         </Link>
 
         {/* Nav links */}
