@@ -50,18 +50,18 @@ export default function Subscribe() {
   }
 
   const inp = { width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--text-primary)', marginBottom: 10 }
-  const planCard = { flex: '1 1 240px', maxWidth: 300, padding: 22, borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg-card)' }
+  const planCard = { flex: '1 1 280px', maxWidth: 340, padding: 26, borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg-card)' }
 
   return (
     <div className="page" style={{ maxWidth: 700 }}>
       <div className="page-header">
         <h1 className="page-title">Subscribe</h1>
-        <p className="page-subtitle">The model behind every bet and lineup - full access</p>
+        <p className="page-subtitle">Full access to PitBoard Analytics</p>
       </div>
 
       {status !== 'success' && !isSubscriber && (user && row ? (
-        <div className="card" style={{ borderColor: '#eab308', marginBottom: 16 }}>
-          <div style={{ fontWeight: 800, color: '#eab308', letterSpacing: '.02em', marginBottom: 4 }}>
+        <div className="card" style={{ borderColor: 'var(--series-cup)', marginBottom: 16 }}>
+          <div style={{ fontWeight: 800, color: '#ff5148', letterSpacing: '.02em', marginBottom: 4 }}>
             {row.plan === 'week' ? 'YOUR RACE WEEK PASS HAS ENDED' : 'YOUR MEMBERSHIP IS INACTIVE'}
           </div>
           <div style={{ color: 'var(--text-muted)' }}>
@@ -71,8 +71,8 @@ export default function Subscribe() {
           </div>
         </div>
       ) : gated ? (
-        <div className="card" style={{ borderColor: '#eab308', marginBottom: 16 }}>
-          <div style={{ fontWeight: 800, color: '#eab308', letterSpacing: '.02em', marginBottom: 4 }}>
+        <div className="card" style={{ borderColor: 'var(--series-cup)', marginBottom: 16 }}>
+          <div style={{ fontWeight: 800, color: '#ff5148', letterSpacing: '.02em', marginBottom: 4 }}>
             MEMBERSHIP REQUIRED
           </div>
           <div style={{ color: 'var(--text-muted)' }}>
@@ -123,23 +123,23 @@ export default function Subscribe() {
                 price: '$9.99', per: ' one-time',
                 blurb: 'Built for sampling every board, flag and tool for one race weekend.',
                 note: '7 days of full access - no auto-renew.',
-                cta: 'GET WEEK PASS',
+                cta: 'GET WEEKLY ACCESS',
               },
               {
                 key: 'monthly', chip: 'FOUNDING RATE', chipHot: true, name: 'Founding Monthly',
                 price: '$24.99', per: ' /month',
                 blurb: 'Built for every-week betting and DFS decisions, all season long.',
                 note: <span><s>$34.99</s> after launch - founding members keep this price for life.</span>,
-                cta: 'BECOME A FOUNDING MEMBER',
+                cta: 'GET MONTHLY ACCESS',
               },
             ].map(p => (
               <div key={p.key} style={{ ...planCard, display: 'flex', flexDirection: 'column' }}>
-                <div style={{ alignSelf: 'flex-start', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.08em', padding: '5px 12px', borderRadius: 999, background: p.chipHot ? 'var(--accent)' : 'var(--bg-elevated)', color: p.chipHot ? '#111' : 'var(--text-secondary)', border: p.chipHot ? 'none' : '1px solid var(--border)', marginBottom: 14 }}>{p.chip}</div>
-                <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2 }}>{p.name}</div>
-                <div style={{ fontSize: '2.1rem', fontWeight: 800, marginBottom: 8 }}>{p.price}<span style={{ fontSize: '0.9rem', fontWeight: 400, color: 'var(--text-muted)' }}>{p.per}</span></div>
-                <div style={{ fontSize: '0.85rem', color: 'var(--accent)', marginBottom: 6, minHeight: 42 }}>{p.blurb}</div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 16 }}>{p.note}</div>
-                <button className="btn-primary" disabled={busy} onClick={() => checkout(p.key)} style={{ width: '100%', marginTop: 'auto', padding: '13px 0', fontWeight: 800, letterSpacing: '0.04em', borderRadius: 8, fontSize: '0.85rem' }}>{p.cta}</button>
+                <div style={{ alignSelf: 'flex-start', fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.08em', padding: '6px 14px', borderRadius: 999, background: p.chipHot ? 'var(--series-cup)' : 'var(--bg-elevated)', color: p.chipHot ? '#fff' : 'var(--text-secondary)', border: p.chipHot ? 'none' : '1px solid var(--border)', marginBottom: 16 }}>{p.chip}</div>
+                <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: 2 }}>{p.name}</div>
+                <div style={{ fontSize: '2.6rem', fontWeight: 800, marginBottom: 10 }}>{p.price}<span style={{ fontSize: '1rem', fontWeight: 400, color: 'var(--text-muted)' }}>{p.per}</span></div>
+                <div style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', marginBottom: 8, minHeight: 48 }}>{p.blurb}</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 18 }}>{p.note}</div>
+                <button disabled={busy} onClick={() => checkout(p.key)} style={{ width: '100%', marginTop: 'auto', padding: '16px 0', fontWeight: 800, letterSpacing: '0.05em', borderRadius: 8, fontSize: '1rem', background: 'var(--series-cup)', color: '#fff', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}>{p.cta}</button>
               </div>
             ))}
           </div>
