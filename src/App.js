@@ -29,7 +29,7 @@ import useSubscriber      from './lib/useSubscriber'
 // HARD PAYWALL (2026-08-09): everything except the landing page and /subscribe
 // requires an active membership. KILL-SWITCH below stays false until the Stripe
 // flow is verified end-to-end in test mode - flipping it live is a one-word change.
-const PAYWALL_ENABLED = false
+const PAYWALL_ENABLED = true
 
 function PaywallGate({ ok, loading }) {
   const loc = useLocation()
