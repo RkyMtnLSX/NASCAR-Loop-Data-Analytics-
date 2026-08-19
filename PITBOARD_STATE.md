@@ -1,15 +1,16 @@
 # PITBOARD STATE
-Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2026-08-19, post #64 lockdown + paywall flip.
+Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2026-08-19 late, sandbox payments track COMPLETE.
 
 ## Launch runway (target: The Chase, ~2-3 race weekends out)
 - [x] #64 table-lockdown SQL — RUN + LIVE-VERIFIED 2026-08-19 (anon 0 rows everywhere; RPCs
       converted to security invoker; loop_data_dk view security_invoker; week-pass expiry
       predicate fixed both sides). The API paywall is UP.
 - [x] PAYWALL_ENABLED = true (9b9d72f) — signed-out redirect + admin pass verified live.
-- [ ] Flip-test remainder: pure-subscriber pass (non-admin account), week-pass purchase/expiry,
-      cancel-revokes-access. Needs operator (Stripe sandbox actions).
-- [ ] Stripe Customer Portal settings SAVE (test + live modes, dashboard → Settings → Billing
-      → Customer portal) — "Manage billing" errors until done. Operator, 2 min.
+- [x] Flip test COMPLETE 2026-08-19: subscriber pass, admin block, expired-pass lockout,
+      cancel→webhook→paid-through, portal opens. Subscribe-page gated/expired callout shipped
+      (9a67572). Cancel policy: paid-through kept even on immediate cancel; refunds = manual row edit.
+- [x] Stripe Customer Portal settings SAVE — test mode done + verified via Manage billing.
+      Live mode still needed at cutover.
 - [ ] Stale-sample landing page for anon — URGENCY UP: landing stat counters now read 0 for
       anon (RLS), hardcode or small public table.
 - [ ] Vercel Hobby → Pro (~$20/mo, commercial use rights) — at live cutover, not before.

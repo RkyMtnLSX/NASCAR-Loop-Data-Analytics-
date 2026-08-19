@@ -2318,3 +2318,25 @@ SIM_MATRICES FULL-RUN STORAGE (2026-08-15, commits 6e0e4619 + b2835780): operato
   cancel-revokes-access, Stripe Customer Portal settings SAVE (operator, test+live).
 - NEW RISK logged: pit_crew_race weekly bookmarklet - if it writes with bare publishable key,
   upsert now dies under RLS; re-test at next sync, fix = operator access_token in its headers.
+
+## 2026-08-19 (later) - GATING FLIP TEST COMPLETE; SANDBOX PAYMENTS FULLY VERIFIED (commit 9a67572)
+- Test rig: operator Chrome = admin session; Edge = non-admin test account atmmstrs1@yahoo.com
+  (created by operator, founding monthly purchased with Stripe test card).
+- PASSED: subscriber pass (product pages + data render); /admin blocked ("Admin Access
+  Required"); expired week-pass lockout (SQL sim: plan='week', status stale 'active',
+  access_until past -> bounced to /subscribe - the exact pre-fix bug scenario, now closed
+  BOTH client + RLS); cancel via Stripe dashboard -> webhook fired, row canceled +
+  access_until = period end (paid-through by design; immediate-revoke for refund cases =
+  manual row edit, policy accepted); "Manage billing" -> Stripe Customer Portal opens with
+  payment method + invoices (portal settings SAVE confirmed done, test mode).
+- FALSE ALARM worth remembering: Edge initially showed NO redirect for the expired account -
+  stale pre-flip bundle in browser cache; Ctrl+F5 fixed. Check bundle freshness before
+  debugging gate logic.
+- SHIPPED subscribe-page callout (9a67572, operator-requested UX): PaywallGate now passes
+  state {gated:true}; /subscribe shows context banner - expired week pass ("YOUR RACE WEEK
+  PASS HAS ENDED") vs lapsed monthly ("YOUR MEMBERSHIP IS INACTIVE") vs gated visitor
+  ("MEMBERSHIP REQUIRED"), keyed off subscribers row + redirect state. Verified in live bundle.
+- Operator Chrome session on the site got signed out during the token stash/restore redirect
+  test (refresh-token rotation) - operator re-signs in, no data impact.
+- Sandbox payments track DONE. Remaining to launch: stale-sample landing page, Vercel Pro,
+  LIVE Stripe cutover (products/webhook/env/portal-save in live mode + real-card test).
