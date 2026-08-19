@@ -1,13 +1,20 @@
 # PITBOARD STATE
-Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2026-08-15 late night, post cup Richmond R24.
+Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2026-08-19, post #64 lockdown + paywall flip.
 
-## Launch runway (target: The Chase, ~3 race weekends out)
-- [ ] #64 table-lockdown SQL — admin tables → admins-only, product tables → subscriber-read, strip anon. THE real API paywall. (I write SQL, operator runs.)
-- [ ] Stripe Customer Portal settings SAVE (test + live modes, dashboard → Settings → Billing → Customer portal) — "Manage billing" errors until done. Operator, 2 min.
-- [ ] PAYWALL_ENABLED flip test: signed-out redirect, subscriber pass, week-pass purchase/expiry, cancel-revokes-access.
-- [ ] Stale-sample landing page for anon.
+## Launch runway (target: The Chase, ~2-3 race weekends out)
+- [x] #64 table-lockdown SQL — RUN + LIVE-VERIFIED 2026-08-19 (anon 0 rows everywhere; RPCs
+      converted to security invoker; loop_data_dk view security_invoker; week-pass expiry
+      predicate fixed both sides). The API paywall is UP.
+- [x] PAYWALL_ENABLED = true (9b9d72f) — signed-out redirect + admin pass verified live.
+- [ ] Flip-test remainder: pure-subscriber pass (non-admin account), week-pass purchase/expiry,
+      cancel-revokes-access. Needs operator (Stripe sandbox actions).
+- [ ] Stripe Customer Portal settings SAVE (test + live modes, dashboard → Settings → Billing
+      → Customer portal) — "Manage billing" errors until done. Operator, 2 min.
+- [ ] Stale-sample landing page for anon — URGENCY UP: landing stat counters now read 0 for
+      anon (RLS), hardcode or small public table.
 - [ ] Vercel Hobby → Pro (~$20/mo, commercial use rights) — at live cutover, not before.
-- [ ] LIVE Stripe cutover: recreate products + webhook in live mode, swap 4 env values, real-card test.
+- [ ] LIVE Stripe cutover: recreate products + webhook in live mode, swap 4 env values,
+      real-card test.
 - Optional: delete inert REACT_APP_ADMIN_PASSWORD env var.
 
 ## Open experiments (ledgers)
@@ -26,6 +33,8 @@ Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2
 8. Mech DNF tiered by equipment; tire-management earned/dashed column; matchup pricer; RR+LR loop-data merge mode; PENALTIES_BACKFILL_ALL history run (operator); best-5 tooltip wording.
 
 ## Loose ends
+- pit_crew_race bookmarklet may write with bare publishable key → now blocked by RLS; re-test
+  at next weekly sync, fix = operator access_token in headers (2026-08-19).
 - Trucks Richmond practice never re-uploaded with timestamps — live truck card still uncorrected (cup wk2 check was run via harness instead).
 - sim_matrices exists only for boards published after 2026-08-15 evening; older boards fall back to 4k sample in Matchup Compare.
 - Operator's 7 cup DK entries used no-cap exposure → one thesis ×7; habit fix = exposure ~50% for multi-entry.

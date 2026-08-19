@@ -2286,3 +2286,35 @@ Lap Raptor rebuilt their race pages. New Loop Data table: Start/Finish/FINISH ST
 CORRECTION (operator): driver_rating + laps_completed come from RACING REFERENCE post-race - the old parser format IS the RR loop-data table and still fully works. Lap Raptor (new format) is a supplemental source: earlier fastest laps + REAL finish statuses. v6.3 validation target (race-day driver rating) is NOT lost. Workflow: RR paste = primary post-race; LR paste only when RR not yet published (do NOT paste both for one race - loader would duplicate rows). Queued nicety: merge mode (RR rating/laps + LR statuses).
 
 SIM_MATRICES FULL-RUN STORAGE (2026-08-15, commits 6e0e4619 + b2835780): operator noticed Matchup Compare group prices differ ~1pt from published mfr/team boards - cause was config.simMatrix being a 4k-draw sample (MC SE ~0.8pt at p60) vs boards computed from the full 50k run. Fix: publish now ALSO writes the FULL position matrix (Uint8 b64, ~2.5MB) to new sim_matrices table (delete+replace per series/year/race/stage); CompareTray lazily fetches it and prices groups over all draws - EXACT agreement with boards; falls back to config 4k sample for pre-existing boards. Board page loads unaffected (matrix only fetched by tray). SQL run by operator (table + auth-all policy). Applies to boards published from now on - tonight's cup Richmond re-publish (if any) gets it, else Watkins/next week.
+
+## 2026-08-19 - #64 TABLE LOCKDOWN RUN + PAYWALL FLIPPED (commits b85c990, 9b9d72f)
+- WEEK-PASS EXPIRY BUG found + fixed (b85c990): webhook writes week passes status='active' and
+  no Stripe event ever changes it (one-time payment); useSubscriber treated status='active'
+  alone as access -> expired passes kept access forever. New predicate BOTH sides (client +
+  RLS has_access()): (plan='monthly' AND status='active') OR access_until > now(). Verified
+  in live bundle.
+- table_lockdown_64.sql RUN by Claude via operator's Supabase SQL editor (operator authorized,
+  away from keyboard). Design: DO-block wipes ALL public policies, rebuilds from explicit
+  classification; completeness guard aborts on unclassified tables/views (transactional, no
+  half-state). Tiers: 11 admin-only tables (my_bets, flagged_bets, clv_log, sim_grades,
+  odds_snapshots, fastest_lap_odds, dfs_ownership, dfs_contests, crossover_borrows,
+  dfs_salary_history, pit_crew_race), 20 product tables subscriber-read via has_access(),
+  subscribers/admins own-row-read, anon NOTHING. admin_all FOR ALL on everything via is_admin()
+  (both helpers SECURITY DEFINER, search_path locked, anon EXECUTE revoked). Pre-tested on
+  scratch Postgres 16 with mock schema: 7 access tiers all to spec.
+- Guard catches (why the run aborted twice, correctly): dfs_salary_history + pit_crew_race
+  (research tables, not in code -> admin-only) and VIEW loop_data_dk (DK place-points helper;
+  views run owner-rights and tunnel under RLS) -> kept, ALTERed to security_invoker.
+- RPC LEAK CLOSED: verify query revealed get_practice_sessions, get_loop_data_counts,
+  get_audit_data were SECURITY DEFINER (would bypass RLS for any free signed-up account).
+  ALTERed all three to security invoker. Only is_admin/has_access remain definer (by design).
+- LIVE API verification (publishable key vs operator token): anon loop_data 0 rows, anon
+  my_bets 0 rows, anon RPC 200/empty, operator 3/3 rows. RLS lockdown = the real API paywall, UP.
+- PAYWALL_ENABLED -> true (9b9d72f). Verified live: signed-out /loop-data redirects to
+  /subscribe (tested by stashing+restoring operator session token); operator/admin passes,
+  Loop Data renders. Landing counters read 0 for anon now (RLS) - stale-sample landing page
+  is next.
+- STILL OPEN on flip test: pure-subscriber pass (non-admin account), week-pass purchase+expiry,
+  cancel-revokes-access, Stripe Customer Portal settings SAVE (operator, test+live).
+- NEW RISK logged: pit_crew_race weekly bookmarklet - if it writes with bare publishable key,
+  upsert now dies under RLS; re-test at next sync, fix = operator access_token in its headers.
