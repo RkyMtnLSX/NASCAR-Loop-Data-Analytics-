@@ -11,8 +11,9 @@ Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2
       (9a67572). Cancel policy: paid-through kept even on immediate cancel; refunds = manual row edit.
 - [x] Stripe Customer Portal settings SAVE — test mode done + verified via Manage billing.
       Live mode still needed at cutover.
-- [ ] Stale-sample landing page for anon — URGENCY UP: landing stat counters now read 0 for
-      anon (RLS), hardcode or small public table.
+- [ ] Stale-sample landing check: landing no longer queries Supabase at all (stats bar
+      removed 2026-08-19 close) — remaining work is just a signed-out visual pass to confirm,
+      then close.
 - [ ] Weekly auto-renew activation (operator): recurring $9.99/wk price in Stripe test
       dashboard -> swap STRIPE_PRICE_WEEKPASS env in Vercel -> redeploy -> test purchase.
       Weekly buy button BROKEN until done (code shipped 98a86ba). Repeat in live at cutover.

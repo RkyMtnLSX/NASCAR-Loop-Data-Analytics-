@@ -2363,3 +2363,13 @@ SIM_MATRICES FULL-RUN STORAGE (2026-08-15, commits 6e0e4619 + b2835780): operato
   tags installed. RacingStripes top decoration + "NASCAR Analytics Platform" hero chip
   REMOVED (redundant with lockup). Brand rules in handoff README: never recolor bars,
   scale only, min 26px plate.
+
+## 2026-08-19 (close) - LANDING SIMPLIFIED (commits d57e04e, 09f3ebf, 9f320bf)
+- Hero: lighter charcoal gradient (#23262c->#17181d) so the logo's black plate edge reads;
+  headline + Monte Carlo paragraph REMOVED (operator: "What's inside" cards carry the pitch);
+  stats bar (races/drivers/years/series) REMOVED; lockup bumped to 230px plate (maxWidth 90vw
+  for mobile). Nav "Race Weekend" renamed "Home".
+- CONSEQUENCE: Landing no longer queries Supabase AT ALL (stats queries deleted with the bar).
+  Anon landing is now self-contained - the "stale-sample landing" runway item likely reduces
+  to: sign-out check in a browser, confirm What's-inside cards are static, done. Not yet
+  verified signed-out; do that before calling it closed.
