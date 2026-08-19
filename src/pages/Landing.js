@@ -30,24 +30,6 @@ export default function Landing() {
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 28 }}>
             <PitBoardLogo height={150} />
           </div>
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '4px 12px',
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.14)',
-            borderRadius: 20,
-            fontSize: '0.6875rem',
-            fontWeight: 600,
-            letterSpacing: '0.08em',
-            color: 'var(--text-secondary)',
-            textTransform: 'uppercase',
-            marginBottom: 20,
-          }}>
-            NASCAR Analytics Platform
-          </div>
-
           <h1 style={{
             fontSize: 'clamp(2rem, 5vw, 3rem)',
             fontWeight: 700,
