@@ -35,7 +35,7 @@ function PaywallGate({ ok, loading }) {
   const loc = useLocation()
   if (!PAYWALL_ENABLED || ok || loading) return null
   if (loc.pathname === '/' || loc.pathname === '/subscribe' || loc.pathname === '/account') return null
-  return <Navigate to="/subscribe" replace />
+  return <Navigate to="/subscribe" replace state={{ gated: true }} />
 }
 
 function AdminGate() {

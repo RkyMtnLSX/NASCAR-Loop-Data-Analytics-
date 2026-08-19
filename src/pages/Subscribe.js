@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import useSubscriber from '../lib/useSubscriber'
 
@@ -13,6 +14,8 @@ export default function Subscribe() {
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
   const status = new URLSearchParams(window.location.search).get('status')
+  const loc = useLocation()
+  const gated = !!(loc.state && loc.state.gated)
 
   useEffect(() => { if (status === 'success') refresh() }, [status, refresh])
 
@@ -55,6 +58,28 @@ export default function Subscribe() {
         <h1 className="page-title">Subscribe</h1>
         <p className="page-subtitle">The model behind every bet and lineup - full access</p>
       </div>
+
+      {status !== 'success' && !isSubscriber && (user && row ? (
+        <div className="card" style={{ borderColor: '#eab308', marginBottom: 16 }}>
+          <div style={{ fontWeight: 800, color: '#eab308', letterSpacing: '.02em', marginBottom: 4 }}>
+            {row.plan === 'week' ? 'YOUR RACE WEEK PASS HAS ENDED' : 'YOUR MEMBERSHIP IS INACTIVE'}
+          </div>
+          <div style={{ color: 'var(--text-muted)' }}>
+            {row.plan === 'week'
+              ? 'Grab a new week pass below, or lock in the founding monthly rate before it goes up.'
+              : 'Renew below to get back to every board, flag and tool.'}
+          </div>
+        </div>
+      ) : gated ? (
+        <div className="card" style={{ borderColor: '#eab308', marginBottom: 16 }}>
+          <div style={{ fontWeight: 800, color: '#eab308', letterSpacing: '.02em', marginBottom: 4 }}>
+            MEMBERSHIP REQUIRED
+          </div>
+          <div style={{ color: 'var(--text-muted)' }}>
+            PitBoard content is members-only. {user ? 'Pick a plan below for full access.' : 'Sign in or create an account, then pick a plan below.'}
+          </div>
+        </div>
+      ) : null)}
 
       {status === 'success' && (
         <div className="card" style={{ borderColor: '#22c55e', marginBottom: 16 }}>
