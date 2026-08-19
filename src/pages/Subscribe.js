@@ -117,18 +117,31 @@ export default function Subscribe() {
       ) : (
         <div>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-            <div style={{ ...planCard, borderColor: 'var(--accent)' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Founding rate - locked for life</div>
-              <div style={{ fontSize: '2rem', fontWeight: 800, margin: '8px 0 2px' }}>$24.99<span style={{ fontSize: '0.9rem', fontWeight: 400, color: 'var(--text-muted)' }}>/mo</span></div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 12 }}><s>$34.99</s> after launch - founding members keep this price forever</div>
-              <button className="btn-primary" disabled={busy} onClick={() => checkout('monthly')} style={{ width: '100%' }}>Become a founding member</button>
-            </div>
-            <div style={planCard}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Race week pass</div>
-              <div style={{ fontSize: '2rem', fontWeight: 800, margin: '8px 0 2px' }}>$9.99<span style={{ fontSize: '0.9rem', fontWeight: 400, color: 'var(--text-muted)' }}> one-time</span></div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 12 }}>7 days of full access - every board, flag and tool for one race weekend</div>
-              <button className="btn-primary" disabled={busy} onClick={() => checkout('week')} style={{ width: '100%', background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}>Get a week pass</button>
-            </div>
+            {[
+              {
+                key: 'week', chip: 'TRY IT OUT', chipHot: false, name: 'Race Week Pass',
+                price: '$9.99', per: ' one-time',
+                blurb: 'Built for sampling every board, flag and tool for one race weekend.',
+                note: '7 days of full access - no auto-renew.',
+                cta: 'GET WEEK PASS',
+              },
+              {
+                key: 'monthly', chip: 'FOUNDING RATE', chipHot: true, name: 'Founding Monthly',
+                price: '$24.99', per: ' /month',
+                blurb: 'Built for every-week betting and DFS decisions, all season long.',
+                note: <span><s>$34.99</s> after launch - founding members keep this price for life.</span>,
+                cta: 'BECOME A FOUNDING MEMBER',
+              },
+            ].map(p => (
+              <div key={p.key} style={{ ...planCard, display: 'flex', flexDirection: 'column' }}>
+                <div style={{ alignSelf: 'flex-start', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.08em', padding: '5px 12px', borderRadius: 999, background: p.chipHot ? 'var(--accent)' : 'var(--bg-elevated)', color: p.chipHot ? '#111' : 'var(--text-secondary)', border: p.chipHot ? 'none' : '1px solid var(--border)', marginBottom: 14 }}>{p.chip}</div>
+                <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2 }}>{p.name}</div>
+                <div style={{ fontSize: '2.1rem', fontWeight: 800, marginBottom: 8 }}>{p.price}<span style={{ fontSize: '0.9rem', fontWeight: 400, color: 'var(--text-muted)' }}>{p.per}</span></div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--accent)', marginBottom: 6, minHeight: 42 }}>{p.blurb}</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 16 }}>{p.note}</div>
+                <button className="btn-primary" disabled={busy} onClick={() => checkout(p.key)} style={{ width: '100%', marginTop: 'auto', padding: '13px 0', fontWeight: 800, letterSpacing: '0.04em', borderRadius: 8, fontSize: '0.85rem' }}>{p.cta}</button>
+              </div>
+            ))}
           </div>
           <div style={{ marginTop: 14, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
             Signed in as {user.email} - <span style={{ cursor: 'pointer', textDecoration: 'underline' }} onClick={() => supabase.auth.signOut()}>sign out</span>
