@@ -1,3 +1,5 @@
+> SESSION START: read PITBOARD_MANUAL.md + PITBOARD_STATE.md first. This file is an append-only ARCHIVE of model evidence (~90k tokens) - SEARCH it for specific backtests; do not read it in full.
+
 # PitBoard — Backtest & Reconstruction Archive
 
 <!-- ============================ SHARED-FILE PROTOCOL ============================
