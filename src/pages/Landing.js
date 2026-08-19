@@ -1,57 +1,21 @@
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import { Link } from 'react-router-dom'
 import PitBoardLogo from '../components/PitBoardLogo'
-import { supabase } from '../lib/supabase'
 
 export default function Landing() {
-  const [stats, setStats] = useState({ races: 0, drivers: 0, series: 3 })
-
-  useEffect(() => {
-    async function fetchStats() {
-      const [{ count: races }, { count: drivers }] = await Promise.all([
-        supabase.from('races').select('*', { count: 'exact', head: true }),
-        supabase.from('loop_data').select('*', { count: 'exact', head: true }),
-      ])
-      setStats({ races: races || 0, drivers: drivers || 0, series: 3 })
-    }
-    fetchStats()
-  }, [])
-
   return (
     <div>
       {/* Hero */}
       <div style={{
-        background: 'linear-gradient(180deg, var(--bg-surface) 0%, var(--bg-base) 100%)',
+        background: 'linear-gradient(180deg, #23262c 0%, #17181d 100%)',
         borderBottom: '1px solid var(--border)',
         padding: '64px 20px 56px',
         textAlign: 'center',
       }}>
         <div style={{ maxWidth: 640, margin: '0 auto' }}>
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 28 }}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 36 }}>
             <PitBoardLogo height={150} />
           </div>
-          <h1 style={{
-            fontSize: 'clamp(2rem, 5vw, 3rem)',
-            fontWeight: 700,
-            letterSpacing: '-0.04em',
-            color: 'var(--text-primary)',
-            lineHeight: 1.1,
-            marginBottom: 16,
-          }}>
-            The model behind<br />
-            <span style={{ color: 'var(--text-primary)' }}>every bet and lineup.</span>
-          </h1>
-
-          <p style={{
-            fontSize: '1rem',
-            color: 'var(--text-secondary)',
-            lineHeight: 1.7,
-            marginBottom: 32,
-          }}>
-            A Monte Carlo model prices every driver in every market: win, top finishes, matchups, and DFS {'\u2014'}
-            lined up against DraftKings, FanDuel, and Hard Rock. Betting edges and optimal lineups, every race week.
-          </p>
-
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             <Link to="/subscribe" className="btn btn-primary" style={{ padding: '10px 24px', border: 'none' }}>
               Get Full Access
@@ -60,38 +24,6 @@ export default function Landing() {
               Find This Week{'\u2019'}s Edges
             </Link>
           </div>
-        </div>
-      </div>
-
-      {/* Stats bar */}
-      <div style={{
-        borderBottom: '1px solid var(--border)',
-        background: 'var(--bg-surface)',
-      }}>
-        <div style={{
-          maxWidth: 1400,
-          margin: '0 auto',
-          padding: '20px',
-          display: 'flex',
-          justifyContent: 'center',
-          gap: 48,
-          flexWrap: 'wrap',
-        }}>
-          {[
-            { value: stats.races.toLocaleString(), label: 'Races Loaded' },
-            { value: stats.drivers.toLocaleString(), label: 'Driver Records' },
-            { value: (new Date().getFullYear() - 2021) + ' Years', label: 'Of Loop Data' },
-            { value: '3', label: 'Series Covered' },
-          ].map(s => (
-            <div key={s.label} style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-                {s.value}
-              </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>
-                {s.label}
-              </div>
-            </div>
-          ))}
         </div>
       </div>
 
