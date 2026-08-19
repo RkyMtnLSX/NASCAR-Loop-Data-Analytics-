@@ -50,10 +50,10 @@ export default function Account() {
                 <div style={{ color: '#22c55e', fontWeight: 700, marginBottom: 6 }}>Active</div>
                 <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: 12 }}>
                   {row && row.plan === 'week'
-                    ? 'Race week pass - access until ' + (row.access_until ? new Date(row.access_until).toLocaleString() : '-')
+                    ? 'Race week pass - renews weekly, paid through ' + (row.access_until ? new Date(row.access_until).toLocaleString() : '-')
                     : 'Founding monthly - $24.99/mo, locked in for life' + (row && row.access_until ? ' - paid through ' + new Date(row.access_until).toLocaleDateString() : '')}
                 </div>
-                {row && row.plan !== 'week' && (
+                {row && (
                   <button className="btn-primary" disabled={busy} onClick={portal} style={{ padding: '8px 18px' }}>Manage billing</button>
                 )}
                 {msg && <div style={{ marginTop: 10, fontSize: '0.85rem', color: '#ef4444' }}>{msg}</div>}

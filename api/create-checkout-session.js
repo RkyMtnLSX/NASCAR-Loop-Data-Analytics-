@@ -1,6 +1,7 @@
 // env redeploy nudge 1786414767657
 // Vercel serverless function - creates a Stripe Checkout session for a signed-in
-// Supabase user. Plans: 'monthly' (subscription) | 'week' (one-time 7-day pass).
+// Supabase user. Plans: 'monthly' | 'week' - BOTH subscriptions as of 2026-08-19
+// (week pass auto-renews weekly; STRIPE_PRICE_WEEKPASS must be a RECURRING price).
 // Env: STRIPE_SECRET_KEY, STRIPE_PRICE_MONTHLY, STRIPE_PRICE_WEEKPASS,
 //      SUPABASE_URL, SUPABASE_ANON_KEY
 const Stripe = require('stripe')
@@ -21,7 +22,9 @@ module.exports = async (req, res) => {
     const user = await uRes.json()
     const origin = req.headers.origin || 'https://nascar-loop-data-analytics.vercel.app'
     const session = await stripe.checkout.sessions.create({
-      mode: plan === 'week' ? 'payment' : 'subscription',
+      mode: 'subscription',
+      metadata: { plan: plan === 'week' ? 'week' : 'monthly' },
+      subscription_data: { metadata: { plan: plan === 'week' ? 'week' : 'monthly' } },
       line_items: [{ price, quantity: 1 }],
       customer_email: user.email,
       client_reference_id: user.id,

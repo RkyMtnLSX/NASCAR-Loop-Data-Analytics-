@@ -119,16 +119,14 @@ export default function Subscribe() {
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
             {[
               {
-                key: 'week', chip: 'TRY IT OUT', chipHot: false, name: 'Race Week Pass',
-                price: '$9.99', per: ' one-time',
-                blurb: 'Built for sampling every board, flag and tool for one race weekend.',
-                note: '7 days of full access - no auto-renew.',
+                key: 'week', chip: 'RACE WEEK', chipHot: false, name: 'Weekly',
+                price: '$9.99', per: ' /week',
+                note: 'Full access, billed weekly - cancel anytime.',
                 cta: 'GET WEEKLY ACCESS',
               },
               {
-                key: 'monthly', chip: 'FOUNDING RATE', chipHot: true, name: 'Founding Monthly',
+                key: 'monthly', chip: 'FOUNDING RATE', chipHot: true, name: 'Monthly',
                 price: '$24.99', per: ' /month',
-                blurb: 'Built for every-week betting and DFS decisions, all season long.',
                 note: <span><s>$34.99</s> after launch - founding members keep this price for life.</span>,
                 cta: 'GET MONTHLY ACCESS',
               },
@@ -137,8 +135,7 @@ export default function Subscribe() {
                 <div style={{ alignSelf: 'flex-start', fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.08em', padding: '6px 14px', borderRadius: 999, background: p.chipHot ? 'var(--series-cup)' : 'var(--bg-elevated)', color: p.chipHot ? '#fff' : 'var(--text-secondary)', border: p.chipHot ? 'none' : '1px solid var(--border)', marginBottom: 16 }}>{p.chip}</div>
                 <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: 2 }}>{p.name}</div>
                 <div style={{ fontSize: '2.6rem', fontWeight: 800, marginBottom: 10 }}>{p.price}<span style={{ fontSize: '1rem', fontWeight: 400, color: 'var(--text-muted)' }}>{p.per}</span></div>
-                <div style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', marginBottom: 8, minHeight: 48 }}>{p.blurb}</div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 18 }}>{p.note}</div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 18, minHeight: 40 }}>{p.note}</div>
                 <button disabled={busy} onClick={() => checkout(p.key)} style={{ width: '100%', marginTop: 'auto', padding: '16px 0', fontWeight: 800, letterSpacing: '0.05em', borderRadius: 8, fontSize: '1rem', background: 'var(--series-cup)', color: '#fff', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}>{p.cta}</button>
               </div>
             ))}

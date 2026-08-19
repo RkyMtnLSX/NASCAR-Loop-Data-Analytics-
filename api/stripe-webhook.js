@@ -44,8 +44,12 @@ module.exports = async (req, res) => {
       if (s.client_reference_id) {
         const email = (s.customer_details && s.customer_details.email) || null
         if (s.mode === 'payment') {
-          // week pass: 7 days of access from purchase
+          // legacy one-time week pass (pre 2026-08-19): 7 days from purchase
           await upsert({ user_id: s.client_reference_id, email: email, stripe_customer_id: s.customer || null, plan: 'week', status: 'active', access_until: new Date(Date.now() + 7 * 86400000).toISOString(), updated_at: new Date().toISOString() })
+        } else if ((s.metadata && s.metadata.plan) === 'week') {
+          // weekly subscription (auto-renews): seed 7 days; subscription.updated
+          // events keep access_until at current_period_end from then on
+          await upsert({ user_id: s.client_reference_id, email: email, stripe_customer_id: s.customer, plan: 'week', status: 'active', access_until: new Date(Date.now() + 7 * 86400000).toISOString(), updated_at: new Date().toISOString() })
         } else {
           await upsert({ user_id: s.client_reference_id, email: email, stripe_customer_id: s.customer, plan: 'monthly', status: 'active', access_until: null, updated_at: new Date().toISOString() })
         }
