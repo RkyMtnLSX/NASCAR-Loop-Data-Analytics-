@@ -2373,3 +2373,19 @@ SIM_MATRICES FULL-RUN STORAGE (2026-08-15, commits 6e0e4619 + b2835780): operato
   Anon landing is now self-contained - the "stale-sample landing" runway item likely reduces
   to: sign-out check in a browser, confirm What's-inside cards are static, done. Not yet
   verified signed-out; do that before calling it closed.
+
+## 2026-08-19 (day 2) - FACEBOOK LAUNCH KIT (marketing, no code)
+- Competitor read: fullthrottlefantasy.com = FREE community fantasy league (owner mode, polls,
+  articles at 8-21 views), no discoverable FB page. Strategy: don't compete on community -
+  convert their audience with model receipts. Their users = our funnel.
+- Kit delivered to operator (chat + local /facebook when device reconnects): profile 960px +
+  cover 1640x624 rendered from brand SVGs, setup fields (name PitBoard Analytics,
+  @pitboardanalytics, Sign Up CTA -> /subscribe), 5 content pillars (receipts = growth
+  engine), weekly cadence mapped to race rhythm (Mon receipts post is the anchor), 5 paste-
+  ready launch posts, growth + tone rules.
+- TONE GUARD on record: Kyle Busch passed May 2026 (8/18 now Kyle Busch Day) - community in
+  mourning season; tribute-adjacent content never used for promotion/engagement. Also: FB
+  paid-ads for gambling content need authorization + 21+ targeting - organic analytics
+  content fine; revisit at live cutover.
+- Operator creates the page (his login); next: draft New Hampshire week post set from real
+  board output once published.
