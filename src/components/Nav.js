@@ -111,7 +111,7 @@ export default function Nav({ isAdmin }) {
         {/* Nav links */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
 
-          <Link to="/" style={linkStyle(location.pathname === '/')}>Race Weekend</Link>
+          <Link to="/" style={linkStyle(location.pathname === '/')}>Home</Link>
 
           {/* Practice Center dropdown */}
           <div style={{ position: 'relative' }} {...makeHover(setLoopOpen, loopTimer)}>
