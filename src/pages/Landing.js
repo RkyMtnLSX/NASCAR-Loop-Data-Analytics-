@@ -14,7 +14,7 @@ export default function Landing() {
       }}>
         <div style={{ maxWidth: 640, margin: '0 auto' }}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 36 }}>
-            <PitBoardLogo height={150} />
+            <PitBoardLogo height={230} style={{ maxWidth: '90vw', height: 'auto' }} />
           </div>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             <Link to="/subscribe" className="btn btn-primary" style={{ padding: '10px 24px', border: 'none' }}>
