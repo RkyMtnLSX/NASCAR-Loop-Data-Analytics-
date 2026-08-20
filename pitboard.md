@@ -2389,3 +2389,5 @@ SIM_MATRICES FULL-RUN STORAGE (2026-08-15, commits 6e0e4619 + b2835780): operato
   content fine; revisit at live cutover.
 - Operator creates the page (his login); next: draft New Hampshire week post set from real
   board output once published.
+
+ENTRY PDF WRAPPED-NAME FIX (2026-08-19, commit e3b7ec39): NH trucks entry PDF line-wrapped 'John Hunter Nemechek (i)' -> parser created driver 'John Hunter' with org 'Nemechek (i)' -> sim treated JHN as history-less new driver (proj 21.3 on a board otherwise fine). Data fixed: entry 1644 -> 'John Hunter Nemechek' / TRICON Garage (entry convention = cleaned names, no roster markers). 9 trash pre-flags DELETED (bad-input model opinions); operator re-runs + republishes NH trucks pre. Parser now treats a ONE-word fragment (optional (x) marker) in the trucks org slot as name continuation (real truck orgs are 2+ words) and shifts org to the next item. Bug class: PDF line wraps on long name + interloper marker - recurs whenever a cup regular enters a truck race.
