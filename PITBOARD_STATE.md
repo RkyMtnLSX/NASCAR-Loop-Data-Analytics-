@@ -30,7 +30,7 @@ Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2
 ## Queue (rough priority)
 1. Ownership-leverage overlay in DFS: projected-ownership model + chalk-trap flags + build diversification (fixes the conviction-collapse failure; Majeski 55%-owned bust + Blaney fade are the motivating cases).
 2. DFS replay report UI — auto compute/place both modes from each standings upload.
-3. [PRE-TEST DONE 8/19 - BLEND WINS .721 vs .692, 71pct of races] Sim A/B: wire 50/50 track-type rating blend into rating construction, board-level paired backtest before ship. See BACKTEST_LOG 2026-08-19.
+3. [PRE-TEST DONE 8/19 + CORRECTED] Sim corr rating is ALREADY type-conditioned (code-verified). A/B = ADD all-tracks trailing form at ~half weight into corrAvgRating (blend .721 vs type-only .704, W244/L138). Board-level paired backtest before ship. See BACKTEST_LOG 2026-08-19 + correction.
 4. Sim A/B: long-run practice input.
 5. #69 flag sweep at 15–20 boards (edge-inversion + win-market-0fer + CLV-window inputs).
 6. Staking layer (¼-Kelly display, ladder-aware, per-race cap).
