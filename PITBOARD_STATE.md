@@ -23,7 +23,7 @@ Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2
 - Optional: delete inert REACT_APP_ADMIN_PASSWORD env var.
 
 ## Open experiments (ledgers)
-- v6.3-st session-time correction: PROSPECTIVE 1–1 (wk1 trucks Richmond corrected +.026; wk2 cup Richmond corrected −.099 — Bowman's early speed was real). Revert trigger = 2 consecutive losses. Next test: Watkins Glen (road course — watch whether activation gates even fire).
+- v6.3-st session-time correction: PROSPECTIVE 1–1 (wk1 trucks Richmond corrected +.026; wk2 cup Richmond corrected −.099 — Bowman's early speed was real). Revert trigger = 2 consecutive losses. Next test: NEW HAMPSHIRE (R18 — flat mile, first single-group cup practice weekend; gc correction self-disables).
 - DFS replay ledger (GPP ceiling vs mean, official FPTS, real fields): GPP wins 3, tie 1 (cup Richmond: both built the identical Blaney/Kes cluster lineup, bottom decile — conviction boards collapse diversity). Findings: GPP edge ∝ board uncertainty; winners at cup Richmond were selective chalk that faded the 53%-owned Blaney.
 - Ownership ground truth: 5 contests banked (Iowa cup+ore, Richmond trucks+cup GPP). Early reads: field tracks our projDK ρ≈.8; cup owners chase value, O'Reilly owners chase raw speed/track position. Refit at 8–10 contests.
 
@@ -43,4 +43,4 @@ Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2
 - Trucks Richmond practice never re-uploaded with timestamps — live truck card still uncorrected (cup wk2 check was run via harness instead).
 - sim_matrices exists only for boards published after 2026-08-15 evening; older boards fall back to 4k sample in Matchup Compare.
 - Operator's 7 cup DK entries used no-cap exposure → one thesis ×7; habit fix = exposure ~50% for multi-entry.
-- Watkins Glen week owed: v6.3 wk3 check + weekly DFS replay after standings upload.
+- New Hampshire week owed: v6.3 wk3 check + weekly DFS replay after standings upload. Trucks R18 board accidentally published as 'post' 8/19 — retagged to 'pre' (board + 9 flags + sim_matrices); stage-guard confirm didn't stop it, consider defaulting stage selector to 'pre' when no practice exists.
