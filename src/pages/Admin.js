@@ -352,6 +352,14 @@ function EntryListManager() {
           let org
           if (series === 'trucks') {
             org = ne[i+2] ? ne[i+2].trim() : ''
+            // WRAPPED NAME (2026-08-19): long name + roster marker line-wraps in the PDF -
+            // 'John Hunter' / 'Nemechek (i)' / 'TRICON Garage' made JHN a brand-new driver.
+            // A ONE-word fragment (optional (x) marker) in the org slot is the name's
+            // continuation (real truck orgs are always 2+ words); shift org to the next item.
+            if (/^[A-Z][A-Za-z.'-]*\s*(\([a-zA-Z]\))?$/.test(org) && ne[i+3]) {
+              drv = (drv + ' ' + cleanName(org)).trim()
+              org = ne[i+3].trim()
+            }
           } else {
             const rawOrg = ne[i+2] ? ne[i+2].trim() : ''
             // Detect surname continuation: PDF wraps "John Hunter" / "Nemechek" across lines
