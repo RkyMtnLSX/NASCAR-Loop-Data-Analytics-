@@ -963,9 +963,16 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
                 avgRating = (avgRating == null) ? srcRating : (1 - bw.w) * avgRating + bw.w * srcRating
               }
             }
-            // equipment prior (task 118): driver's modal (most frequent) in-series car
+            // equipment prior (task 118): driver's modal in-series car.
+            // WEIGHTED MODAL (2026-08-20): counts use the same yrWt as the rating pool - a raw
+            // count kept last season's car modal deep into the new season (Garcia #13->#98:
+            // 48 old rows vs 17 new could never flip in-season), so the ride-change delta kept
+            // firing on drivers whose rating already absorbed the new ride. Backtest n=2813
+            // ride-change obs: stale-modal delta on flipped drivers = dead tie (.523/.523,
+            // mean |2.57| rating pts of pure noise); weighted modal best-or-tied on every test
+            // cut (fresh-change .479 vs CUR .478; test cup .368, trucks .536). BACKTEST_LOG 2026-08-20.
             const carCnt = {}
-            baseRows.forEach(r => { if (r.sr === s && r.car) carCnt[r.car] = (carCnt[r.car] || 0) + 1 })
+            baseRows.forEach(r => { if (r.sr === s && r.car) carCnt[r.car] = (carCnt[r.car] || 0) + yrWt(r.yr) })
             let modalCar = null, modalCarN = 0
             Object.keys(carCnt).forEach(cn => { if (carCnt[cn] > modalCarN) { modalCar = cn; modalCarN = carCnt[cn] } })
             return [name, { avg: avgFin, avgRating, winConv, n: baseRows.length, modalCar, carMatched: __carMatchedF }]

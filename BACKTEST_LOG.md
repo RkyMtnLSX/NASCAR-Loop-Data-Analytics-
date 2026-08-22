@@ -4139,3 +4139,29 @@ consistent with mechanism: no-long-run drivers are midfield, penalty only reorde
 neutral hair better at h3/h5 (.80/.77, 1.66/1.64), penalty better t10 - offsetting noise. TRK:
 penalty best at depth (t5 8.97v9.09, t10 11.20v11.30, h10 4.75v4.71), gives back .04 h3. ORE:
 penalty-or-tie everywhere. Verdict unchanged: keep 25.
+
+## 2026-08-20 — RIDE-CHANGE STALE-MODAL FIX: weighted modal SHIPPED (k=0.25 delta reconfirmed)
+Trigger: operator flagged Garcia (#13->#98) still in the ride-change panel 18 races into his
+#98 season, and Majeski (#98->#88 cosmetic team renumbering) appearing at all.
+Harness: leak-free chronological rebuild of the 7/9 ride-change study, now on loop_data.car_number
+stamps (87.7 pct coverage) instead of the GFS join. Per driver-race: established (>=4 prior rows),
+prior-only year-weighted driver pool + car pools (n>=2 both), obs = current car differs from RAW
+modal. n=2813 obs (vs 1689 in 7/9): train 22-24 1143 / test 25-26 1670; cup 833 / ore 1369 / trk 611.
+Metric: pooled Spearman(adjusted rating, finish), sign-flipped.
+- REPRODUCTION: k0 test .485 -> CUR (k.25, raw modal) .496. Original k=0.25 ship reconfirmed.
+- DECISIVE SPLIT: FRESH changes (weighted history still in old car, n1927, shareNew mean .21):
+  k0 .462 -> CUR .478 -> WMODAL .479. The delta's entire edge lives here.
+  GARCIA CLASS (weighted history already flipped, n885, shareNew mean .54): k0 .523 vs
+  stale-delta .523 DEAD TIE (train +.002 / test -.002) while shifting ratings mean |2.57| pts.
+  Pure noise on ~31 pct of all ride-change obs.
+- Variants on test: CUR .496, DECAY (k*(1-shareNew)) .496, WMODAL .496 aggregate; WMODAL best
+  on test cup (.368 v .365) and trucks (.536 v .533). DECAY adds complexity, no measured gain.
+SHIPPED: modal car count now uses yrWt (same weights as the rating pool) in SimulationCenter -
+one-line change, delta formula untouched. Garcia flips to #98 within ~a race (weighted 51 v 53.2
+full-season; corr-window proportional); fresh movers (Kligerman case) unchanged - WMODAL is
+best-or-tied on every test cut. Evidence class = same harness family that shipped k=0.25.
+MANUAL infl OVERRIDES STAY: car-number-keyed pools cannot see team renumbering (Majeski #98->#88
+same truck - his 105.4 "old pool" is his own history under the old number; delta semantics
+nonsense there). Operator zeroed him by hand - that context lives in the operator's head, exactly
+the crossover_borrows doctrine. Weighted modal will ALSO retire renumbered veterans from the
+panel within ~a season-third, but week-one after a renumbering the manual zero is the only fix.
