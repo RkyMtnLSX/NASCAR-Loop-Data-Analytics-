@@ -19,7 +19,10 @@ Quirks: the content filter blocks tool OUTPUTS containing = & ? : ; together —
 - NO secrets/tokens/passwords in any file, repo doc, or web form — operator pastes secrets himself. Vercel gotcha: values pasted into the "Note (Optional)" field present as empty env vars.
 - Backtest before ship for model changes. When history can't score it (new data), ship gated + prospective protocol with an explicit revert trigger, logged in BACKTEST_LOG.
 - md discipline: code changes, doctrine, and queued work earn entries — no color commentary. Corrections are logged as corrections. Every entry dual-written: repo + local PitBoard Handoff mirror. Update PITBOARD_STATE.md in the same motion when the live picture changes.
-- Verify every ship on the live site before reporting done.
+- Verify every ship on the live site before reporting done. EXCEPTION (operator, 2026-08-19):
+  COSMETIC fixes (labels, colors, sort order, copy) get the light check only - build green +
+  string in deployed bundle; operator eyeballs the page himself. Full live-drive verification
+  stays mandatory for anything touching money, auth, gating, data writes, or model output.
 - Check `date` via bash before narrating day/time.
 - Sportskeeda is not a legitimate source.
 
