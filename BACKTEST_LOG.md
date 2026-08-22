@@ -4109,3 +4109,24 @@ Method: 390 races 2022-26 all 3 series, 15,943 loop rows; per race predict race-
 CORRECTION (2026-08-19, operator-prompted code check): the sim's corrAvgRating pool is ALREADY track-type-conditioned - loopRows filtered .in(track_name, corrNames) where corrNames = same correlation_group_label. Michigan/Atlanta never touched Eckes' NH rating; his rank-12 comes from 1 low-conf NH race (84.8), P15 start proj, no win conversion, strong flat field in normalization. REINTERPRETATION of the pre-test: sim ~= the TYPE-ONLY predictor (.704); the improvement is ADDING an all-tracks trailing component at ~half weight into corr - blend vs type-only: .7205 vs .7041, blend W244/L138/T8 (64 pct, p<1e-7). A/B spec flips accordingly: corr* = ~0.5 x same-group + ~0.5 x all-tracks trailing form (year-weighting kept), board-level paired backtest before ship.
 
 CORRECTION (operator, wk2 narrative): 'Bowman's early speed was real' was backwards - uncorrected ranked Bowman no.1, he raced ~top-10 (fin 10 from P25): an OVERRATING that the corrected card improved (Bowman 6th). Corrected's aggregate loss was driven by its own no.1 (Suarez, delivered nothing), not by Bowman. Verdict unchanged (field-wide rho .755 vs .656, n=36) but the lesson refines: BOTH cards overrated Richmond's early-window runners; the open question is correction STRENGTH, not direction. On/off protocol stands until the timestamped pool (~8-10 sessions) supports fitting strength.
+
+## 2026-08-20 — longRun missing-penalty RE-TEST at 3x sample: 25 HOLDS, no series split (no ship)
+Trigger: operator questioned the missing-longRun -> 25 penalty after NH trucks S1 (qualifying-sim
+short-runners + DNQ stakes make skipping long runs rational); asked for penalty re-test overall
+AND cup-only / trucks-only splits.
+Method: browser harness reimplementing v6-tc ranked pipeline (parseStints -> pooled within-stint
+demeaned tire slope -> overallTC pace / RAW best5 speed / longRunTC >=10-lap; rank-scaled within
+practice_group; composite .40/.40/.20). Final session per race, all stored sessions; finish joined
+via RACES table race_id (loop_data.race_number never trusted). 98 scoreable races: 44 cup, 26
+oreilly, 28 trucks (vs 33 clean in the 8/8 ship test). Variants: missing lr -> 25 / 35 / 50.
+- ALL n98:  p25 win 6.38 t5 9.62 rho .442 | p35 6.34/9.64/.441 | p50 6.35/9.64/.440
+- CUP n44:  p25 win 8.14 rho .342 | p50 8.09/.341 - flat wash
+- ORE n26:  p25 win 4.61 rho .552 | p50 4.70/.550 - penalty best
+- TRK n28:  p25 win 4.96 t5 8.97 rho .498 | p50 4.88/9.09/.493 - neutral better on WINNER only,
+  penalty better on t5 + rho, per-race rho 14W/12L - noise, not a truck effect
+- Per-race rho 25v50: 52W/35L/11T (p~.07, same direction as 8/8 at 3x n). Winner rank TIES in
+  75/93 races - the penalty almost never touches the top of the card (top graders long-ran
+  anyway); its work is midfield ordering.
+VERDICT: NO CHANGE. missing->25 reproduces its edge at n98; no series-conditional penalty
+justified. Sieg doctrine ("no long run rarely wins") re-confirmed. Note: harness skips gc prior-
+rating correction (matches 8/8 method); NH trucks S1 itself unscored (race not run).
