@@ -4208,3 +4208,67 @@ the Reset button. SS/ROAD/TRUCK_ROAD sets untouched. Operator hunch ("we overval
 CONFIRMED at scale, with one real exception cell. NH impact: cup board now runs 0.23, trucks
 board unchanged 0.33. Prospective watch: same ledger discipline as v6.3-st - if the cup boards
 go 0-fer two straight weekends on t5/t10 vs books, revisit.
+
+## 2026-08-22 — CLARIFICATION to the 8/20 startPos ship: the cut RENORMALIZED every other weight (no revert; result stands)
+Code check prompted by a review of the 8/20 entry. buildSpeedScores computes
+`wTotal = sum(weights)` and divides each term by it, and DEFAULT_WEIGHTS does NOT sum to 1.
+Cutting startPos .33 -> .23 moved the total 1.04 -> 0.94, so every OTHER term's effective
+share rose even though its literal value never changed:
+  startPos     .33/1.04 = 31.73%  ->  .23/0.94 = 24.47%   (-7.26 pts, not the -10 the entry implies)
+  corrHistory  .35/1.04 = 33.65%  ->  .35/0.94 = 37.23%   (+3.58)
+  longRunPace  .15/1.04 = 14.42%  ->  .15/0.94 = 15.96%   (+1.54)
+  trackHistory .15/1.04 = 14.42%  ->  .15/0.94 = 15.96%   (+1.54)
+  pitCrew      .06/1.04 =  5.77%  ->  .06/0.94 =  6.38%   (+0.61)
+THE SWEEP RESULT STANDS - it ran the PRODUCTION sim, which renormalizes, so the arm labelled
+"0.23" was scored as this exact bundle. Nothing to revert. What the entry got wrong is the
+DESCRIPTION: it reads as a startPos-only change, when mechanically it is "cut startPos share
+7.3 pts, redistribute proportionally to corr/longRun/track/crew". Anyone tuning from that
+entry would mis-state the arms.
+DOCTRINE (new, general): a weight edit that changes wTotal silently re-weights every other
+term. Contrast the 2026-07-04 trackHistory move (corr .40->.35, track .10->.15) which held
+the total at 1.04 and was therefore a clean two-term trade. Future weight changes should
+state whether they are share-preserving or total-changing, and sweeps should report effective
+shares, not raw values.
+CONSEQUENCE (queued, not urgent): corrHistory has never been swept at its new 37.2% share -
+0.35 is a leftover from the 7/04 trade, validated at 33.7% on n=40 mostly-cup. The 0.30 arm
+is the one that restores the old effective share. Same for longRun/trackHistory at +1.5 each.
+SCOPE: all DEFAULT_WEIGHTS boards (cup INT+SHORT, oreilly INT+SHORT, trucks INT).
+TRUCK_SHORT_WEIGHTS still sums to 1.04, so trucks short/flat shares are untouched - NH trucks
+runs the old bundle exactly, NH cup runs the new one.
+
+## 2026-08-22 — stint-splitting "missing lap" hypothesis REFUTED by timestamps; duplicate lap numbers found instead (data bug, 10.4% of sessions)
+HYPOTHESIS UNDER TEST: parseStints splits a run on any lap-number discontinuity
+(`laps[i][0] === laps[i-1][0] + 1`), so a single missing lap would cut a 20-lap run into
+10+9, both below the >=10-clean-lap longRun cut, dropping the driver to the missing->25 fill
+- a 20%-of-composite swing. Prevalence looked large: on 60,000 practice_laps rows / 1,956
+driver-sessions, 700 sessions have no long run, and bridging one-lap gaps rescues 499 of them
+(25.5% of ALL sessions). Big enough to matter if the gaps were artifacts.
+THEY ARE NOT. captured_at (2026-08-14+) labels them directly: of 90 single-lap gaps in the
+timestamped era, 90 are REAL PIT VISITS - wall clock 167-435s against 24-25s laps - and ZERO
+look like a dropped lap (which would show ~2 lap times of wall clock). The strict split is
+CORRECT; bridging would merge runs across a pit stop and corrupt long-run pace exactly where
+it is load-bearing. No change shipped. This also re-confirms the 8/20 n=98 finding from a
+different direction: those 25s are mostly drivers who genuinely never ran 10 clean laps.
+CAVEAT ON THE LABELS (do not over-read): the timestamped era is ~3.6k rows, short tracks only,
+and begins AFTER capture v4 (2026-08-08) fixed upstream misses - i.e. it is precisely the era
+where artifacts are least likely. Pre-08/08 sessions cannot be labelled this way. The claim is
+"gaps are real where we can check", not "the historical pool is clean".
+WHAT THE SCAN FOUND INSTEAD - DUPLICATE LAP NUMBERS: 204 of 1,956 driver-sessions (10.4%)
+contain the same lap_number twice for the same driver/session. 4,476 pairs carry DIFFERENT
+times (two sessions or two uploads interleaved under one session_number - e.g. cup 2025
+Phoenix lap3 27.424 vs 27.46, lap4 27.54 vs 27.708) and 1,438 pairs are byte-identical (true
+double-inserts). Effect is severe and silent: after the sort, laps read 1,1,2,2,3,3..., and
+since a repeat is not prev+1 the parser emits a chain of 1-2 lap stints. 133 of the 204
+affected sessions therefore have NO gradable long run at all and take the 25 fill wrongly,
+with avgPace/consistency corrupted alongside. By year: 2024 x34, 2025 x132, 2026 x38 - still
+occurring. Sample counts, from 60k of an unfinished full-table pull; treat as a floor.
+NEW HAMPSHIRE IS CLEAN: 0 duplicated sessions across both uploaded R18 sessions (trucks S1 41
+drivers, cup S1 36). 12 of 77 NH driver-sessions take the 25 fill and all inspected cases are
+legitimate (Ankrum 35 laps, LaJoie 32, Queen 32 - laps run, never 10 consecutive clean).
+Tomorrow's boards are NOT affected; no pre-race action taken, deliberately - v6.3-st week 3 is
+judged this weekend and a grader-side change now would make that ledger unattributable.
+NEXT (post-NH, in order): (1) full-table duplicate audit + a dedupe rule keyed on
+(series, year, track_name, session_number, driver_name, lap_number); (2) decide whether
+historical dedupe is applied - it CHANGES historical grades and therefore the 97-race harness
+baseline, so it needs its own before/after grade-bar run rather than a silent cleanup;
+(3) an upload-time guard so a re-upload replaces rather than interleaves.

@@ -44,6 +44,16 @@ Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2
 8. Mech DNF tiered by equipment; tire-management earned/dashed column; matchup pricer; RR+LR loop-data merge mode; PENALTIES_BACKFILL_ALL history run (operator); best-5 tooltip wording.
 
 ## Loose ends
+- PRACTICE DUPLICATE LAP NUMBERS (found 2026-08-22): 10.4% of driver-sessions in a 60k-row scan
+  carry the same lap_number twice → parseStints fragments them into 1-2 lap stints → 133 of 204
+  affected sessions wrongly take the missing-longRun→25 fill. Ongoing (2026 x38). NH R18 CLEAN,
+  so live boards are fine. Owed post-NH: full-table audit, dedupe key
+  (series,year,track_name,session_number,driver_name,lap_number), decision on historical dedupe
+  (moves the 97-race harness baseline — needs its own grade-bar run), upload-time replace guard.
+  BACKTEST_LOG 2026-08-22.
+- corrHistory has never been swept at its post-8/20 effective share (33.7% → 37.2%; the startPos
+  cut changed wTotal and renormalized every term). Sweep result stands, but 0.30 is the arm that
+  restores the validated share — queue candidate behind the ownership overlay.
 - pit_crew_race bookmarklet may write with bare publishable key → now blocked by RLS; re-test
   at next weekly sync, fix = operator access_token in headers (2026-08-19).
 - Trucks Richmond practice never re-uploaded with timestamps — live truck card still uncorrected (cup wk2 check was run via harness instead).

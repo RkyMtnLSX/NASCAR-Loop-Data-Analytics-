@@ -2427,3 +2427,21 @@ weights panel shows Start 23% on NH cup, 33% on NH trucks after deploy.
 FILL RESERVED ENTRIES v2 (2026-08-20, commit b0361752): per-CONTEST picker. Choosing the DK Entries CSV now parses + groups rows by Contest Name and shows checkboxes (name + entry count, all checked by default); Fill selected emits a file containing ONLY checked contests' rows - DK edits those in place, unchecked contests never appear in the upload so they are untouched. Cycling within selection unchanged. TWO-PASS PATTERN: fill GPP contests with a ceiling build, rebuild in Cash mode, run the SAME entries file again with only cash contests checked. FULLY LIVE-VERIFIED (synthetic 2-contest file injected into deployed page: picker groups/counts correct, output = header + 3 selected rows w/ 6 ID'd drivers each, unchecked contest absent). Bug note for the workflow file: stale-index splice (insert-then-use-old-offset) corrupted first attempt - anchors only, recompute after every mutation.
 
 EXPOSURE DEATH-SPIRAL FIX + CONTEST-ID FALLBACK (2026-08-21, commit 8a48b136): (1) applyExposure's 7/23 delivered-set trim loop REMOVED - with a driver in ~every candidate (chalk on small slates: NH trucks JHN/Perez) cap2 shrank with each trim and spiraled any sub-100 exposure request to ONE lineup (operator: 20 @ 90 -> 1). Now: cap = floor(want x maxExp) appearances vs the REQUESTED count, greedy, no trim; pool exhaustion under-delivers with the existing note and the Exposure column shows real percentages. Live-verified: 20 @ 90 cash on NH trucks -> 18 lineups (correct: universal chalk capped at 18). (2) Entries picker groups by Contest ID ('Contest #NNNN') when the DK export lacks a Contest Name column - operator reports DK accepts the filled file fine either way.
+
+PRACTICE DATA INTEGRITY - DUPLICATE LAP NUMBERS (2026-08-22, investigation only, no code shipped):
+scan of 60k practice_laps rows found 204 of 1,956 driver-sessions (10.4%) carrying the same
+lap_number twice for the same driver/session - 4,476 pairs with DIFFERENT times (two sessions or
+two uploads interleaved under one session_number) and 1,438 byte-identical (double-inserts). Because
+parseStints only continues a stint on prev+1, a duplicated session fragments into 1-2 lap stints:
+133 of the 204 lose their long run entirely and take the missing->25 fill wrongly (20% of the
+composite), with avgPace/consistency corrupted too. Ongoing: 2024 x34, 2025 x132, 2026 x38.
+NEW HAMPSHIRE R18 IS CLEAN (0 duplicated sessions, trucks S1 + cup S1) so the live boards are fine
+and nothing was changed before the race - a grader-side change this weekend would have made the
+v6.3-st week-3 ledger unattributable. Owed post-NH: full-table audit, a dedupe keyed on
+(series,year,track_name,session_number,driver_name,lap_number), a decision on whether historical
+dedupe is applied (it moves historical grades and the 97-race harness baseline, so it needs its own
+grade-bar before/after), and an upload-time guard so re-uploads REPLACE instead of interleaving.
+Related: the "one missing lap splits a run" hypothesis was tested and REFUTED - all 90 single-lap
+gaps in the timestamped era are real pit visits (167-435s wall clock vs 24-25s laps). BACKTEST_LOG
+2026-08-22 carries both, plus a clarification that the 8/20 startPos cut renormalized every other
+weight (corr 33.7%->37.2% on DEFAULT boards; sweep result stands, description was incomplete).
