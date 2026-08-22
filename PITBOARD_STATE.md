@@ -1,5 +1,5 @@
 # PITBOARD STATE
-Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2026-08-19 late, sandbox payments track COMPLETE.
+Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2026-08-21. DFS multi-entry toolchain COMPLETE: fill-by-contest picker (b0361752), exposure cap fixed - sub-100% no longer collapses to 1 lineup (8a48b136); NH entry JHN fix + parser hardened (e3b7ec39). NH weekend live: v6.3 wk3 + startPos watch both judged Sunday.
 
 ## Launch runway (target: The Chase, ~2-3 race weekends out)
 - [x] #64 table-lockdown SQL — RUN + LIVE-VERIFIED 2026-08-19 (anon 0 rows everywhere; RPCs
