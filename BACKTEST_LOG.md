@@ -4165,3 +4165,22 @@ same truck - his 105.4 "old pool" is his own history under the old number; delta
 nonsense there). Operator zeroed him by hand - that context lives in the operator's head, exactly
 the crossover_borrows doctrine. Weighted modal will ALSO retire renumbered veterans from the
 panel within ~a season-third, but week-one after a renumbering the manual zero is the only fix.
+
+## 2026-08-20 — startPos PRE-TEST (operator "overvaluing start" hunch): raw vs MARGINAL, by series/type
+Cheap loop-data scan (no sim), 432 races: per-race Spearman(start, finish) raw, and PARTIAL
+controlling walk-forward prior driver rating (last-20 mean, >=4 prior races) - the marginal
+value start adds beyond driver quality.
+RAW: trucks S/F .576 (NH class - highest anywhere), ore Int .509, cup S/F .474, cup Int .373
+(weakest non-SS oval), SS .10-.26. Series: cup .370 ore .441 trk .455. 2026 .398 vs prior .420.
+PARTIAL: cup Road .333 (HIGHEST - yet ROAD_COURSE_WEIGHTS runs startPos 0.15), cup S/F .240,
+cup Int .170, trk S/F .154, trk Int .141, ore Int .111, ore S/F .112, SS .03-.06.
+Series partial: cup .195, trk .138, ore .120.
+READ: most raw grid predictiveness is SPEED SELECTION (fast cars qualify well - corr already
+knows); pure position value is ~.11-.19 on ovals. BUT sim startPos double-serves as this-
+weekend current-form speed (freshest speed data on the board) - which is why three full-model
+sweeps (11/29/40-race, win/top-N Brier standard) kept 0.33: they score the bundle. "Overvalued
+overall" NOT supported; HETEROGENEITY is real and unmatched by current sets: ore ovals lowest
+marginal (case to trim), cup road highest marginal on the LOWEST weight set (possibly backward).
+NEXT (queued, behind ownership overlay): per-series/track-type startPos sweep in the FULL model
+on market Briers (Chicagoland-reconstruction harness family). No weight changes from this
+pre-test alone - it cannot see the bundled current-form role.
