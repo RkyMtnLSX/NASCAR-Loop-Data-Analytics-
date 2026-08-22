@@ -4130,3 +4130,12 @@ oreilly, 28 trucks (vs 33 clean in the 8/8 ship test). Variants: missing lr -> 2
 VERDICT: NO CHANGE. missing->25 reproduces its edge at n98; no series-conditional penalty
 justified. Sieg doctrine ("no long run rarely wins") re-confirmed. Note: harness skips gc prior-
 rating correction (matches 8/8 method); NH trucks S1 itself unscored (race not run).
+
+ADDENDUM (operator asked for depth beyond winner/t5): same 98 races, t3/t5/t10 mean rank + hits.
+ALL n98: t3 8.56/8.55/8.55 h3 .86/.86/.88 | t5 9.62/9.64/9.64 h5 1.79/1.78/1.80 | t10
+12.07/12.09/12.12 h10 4.73/4.73/4.74 (order p25/p35/p50). PATTERN: variants identical at
+winner/t3 (neutral +.02 h3 ~ 1 hit per 50 races), penalty pulls ahead as depth increases (t10) -
+consistent with mechanism: no-long-run drivers are midfield, penalty only reorders there. CUP:
+neutral hair better at h3/h5 (.80/.77, 1.66/1.64), penalty better t10 - offsetting noise. TRK:
+penalty best at depth (t5 8.97v9.09, t10 11.20v11.30, h10 4.75v4.71), gives back .04 h3. ORE:
+penalty-or-tie everywhere. Verdict unchanged: keep 25.
