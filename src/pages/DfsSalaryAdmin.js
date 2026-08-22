@@ -6,7 +6,7 @@ const norm = (s) => (s || '').toString().toLowerCase().normalize('NFD').replace(
 
 function parseSalaries(text, drivers) {
   const lines = (text || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean)
-  const out = {}, unmatched = [], ids = {}   // ids: DK player IDs from 'Name (12345678)' or ID columns
+  const out = {}, unmatched = [], ids = {}, outs = []   // ids: DK player IDs; outs: drivers tagged OUT in the paste
   const byNorm = {}, byLast = {}
   drivers.forEach(d => { const n = norm(d.name); byNorm[n] = d.name; const p = n.split(' '); if (p.length) byLast[p[p.length - 1]] = d.name })
   lines.forEach(line => {
@@ -19,10 +19,12 @@ function parseSalaries(text, drivers) {
     if (sal === null) { const nums = line.replace(/[$,]/g, '').match(/\b\d{4,5}\b/g) || []; for (const x of nums) { const v = +x; if (v >= 2000 && v <= 20000) { sal = v; break } } }
     if (!name) { const nl = norm(line); for (const d of drivers) { if (nl.indexOf(norm(d.name)) >= 0) { name = d.name; break } } }
     if (!name) { const nl = norm(line); for (const last in byLast) { if (last.length > 2 && new RegExp('\\b' + last + '\\b').test(nl)) { name = byLast[last]; break } } }
-    if (name && sal) { out[name] = sal; const idm = line.match(/\((\d{6,10})\)/) || line.replace(/[$]/g, '').match(/(?:^|[,\t])(\d{7,9})(?:[,\t]|$)/); if (idm) ids[name] = idm[1] }
+    if (name && sal) { out[name] = sal; const idm = line.match(/\((\d{6,10})\)/) || line.replace(/[$]/g, '').match(/(?:^|[,\t])(\d{7,9})(?:[,\t]|$)/); if (idm) ids[name] = idm[1]
+      // DK marks withdrawn/DNQ drivers OUT in the lobby - capture the tag if the paste carries it (2026-08-20)
+      if (/\bOUT\b/.test(line)) outs.push(name) }
     else if (sal && !name) unmatched.push(line.slice(0, 44))
   })
-  return { out, unmatched, ids }
+  return { out, unmatched, ids, outs }
 }
 
 export default function DfsSalaryAdmin() {
@@ -82,6 +84,7 @@ export default function DfsSalaryAdmin() {
 
   const salCount = Object.values(salaries).filter(v => v > 0).length
   const setSal = (name, val) => setSalaries(s => ({ ...s, [name]: val === '' ? 0 : Math.round(+val) || 0 }))
+  const toggleOut = (name) => setSalaries(s => { const cur = new Set(s.__out || []); cur.has(name) ? cur.delete(name) : cur.add(name); return { ...s, __out: Array.from(cur) } })
   // ── Ownership ingest (2026-08-08): DK contest-standings CSV carries a player
   // block with %Drafted. One row per driver per contest type per race.
   const parseOwnership = (text, extraNames) => {
@@ -165,19 +168,19 @@ export default function DfsSalaryAdmin() {
     reader.onload = (ev) => {
       const text = String(ev.target.result || '')
       setPaste(text)
-      const { out, unmatched, ids } = parseSalaries(text, drivers)
-      setSalaries(s => ({ ...s, ...out, __ids: { ...(s.__ids || {}), ...ids } }))
+      const { out, unmatched, ids, outs } = parseSalaries(text, drivers)
+      setSalaries(s => ({ ...s, ...out, __ids: { ...(s.__ids || {}), ...ids }, __out: Array.from(new Set([...(s.__out || []), ...outs])) }))
       const n = Object.keys(out).length, ni = Object.keys(ids).length
-      setMsg('File: matched ' + n + ' driver' + (n === 1 ? '' : 's') + ', ' + ni + ' DK IDs captured.' + (unmatched.length ? ' Unmatched: ' + unmatched.length + ' (edit below).' : '') + (ni < n ? ' WARNING: some drivers have no DK ID - lineup export will be incomplete.' : ''))
+      setMsg('File: matched ' + n + ' driver' + (n === 1 ? '' : 's') + ', ' + ni + ' DK IDs captured.' + (outs.length ? ' ' + outs.length + ' marked OUT.' : '') + (unmatched.length ? ' Unmatched: ' + unmatched.length + ' (edit below).' : '') + (ni < n ? ' WARNING: some drivers have no DK ID - lineup export will be incomplete.' : ''))
     }
     reader.readAsText(file)
     e.target.value = ''
   }
   const doPaste = () => {
-    const { out, unmatched, ids } = parseSalaries(paste, drivers)
-    setSalaries(s => ({ ...s, ...out, __ids: { ...(s.__ids || {}), ...ids } }))
+    const { out, unmatched, ids, outs } = parseSalaries(paste, drivers)
+    setSalaries(s => ({ ...s, ...out, __ids: { ...(s.__ids || {}), ...ids }, __out: Array.from(new Set([...(s.__out || []), ...outs])) }))
     const n = Object.keys(out).length
-    const ni = Object.keys(ids).length; setMsg('Matched ' + n + ' driver' + (n === 1 ? '' : 's') + ', ' + ni + ' DK IDs.' + (unmatched.length ? ' Unmatched: ' + unmatched.length + ' (edit below).' : '') + (ni === 0 ? ' NOTE: no DK IDs in paste - upload the DK CSV file for lineup-export IDs.' : ''))
+    const ni = Object.keys(ids).length; setMsg('Matched ' + n + ' driver' + (n === 1 ? '' : 's') + ', ' + ni + ' DK IDs.' + (outs.length ? ' ' + outs.length + ' marked OUT.' : '') + (unmatched.length ? ' Unmatched: ' + unmatched.length + ' (edit below).' : '') + (ni === 0 ? ' NOTE: no DK IDs in paste - upload the DK CSV file for lineup-export IDs.' : ''))
   }
   const clearAll = () => { setSalaries({}); setMsg('Cleared (not yet saved).') }
   const save = async () => {
@@ -231,19 +234,22 @@ export default function DfsSalaryAdmin() {
               <th style={{ padding: '6px 8px', textAlign: 'right' }}>Proj DK</th>
               <th style={{ padding: '6px 8px', textAlign: 'right' }}>Salary</th>
               <th style={{ padding: '6px 8px', textAlign: 'right' }}>Value</th>
+              <th style={{ padding: '6px 8px', textAlign: 'center' }}>OUT</th>
             </tr></thead>
             <tbody>
               {drivers.map(d => {
                 const sal = salaries[d.name] || 0
-                const val = sal > 0 ? (d.projDK / (sal / 1000)).toFixed(2) : '\u2014'
+                const isOut = (salaries.__out || []).includes(d.name)
+                const val = sal > 0 && !isOut ? (d.projDK / (sal / 1000)).toFixed(2) : '\u2014'
                 return (
-                  <tr key={d.name} style={{ borderBottom: '1px solid var(--border,#22252b)' }}>
-                    <td style={{ padding: '4px 8px' }}>{d.car ? '#' + d.car + ' ' : ''}{d.name}</td>
+                  <tr key={d.name} style={{ borderBottom: '1px solid var(--border,#22252b)', opacity: isOut ? 0.45 : 1 }}>
+                    <td style={{ padding: '4px 8px' }}>{d.car ? '#' + d.car + ' ' : ''}{d.name}{isOut ? <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 800, color: '#ff5148', border: '1px solid #ff5148', borderRadius: 4, padding: '1px 5px' }}>OUT</span> : null}</td>
                     <td style={{ padding: '4px 8px', textAlign: 'right' }}>{d.projDK.toFixed(1)}</td>
                     <td style={{ padding: '4px 8px', textAlign: 'right' }}>
                       <input value={sal || ''} onChange={e => setSal(d.name, e.target.value)} placeholder="\u2014" style={{ width: 66, textAlign: 'right', ...inp }} />
                     </td>
                     <td style={{ padding: '4px 8px', textAlign: 'right' }}>{val}</td>
+                    <td style={{ padding: '4px 8px', textAlign: 'center' }}><input type="checkbox" checked={isOut} onChange={() => toggleOut(d.name)} title="Mark OUT (withdrawn / DNQ) - excluded from DFS Center pool" /></td>
                   </tr>
                 )
               })}

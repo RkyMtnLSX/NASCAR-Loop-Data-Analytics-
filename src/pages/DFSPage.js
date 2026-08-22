@@ -155,7 +155,8 @@ export default function DFSPage() {
   // (was: only after clicking Build lineups). Chunked; cancelled cleanly on series switch.
   useEffect(() => {
     if (!samples || !samples.drivers || !samples.rows || !samples.rows.length) return
-    const salByIdx = samples.drivers.map(nm => salaries[nm] || 0)
+    const __outSet = new Set(salaries.__out || [])
+    const salByIdx = samples.drivers.map(nm => __outSet.has(nm) ? 0 : (salaries[nm] || 0))
     if (salByIdx.filter(v => v > 0).length < ROSTER) return
     let cancel = false
     const cnt = {}, nS = samples.rows.length
@@ -196,9 +197,12 @@ export default function DFSPage() {
   }, [samples])
 
   const rows = useMemo(() => drivers.map(d => {
-    const sal = salaries[d.name] || 0
+    // OUT drivers (withdrawn / DNQ, from dfs_salaries.__out 2026-08-20): effective salary 0
+    // kills value AND drops them from every optimizer path (all pools filter sal > 0).
+    const isOut = (salaries.__out || []).includes(d.name)
+    const sal = isOut ? 0 : (salaries[d.name] || 0)
     const value = sal > 0 ? d.projDK / (sal / 1000) : 0
-    return { ...d, sal, value, opt: optPct[d.name] || 0, ceil: ceilMap[d.name] || 0 }
+    return { ...d, sal, value, out: isOut, opt: optPct[d.name] || 0, ceil: ceilMap[d.name] || 0 }
   }), [drivers, salaries, optPct, ceilMap])
 
   const sorted = useMemo(() => {
@@ -461,7 +465,7 @@ export default function DFSPage() {
                       </td>
                       <td style={{ padding: '4px 8px', textAlign: 'left', whiteSpace: 'nowrap' }}><CarNum car={d.car} series={series} />{d.name}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right', fontWeight: 600 }}>{d.startPos ? 'P' + d.startPos : '\u2014'}</td>
-                      <td style={{ padding: '4px 8px', textAlign: 'right' }}>{d.sal ? '$' + d.sal.toLocaleString() : '\u2014'}</td>
+                      <td style={{ padding: '4px 8px', textAlign: 'right' }}>{d.out ? <span style={{ fontSize: 10, fontWeight: 800, color: '#ff5148', border: '1px solid #ff5148', borderRadius: 4, padding: '1px 5px' }}>OUT</span> : d.sal ? '$' + d.sal.toLocaleString() : '\u2014'}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right', fontWeight: 600 }}>{d.projDK.toFixed(1)}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right', color: 'var(--text-secondary,#9aa0aa)' }}>{d.ceil ? d.ceil.toFixed(0) : '\u2014'}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right', background: vBg, fontWeight: 600 }}>{d.value ? d.value.toFixed(2) : '\u2014'}</td>

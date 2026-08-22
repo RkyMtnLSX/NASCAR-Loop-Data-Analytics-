@@ -2399,3 +2399,14 @@ below qualified field, nulls last), LapComparison (list + table "P-1" -> "DNQ"),
 PracticeReportCard (start col "-1" -> "DNQ"). Verified live on NH trucks S1: 5 DNQs
 (Massey/Breidinger/Muniz/Wilson/White) bottom of table. Comparison/report card verified
 via bundle (4 DNQ literals).
+
+DFS OUT-DRIVER HANDLING (2026-08-20): operator caught DK-listed OUT drivers (withdrawn/DNQ)
+surfacing as "value" in DFS Center - parseSalaries read only name/salary/ID, status ignored.
+Shipped: (1) parser captures \bOUT\b on a matched salary line -> __out array in dfs_salaries
+json; (2) DfsSalaryAdmin per-driver OUT checkbox (auto-checked from paste, manual toggle for
+late scratches) + OUT badge; (3) DFSPage: OUT driver -> effective salary 0, which zeroes value
+AND drops them from ALL optimizer paths (mean pool, GPP feasible(), Optimal% salByIdx - every
+path filters sal>0); salary cell shows red OUT badge. Re-upload/save salaries after marking.
+NOTE: OUT detection only works when the paste carries DK's OUT tag (lobby copy does, bare CSV
+may not) - the manual checkbox is the guarantee. Cosmetic-adjacent but pool-affecting: shipped
+with light check per 8/19 rule, operator verifying on this week's NH slate.
