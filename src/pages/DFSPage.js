@@ -53,27 +53,17 @@ function optimize(pool, locks, excludes, K) {
 function applyExposure(ranked, want, maxExp, locks) {
   const lk = locks || new Set()
   if (maxExp >= 1) return ranked.slice(0, want)
+  // Cap = appearances vs the REQUESTED count (floor(want x maxExp)), greedy down the
+  // ranking. 2026-08-21: the 7/23 delivered-set trim loop is GONE - with a driver present
+  // in ~every candidate (chalk on a small slate) it death-spiraled cap2 down to ONE lineup
+  // (operator hit it: 20 @ 90% -> 1). If the pool exhausts early, delivered exposure can
+  // exceed maxExp - the Exposure column shows the truth; lower the cap if that matters.
   const capCount = Math.max(1, Math.floor(want * maxExp))
   const used = {}, picked = []
   for (const lu of ranked) {
     if (picked.length >= want) break
     if (lu.drivers.some(d => !lk.has(d.name) && (used[d.name] || 0) >= capCount)) continue
     picked.push(lu); lu.drivers.forEach(d => { used[d.name] = (used[d.name] || 0) + 1 })
-  }
-  // 2026-07-23 FIX: the cap must hold against the DELIVERED set, not the requested count.
-  // When the candidate pool exhausts early (13 of 20), a 10-appearance driver was 77% exposed.
-  // Trim worst-ranked lineups until every unlocked driver is within maxExp of the final set.
-  for (;;) {
-    const cap2 = Math.max(1, Math.floor(picked.length * maxExp))
-    const cnt = {}
-    picked.forEach(lu => lu.drivers.forEach(d => { cnt[d.name] = (cnt[d.name] || 0) + 1 }))
-    const over = Object.keys(cnt).filter(n => !lk.has(n) && cnt[n] > cap2)
-    if (!over.length || picked.length <= 1) break
-    const worstName = over.sort((a, b) => cnt[b] - cnt[a])[0]
-    let idx = -1
-    for (let i = picked.length - 1; i >= 0; i--) { if (picked[i].drivers.some(d => d.name === worstName)) { idx = i; break } }
-    if (idx < 0) break
-    picked.splice(idx, 1)
   }
   return picked
 }
@@ -328,6 +318,7 @@ export default function DFSPage() {
           if (ei !== -1) {
             hdrIdx = li; eCol = ei
             cCol = cells.findIndex(c => c.trim().toLowerCase() === 'contest name')
+            if (cCol === -1) cCol = cells.findIndex(c => c.trim().toLowerCase() === 'contest id') // some DK exports carry only the ID
             cells.forEach((c, ci2) => { if (c.trim() === 'D') dCols.push(ci2) })
             break
           }
@@ -338,7 +329,8 @@ export default function DFSPage() {
           if (!lines[li]) continue
           const cells = __csvParse(lines[li])
           if (!/^\d{6,}$/.test((cells[eCol] || '').trim())) continue
-          const cname = cCol !== -1 ? ((cells[cCol] || '').trim() || 'Unknown contest') : 'All entries'
+          const cRaw = cCol !== -1 ? (cells[cCol] || '').trim() : ''
+          const cname = cRaw ? (/^\d+$/.test(cRaw) ? 'Contest #' + cRaw : cRaw) : 'All entries'
           ;(groups[cname] = groups[cname] || []).push(li)
         }
         const glist = Object.keys(groups).map(n2 => ({ name: n2, rows: groups[n2] }))
