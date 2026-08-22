@@ -117,6 +117,7 @@ export default function DFSPage() {
   const [note, setNote] = useState('')
   const [mode, setMode] = useState('gpp') // 2026-08-14: GPP ceiling default
   const [simCands, setSimCands] = useState(null)
+  const [entFile, setEntFile] = useState(null) // 2026-08-20: parsed DK entries file awaiting contest selection
   const [sortKey, setSortKey] = useState('value')
   const [sortDir, setSortDir] = useState('desc')
 
@@ -306,50 +307,74 @@ export default function DFSPage() {
     }, 30)
   }
 
-  // FILL RESERVED ENTRIES (2026-08-14): DK library uploads never touch entries already
-  // reserved in contests - DK only updates those in place via its Entries CSV (which
-  // carries Entry ID). This takes that file, writes our built lineups into the D slots
-  // (cycling when entries > lineups), and returns it ready to re-upload.
-  const fillEntriesCsv = (file) => {
+  // FILL RESERVED ENTRIES v2 (2026-08-20): parse the DK Entries CSV, group rows by
+  // contest, let the user pick WHICH contests to fill, then emit a file containing ONLY
+  // the selected entries - DK edits those in place and never touches unchecked contests.
+  // Two-pass trick: fill GPP contests with a ceiling build, rebuild in Cash mode, run the
+  // same file again for the cash contests. v1 (2026-08-14) filled every row blindly.
+  const __csvParse = (line) => { const out = []; let cur = '', q = false; for (let i = 0; i < line.length; i++) { const ch = line[i]; if (q) { if (ch === '"') { if (line[i + 1] === '"') { cur += '"'; i++ } else q = false } else cur += ch } else { if (ch === '"') q = true; else if (ch === ',') { out.push(cur); cur = '' } else cur += ch } } out.push(cur); return out }
+  const __csvSer = (cells) => cells.map(c => /[",]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c).join(',')
+  const parseEntriesFile = (file) => {
     if (!lineups.length || !file) return
     const reader = new FileReader()
     reader.onload = (ev) => {
       try {
-        const text = String(ev.target.result || '')
-        const parse = (line) => { const out = []; let cur = '', q = false; for (let i = 0; i < line.length; i++) { const ch = line[i]; if (q) { if (ch === '"') { if (line[i + 1] === '"') { cur += '"'; i++ } else q = false } else cur += ch } else { if (ch === '"') q = true; else if (ch === ',') { out.push(cur); cur = '' } else cur += ch } } out.push(cur); return out }
-        const ser = (cells) => cells.map(c => /[",]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c).join(',')
-        const lines = text.split(/\r?\n/)
-        const ids = (salaries && salaries.__ids) || {}
-        let hdrIdx = -1, eCol = -1
+        const lines = String(ev.target.result || '').split(/\r?\n/)
+        let hdrIdx = -1, eCol = -1, cCol = -1
         const dCols = []
         for (let li = 0; li < lines.length; li++) {
-          const cells = parse(lines[li])
+          const cells = __csvParse(lines[li])
           const ei = cells.findIndex(c => c.trim().toLowerCase() === 'entry id')
-          if (ei !== -1) { hdrIdx = li; eCol = ei; cells.forEach((c, ci2) => { if (c.trim() === 'D') dCols.push(ci2) }); break }
+          if (ei !== -1) {
+            hdrIdx = li; eCol = ei
+            cCol = cells.findIndex(c => c.trim().toLowerCase() === 'contest name')
+            cells.forEach((c, ci2) => { if (c.trim() === 'D') dCols.push(ci2) })
+            break
+          }
         }
         if (hdrIdx === -1 || dCols.length < ROSTER) { setNote('Could not find Entry ID / D columns - use the Entries CSV downloaded from the DK upload page.'); return }
-        let filled = 0
-        const missing = new Set()
+        const groups = {}
         for (let li = hdrIdx + 1; li < lines.length; li++) {
           if (!lines[li]) continue
-          const cells = parse(lines[li])
+          const cells = __csvParse(lines[li])
           if (!/^\d{6,}$/.test((cells[eCol] || '').trim())) continue
-          const lu = lineups[filled % lineups.length]
-          lu.drivers.forEach((d, k2) => { const id = ids[d.name]; if (!id) missing.add(d.name); cells[dCols[k2]] = id ? d.name + ' (' + id + ')' : d.name })
-          lines[li] = ser(cells)
-          filled++
+          const cname = cCol !== -1 ? ((cells[cCol] || '').trim() || 'Unknown contest') : 'All entries'
+          ;(groups[cname] = groups[cname] || []).push(li)
         }
-        if (!filled) { setNote('No reserved entries found in that file.'); return }
-        const a = document.createElement('a')
-        a.href = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv' }))
-        const __trk2 = race && race.track ? String(race.track).replace(/[^a-zA-Z0-9]+/g, '_') : 'race'
-        a.download = 'PitBoard_DK_ENTRIES_' + series + '_' + __trk2 + '_filled.csv'
-        a.click(); URL.revokeObjectURL(a.href)
-        setNote('Filled ' + filled + ' reserved entr' + (filled === 1 ? 'y' : 'ies') + ' - upload this file back on the DK Upload Lineups page and the reserved entries update in place.' + (missing.size ? ' WARNING: no DK ID for ' + [...missing].join(', ') : ''))
-      } catch (err2) { setNote('Entries fill failed: ' + err2.message) }
+        const glist = Object.keys(groups).map(n2 => ({ name: n2, rows: groups[n2] }))
+        if (!glist.length) { setNote('No reserved entries found in that file.'); return }
+        setEntFile({ lines, hdrIdx, eCol, cCol, dCols, groups: glist, sel: new Set(glist.map(g => g.name)) })
+        setNote('')
+      } catch (err2) { setNote('Entries parse failed: ' + err2.message) }
     }
     reader.readAsText(file)
   }
+  const applyEntriesFill = () => {
+    if (!entFile || !lineups.length) return
+    const ids = (salaries && salaries.__ids) || {}
+    const missing = new Set()
+    const out = entFile.lines.slice(0, entFile.hdrIdx + 1)
+    let filled = 0
+    entFile.groups.forEach(g => {
+      if (!entFile.sel.has(g.name)) return
+      g.rows.forEach(li => {
+        const cells = __csvParse(entFile.lines[li])
+        const lu = lineups[filled % lineups.length]
+        lu.drivers.forEach((d2, k2) => { const id = ids[d2.name]; if (!id) missing.add(d2.name); cells[entFile.dCols[k2]] = id ? d2.name + ' (' + id + ')' : d2.name })
+        out.push(__csvSer(cells))
+        filled++
+      })
+    })
+    if (!filled) { setNote('No contests selected.'); return }
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(new Blob([out.join('\n')], { type: 'text/csv' }))
+    const __trk2 = race && race.track ? String(race.track).replace(/[^a-zA-Z0-9]+/g, '_') : 'race'
+    a.download = 'PitBoard_DK_ENTRIES_' + series + '_' + __trk2 + '_filled.csv'
+    a.click(); URL.revokeObjectURL(a.href)
+    setNote('Filled ' + filled + ' entr' + (filled === 1 ? 'y' : 'ies') + ' across ' + entFile.sel.size + ' contest(s) - upload back on the DK Upload Lineups page. Unselected contests untouched.' + (missing.size ? ' WARNING: no DK ID for ' + [...missing].join(', ') : ''))
+    setEntFile(null)
+  }
+
   const exportCsv = () => {
     if (!lineups.length) return
     const ids = (salaries && salaries.__ids) || {}
@@ -438,8 +463,21 @@ export default function DFSPage() {
             {lineups.length > 0 && <button onClick={exportCsv} style={{ padding: '8px 14px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--accent,#e11d2a)', background: 'transparent', color: 'var(--accent,#e11d2a)', fontWeight: 600 }}>Export DK CSV</button>}
             {lineups.length > 0 && <label style={{ padding: '8px 14px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--accent,#e11d2a)', color: 'var(--accent,#e11d2a)', fontWeight: 600, fontSize: 13 }}>
               Fill reserved entries
-              <input type="file" accept=".csv,text/csv" style={{ display: 'none' }} onChange={e => { fillEntriesCsv(e.target.files && e.target.files[0]); e.target.value = '' }} />
+              <input type="file" accept=".csv,text/csv" style={{ display: 'none' }} onChange={e => { parseEntriesFile(e.target.files && e.target.files[0]); e.target.value = '' }} />
             </label>}
+            {entFile && <div style={{ width: '100%', marginTop: 10, padding: '10px 12px', border: '1px solid var(--border,#2a2d34)', borderRadius: 8 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Fill which contests?</div>
+              {entFile.groups.map(g => (
+                <label key={g.name} style={{ display: 'block', fontSize: 13, marginBottom: 4, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={entFile.sel.has(g.name)} onChange={() => setEntFile(p => { const sel = new Set(p.sel); if (sel.has(g.name)) sel.delete(g.name); else sel.add(g.name); return { ...p, sel } })} />{' '}
+                  {g.name} <span style={{ color: 'var(--text-secondary,#9aa0aa)' }}>({g.rows.length} entr{g.rows.length === 1 ? 'y' : 'ies'})</span>
+                </label>
+              ))}
+              <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+                <button onClick={applyEntriesFill} style={{ padding: '6px 14px', borderRadius: 8, cursor: 'pointer', border: 'none', background: 'var(--accent,#E10600)', color: '#fff', fontWeight: 600 }}>Fill selected</button>
+                <button onClick={() => setEntFile(null)} style={{ padding: '6px 14px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: 'transparent', color: 'var(--text,#e8eaed)' }}>Cancel</button>
+              </div>
+            </div>}
             <span style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 12 }}>{canBuild ? 'Cap $50,000 \u00b7 6 drivers \u00b7 Lock/Excl to steer' + (samples ? ' \u00b7 Optimal% from ' + samples.rows.length + ' sims \u00b7 Value = proj DK pts per $1K salary (higher = more points per dollar) \u00b7 Ceiling = 90th-percentile DK score (tournament upside)' : '') : 'Salaries not posted yet'}</span>
             {note && <span style={{ color: 'var(--accent,#e11d2a)', fontSize: 12 }}>{note}</span>}
           </div>
