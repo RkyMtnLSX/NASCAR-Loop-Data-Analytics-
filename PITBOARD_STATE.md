@@ -32,6 +32,10 @@ Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2
 2. DFS replay report UI — auto compute/place both modes from each standings upload.
 3. [PRE-TEST DONE 8/19 + CORRECTED] Sim corr rating is ALREADY type-conditioned (code-verified). A/B = ADD all-tracks trailing form at ~half weight into corrAvgRating (blend .721 vs type-only .704, W244/L138). Board-level paired backtest before ship. See BACKTEST_LOG 2026-08-19 + correction.
 4. Sim A/B: long-run practice input.
+4b. startPos conditioned sweep (pre-test 2026-08-20): per-series/track-type startPos in full
+    model on market Briers. Pre-test: marginal start value heterogeneous (ore ovals .11 lowest,
+    cup road .333 highest on the LOWEST weight set); "overvalued overall" not supported (start
+    doubles as current-form speed - 3 prior sweeps hold).
 5. #69 flag sweep at 15–20 boards (edge-inversion + win-market-0fer + CLV-window inputs).
 6. Staking layer (¼-Kelly display, ladder-aware, per-race cap).
 7. CLV-vs-close-consensus method change (forward-only).
