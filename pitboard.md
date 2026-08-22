@@ -2410,3 +2410,16 @@ path filters sal>0); salary cell shows red OUT badge. Re-upload/save salaries af
 NOTE: OUT detection only works when the paste carries DK's OUT tag (lobby copy does, bare CSV
 may not) - the manual checkbox is the guarantee. Cosmetic-adjacent but pool-affecting: shipped
 with light check per 8/19 rule, operator verifying on this week's NH slate.
+
+STARTPOS WEIGHT SHIP (2026-08-20): DEFAULT_WEIGHTS.startPos 0.33 -> 0.23, from the 230-race
+full-model conditioned sweep (production sim evaled from source; cup/ore/trucks INT+SHORT
+2023+; per-race paired t10 Brier 134W/96L p~.01 for the cut, 0.43 loses badly). Operator
+hunch "we overvalue start position" CONFIRMED overall - with ONE exception cell: trucks
+short/flat (raw start-finish corr .576, highest anywhere) where the cut LOSES t5 12W/19L.
+New TRUCK_SHORT_WEIGHTS export (0.33 startPos, else identical) auto-applies when
+series=trucks + __trackGroup SHORT, wired into both the config auto-apply and the Reset
+button. SS/ROAD/TRUCK_ROAD sets untouched. NH impact: cup board (flat mile = SHORT) now
+sims at 0.23; trucks board unchanged at 0.33. Prospective revert trigger: cup boards 0-fer
+t5/t10 vs books two straight weekends. Full methodology + per-cell table in BACKTEST_LOG
+2026-08-20. Verification tier: model change -> full backtest before ship (done); UI check =
+weights panel shows Start 23% on NH cup, 33% on NH trucks after deploy.

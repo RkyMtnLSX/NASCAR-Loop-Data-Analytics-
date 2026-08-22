@@ -4184,3 +4184,27 @@ marginal (case to trim), cup road highest marginal on the LOWEST weight set (pos
 NEXT (queued, behind ownership overlay): per-series/track-type startPos sweep in the FULL model
 on market Briers (Chicagoland-reconstruction harness family). No weight changes from this
 pre-test alone - it cannot see the bundled current-form role.
+
+## 2026-08-20 — startPos FULL-MODEL CONDITIONED SWEEP (230 races) — SHIPPED 0.23 default + trucks-short 0.33 exception
+Follow-up to same-day pre-test; the sweep the pre-test said was required. PRODUCTION sim, not a
+proxy model: buildSpeedScores + runRaceSim evaled from repo source (lines 0-610, JSX stripped),
+so every yrWt/lrpTime/corr rule is the real one. 230 races 2023+ with published-grid + loop-data
+coverage: cup INT 52 / SHORT 36, ore INT 49 / SHORT 27, trk INT 35 / SHORT 31 (SS + road excluded
+- they have their own weight sets). Walk-forward leak-free inputs, actual starting grids, 2000
+draws/race, Medium caution preset, dnfRate 0.12. Scored on win/top5/top10 Brier vs actuals,
+paired per race. PROXY CAVEATS: no equipment prior, no winConv, no market anchor - relative
+weight comparison only, same harness family as the 3 prior startPos sweeps.
+- GLOBAL: startPos 0.23 beats 0.33 per-race t10 134W/96L (p~.01 sign test), t5 123W/107L,
+  win 127W/103L. Lower still (0.13) mixed; HIGHER 0.43 loses 92W/138L. Prior "0.33 optimal"
+  came from 11/29/40-race mostly-cup samples - at n230 the bundle is overweighted.
+- BY CELL: cut helps or ties everywhere EXCEPT trucks SHORT/flat (NH class): there 0.23 LOSES
+  t5 12W/19L, t10 11W/20L - consistent with pre-test raw .576 (trucks short grids stay put).
+  0.43 marginally beat 0.33 there but n=31 - kept validated 0.33, no new weight invented.
+- PRACONLY subset (n95, boards built pre-qualifying): same direction, 0.23 wins - not a
+  qualifying-leak artifact.
+SHIPPED: DEFAULT_WEIGHTS.startPos 0.33 -> 0.23; new TRUCK_SHORT_WEIGHTS (identical but startPos
+0.33) auto-applied when series=trucks and __trackGroup=SHORT, in both the config auto-apply and
+the Reset button. SS/ROAD/TRUCK_ROAD sets untouched. Operator hunch ("we overvalue start") =
+CONFIRMED at scale, with one real exception cell. NH impact: cup board now runs 0.23, trucks
+board unchanged 0.33. Prospective watch: same ledger discipline as v6.3-st - if the cup boards
+go 0-fer two straight weekends on t5/t10 vs books, revisit.

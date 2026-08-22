@@ -13,6 +13,16 @@ export const DEFAULT_WEIGHTS = {
   pitCrew:      0.06, // SHIPPED 2026-07-18: task #46 passed (crew t~7.5 pooled, + in all series/track groups; weight from sweep plateau shrunk ~30% — BACKTEST_LOG)
   corrHistory:  0.35,
   longRunPace:  0.15,
+  startPos:     0.23, // 2026-08-20 (was 0.33): 230-race full-model sweep, all series INT+SHORT ovals 2023+ — 0.23 beats 0.33 on t10 Brier 134W/96L (p~.01), wins/ties t5+win; 0.43 loses badly. Old 0.33 came from 11/29/40-race mostly-cup sets. EXCEPTION: trucks short/flat keeps 0.33 (TRUCK_SHORT_WEIGHTS — .23 loses t5 12W/19L there). BACKTEST_LOG 2026-08-20.
+  trackHistory: 0.15,
+}
+
+// Trucks short/flat ovals: the ONE cell where the 2026-08-20 sweep favored HIGH start weight
+// (t5 12W/19L against lowering; .43 slightly beat .33 but n=31 — keep the validated 0.33).
+export const TRUCK_SHORT_WEIGHTS = {
+  pitCrew:      0.06,
+  corrHistory:  0.35,
+  longRunPace:  0.15,
   startPos:     0.33,
   trackHistory: 0.15,
 }
@@ -749,7 +759,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
         if (cfg.stage2_laps != null) setStage2Laps(parseInt(cfg.stage2_laps) || 0)
 
         // Auto-apply track-type weights
-        setWeights(isSuperspeedway(cfg.track_name) ? (s === 'oreilly' ? ONEILLY_SUPERSPEEDWAY_WEIGHTS : SUPERSPEEDWAY_WEIGHTS) : isRoadCourse(cfg.track_name) ? (s === 'trucks' ? TRUCK_ROAD_WEIGHTS : ROAD_COURSE_WEIGHTS) : DEFAULT_WEIGHTS)
+        setWeights(isSuperspeedway(cfg.track_name) ? (s === 'oreilly' ? ONEILLY_SUPERSPEEDWAY_WEIGHTS : SUPERSPEEDWAY_WEIGHTS) : isRoadCourse(cfg.track_name) ? (s === 'trucks' ? TRUCK_ROAD_WEIGHTS : ROAD_COURSE_WEIGHTS) : (s === 'trucks' && __trackGroup(cfg.track_name) === 'SHORT') ? TRUCK_SHORT_WEIGHTS : DEFAULT_WEIGHTS)
         // EXHIBITION GUARD (2026-07-14). All-Star / non-points races run a REDUCED FIELD (~20 cars).
         // That mechanically inflates driver_rating -- 'top 15 pct of laps' becomes a far larger share of a
         // small field -- and the invitational entry list creates availability bias. Such races must NEVER
@@ -1697,7 +1707,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
               </div>
               <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginRight: 12, fontSize: 12, color: '#f5c518', cursor: 'pointer' }}><input type="checkbox" checked={rainOut} onChange={e => setRainOut(e.target.checked)} style={{ cursor: 'pointer' }} />Rain-out grid</label>
             <button
-                onClick={() => setWeights(isSuperspeedway(config.track_name) ? (series === 'oreilly' ? ONEILLY_SUPERSPEEDWAY_WEIGHTS : SUPERSPEEDWAY_WEIGHTS) : roadCourse ? (series === 'trucks' ? TRUCK_ROAD_WEIGHTS : ROAD_COURSE_WEIGHTS) : DEFAULT_WEIGHTS)}
+                onClick={() => setWeights(isSuperspeedway(config.track_name) ? (series === 'oreilly' ? ONEILLY_SUPERSPEEDWAY_WEIGHTS : SUPERSPEEDWAY_WEIGHTS) : roadCourse ? (series === 'trucks' ? TRUCK_ROAD_WEIGHTS : ROAD_COURSE_WEIGHTS) : (series === 'trucks' && __trackGroup(config.track_name) === 'SHORT') ? TRUCK_SHORT_WEIGHTS : DEFAULT_WEIGHTS)}
                 style={{ fontSize: '0.83rem', padding: '2px 8px', background: 'transparent', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--text-muted)', cursor: 'pointer' }}>
                 Reset {roadCourse ? 'Road Course' : 'Defaults'}
               </button>
