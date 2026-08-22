@@ -296,7 +296,7 @@ export default function PracticeReportCard({ isSubscriber }) {
                         </td>
                       )}
                       <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
-                        {d.qualifying_position ?? '-'}
+                        {d.qualifying_position == null ? '-' : d.qualifying_position < 0 ? 'DNQ' : d.qualifying_position}
                       </td>
                       <td>
                         <span className="grade-pill" style={{ background: gc.bg, color: gc.text }}>

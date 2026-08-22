@@ -144,9 +144,9 @@ export default function PracticeLapTable({ isSubscriber }) {
     }
 
     const drivers = Object.values(driverMap).sort((a, b) => {
-      if (a.startPos != null && b.startPos != null) return a.startPos - b.startPos
-      if (a.startPos != null) return -1
-      if (b.startPos != null) return 1
+      // start rank: qualified field first (1..N), DNQ (start < 0) sinks below it, no-start last
+      const rank = p => (p == null ? 1e9 : p < 0 ? 1e6 : p)
+      if (rank(a.startPos) !== rank(b.startPos)) return rank(a.startPos) - rank(b.startPos)
       const aAvg = Object.values(a.lapTimes).reduce((s, t) => s + t, 0) / Object.values(a.lapTimes).length
       const bAvg = Object.values(b.lapTimes).reduce((s, t) => s + t, 0) / Object.values(b.lapTimes).length
       return aAvg - bAvg
@@ -280,7 +280,7 @@ export default function PracticeLapTable({ isSubscriber }) {
                       >
                         <td style={stickyTd(0, ri)}>
                           {d.startPos != null ? (
-                            <span style={{ fontFamily: 'var(--font-mono)', color: '#f59e0b', fontWeight: 600 }}>{d.startPos}</span>
+                            <span style={{ fontFamily: 'var(--font-mono)', color: d.startPos < 0 ? 'var(--text-muted)' : '#f59e0b', fontWeight: 600 }}>{d.startPos < 0 ? 'DNQ' : d.startPos}</span>
                           ) : '—'}
                         </td>
                         <td style={stickyTd(52, ri)}>

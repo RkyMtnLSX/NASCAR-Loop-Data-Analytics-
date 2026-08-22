@@ -422,7 +422,7 @@ CREATE INDEX ON practice_laps (series, year, track_name, session_number);`}</pre
                           {d.driver_name}
                         </div>
                         <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                          {d.starting_position ? <span style={{ color: '#f59e0b', marginRight: 6 }}>P{d.starting_position}</span> : null}
+                          {d.starting_position ? <span style={{ color: d.starting_position < 0 ? 'var(--text-muted)' : '#f59e0b', marginRight: 6 }}>{d.starting_position < 0 ? 'DNQ' : 'P' + d.starting_position}</span> : null}
                           {d.laps.length} laps - best {fmtTime(Math.min(...d.laps.map(l => l.time)))}
                         </div>
                       </div>
@@ -502,7 +502,7 @@ CREATE INDEX ON practice_laps (series, year, track_name, session_number);`}</pre
                                 </td>
                                 <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', fontWeight: 600 }}>{d.practice_group || '--'}</td>
                                 <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: '#f59e0b', fontWeight: 600 }}>
-                                  {d.starting_position ? `P${d.starting_position}` : '--'}
+                                  {d.starting_position ? (d.starting_position < 0 ? 'DNQ' : `P${d.starting_position}`) : '--'}
                                 </td>
                                 <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{times.length}</td>
                                 <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--accent-text)', fontWeight: 600 }}>{fmtTime(best)}</td>
