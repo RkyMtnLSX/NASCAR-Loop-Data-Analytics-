@@ -4305,3 +4305,40 @@ actually unique (fix the key). Establish WHICH before writing any cleanup, by ch
 second batch carries information the first does not - new entities, systematically different
 values. Row counts alone would not have separated these.
 NH R18 remains clean (0 affected sessions) - no change to the race-day picture.
+
+## 2026-08-22 (final) — !! RETRACTION !! (operator-prompted, 2nd catch same day): there is NO practice-lap data bug. Both entries above are VOID — the collisions were my own grouping error.
+RETRACTS the 2026-08-22 "duplicate lap numbers" entry AND its same-day CORRECTION. Both are
+wrong. The operator asked "there is always only 1 practice session in 2026 — are you only talking
+about Phoenix 2025?" My explanation REQUIRED two practice sessions per weekend; he knew that is
+false for 2026, and the premise collapsed under three queries.
+WHAT ACTUALLY HAPPENED: practice_laps carries a race_number column. I keyed my scan on
+(series, year, track_name, session_number, driver_name) and OMITTED it. Phoenix hosts two Cup
+races per season — the spring race is race_number 1, the championship race is race_number 36.
+Both practices are legitimately session_number 1. Byron's "two lap 3s" are one lap 3 from each
+RACE. Same for every other supposed collision.
+CONTROLLED PROOF, identical 60,000 rows, only the key changed:
+  key WITHOUT race_number -> 1,956 driver-sessions, 204 colliding
+  key WITH    race_number -> 2,160 driver-sessions,   0 colliding
+CODE CHECK (should have come first): the app has always been correct. Admin.js scopes its
+delete-then-insert upload replace with .eq('race_number', practiceRaceNum); LapComparison.js and
+PracticeLapTable.js both filter reads on race_number. The application never saw a collision
+because there was never one to see.
+EVERYTHING DOWNSTREAM IS VOID: the "133 of 204 sessions wrongly take the missing-longRun->25
+fill" claim, the year counts (2024 x34 / 2025 x132 / 2026 x38), the "10.4% of sessions" figure,
+the relabel prescription, and practice_duplicate_audit.sql — the file is DELETED from the repo
+rather than left as a trap. NH R18 being "clean" was also meaningless: nothing was dirty anywhere.
+WHAT SURVIVES from the whole thread: exactly one small positive result — single-lap gaps in the
+timestamped era are REAL PIT VISITS (90/90, wall clock 167-435s against 24-25s laps), so
+parseStints' strict prev+1 split is correct and bridging gaps would corrupt long-run pace. That
+finding stands on its own evidence and is unaffected. The separate startPos-renormalization
+clarification (same day, earlier) also stands — it was verified in code arithmetic, not from this
+scan.
+THE LESSON, and it is the expensive one: I invented a defect by analysing the table with a
+weaker key than the application uses. Before reporting ANY data-integrity finding, read how the
+code queries the table and reproduce its grouping exactly — a scan key that is coarser than the
+production key will always manufacture collisions. I also compounded it by examining ONE example
+(Phoenix 2025) and generalising a mechanism from it, which is the same single-case error the log
+warns about elsewhere ("never grade on one race"). The operator's domain knowledge caught this,
+as it caught the best5 multi-set-era mechanism and the NW truck equipment overrides. Third
+instance on record of a mechanism built by a model session and falsified by one sentence from
+the person who watches the races.
