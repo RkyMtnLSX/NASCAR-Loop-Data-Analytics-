@@ -38,7 +38,7 @@ Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2
 ## Queue (rough priority)
 1. Ownership-leverage overlay in DFS: projected-ownership model + chalk-trap flags + build diversification (fixes the conviction-collapse failure; Majeski 55%-owned bust + Blaney fade are the motivating cases).
 2. DFS replay report UI — auto compute/place both modes from each standings upload.
-3. [PRE-TEST DONE 8/19 + CORRECTED] Sim corr rating is ALREADY type-conditioned (code-verified). A/B = ADD all-tracks trailing form at ~half weight into corrAvgRating (blend .721 vs type-only .704, W244/L138). Board-level paired backtest before ship. See BACKTEST_LOG 2026-08-19 + correction.
+3. [CLOSED 2026-08-23 - NO SHIP] All-tracks blend into corrAvgRating tested at board level: 341 races, all four track groups, production weight set per race. EVERY arm (w .25-.75) ties current on win/t3/t5/t10; mean win Brier degrades monotonically with w. The pre-test's decisive rating-prediction gain (W244/L138 p<1e-7) did NOT reach the market bar. corrAvgRating stays type-only. Harness validated first by reproducing the startPos result 134W/64L p<.001. BACKTEST_LOG 2026-08-23.
 4. Sim A/B: long-run practice input.
 4b. [SHIPPED 2026-08-20] startPos conditioned sweep: 230-race full-model sweep ->
     DEFAULT_WEIGHTS.startPos 0.33 -> 0.23 (t10 134W/96L p~.01) + TRUCK_SHORT_WEIGHTS

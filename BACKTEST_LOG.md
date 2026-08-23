@@ -4342,3 +4342,48 @@ warns about elsewhere ("never grade on one race"). The operator's domain knowled
 as it caught the best5 multi-set-era mechanism and the NW truck equipment overrides. Third
 instance on record of a mechanism built by a model session and falsified by one sentence from
 the person who watches the races.
+
+## 2026-08-23 — QUEUE #3 ALL-TRACKS BLEND INTO corrAvgRating: NO SHIP (341 races, all four track groups). The pre-test's estimator gain does NOT reach the market bar.
+Closes queue item #3, owed since the 2026-08-19 pre-test + correction. Pre-test finding being
+tested: ADD all-tracks trailing form at ~half weight into the (already type-conditioned)
+corr rating — rating-prediction Spearman blend .7205 vs type-only .7041, W244/L138/T8, p<1e-7,
+smooth concave optimum at w=.4-.6. That was a cheap loop-data scan; the entry required a
+BOARD-LEVEL paired backtest in the full sim before ship. This is that run.
+METHOD: production buildSpeedScores + runRaceSim evaled from repo source. 341 races 2023+,
+ALL FOUR track groups (not just INT+SHORT), each scored with the weight set production would
+actually use — DEFAULT / TRUCK_SHORT / ROAD_COURSE / TRUCK_ROAD / SUPERSPEEDWAY /
+ONEILLY_SUPERSPEEDWAY — so superspeedways (corr .55) and road courses (corr .60) are included,
+where corr carries the most weight. Walk-forward, prior races only, actual grids, 2000 paired
+race-seeded draws, Medium preset, dnfRate .12. Same proxy caveats as the startPos family: no
+equipment prior, no winConv, no market anchor, no pit crew — relative comparison only.
+ARM CONSTRUCTION (one variable): corrAvgRating = (1-w)*group-pool + w*all-tracks-pool, both
+year-weighted with the live ladder. nCorrRaces stays the GROUP count in every arm, so
+confidence/shrinkage is identical and only the rating VALUE moves. w = 0 (current) /.25/.4/.5/.6/.75.
+VALIDATION GATE (run BEFORE the new arms, on the same harness): startPos 0.23 vs 0.33 on
+INT+SHORT reproduced at 134W/64L t10, p<.001 — the THIRD independent reproduction of the 8/20
+result from a from-scratch harness. The rig is sound before it is trusted on anything new.
+RESULT — EVERY ARM IS A TIE vs current on all four markets:
+  blend .25   win 180W/161L p.33 | t3 176/165 p.59 | t5 188W/153L p.066 | t10 179/162 p.39
+  blend .40   win 182/159 p.23   | t3 173/168     | t5 180/161 p.33     | t10 176/165
+  blend .50   win 179/162 p.39   | t3 170/171     | t5 178/163 p.45     | t10 174/167
+  blend .60   win 177/164 p.52   | t3 167/174     | t5 180/161 p.33     | t10 169/172
+  blend .75   win 172/169        | t3 162/179     | t5 171/170          | t10 165/176
+Best single cell is blend .25 on t5 at p=.066 — one of 20 arm x market comparisons, exactly what
+chance produces. MEAN win Brier DEGRADES MONOTONICALLY with w: 23.71 / 23.78 / 23.85 / 23.92 /
+24.00 / 24.13. A clean dose-response in the WRONG direction on the sharpest market.
+BY GROUP (blend .25): Superspeedway 30W/24L p.50, Road 25W/31L p.50, Intermediate 73W/63L p.20.
+All ties. POST-HOC NOTE, NOT A FINDING: cup superspeedway alone showed win 17W/5L (n=22), which
+is the intuitive story — SS specialists (Blaney group 95.2 vs all-tracks 88.2) diverge most where
+corr weight is highest. It DISSOLVES at group level because trucks SS runs 3W/8L the other way.
+Logged as a hypothesis for a pre-registered test, not as evidence; mining cells after seeing the
+aggregate is the post-hoc subsetting this log warns about elsewhere.
+VERDICT: NO SHIP. corrAvgRating stays type-only. Queue #3 CLOSED.
+DOCTRINE (the point of the entry): the pre-test predicted race-day driver_rating decisively
+better — W244/L138 at p<1e-7 — and that gain did not survive contact with the betting markets.
+Predicting a driver's rating is not the same objective as pricing his win probability. This is
+the two-bar rule (grade bar vs composite/market bar) applied to an ESTIMATOR change, and it is
+the second time this season a decisive estimator result failed the market bar. Plausible
+mechanism: the sim already routes cross-type information through trackHistory, the equipment
+prior and the market anchor, and type-conditioning is a FEATURE when pricing at that track type
+rather than a limitation to be corrected. Any future "widen the pool" proposal should be scored
+on Briers directly and should not treat a rating-prediction improvement as sufficient.
