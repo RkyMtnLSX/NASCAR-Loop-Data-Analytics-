@@ -4387,3 +4387,37 @@ mechanism: the sim already routes cross-type information through trackHistory, t
 prior and the market anchor, and type-conditioning is a FEATURE when pricing at that track type
 rather than a limitation to be corrected. Any future "widen the pool" proposal should be scored
 on Briers directly and should not treat a rating-prediction improvement as sufficient.
+
+## 2026-08-23 — v6.3-st PROSPECTIVE WEEK 3 (cup New Hampshire R25): PRE-REGISTERED, both cards frozen BEFORE the race
+Ledger stands 1-1 (wk1 trucks Richmond corrected +.026; wk2 cup Richmond corrected -.099).
+Revert trigger = 2 CONSECUTIVE losses, and WEEK 2 WAS A LOSS — so a week-3 loss reverts v6.3-st.
+Both orderings are written below BEFORE race-day driver_rating exists (loop_data has 0 rows for
+cup R25 at time of writing), which is the pre-registered-confirmatory discipline this log uses.
+WHY NH IS THE CLEAN TEST: NASCAR has dropped A/B practice groups, so the grade-side group-condition
+correction self-disables (single group). Week 3 therefore isolates the session-time correction with
+no gc confound — the first time that has been true.
+PRECONDITIONS VERIFIED (this is what killed wk1 trucks): cup NH has 2,083 laps / 36 drivers at
+100% captured_at coverage, a 48.8-minute session spanning 10 five-minute buckets — comfortably past
+the >=60% clean-lap + >=3 bucket activation gate. The correction IS active on the live cup card.
+TRUCKS NH HAS ZERO TIMESTAMPS (1,455 laps, 0 captured_at). Second consecutive truck session with no
+timestamps, so no truck card has EVER been corrected in live use. Week 3 is cup-only. Operational
+fix owed: the practice watcher has to run for truck sessions too, not just cup.
+FROZEN ORDERINGS (n=36 gradable):
+  CORRECTED  : Byron | Gibbs | Berry | Blaney | Wallace | Logano | Larson | Buescher | Briscoe |
+               Elliott | Keselowski | Bell | Allmendinger | E.Jones | Preece | Cindric | Hamlin |
+               Gragson | Herbst | JHN | Chastain | SVG | Zilisch | Reddick | Bowman | McDowell |
+               Z.Smith | Suarez | Gilliland | Hocevar | T.Dillon | A.Dillon | Custer | Hill |
+               Stenhouse | Ware
+  UNCORRECTED: Gibbs | Blaney | Berry | Byron | Buescher | Wallace | E.Jones | Larson | Elliott |
+               Logano | Bell | Cindric | Preece | Briscoe | Allmendinger | JHN | Hamlin | ...
+BIGGEST DISAGREEMENTS (uncorrected -> corrected): Keselowski 19->11, Erik Jones 7->14,
+Briscoe 14->9, Herbst 25->19, Logano 10->6, Cindric 12->16, JHN 16->20, Z.Smith 22->27.
+Byron 4->1 and Gibbs 1->2 at the top. Erik Jones is the motivating case for the mechanism: he ran
+one unbroken 40-lap stint, and the correction reads that as window-advantaged and demotes him 7 spots.
+SCORING RECIPE (operator-runnable, no session context needed): after the race, pull driver_rating
+from loop_data for (series cup, year 2026, track New Hampshire Motor Speedway, race_number 25).
+Compute Spearman(grade rank, driver_rating) for BOTH orderings above over the drivers present in
+both. DECISION RULE, FIXED NOW: higher rho wins week 3. If CORRECTED loses, that is two consecutive
+losses and v6.3-st REVERTS per the standing trigger. If CORRECTED wins, ledger goes 2-1 and the
+protocol continues to week 4. No other outcome is a result — no re-cutting by driver subset, no
+switching the target from driver_rating to finish.
