@@ -4470,3 +4470,45 @@ metric is a countdown dressed as a test. Any future prospective protocol on this
 use a magnitude trigger for emergencies plus a pre-committed sample size for the verdict. This
 log already contains the principle it violated here — "THAT IS NOT EVIDENCE AGAINST THE
 HYPOTHESIS. It is NO POWER. Different thing entirely."
+
+## 2026-08-23 — DFS REPLAY RACE 5 (trucks New Hampshire R18, 2,378-entry GPP): GPP beats mean a 4th time, but BOTH lose badly — and DK's salary line out-predicted our projections
+LEAK CHECK FIRST: sim samples written 2026-08-22 15:45 (with the post-qualifying board), salaries
+15:05, results not uploaded until 23:53 and ownership 00:26 next day. Samples predate the race by
+~8h — this is a pre-lock replay, not hindsight. 36 drivers, 10,000 draws, official DK FPTS from the
+contest-standings upload, placed in the real 2,378-entry field.
+RESULT: GPP-mode p90-ranked build 175.60 vs mean-optimal 141.40. GPP +34.2 — GPP >= mean for the
+4TH time in 5 replays (ledger: GPP 4 wins, 1 tie). But both are well under the 196.25 median:
+  mean-optimal 141.40 -> ~1945/2378 (bottom 18 pct)
+  GPP no.1     175.60 -> ~1512/2378 (bottom 36 pct)
+  contest winner 319.40 | perfect-hindsight optimal 330.90 (Riggs/C.Smith/Haley/Friesen/Eatmon/Tyrrell)
+DIAGNOSIS — PROJECTION FAILURE, NOT CONSTRUCTION. Both modes shared a bad core, so mode choice was
+never going to save the slate. The model's own top of board busted:
+  JHN        proj rank 2  -> 28.0 actual (48.8 pct owned - chalk bust, in BOTH lineups)
+  Ruggiero   proj rank 5  -> -3.85 actual (in BOTH lineups)
+  Eckes      proj rank 6  ->  5.0 actual (38.5 pct owned)
+  Perez      proj rank 10 -> 17.0 actual (33.9 pct owned, in BOTH lineups)
+while the points came from drivers we ranked 11-22: Zilisch (11) 64.35, Friesen (17) 50.0,
+Haley (22) 51.0, plus Eatmon at 2.99 pct owned.
+THE RIGGS CASE IS NOT A PROJECTION MISS: the model ranked Layne Riggs 3rd and he was the slate's
+top scorer at 88.6. He carried a $13,000 salary — the most expensive truck on the board — and never
+fit under the $50k cap alongside the rest of our top projections. We identified him and could not
+afford him. That is a cap-allocation failure, a different disease from mis-ranking.
+CALIBRATION vs THE STANDING BENCHMARK (Spearman vs actual FPTS, n=36):
+  our projections  0.291
+  DK salary line   0.384   <-- the market beat us
+  field ownership  0.369   <-- the crowd beat us
+FIRST TIME ON RECORD the DK salary line has out-predicted our projections on a slate. The benchmark
+this log set for DFS is beating salary Spearman; this week we did not.
+VALUE INVERSION (the mechanism worth remembering): our value metric, projected points per $1k,
+correlated -0.346 with actual outcome. NEGATIVE. The optimizer maximises projection under a cap,
+which structurally tilts it toward high points-per-dollar drivers — and on this slate those were
+systematically the worst plays (Ruggiero -3.85, Perez 17.0, Hall 25.0 at 5,700). The cap did not
+just prevent us from rostering Riggs; it actively pushed us into the drivers that sank the lineup.
+CAVEATS — do not over-read: n=1 SLATE. Spearman SE at n=36 is ~0.17, so the 0.291-vs-0.384 gap and
+the -0.346 value figure are each about half to two SE. This is an ANECDOTE with a mechanism, not a
+verdict; the log's own rule is never grade on one race. What earns a re-check is whether value
+inversion REPEATS — if proj-per-dollar keeps landing negative, the optimizer's objective is wrong
+for truck slates, which would be a much bigger finding than any mode comparison.
+LEDGER: DFS replay now 5 races (GPP 4 wins, 1 tie). Ownership ground truth now 6 contests banked
+against the 8-10 refit target. Ownership-leverage overlay (queue no.1) would not have rescued this
+slate — the chalk we rostered was OUR OWN top-of-board, not a leverage error.
