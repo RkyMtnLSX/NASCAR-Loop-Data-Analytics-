@@ -2445,3 +2445,17 @@ Related: the "one missing lap splits a run" hypothesis was tested and REFUTED - 
 gaps in the timestamped era are real pit visits (167-435s wall clock vs 24-25s laps). BACKTEST_LOG
 2026-08-22 carries both, plus a clarification that the 8/20 startPos cut renormalized every other
 weight (corr 33.7%->37.2% on DEFAULT boards; sweep result stands, description was incomplete).
+
+RETRACTION (2026-08-22, operator-caught): the practice duplicate-lap entry logged earlier today is
+VOID. There is no data bug. I scanned practice_laps keyed on (series,year,track_name,session_number,
+driver_name) and omitted race_number - tracks that host two races a season (Phoenix: race 1 spring,
+race 36 championship) legitimately carry two session_number=1 practices, so every "collision" was my
+own construction. Identical 60k rows: 204 colliding without race_number, 0 with it. Admin.js scopes
+its upload delete-replace on race_number and both read pages filter on it, so the app was never
+affected. practice_duplicate_audit.sql deleted from the repo rather than left as a trap. Operator
+caught it with one domain fact ("there is always only 1 practice session in 2026"), which my
+two-sessions-per-weekend explanation required to be false. Standing lesson recorded in BACKTEST_LOG:
+reproduce the APPLICATION's query key before reporting any data-integrity finding - a coarser scan
+key manufactures collisions every time. Surviving: single-lap gaps are real pit visits (90/90 in the
+timestamped era), parseStints' strict prev+1 split confirmed correct; and the separate startPos
+renormalization clarification (corr 33.7%->37.2% on DEFAULT boards) which was code-verified and stands.
