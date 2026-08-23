@@ -33,7 +33,10 @@ const PAYWALL_ENABLED = true
 function PaywallGate({ ok, loading }) {
   const loc = useLocation()
   if (!PAYWALL_ENABLED || ok || loading) return null
-  if (loc.pathname === '/' || loc.pathname === '/subscribe' || loc.pathname === '/account') return null
+  // PUBLIC FUNNEL PAGE (2026-08-23, operator decision): Lap By Lap is free to everyone.
+  // It is served entirely by the get_public_* RPCs, which join featured_weekend and so
+  // can only ever return the CURRENT configured weekend — no archive, no bulk pull.
+  if (loc.pathname === '/' || loc.pathname === '/subscribe' || loc.pathname === '/account' || loc.pathname === '/practice-lap-table') return null
   return <Navigate to="/subscribe" replace state={{ gated: true }} />
 }
 

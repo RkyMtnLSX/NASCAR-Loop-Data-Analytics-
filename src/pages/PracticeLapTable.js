@@ -50,20 +50,16 @@ export default function PracticeLapTable({ isSubscriber }) {
     setError(null)
 
     supabase
-      .rpc('get_practice_sessions', { p_series: series })
-      .then(async ({ data, error: err }) => {
+      // PUBLIC PAGE (2026-08-23): get_public_practice_sessions joins featured_weekend, so it
+      // returns ONLY the currently-configured weekend and works for signed-out visitors without
+      // opening any table to anon. It also returns race_number directly, which removes the old
+      // practice_sessions lookup (the Martinsville oreilly 2025 R7+R32 double-visit guard —
+      // still guarded, because the weekend config pins the race_number).
+      .rpc('get_public_practice_sessions', { p_series: series })
+      .then(({ data, error: err }) => {
         if (cancelled) return
         if (err) { setError(err.message); return }
         const unique = (data || []).slice(0, 1).map(row => ({ ...row, key: `${row.year}|${row.track_name}|${row.session_number}` }))
-        // Double-visit tracks: resolve the LATEST upload's race_number so two races at the same
-        // (year, track) never interleave (Martinsville oreilly 2025 R7+R32 incident, 2026-07-17).
-        for (const s of unique) {
-          const { data: rn } = await supabase.from('practice_sessions')
-            .select('race_number, created_at').eq('series', s.series).eq('year', s.year)
-            .eq('track_name', s.track_name).eq('session_number', s.session_number)
-            .order('created_at', { ascending: false }).limit(1)
-          s.race_number = rn && rn.length ? rn[0].race_number : null
-        }
         setSessions(unique)
         if (unique.length > 0) setSelectedSession(unique[0])
       })
@@ -78,25 +74,13 @@ export default function PracticeLapTable({ isSubscriber }) {
     setRows([])
 
     supabase
-      .from('practice_laps')
-      .select('driver_name, car_number, starting_position, lap_number, lap_time')
-      .eq('series', selectedSession.series)
-      .eq('year', selectedSession.year)
-      .eq('track_name', selectedSession.track_name)
-      .eq('session_number', selectedSession.session_number)
-      .eq('race_number', selectedSession.race_number)
-      .order('lap_number', { ascending: true })
-      .limit(50000)
+      .rpc('get_public_practice_laps', { p_series: selectedSession.series, p_session: selectedSession.session_number })
       .then(async ({ data, error: err }) => {
         if (cancelled) return
         setLoading(false)
         if (err) { setError(err.message); return }
         const { data: entryData } = await supabase
-          .from('entry_list')
-          .select('driver_name, car_number')
-          .eq('series', selectedSession.series)
-          .eq('race_year', selectedSession.year)
-          .eq('track_name', selectedSession.track_name)
+          .rpc('get_public_entry_list', { p_series: selectedSession.series })
         const normName = n => n.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\./g,'').replace(/\s+/g,' ').replace(/\s*jr\s*$/i,'').trim()
         const carMap = {}
         ;(entryData || []).forEach(e => { carMap[normName(e.driver_name)] = e.car_number })
