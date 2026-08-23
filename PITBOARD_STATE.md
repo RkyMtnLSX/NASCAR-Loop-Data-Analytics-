@@ -44,13 +44,16 @@ Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2
 8. Mech DNF tiered by equipment; tire-management earned/dashed column; matchup pricer; RR+LR loop-data merge mode; PENALTIES_BACKFILL_ALL history run (operator); best-5 tooltip wording.
 
 ## Loose ends
-- PRACTICE DUPLICATE LAP NUMBERS (found 2026-08-22): 10.4% of driver-sessions in a 60k-row scan
-  carry the same lap_number twice → parseStints fragments them into 1-2 lap stints → 133 of 204
-  affected sessions wrongly take the missing-longRun→25 fill. Ongoing (2026 x38). NH R18 CLEAN,
-  so live boards are fine. Owed post-NH: full-table audit, dedupe key
-  (series,year,track_name,session_number,driver_name,lap_number), decision on historical dedupe
-  (moves the 97-race harness baseline — needs its own grade-bar run), upload-time replace guard.
-  BACKTEST_LOG 2026-08-22.
+- PRACTICE SESSION COLLISIONS (found 2026-08-22, diagnosis corrected same day): TWO different
+  practice sessions were uploaded under one session_number (cup 2025 Phoenix: batches 52 min
+  apart, 37 vs 38 drivers, 5 drivers only in the second). Lap numbers restart per session, so
+  every shared lap number collides → parseStints fragments the driver into 1-2 lap stints → 133
+  of 204 affected driver-sessions wrongly take the missing-longRun→25 fill. NOT duplicates: the
+  rows are real laps and a dedupe would DELETE A WHOLE SESSION. Fix = RE-LABEL the later batch.
+  Ongoing (2026 x38). NH R18 CLEAN, live boards fine. Owed post-NH: full-table audit
+  (practice_duplicate_audit.sql), re-label pass, upload-time guard so a re-upload replaces rather
+  than stacks, and a grade-bar before/after since re-labelling moves the 97-race harness baseline.
+  BACKTEST_LOG 2026-08-22 + CORRECTION.
 - corrHistory has never been swept at its post-8/20 effective share (33.7% → 37.2%; the startPos
   cut changed wTotal and renormalized every term). Sweep result stands, but 0.30 is the arm that
   restores the validated share — queue candidate behind the ownership overlay.

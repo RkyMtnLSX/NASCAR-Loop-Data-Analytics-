@@ -4272,3 +4272,36 @@ NEXT (post-NH, in order): (1) full-table duplicate audit + a dedupe rule keyed o
 historical dedupe is applied - it CHANGES historical grades and therefore the 97-race harness
 baseline, so it needs its own before/after grade-bar run rather than a silent cleanup;
 (3) an upload-time guard so a re-upload replaces rather than interleaves.
+
+## 2026-08-22 (later) — CORRECTION (operator-prompted) to the entry above: these are NOT duplicates, they are TWO SESSIONS UNDER ONE session_number. Dedupe would destroy real data.
+The entry above calls the repeated lap_numbers "duplicate lap numbers" and frames the fix as a
+dedupe keyed on (series,year,track_name,session_number,driver_name,lap_number). That framing is
+WRONG and the operator's question ("what exactly is stored in the tables?") is what surfaced it.
+WHAT IS ACTUALLY STORED. Worked example, cup 2025 Phoenix (3,866 rows): two upload batches 52
+minutes apart on 2026-07-04, BOTH written with session_number = 1.
+  07:07 -> 2,276 rows, 37 drivers, lap numbers to 78
+  07:59 -> 1,590 rows, 38 drivers, lap numbers to 68
+Tested whether batch B is a re-scrape of batch A: it is not. Of 1,346 (driver, lap_number) pairs
+present in both, only 64.3% agree within 0.5s (median diff -0.074s), and batch B contains FIVE
+drivers absent from batch A entirely (Van Gisbergen, Stenhouse Jr., Herbst, Yeley, Mears). A
+re-scrape adds no drivers and does not move a third of its laps by >0.5s. These are two DIFFERENT
+practice sessions stacked into one session_number.
+WHY THE LAP NUMBERS COLLIDE: lap numbering restarts at 1 in every session, so once two sessions
+share a session_number every driver who ran both has two lap 1s, two lap 2s, and so on. The rows
+are all REAL LAPS. Nothing is duplicated in the "same fact stored twice" sense.
+THE DOWNSTREAM DAMAGE IS UNCHANGED and still the point: parseStints continues a run only on
+prev+1, so a sorted 1,2,3,3,4,4,5,5 shatters the session into 1-2 lap fragments, no run clears the
+>=10-clean-lap bar, and the driver takes the missing-longRun->25 fill after a 70-lap day. 133 of
+204 affected driver-sessions in the 60k sample lose their long run this way.
+THE FIX FLIPS COMPLETELY: RE-LABEL the later batch (session_number 2, or the true session index),
+do not delete. The candidate dedupe in practice_duplicate_audit.sql section 5 would have deleted
+an entire real practice session per affected track. It was commented out and marked DO NOT RUN, so
+nothing was lost, but it is being replaced with a batch-identification query rather than left as a
+trap for a future session. The 1,438 byte-identical pairs are a genuinely separate and much smaller
+class (true double-inserts) and only those are dedupe-eligible.
+STANDING LESSON: "the same key appears twice" has at least two causes with OPPOSITE remedies -
+the same fact written twice (delete one), and two different facts sharing a key that is not
+actually unique (fix the key). Establish WHICH before writing any cleanup, by checking whether the
+second batch carries information the first does not - new entities, systematically different
+values. Row counts alone would not have separated these.
+NH R18 remains clean (0 affected sessions) - no change to the race-day picture.
