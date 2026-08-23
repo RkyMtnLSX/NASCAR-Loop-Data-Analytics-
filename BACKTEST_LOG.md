@@ -4421,3 +4421,52 @@ both. DECISION RULE, FIXED NOW: higher rho wins week 3. If CORRECTED loses, that
 losses and v6.3-st REVERTS per the standing trigger. If CORRECTED wins, ledger goes 2-1 and the
 protocol continues to week 4. No other outcome is a result — no re-cutting by driver subset, no
 switching the target from driver_rating to finish.
+
+## 2026-08-23 — !! PROTOCOL CORRECTION !! the v6.3-st "2 consecutive losses" revert trigger is a COUNTDOWN, not a test. Replacing it (operator-prompted).
+CORRECTS the decision rule stated in the 2026-08-14 v6.3-st entry and restated in the wk1/wk2
+ledger entries and in the same-day week-3 pre-registration above. The measurements in all of
+those stand; only the RULE is wrong.
+OPERATOR'S CATCH: "I don't think after today's results it will be enough to decide - that is still
+a small sample size." Correct, and the arithmetic is worse than small-sample. Treating each
+weekend as one paired win/loss, the expected number of weekends until a 2-consecutive-loss streak
+appears is (1+q)/q^2 where q = P(loss):
+    correction truly neutral (wins 50 pct) -> reverted after ~6.0 weekends
+    wins 60 pct                            -> reverted after ~8.7 weekends
+    wins 70 pct                            -> reverted after ~14.4 weekends
+    wins 80 pct                            -> reverted after ~30.0 weekends
+The streak occurs eventually with probability 1 for ANY win rate below 100 pct. The rule does not
+measure whether the feature works; it measures how long the feature has been running. If the
+correction is neutral, the chance of tripping the trigger is already 38 pct by weekend 3, 67 pct
+by weekend 6, 86 pct by weekend 10. Week 2 was a loss, so the CURRENT pre-registered rule would
+revert on a single further loss tomorrow at an effective false-positive rate near coin-flip.
+SECOND DEFECT, independent of the first: one rho per weekend is ONE BIT per weekend. A session
+carries ~36 drivers each with a rank error under both cards; collapsing that to win/loss discards
+nearly all of it. Driver ranks are coupled (zero-sum), so 36 is NOT 36 independent observations —
+but a within-session PERMUTATION test respects the coupling and yields a per-weekend effect size
+WITH uncertainty instead of a coin flip. That is the difference between accruing evidence and
+accruing anecdotes.
+THIRD ISSUE, operational: trucks sessions keep uploading with no captured_at (Richmond wk1, NH wk3),
+so the pool accrues at HALF the available rate. Fix the watcher for truck practice.
+THE RULE THAT REPLACES IT, fixed now:
+ 1. EMERGENCY STOP (keeps the original safety intent, which was risk management for a change that
+    could not be backtested): revert immediately if CORRECTED loses by more than 0.15 rho in any
+    single weekend. That is a MAGNITUDE trigger — it catches a feature that is actively harmful
+    without firing on noise. Neither wk1 (+.026) nor wk2 (-.099) would have tripped it.
+ 2. NO STREAK-BASED REVERT. Weekly results accrue; they do not adjudicate.
+ 3. JUDGE AT 8-10 TIMESTAMPED SESSIONS, which is the threshold the original 2026-08-14 entry
+    already committed to ("on/off protocol stands until the timestamped pool ~8-10 sessions
+    supports fitting strength"). The protocol drifted off its own stated plan; this restores it.
+ 4. Judge on POOLED EFFECT SIZE (mean paired delta with its uncertainty across sessions), not a
+    W/L tally. Report the sign test alongside as a secondary.
+ 5. Per weekend, record the effect size and a within-session permutation interval, not just which
+    card won.
+WEEK 3 IS RESCORED UNDER THE NEW RULE: tomorrow's cup NH result is a DATA POINT, not a verdict.
+The frozen orderings in the pre-registration above are unchanged and still binding.
+OPERATOR POSITION ON RECORD: he expects time-correction to be right long term. That is a prior,
+not evidence, and it is logged as such — it does not change the decision rule, and the pooled
+judgment at 8-10 sessions stands whichever way it goes.
+STANDING LESSON, generalizes past this feature: a streak-based revert trigger on a noisy weekly
+metric is a countdown dressed as a test. Any future prospective protocol on this project should
+use a magnitude trigger for emergencies plus a pre-committed sample size for the verdict. This
+log already contains the principle it violated here — "THAT IS NOT EVIDENCE AGAINST THE
+HYPOTHESIS. It is NO POWER. Different thing entirely."
