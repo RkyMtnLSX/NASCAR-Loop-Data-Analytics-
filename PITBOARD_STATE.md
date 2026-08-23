@@ -54,6 +54,11 @@ Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2
 - corrHistory has never been swept at its post-8/20 effective share (33.7% → 37.2%; the startPos
   cut changed wTotal and renormalized every term). Sweep result stands, but 0.30 is the arm that
   restores the validated share — queue candidate behind the ownership overlay.
+- [OWED TO FABLE] practice sheet page 1 renumbers laps (pit gaps invisible) while LAPS_RAW keeps
+  original numbering. QA-only - DB, grader and the live Lap By Lap page are all correct (NH cup
+  mean 2.75 runs/driver, zero single-run drivers) - but page 1 is the tab eyeballed before upload,
+  so it is the one view that hides dropped laps and over-long runs. Fix in pitboard_practice_sheet.py:
+  write page 1 on original lap numbers with blanks at gaps. pitboard.md 2026-08-23.
 - pit_crew_race bookmarklet may write with bare publishable key → now blocked by RLS; re-test
   at next weekly sync, fix = operator access_token in headers (2026-08-19).
 - Trucks Richmond practice never re-uploaded with timestamps — live truck card still uncorrected (cup wk2 check was run via harness instead).

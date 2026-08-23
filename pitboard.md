@@ -2459,3 +2459,32 @@ reproduce the APPLICATION's query key before reporting any data-integrity findin
 key manufactures collisions every time. Surviving: single-lap gaps are real pit visits (90/90 in the
 timestamped era), parseStints' strict prev+1 split confirmed correct; and the separate startPos
 renormalization clarification (corr 33.7%->37.2% on DEFAULT boards) which was code-verified and stands.
+
+PRACTICE SHEET PAGE-1 RENUMBERING - COSMETIC/QA DEFECT, OWED TO FABLE (found 2026-08-23, operator
+catch): pitboard_practice_sheet.py writes the PRACTICE tab (page 1) with laps COMPACTED and
+RENUMBERED 1..N - pit laps are dropped and everything after shifts down - while LAPS_RAW keeps
+ORIGINAL lap numbers with gaps. Worked case, NH cup R18 Erik Jones: old hand-cleaned sheet showed
+lap 41 = 424.79 and lap 42 = 1138.08 (pit sequence); LAPS_RAW omits 41-42 and jumps 40 -> 43; page 1
+shows 40 contiguous laps where its "lap 40" is really lap 43.
+NOT A DATA BUG - nothing downstream is affected. Verified end to end: excelParser prefers LAPS_RAW,
+so practice_laps stores original numbering with the holes (Erik: 41 rows, 1-43, gap 40->43); the
+grader reads 2 runs (40+1), not one; NH cup session-wide mean 2.75 runs/driver, ZERO drivers reading
+as a single run; and the live Lap By Lap page renders the pit laps as em-dashes at 41/42. DB is
+consistent across every year (mean runs per driver 1.94/2.64/2.63/2.81 for 2023-26, zero laps >120s
+before 2026), because the operator's OLD workflow deleted the outlier cells by hand before upload -
+a blank cell is skipped by the parser and leaves the same gap the python script leaves. The two
+methods have always agreed.
+THE DEFECT IS QA-ONLY BUT REAL: page 1 is the tab the operator eyeballs BEFORE uploading, so it is
+the one artifact that does not match what gets stored. Anything catchable by eye - a driver who
+pitted five times, an implausibly long run, a session where the feed dropped laps - is invisible at
+exactly the moment of checking. Erik's 40-lap unbroken run is the motivating example: plausible, but
+if the feed missed a stop it is two runs wearing one hat and page 1 cannot show that.
+FIX (owed to Fable, scraper cockpit not the web app): pitboard_practice_sheet.py should write page 1
+on ORIGINAL lap numbers with blank cells at the gaps, matching LAPS_RAW and matching the site's
+em-dash rendering. Page 1 AVG LAP is already correct (clean-lap mean; the old format's AVG LAP
+included pit laps - Erik 65.5 vs a real 30.2 - and was never usable).
+HAZARD TO KEEP IN MIND: never upload an OLD-format sheet with outliers left in. A 1138s lap passes
+parseStints' t<1200 filter, so lap numbering stays unbroken and every driver collapses to ONE stint -
+which silently disables the run-aware avgPace of grade formula v3, computes falloff slope straight
+through a pit stop, and welds two short runs into a fictitious long run. Measured on the old NH
+sheet as uploaded-with-outliers: mean 1.0 stints/driver vs 2.7 from LAPS_RAW.
