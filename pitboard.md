@@ -2488,3 +2488,45 @@ parseStints' t<1200 filter, so lap numbering stays unbroken and every driver col
 which silently disables the run-aware avgPace of grade formula v3, computes falloff slope straight
 through a pit stop, and welds two short runs into a fictitious long run. Measured on the old NH
 sheet as uploaded-with-outliers: mean 1.0 stints/driver vs 2.7 from LAPS_RAW.
+
+LAP BY LAP GOES PUBLIC + RPC HARDENING (2026-08-23, commit b09d06c, Supabase MCP connector):
+Operator decision: Lap By Lap Data becomes a FREE funnel page, scoped to the CURRENT weekend
+only. Raw lap times are the least proprietary asset (NASCAR timing publishes them) and the page
+is the screenshot-into-a-group-chat artifact the FB plan is built on; grades/sim/DFS stay paid,
+and they live in DIFFERENT tables (practice_sessions, sim_results) so the wall is clean.
+DESIGN - no table opened to anon. Three SECURITY DEFINER RPCs, search_path locked, granted to
+anon+authenticated: get_public_practice_sessions(series), get_public_practice_laps(series,
+session), get_public_entry_list(series). EACH joins featured_weekend on
+(series, track_name, race_number, correlation_year=year), so they structurally cannot return
+anything outside the configured weekend - arbitrary params return 0 rows. Scraping surface is 3
+sessions, not the 2,000-session archive, and it self-updates whenever the weekend config changes.
+Entry list is a SEPARATE function on purpose: the entry-list/lap name match is a documented trap
+(NFD fold + strip non-alphanumerics), so the existing JS normalization was left untouched rather
+than reimplemented in SQL. The session RPC returns race_number directly, which DELETED the old
+practice_sessions lookup - the Martinsville oreilly 2025 R7+R32 double-visit guard now comes from
+the weekend config pinning race_number, which is stronger than "latest upload wins".
+VERIFIED as the anon role AND over real HTTP with the publishable key only: 3 RPCs return
+1 session / 2083 laps / 36 entries, while direct reads of practice_laps, entry_list, loop_data,
+practice_sessions and sim_results ALL return 0 rows. Live page renders 36 drivers x 84 lap cols.
+App side: /practice-lap-table exempted from PaywallGate; loop_data car/start fallback left in
+place - it returns empty for anon (RLS) and still serves subscribers on completed weekends.
+ALSO SHIPPED (same migration set): anon EXECUTE revoked on has_access() and is_admin(). The #64
+lockdown claimed anon EXECUTE was revoked; the live ACL still carried a PUBLIC grant. No exploit
+(auth.uid() is null for anon so both return false) but the documented posture and the database
+disagreed. Advisor warnings for both now clear.
+
+!! MY MISTAKE, SAME DAY, LOGGED AS ONE !! The #64 lockdown ALSO missed converting
+get_practice_sessions to SECURITY INVOKER (it claimed all three RPCs were converted; only two
+were). I "fixed" that by altering it to INVOKER on the LIVE database mid-race-weekend. That made
+RLS apply to practice_laps, whose admin_all/subscriber_read policies CALL is_admin()/has_access()
+- evaluated per row across 132,098 rows. Statement timeout 57014, and all three practice pages
+went blank until I reverted ~3 minutes later. I had checked CORRECTNESS (policies exist, right
+roles, app does not call the helpers) and never checked COST, on a table I had just discovered
+was twice the size I assumed. The live check is what caught it - the process worked, the
+pre-flight did not. STANDING LESSON: converting a DEFINER function to INVOKER on a large table
+silently moves per-row policy-function evaluation into the query plan; EXPLAIN it before
+applying, every time. The eventual fix needed neither INVOKER nor RLS - a scoped DEFINER function
+is the right tool, which is what shipped.
+NOTE FOR CONFIG DISCIPLINE: whatever sits in featured_weekend is now PUBLIC-FACING. O'Reilly
+currently points at Iowa R23 (set 2026-08-04), so signed-out visitors see a three-week-old Iowa
+session under that tab. Stale weekend config is no longer just an internal annoyance.

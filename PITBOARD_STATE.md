@@ -22,6 +22,14 @@ Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2
       real-card test.
 - Optional: delete inert REACT_APP_ADMIN_PASSWORD env var.
 
+- [x] PUBLIC FUNNEL PAGE (2026-08-23, b09d06c): Lap By Lap is free to everyone, scoped to the
+      configured weekend by three get_public_* DEFINER RPCs that join featured_weekend. No table
+      opened to anon (verified: all direct reads 0 rows). CONSEQUENCE: featured_weekend is now
+      PUBLIC-FACING - stale config shows to the world (oreilly still on Iowa R23 from 8/04).
+- [x] RPC hardening: anon EXECUTE revoked on has_access()/is_admin(); get_practice_sessions
+      DEFINER gap closed by the public-RPC design instead of INVOKER (INVOKER attempt timed out
+      the page and was reverted - see pitboard.md 2026-08-23).
+
 ## Open experiments (ledgers)
 - v6.3-st session-time correction: PROSPECTIVE 1–1 (wk1 trucks Richmond corrected +.026; wk2 cup Richmond corrected −.099 — driven by corrected's no.1 Suarez no-show; Bowman was uncorrected-overrated and corrected placed him BETTER; open question is correction STRENGTH, see BACKTEST_LOG corrections). Revert trigger = 2 consecutive losses. Next test: NEW HAMPSHIRE (R18 — flat mile, first single-group cup practice weekend; gc correction self-disables).
 - DFS replay ledger (GPP ceiling vs mean, official FPTS, real fields): GPP wins 3, tie 1 (cup Richmond: both built the identical Blaney/Kes cluster lineup, bottom decile — conviction boards collapse diversity). Findings: GPP edge ∝ board uncertainty; winners at cup Richmond were selective chalk that faded the 53%-owned Blaney.
