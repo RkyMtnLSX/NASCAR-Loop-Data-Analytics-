@@ -566,7 +566,12 @@ function runRaceSim(drivers, simConfig) {
       const finPos = simPos[s.i]
       const startPos = (__simStart && __simStart[s.i] >= 0) ? __simStart[s.i] : (drivers[s.i].startPos ?? finPos)
       const ll = simLL[s.i]
-      const __dk = dkFinishPts(finPos) + (startPos - finPos) + (ll * 0.25) + (simFastLaps[s.i] * 0.45)
+      // Place differential is scored off the DK-LISTED start, which differs from the sim start only
+      // for grid-penalty (rear override) drivers - DK never reprices a penalty. Without this a
+      // rear-overridden driver projects a huge fake place-diff and reads as a value play when DK
+      // will actually score him NEGATIVE. Feeds dkSamples too, so the GPP optimizer inherits the fix.
+      const __dkStart = (drivers[s.i].dkStartPos != null) ? drivers[s.i].dkStartPos : startPos
+      const __dk = dkFinishPts(finPos) + (__dkStart - finPos) + (ll * 0.25) + (simFastLaps[s.i] * 0.45)
       sumDK[s.i] += __dk
       if (__srow) __srow[s.i] = Math.round(__dk)
     })
@@ -1309,6 +1314,11 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
         ...d,
         equipScale: eqOverrides[d.name] != null ? eqOverrides[d.name] : 1,
         startPos: rearOverrides[d.name] ? __rearPos : d.startPos,
+        // DK START (2026-08-23, operator catch): a rear override is a RACE fact (grid penalty) but
+        // DraftKings keeps the QUALIFIED position for place-differential scoring - DK does not
+        // reprice penalties. Keep the original here so the sim races him from the rear while DK
+        // points are scored off the position DK will actually use. Null for everyone else.
+        dkStartPos: rearOverrides[d.name] ? d.startPos : null,
         marketFill: __mktFill[d.name] != null ? __mktFill[d.name] : null,
         lapsDown: lapsDownOverrides[d.name] || 0,
       })), __applyRainOut(weights, rainOut))
@@ -1431,6 +1441,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
         car_number:   d.carNumber,
         organization: d.organization,
         start_pos:    d.startPos,
+        dk_start_pos: d.dkStartPos != null ? d.dkStartPos : null, // qualified spot when a grid penalty moved him; DFS shows this
         proj_finish:  d.projFinish,
         finish_p25:   +(d.finishP25 || 0).toFixed(1),
         finish_p50:   +(d.finishP50 || 0).toFixed(1),

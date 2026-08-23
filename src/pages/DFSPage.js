@@ -124,7 +124,12 @@ export default function DFSPage() {
       const ds = (row.results || []).map(d => ({
         name: d.driver_name, car: d.car_number, mfr: d.manufacturer,
         projDK: +d.proj_dk || 0, projFinish: +d.proj_finish || 0, winPct: +d.win_pct || 0,
-        lapsLed: +d.laps_led || 0, avgFast: +d.avg_fast_laps || 0, startPos: +d.start_pos || 0
+        lapsLed: +d.laps_led || 0, avgFast: +d.avg_fast_laps || 0,
+        // Show the DK-LISTED start (2026-08-23): for a grid-penalty driver the sim races him from the
+        // rear but DK keeps his qualified spot for place differential. Showing the sim start here made
+        // the board disagree with DraftKings. Falls back to the sim start for everyone else.
+        startPos: (d.dk_start_pos != null ? +d.dk_start_pos : +d.start_pos) || 0,
+        simStartPos: +d.start_pos || 0
       })).filter(d => d.name)
       setDrivers(ds)
       let q = supabase.from('dfs_salaries').select('salaries').eq('series', series).eq('race_year', r.year)
