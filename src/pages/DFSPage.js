@@ -334,7 +334,7 @@ export default function DFSPage() {
             break
           }
         }
-        if (hdrIdx === -1 || dCols.length < ROSTER) { setNote('Could not find Entry ID / D columns - use the Entries CSV downloaded from the DK upload page.'); return }
+        if (hdrIdx === -1 || dCols.length < ROSTER) { setNote('Could not find Entry ID / D columns. Get the right file from DraftKings: Lineups -> EDIT ENTRIES -> download CSV. (Not the entry-history export - that has Sport/Game_Type and no Entry ID.)'); return }
         const groups = {}
         for (let li = hdrIdx + 1; li < lines.length; li++) {
           if (!lines[li]) continue

@@ -2530,3 +2530,24 @@ is the right tool, which is what shipped.
 NOTE FOR CONFIG DISCIPLINE: whatever sits in featured_weekend is now PUBLIC-FACING. O'Reilly
 currently points at Iowa R23 (set 2026-08-04), so signed-out visitors see a three-week-old Iowa
 session under that tab. Stale weekend config is no longer just an internal annoyance.
+
+DFS OPERATIONAL NOTES (2026-08-23, commits 28ac04a / 697fd38 + copy fix):
+WHERE THE DK ENTRIES CSV LIVES (operator-supplied, was being rediscovered every time):
+draftkings.com/lineup -> "My Lineups" -> **EDIT ENTRIES** button -> download CSV. NOT the Upload
+Lineups page, and NOT the entry-history export (that one carries Sport/Game_Type, no Entry ID, no D
+columns - same wrong-file trap as the ownership upload). The in-app error message now names the
+EDIT ENTRIES button directly instead of pointing at the upload page. File fingerprint the parser
+needs: a header row containing 'Entry ID', six columns headed 'D', and 'Contest Name' (falls back to
+'Contest ID'). Header row need not be line 1 - the parser scans until it finds Entry ID.
+PRECONDITION worth knowing: entries must already be RESERVED in contests before there is anything to
+export. With no upcoming lineups, Edit Entries has nothing to give you - enter the contests first,
+then export, then fill.
+CLEAR LINEUPS BUTTON (operator request): sits next to Export DK CSV, renders only when lineups exist,
+clears the set AND drops any staged entries file so a stale contest picker cannot outlive its builds.
+GPP UNDER-DELIVERY WARNING: the cash path always reported short delivery; GPP did not, so a narrowed
+set could ship silently - which is exactly how the NH trucks degenerate set reached DK. Both paths
+now warn.
+STALE-BUNDLE REMINDER (bit us again today): the operator could not see the new Clear button because
+his tab was still running main.98a1f73b while the deploy was main.41263d11. Second time this class
+has caused a false bug report (first was the Edge paywall-redirect false alarm 8/19). CHECK THE
+LOADED SCRIPT TAG AGAINST asset-manifest BEFORE debugging a "missing" feature - Ctrl+F5 first.
