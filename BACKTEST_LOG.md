@@ -4512,3 +4512,29 @@ for truck slates, which would be a much bigger finding than any mode comparison.
 LEDGER: DFS replay now 5 races (GPP 4 wins, 1 tie). Ownership ground truth now 6 contests banked
 against the 8-10 refit target. Ownership-leverage overlay (queue no.1) would not have rescued this
 slate — the chalk we rostered was OUR OWN top-of-board, not a leverage error.
+
+ADDENDUM to DFS REPLAY RACE 5 (operator challenge, same day): "our projections for trucks last race
+were kind of broken because the exposure tool wasn't working properly." CHECKED — the premise does
+not hold for this replay, but the check sharpens the finding.
+(1) TIMING: the exposure death-spiral fix (8a48b136) landed 2026-08-21 and the JHN entry-name fix
+(e3b7ec39) landed 2026-08-19. The samples replayed here were generated 2026-08-22 15:45. Both fixes
+predate the board. JHN reads correctly in entry_list (TRICON Garage) with 5 prior truck races pooled.
+(2) SCOPE: applyExposure shapes how a SET of lineups is delivered. It never touches dfs_sim_samples
+or the single optimal lineup. The replay built one build per mode straight from the raw draws and
+never entered that code path — the bug could not have contaminated it either way.
+(3) BOARD QUALITY, from sim_grades rather than assertion: trucks NH R18 post graded MAE 6.62 /
+mae_rank 6.29 (pre 7.11 / 6.35). Season context: trucks Richmond R17 5.59, cup Richmond R24 5.79,
+oreilly Iowa R23 7.64-7.77, cup Iowa R23 8.09-8.18. NH trucks sits MID-RANGE. This was a normal
+board, not a degraded one.
+WHERE THE OPERATOR IS RIGHT: his REAL-MONEY entries that weekend are a separate surface. If he built
+them before 8/21, the spiral was live and his delivered set would have been degenerate — that is a
+genuine problem and it is not what this replay measured.
+WHAT THE CHECK CHANGES: the finding gets STRONGER, not weaker. A working finish model with normal
+MAE still lost the FPTS ranking to the DK salary line (.291 vs .384), and it had the slate's top two
+scorers at proj ranks 1 and 3 — it SAW Riggs and C.Smith. The failure was not perception. Riggs at
+$13,000 would not fit under the cap, and the money saved by skipping him went into the highest
+points-per-dollar drivers available, who were exactly the busts (value corr -0.346). That is a
+DK-points-and-cap-allocation problem sitting ON TOP OF a functioning finish model — a narrower and
+more tractable target than "the projections are broken". NOTE the distinction for future entries:
+finish-position accuracy and DK-points ranking are different objectives; DK points add place
+differential, laps led and fastest laps, and dominator points are lumpy in a way finish MAE hides.
