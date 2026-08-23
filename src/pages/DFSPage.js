@@ -275,7 +275,13 @@ export default function DFSPage() {
         scored.sort((a2, b2) => b2.ceil - a2.ceil)
         const picked = applyExposure(scored, numLineups, maxExp, locks)
         setLineups(picked)
-        setNote('GPP mode: ' + cands2.length + ' candidates scored across ' + nS2 + ' sampled sim draws, ranked by p90 total.')
+        // UNDER-DELIVERY WARNING (2026-08-23): the cash path has always reported this; GPP did not,
+        // so a narrowed set could ship silently. Both real-money incidents were degenerate sets
+        // uploaded before the problem was visible - see BACKTEST_LOG 2026-08-23.
+        const gppShort = picked.length < numLineups
+          ? 'ONLY ' + picked.length + ' of ' + numLineups + ' lineups delivered at ' + Math.round(maxExp * 100) + '% max exposure - check the set before uploading. Raise the cap, the lineup count, or lock fewer drivers. '
+          : ''
+        setNote(gppShort + 'GPP mode: ' + cands2.length + ' candidates scored across ' + nS2 + ' sampled sim draws, ranked by p90 total.')
         setBuilding(false)
       }
     }
@@ -453,6 +459,12 @@ export default function DFSPage() {
               {building ? 'Building\u2026' : 'Build lineups'}
             </button>
             {lineups.length > 0 && <button onClick={exportCsv} style={{ padding: '8px 14px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--accent,#e11d2a)', background: 'transparent', color: 'var(--accent,#e11d2a)', fontWeight: 600 }}>Export DK CSV</button>}
+            {/* CLEAR LINEUPS (2026-08-23, operator request): an undo at the point where money leaves.
+                Twice now a degenerate set has been uploaded and discovered too late (cup Richmond R24
+                seven-entries-one-thesis; NH trucks R18 exposure spiral). Also drops any staged
+                entries-fill file so a stale "Fill which contests?" panel cannot outlive the lineups. */}
+            {lineups.length > 0 && <button onClick={() => { setLineups([]); setEntFile(null); setNote('Lineups cleared - adjust locks, excludes, exposure or mode and build again.') }}
+              style={{ padding: '8px 14px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: 'transparent', color: 'var(--text-muted,#9aa0a6)', fontWeight: 600 }}>Clear lineups</button>}
             {lineups.length > 0 && <label style={{ padding: '8px 14px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--accent,#e11d2a)', color: 'var(--accent,#e11d2a)', fontWeight: 600, fontSize: 13 }}>
               Fill reserved entries
               <input type="file" accept=".csv,text/csv" style={{ display: 'none' }} onChange={e => { parseEntriesFile(e.target.files && e.target.files[0]); e.target.value = '' }} />
