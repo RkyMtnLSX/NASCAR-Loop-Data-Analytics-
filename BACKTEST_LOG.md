@@ -4538,3 +4538,21 @@ DK-points-and-cap-allocation problem sitting ON TOP OF a functioning finish mode
 more tractable target than "the projections are broken". NOTE the distinction for future entries:
 finish-position accuracy and DK-points ranking are different objectives; DK points add place
 differential, laps led and fastest laps, and dominator points are lumpy in a way finish MAE hides.
+
+CORRECTION to the addendum above (operator, same day): the conditional is now CONFIRMED FACT. He did
+build and upload the NH trucks entries BEFORE noticing the exposure spiral, and could not fix them
+after upload — his delivered set WAS degenerate. So his real-money result that weekend carries no
+information about the model, and should not be pooled with the replay ledger or read as a board
+failure. The replay (one build per mode from raw pre-lock samples) remains the clean model test and
+its numbers are unaffected.
+SECOND OCCURRENCE OF THE SAME REAL-MONEY FAILURE MODE, different cause: cup Richmond R24 delivered
+7 entries that all shared one thesis because exposure was left uncapped (habit); NH trucks R18
+delivered a degenerate set because applyExposure was spiralling (bug, since fixed 8a48b136). Both
+times the operator uploaded before the problem was visible, and both times the money was already
+committed when it surfaced.
+THE MISSING CONTROL IS NOT THE BUG FIX — it is that nothing inspects the SET before it leaves the
+tool. Proposed guardrail (queue candidate, small): a pre-export check on the lineup set that reports
+distinct-lineup count vs requested, realized max exposure vs requested cap, and the count of drivers
+appearing in >X pct of builds — and refuses/warns on export when the delivered set is materially
+narrower than asked for. The exposure bug is fixed; the failure CLASS (ship a degenerate set,
+discover it after upload) has now cost real money twice and has no detector.
