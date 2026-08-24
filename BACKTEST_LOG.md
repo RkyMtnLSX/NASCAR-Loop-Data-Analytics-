@@ -5015,3 +5015,43 @@ way to profit. Track A makes the product HONEST, not PROFITABLE, and it must be 
 TRACK B, EDGE - uncertain, slow, and the only thing that would justify selling picks. On present
 evidence that means matchups (ordering, soft market) or a genuinely new pace input, not more weight
 sweeps on outrights.
+
+### THE BOARD IS CALIBRATED. THE FLAGS ARE NOT. THOSE ARE DIFFERENT CLAIMS (2026-08-24)
+Recorded because the operator, reading the flag sweep, concluded "the model needs to get better
+calibrated and we can't seem to do it" and raised scrapping the project. That premise is measurably
+wrong and the distinction is worth stating precisely, in the log, with numbers.
+
+BOARD-LEVEL RELIABILITY. 644 driver-rows per market (9 races, pre and post boards, joined to results):
+  TOP 5    band 0-5    n=298  says  1.2  happens  1.0
+           band 5-10   n=85   says  7.4  happens  7.1
+           band 10-20  n=87   says 14.6  happens 16.1
+           band 20-35  n=88   says 26.4  happens 23.9
+           band 35-60  n=71   says 45.8  happens 50.7
+           band 60+    n=15   says 67.9  happens 66.7
+  TOP 10   1.6/2.4 | 7.4/8.2 | 15.1/21.7 | 27.1/25.0 | 46.4/44.5 | 73.0/69.6
+  WIN      0.9/0.6 (n=533) | 6.8/11.8 (n=51) | 14.4/13.0 (n=54) | above 20 pct n=6, unreadable
+Every top-5 band lands within about 5 points of truth across the full range. Top-10 is close, mildly
+UNDER-confident at 10-20. Win is fine where n supports a read. The honest exception, unchanged from
+earlier findings: cup favorites at the very top of the win market are over-confident (12 picks at
+20.8 pct stated, 8.3 pct realized), which is what marketAnchor and the favorite shade exist for.
+This is a well-calibrated board. It is not a model that "can't be calibrated."
+
+SO WHY DID THE FLAGS LOSE 35 PCT? Not because the probabilities are wrong - because of WHICH
+probabilities get selected. A flag fires where model prob exceeds market prob. Filtering on
+"we exceed the market" filters on the model's own upward errors: at any given true probability, the
+draws where our estimate came in high are exactly the draws that clear the bar. The board average is
+right; the selected subset is biased upward by construction. This is winner's curse / adverse
+selection, it is arithmetic rather than a modelling defect, and it is why FINDING 2 of the flag sweep
+came out monotonic - the larger the claimed edge, the larger the selected error.
+The standard correction is equally well known: shrink toward the market as a function of disagreement
+size before flagging. See the flag sweep TRACK A. It is a bolt-on at flag time and touches no weights.
+
+WHAT IS GENUINELY UNRESOLVED, AND IT IS NOT CALIBRATION. Whether we BEAT the market. CLV is 92 beat /
+101 lost over 273 bets, no soft slice by series or by claimed edge. That question is open and may
+resolve as "no." But it is a question about EDGE, not about calibration, and the two must not be
+collapsed - a perfectly calibrated model with no edge is a normal and useful object (it prices the
+board correctly, it just does not beat a market that also prices it correctly). The parts of PitBoard
+that do not require beating a market - the board, practice grading, lap data, DFS - do not depend on
+that question resolving favorably at all.
+FOR THE NEXT SESSION READING THIS COLD: do not let a bad flag ROI be quoted as evidence that the
+simulation is miscalibrated. Cite this entry. They are different measurements of different objects.
