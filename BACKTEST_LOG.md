@@ -5419,3 +5419,62 @@ because "our biggest weight term's input is drying up" would change the priority
 right now it does not appear to be drying up.
 BOTTOM LINE: worth ONE gated test, not a project. And it is a multi-weekend bet with a coin-flip prior,
 against a defaults change (2026-08-24 entry above) that is measured, free and available today.
+
+### cPOMS IS THE ONE THAT MATTERS, AND WE ARE ALREADY THROWING IT AWAY (2026-08-24)
+Operator supplied the definitions I could not find published. They change the assessment I wrote an
+hour ago, and they flip which column is worth having.
+    ARP    average running position
+    cPOMS  CONTINUOUSLY GRADED POMS - like rPOMS but instead of dividing by the fastest lap of the
+           RACE, it divides by the fastest lap AT THAT LAP NUMBER. Scoring a driver's lap 30, the
+           denominator is the fastest lap-30 speed anyone ran.
+    LSP    average PERCENTILE RANK of each eligible lap speed among same-lap-number speeds, 0 to 1
+    P50/P95  median and 95th-percentile lap time (and speed)
+
+THE DISTINCTION THAT MATTERS, AND IT IS NOT THE ONE I DREW. Both cPOMS and LSP normalise per lap
+number, so both fix the GFS measurement defect (fuel load, tyre age, track state, partial runs - the
+Landen Lewis case). But:
+    cPOMS IS A RATIO. It preserves MAGNITUDE. Leading by a nose scores differently from leading by a
+      second.
+    LSP IS A RANK. It discards magnitude. Both of those are just "first."
+And here is the point: EVERY INPUT THE MODEL CURRENTLY USES IS ORDINAL. ARP is position. driver_rating
+is built largely from ARP. Finish is position. LSP is a rank. GFS was raw speed but unnormalised,
+which is why it broke. cPOMS is the ONLY metric in this family that measures MARGIN.
+RANK METRICS SATURATE AT THE FRONT. Once you are leading you are P1 and the measurement stops carrying
+information - it cannot distinguish a car that is dominant from a car that merely got track position.
+cPOMS keeps measuring. And the front of the field is EXACTLY where this product is weakest: cup
+favourites over-confident (20.8 pct stated, 8.3 pct realised), the win market the worst of the four,
+board->pace only 0.61 in cup. The place where ordinal data carries least information is the place our
+board fails. That is a far better orthogonality argument than the "speed not position" one I made,
+which I then correctly undercut with the clean-air objection.
+CLEAN AIR STILL APPLIES, but it degrades gracefully rather than catastrophically: clean air is worth
+some bounded fraction of a percent, which cPOMS records as a small ratio difference, whereas in a rank
+metric clean air can flip a car from 5th-fastest to 1st - full saturation from a small real effect.
+SO: IF WE INGEST ONE COLUMN, IT IS cPOMS, NOT LSP. I had that backwards, purely because LSP was the
+one with a published definition. LSP is a rank metric and the 2026-07-07 saturation finding already
+closed the rank-metric family.
+
+THE PART THAT CHANGES THE COST STORY COMPLETELY. I told the operator the historical backfill was the
+expensive part and happened before we learn anything. That is wrong for future races. Admin.js:1529:
+    const RE = /^(.+?)\s+(?:Number\s+)?(\d{1,3})\s+(?:(?:Chevy|...)\s+)?(\d+)\s+(\d+)\s+(\w+)\s+
+               (?:[\d.]+\s+){1,3}(\d+)\s+([\d.]+)\s+[\d.]+\s+[\d.]+\s+([\d.]+)/gm
+(?:[\d.]+\s+){1,3} is a NON-CAPTURING group that swallows ARP, cPOMS and LSP. The \s+[\d.]+\s+[\d.]+
+before the last capture swallows P50 and P95. Every Lap Performance paste the operator ALREADY MAKES,
+every race, contains all five - matched by the regex, and deliberately discarded. fastest_laps stores
+only fastest_lap_num, fastest_time, fastest_speed.
+We keep the EXTREMES (one outlier lap on optimal conditions) and throw away the MEDIAN. For estimating
+race pace that is backwards.
+
+REVISED PLAN, and step 1 is not a model change at all:
+1. STOP DISCARDING. Add capture groups for ARP, cPOMS, LSP, P50, P95 and columns on fastest_laps.
+   ZERO extra operator work per race - the data is already in the clipboard. This is data collection,
+   not modelling, and it is the prerequisite for every other step. Do it before anything else.
+2. BACKFILL what is feasible. He has already pasted 2022-2025 once, so this is known labour, not
+   unknown - but it is still labour and it can wait behind step 1.
+3. THE GATED TEST, unchanged in structure: the identical 2026-07-07 partial-correlation gate GFS
+   failed - residualise cPOMS and finish on rating+startPos, train 2022-24 / test 2025-26, sign flip
+   across splits = noise = stop. Test cPOMS. Do not bother testing LSP first.
+4. FREE BONUS, needs no backfill: cPOMS is a better EVALUATION TARGET than ARP. This morning's
+   board-reads-pace analysis was retracted because ARP sits inside driver_rating, making the yardstick
+   circular. cPOMS is NOT inside driver_rating. The same question can be asked honestly with it.
+CREDIT WHERE DUE: I could not find these definitions published anywhere and would have ingested the
+wrong column. Fourth time today operator domain knowledge changed a conclusion.
