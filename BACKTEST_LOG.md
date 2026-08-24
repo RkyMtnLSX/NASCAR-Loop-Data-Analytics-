@@ -5579,3 +5579,43 @@ GENUINE LEAD, unrelated to the claim: pole sitters won 36 pct of 2026 cup races.
 they were priced at, that is a market inefficiency worth measuring. We only hold odds for 5 cup races
 (21-25) so it cannot be tested here - but it is a cheap question the moment the odds archive is deeper,
 and it is a far more interesting number than anyone's hit-rate graphic.
+
+### CORRECTION: I READ THE HIGHLINE TABLE WRONG, AND THE INTERESTING ROW IS NOT THE ONE I ANALYSED (2026-08-24)
+Operator: "his model's number one projected driver has won the race 50 pct of the time." Correct. I
+read the table as "how deep on their board did the WINNER sit" (cumulative, winner-found-by-rank-N).
+It is the other way round: WHERE DID THEIR #1 PROJECTED DRIVER FINISH. Both readings are
+arithmetically consistent (top-5 18 + other 3 = 21) and the FIRST ROW IS IDENTICAL EITHER WAY - "their
+#1 won" and "the winner was their #1" are the same event - so the 47.6 pct analysis in the entry above
+stands unchanged. What I got wrong is rows 2 through 6, and that is where the actual signal lives.
+
+RE-DONE PROPERLY. Their #1 projected driver's finishing distribution, 21 cup races:
+    1st 10 (47.6)  top-2 12 (57.1)  top-3 14 (66.7)  top-4 15 (71.4)  top-5 18 (85.7)  other 3 (14.3)
+THE NAIVE BENCHMARK on the same metric - where did the POLE SITTER finish, full 2026 season, our
+loop_data. This is the fairest "dumbest possible #1 pick" comparison:
+    cup     25 races  1st 36.0  top-3 56.0  top-5 64.0  outside-5 36.0  MEAN FINISH 7.0
+    oreilly 23 races  1st 13.0  top-3 17.4  top-5 21.7  outside-5 78.3  MEAN FINISH 14.7
+    trucks  18 races  1st 22.2  top-3 27.8  top-5 50.0  outside-5 50.0  MEAN FINISH 11.5
+OURS, post boards, n=9 races (10 rows on the win-pct cut - cup NH had Blaney and Bell TIED at 18.8):
+    #1 by WIN PCT       1st 4 (40.0)  top-3 5 (50.0)  top-5 9 (90.0)  outside 1  MEAN FINISH 3.7
+    #1 by PROJ FINISH   1st 3 (33.3)  top-3 4 (44.4)  top-5 8 (88.9)  outside 1  MEAN FINISH 4.0
+
+THE REFRAME THAT MATTERS. The WIN row is the LEAST informative row in the table and it is the one
+everybody quotes, including me an hour ago. Compare the gaps over the pole baseline:
+    WIN RATE   HighLine 47.6 vs pole 36.0  = +11.6
+    TOP-5 RATE HighLine 85.7 vs pole 64.0  = +21.7
+The top-5 row separates a model from the naive pick almost TWICE as decisively as the win row.
+Winning is dominated by variance the model cannot see - caution timing, fuel, a restart, a wheel
+coming off a car running fifth. Finishing top-5 is where a model demonstrates it identified the fast
+car. This is the same thing today's chain decomposition said in different clothes: pace->finish is
+0.83-0.87, so even a perfect pace read loses a chunk of finishing accuracy to luck, and the WIN
+market is where that loss is worst.
+Note their own table shows the pattern plainly: their #1 is top-5 85.7 pct of the time but wins 47.6
+pct. The gap between those two numbers IS the conversion noise. It is not a flaw in their model, it
+is the sport.
+OUR NUMBERS SIT IN THE SAME NEIGHBOURHOOD - top-5 88.9-90 pct, mean finish 3.7-4.0 against the cup
+pole benchmark's 64.0 pct and 7.0. But n=9 mixed-series vs their n=21 cup-only, and our races are
+simply the ones we have boards for. NOT A COMPARISON. Recorded so the number exists when the sample
+grows, and because MEAN FINISH OF THE #1 PICK is a better single-number scorecard than any hit rate -
+it uses the whole result instead of a threshold, and it is not silent on how badly you miss.
+STILL TRUE FROM THE ENTRY ABOVE: none of these metrics say anything about PRICE. A model can top this
+table and still have no betting edge if the market already knows.
