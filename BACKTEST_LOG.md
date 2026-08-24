@@ -5055,3 +5055,60 @@ that do not require beating a market - the board, practice grading, lap data, DF
 that question resolving favorably at all.
 FOR THE NEXT SESSION READING THIS COLD: do not let a bad flag ROI be quoted as evidence that the
 simulation is miscalibrated. Cite this entry. They are different measurements of different objects.
+
+### CORRECTION: I ANALYSED CLV AT THE WRONG UNIT. CLUSTERED PROPERLY IT IS POSITIVE (2026-08-24)
+Operator, on being told CLV was 92 beat / 101 lost and therefore no edge: "I think we can't beat CLV
+because it flags so many bets, it's probably mathematically impossible for all of them to become
+positive CLV." He is right about the mechanism, the precise version is stronger than he put it, and
+following it reverses my conclusion from an hour earlier.
+
+THE MECHANISM. Flags inside one race are NOT independent bets. Win probabilities sum to 1 across the
+field, so flagging k drivers as underpriced is ONE claim - that the market has misallocated
+probability - expressed as k tickets. Measured directly (claimed misallocation = sum of medge over
+flagged drivers, win market, per race-stage):
+    cup Iowa R23 post      3 flags   our combined win prob 73.0 pts   claimed misallocation +34.7
+    cup Richmond R24 pre   3 flags   our combined win prob 65.0 pts   claimed misallocation +35.7
+    cup Richmond R24 post  3 flags   our combined win prob 55.2 pts   claimed misallocation +33.2
+Three tickets carrying 73 points of win probability against a market pricing them near 38 is not
+three opinions. It is one opinion, and its CLV resolves as one opinion. Counting 273 tickets as 273
+trials - which is exactly what I did - overweights the races that happened to generate the most
+tickets and treats a correlated cluster as a coin-flip sequence.
+
+RE-RUN AT THE RACE LEVEL (the conservative unit; 10 races in clv_log, 2026-07-18 to 08-22, all 273
+rows have close_odds captured, 80 are exactly zero = genuinely unmoved lines, no nulls):
+    mean race CLV +1.264, sem 0.514, t=2.46 (9 df, p about .036), 8 races positive / 2 negative.
+By race-market cell (34 cells): 24 positive / 10 negative, mean +1.31. By market: t5 +1.57 (8/2),
+win +1.31 (7/3), t3 +1.14 (6/4), t10 +1.05 (3/1). Every market positive.
+
+SKEPTICAL CHECK - IS THE EDGE JUST LONGSHOT NOISE? This was the obvious way for the result to be
+worthless, since CLV on longshots is unreliable (stale lines, limits, steam). It is NOT:
+    under +300      n=71   mean CLV +1.48   beat 21 / lost 23 / unmoved 27
+    +300 to +999    n=86   mean CLV +1.50   beat 33 / lost 30 / unmoved 23
+    +1000 or longer n=116  mean CLV +0.40   beat 38 / lost 48 / unmoved 30
+The CLV signal is STRONGEST in the short and medium bands and near-absent in the tail. Excluding
++1000 and longer entirely: 157 bets, 10 races, mean race CLV +1.696, t=2.35, 7 positive / 3 negative.
+The edge lives precisely where the flag sweep said our probabilities are calibrated, and the tail is
+bad on BOTH measures - 0-for-99 on results AND no line movement. The two analyses now agree.
+
+WHAT THIS DOES AND DOES NOT CHANGE.
+CHANGES: "there is NO demonstrated edge in the flag list" was wrong, or at least far stronger than the
+data supports. The correct statement is that there is a POSITIVE CLV SIGNAL in the sub-+1000 body,
+nominally significant at the race level, in a sample of 10 races.
+DOES NOT CHANGE: the tail is still fabricated and still has to go. The -35 pct ROI is still real
+(positive CLV with negative ROI over 9 races is ordinary variance - it means we bought good prices and
+lost anyway - it does not validate the ROI). And the filtered set's -7.5 pct is now consistent with a
+small positive edge rather than evidence against one.
+THREATS TO THE RESULT, STATED PLAINLY. (1) 10 races, one nominal test, not pre-registered. (2) The
+BIGGEST risk is that clv_log is captured MANUALLY and incompletely - the operator missed NH cup
+entirely because the race started first. If logging is even slightly more diligent when a line has
+moved our way, this whole result is selection. That is not a hypothetical; it is the single thing
+most likely to be wrong here. (3) clv_log covers 10 races that only partly overlap the 9 flag races.
+THE FIX FOR ALL THREE IS THE SAME AND IT IS THE HIGHEST-VALUE ITEM ON THE BOARD: capture close odds
+AUTOMATICALLY for EVERY flag, no operator discretion, starting next race. Until capture is systematic
+and complete, this number is promising and inadmissible.
+
+METHOD LESSON, and it is the same failure as the ARP one this morning in a different costume: I chose
+an analysis unit without asking whether the observations were independent. Correlated observations
+counted as independent trials will mislead in whichever direction the cluster sizes happen to point.
+Both of today's reversals came from the operator applying domain knowledge to a number I had computed
+correctly and framed wrongly.
