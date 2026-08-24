@@ -1,6 +1,81 @@
 # PITBOARD STATE
 Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2026-08-24. DFS multi-entry toolchain COMPLETE: fill-by-contest picker (b0361752), exposure cap fixed - sub-100% no longer collapses to 1 lineup (8a48b136); NH entry JHN fix + parser hardened (e3b7ec39). NH weekend live: v6.3 wk3 + startPos watch both judged Sunday.
 
+## 2026-08-24 SESSION HANDOFF — READ THIS BEFORE ACTING ON ANY 2026-08-24 ENTRY
+Whole session was ANALYSIS ONLY. Zero changes to src/, api/, package.json, the database, or any
+model logic. 12 commits, all of them BACKTEST_LOG.md + PITBOARD_STATE.md. Verified: no src/api diff
+across the whole day, working tree clean, no leftover DB objects.
+
+### SIX OF MY OWN CONCLUSIONS WERE CORRECTED OR RETRACTED THE SAME DAY
+The BACKTEST_LOG entries are chronological, so an early entry may be overturned 300 lines later.
+Do NOT act on an 08-24 entry without checking this list first. Operator caught five of the six.
+1. "Byron 14.3% post was over-confidence" — WRONG. He lost a wheel running top 5 (26 laps led,
+   high pos 1, 296/301). Fast car, killed by attrition. Example struck.
+2. "The board reads pace well; the pace-to-finish CONVERSION throws it away; aim at conversion not
+   weight sweeps" — RETRACTED, WRONG IN DIRECTION. Scoring the board against ARP is circular
+   (corrHistory ~37% weight IS driver_rating, built largely FROM ARP). Chain decomposition points
+   the other way: pace->finish 0.83 in-sample / 0.760 over 434 archive races, board->pace only 0.61
+   in cup. PREDICTING pace is the weak link. Weight/signal work aims at the right half after all.
+3. "No demonstrated CLV edge (92 beat / 101 lost)" — WRONG UNIT. Flags in one race are ONE
+   correlated claim, not many trials. See 5A-PRIME: clustered properly it is positive.
+4. "medge is computed off RAW implied, we don't de-vig" — RETRACTED. We DO de-vig
+   (SimulationCenter.js:285, proportional per book, leave-one-out sharp consensus). I inferred a
+   defect from one row landing 0.6 points apart without reading the function.
+5. "The flags lose 35%" — that is the DEFAULT view (green badge, ev>=10). The tight filter
+   (mev>0) exists at SimResults.js:443 but mvQual defaults FALSE. Qualified list is -11.4% on 35
+   bets. I scored the loose list all day.
+6. "Ingest LSP, the new orthogonal speed signal" — BACKWARDS. LSP is a RANK metric and the
+   rank-metric family is already closed by the 2026-07-07 saturation finding. cPOMS is the one that
+   matters — it is a RATIO and preserves margin. Operator supplied the definitions.
+
+### WHAT IS ESTABLISHED (survived scrutiny, safe to build on)
+- BOARD CALIBRATION IS SOUND. 644 driver-rows/market, 9 races, both stages. Top-5 within ~5pts of
+  truth in every band. Flag ROI is NOT evidence of a miscalibrated sim — different objects.
+- POST BOARDS ARE BETTER ORDERED. Winner's rank improves or ties 9/9, regresses in none (p=.008).
+- FLAGGED DRIVERS BEAT THE FIELD ON CLV, 9/9 races, +1.731pts, t=3.93. Complete population
+  (odds_snapshots), pre-sim -> post-sim window, two confounds killed (consensus pricing +1.441;
+  beats unflagged in every pre-probability stratum). Modest — roughly the vig, maybe a bit more.
+- THE TAIL IS FABRICATED. sim_prob<10% went 0-for-72; odds>=+1000 in win/t3/t5 went 0-for-99.
+  Reality 0.76% | market 1.54% | PitBoard 5.0% at +2000 and longer.
+- EV IS INVERSELY RELATED TO RELIABILITY, monotonic. corr(ev, line move) = -0.139 while
+  corr(medge, line move) = +0.101. A star rating keyed to EV would surface our worst plays first.
+- ABSOLUTE POINTS BEAT A RELATIVE RATIO for any medge floor — monotonic, settled.
+
+### PROPOSED AND UNBUILT — nothing here has been written
+Priority order as of end of session:
+1. MAKE MARKET AGREEMENT THE DEFAULT. Either default mvQual true, or require mev>0 for the green
+   badge at SimResults.js:479. Takes the acted-on list from -36.2% to -11.4%. Zero new code.
+   Biggest measured effect available.
+2. STOP DISCARDING LAP RAPTOR DATA. Admin.js:1529 — (?:[\d.]+\s+){1,3} is a NON-capturing group
+   swallowing ARP, cPOMS and LSP; the two bare [\d.]+ before the last capture swallow P50/P95.
+   Every paste the operator already makes contains all five. Add capture groups + columns on
+   fastest_laps. ZERO extra operator work per race. Data collection, not modelling.
+3. SURFACE medge on flag rows — computed, stored, never shown in the badge path.
+4. medge FLOOR — DO NOT PICK ONE YET. Ladder is non-monotonic (5:-16.0, 6:-24.1, 8:-9.5, 10:-1.7,
+   12:-12.2) = noise at 9 races. No floor makes it profitable. Product-shape call for the operator:
+   3.9 tight plays/race (mev>0) vs 15.7 medium (medge>=5). Run BOTH as parallel ledgers.
+5. cPOMS GATED TEST — identical 2026-07-07 partial-correlation structure GFS failed. Residualise
+   cPOMS and finish on rating+startPos, train 2022-24 / test 2025-26, sign flip = noise = stop.
+   Needs #2 first, plus a backfill. Test cPOMS, not LSP.
+6. CAPTURE MATCHUP LINES (operator habit). Zero matchup prices exist, so the one hypothesis with a
+   real shot cannot be tested at all. Matchups need ORDERING only — the model's proven strength.
+
+### PRE-REGISTERED — DO NOT RE-TUNE THESE ON EXISTING DATA
+- CLV lift ledger: race-level, re-run every weekend (zero marginal work, odds_snapshots already
+  captures it). BAR = holds above zero through 15-20 races. Do not re-tune the window or the strata.
+- medge floor 5 is the PRINCIPLED value (below it, two independent measures say no model content).
+  10 is the FITTED sweet spot and must not be adopted on these 9 races — forward-test it alongside.
+- cPOMS gate is inherited from the GFS test. I did not design it and it must not be modified.
+
+### OPEN QUESTIONS FOR THE OPERATOR
+- driver_rating: pitboard.md 2026-07-26 says new-format rows store it NULL because Lap Raptor
+  dropped it site-wide, but loop_data has it 36/36 populated through cup NH R25. Old parser still
+  matching, or another source? Changes the urgency of everything in #5 if it IS drying up.
+- What are GR / LR / GR-LR on the Advanced report? If they are green-run / long-run splits that is a
+  RACE-derived version of shortRunPace / longRunPace / tireFalloff — potentially more valuable than
+  cPOMS. Undefined publicly.
+- Product shape (see #4): few high-conviction plays, or a broader research-grade list?
+
 ## Launch runway (target: The Chase, ~2-3 race weekends out)
 - [x] #64 table-lockdown SQL — RUN + LIVE-VERIFIED 2026-08-19 (anon 0 rows everywhere; RPCs
       converted to security invoker; loop_data_dk view security_invoker; week-pass expiry
