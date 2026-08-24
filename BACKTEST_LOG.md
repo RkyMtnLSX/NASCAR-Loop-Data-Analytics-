@@ -5354,3 +5354,68 @@ REVISED RECOMMENDATION, in order:
 METHOD NOTE, sixth catch of the day and this one was mine to find: I scored a product for a full day
 without checking which list the product actually shows by default. Before measuring a system's output,
 confirm which output the user sees.
+
+### LAP RAPTOR ADVANCED STATS: WHAT THEY ACTUALLY ARE, AND A WEAKER CASE THAN I PITCHED (2026-08-24)
+I proposed cPOMS/LSP/SS ingestion as "the first candidate in months that isn't structurally guaranteed
+to be redundant," on the strength of the phrase "speed stats" in a handoff note. Operator asked me to
+expand. I went and read the source first. The case is real but NARROWER than I sold it.
+
+WHAT LSP ACTUALLY IS (verified, blog.lapraptor.com). Lap Speed Percentile scores every eligible
+green-flag lap 0 to 1 by comparing its speed to the other cars' speeds ON THE SAME LAP NUMBER.
+Cautions, pit stops and anomalous laps excluded. Percentile rather than raw speed because raw speed
+is not comparable across venues (Daytona ~200mph vs Martinsville ~90mph). Same family: RSP (Restart
+Speed Percentile, same construction applied to restart speeds).
+WHAT cPOMS AND SS ARE: UNKNOWN. Not publicly defined anywhere I could find. Lap Raptor says only that
+cPOMS is "theoretically superior" to LSP because it better rewards frontrunners who gap the field, and
+that LSP has larger ranges. Also undefined: GR, LR, GR-LR on the same advanced report. Do NOT plan
+around metrics whose definitions we do not have.
+
+WHY MY ORIGINAL PITCH WAS TOO STRONG. The log ALREADY killed a green-flag-speed metric. 2026-07-07:
+GFS alone per-race Spearman vs finish 0.460 train / 0.445 test, WORSE than rating alone (0.479/0.472);
+partial correlation after residualising both GFS and finish on rating+startPos came out +0.0397 train
+and -0.0451 test - SIGN FLIP, declared noise. The stated reason: "race-pace rank tracks running
+position (clean air), so historical GFS re-encodes rating." LSP is a green-flag speed metric. That
+objection applies to it too, and per-lap percentiling does NOT remove clean air - it removes fuel
+load, tyre age and track condition, which are COMMON to the whole field on that lap. The car in clean
+air still posts the fast lap. So LSP is not obviously orthogonal to driver_rating, and I implied it was.
+
+THE ARGUMENT THAT SURVIVES, AND IT IS A GOOD ONE. There are two possible reasons GFS failed:
+  (a) speed is genuinely redundant with driver_rating - the log's stated conclusion; or
+  (b) GFS MEASURED SPEED BADLY and the null was a measurement failure.
+We have direct evidence for (b), from the operator, in this same log. 2026-07-26, Landen Lewis ranked
+2nd in GFS at Trucks IRP off 135 of 200 laps having started 20th and run in traffic - "my first two
+tests were wrong," and a 90 pct partial-run rule had to be shipped. GFS averages raw green-flag laps,
+so WHO you are on track with and WHEN you exit distorts it. LSP scores each lap against the field on
+that same lap, which is precisely the defect that case exposed. GFS is a crude estimator of the thing
+LSP measures properly.
+So the question is NOT "is speed orthogonal to rating" (answered: probably not). It is "did GFS fail
+because speed is redundant, or because GFS was a bad thermometer?" Those are distinguishable and the
+test already exists.
+
+THE GATE IS PRE-REGISTERED BY PRECEDENT, which is the best feature of this whole idea. Run LSP through
+the IDENTICAL 2026-07-07 structure that GFS failed: residualise both LSP and finish on rating+startPos,
+correlate the leftovers, train 2022-2024 / test 2025-2026. Sign flip across splits = noise = stop and
+log it. I cannot tune that gate because I did not design it and GFS already ran it.
+
+HEADROOM, from today's own numbers. Board->pace is 0.61 in cup while pace->finish is 0.83-0.87, so
+pace PREDICTION is the binding constraint. Ceiling is bounded though: perfect pace foresight only
+reaches rho 0.760 to finish across 434 archive races, and we sit near 0.47. Room exists; whether it is
+reachable from history is exactly what the saturation finding says it is not.
+
+COST, STATED HONESTLY. Advanced-report ingestion needs loop_data columns plus a paste section
+(pitboard.md 2026-07-26 already queued it), AND a historical backfill - LSP for past races at
+correlated tracks - or there is nothing to train on. Lap Raptor has seasons back to 2017, so the data
+exists, but pasting it race by race is real operator labour. That backfill is the expensive part and it
+happens BEFORE we learn whether the signal is worth anything.
+MORE INTERESTING THAN LSP, IF THEY ARE WHAT THEY MIGHT BE: GR / LR / GR-LR. If those are green-run
+and long-run splits, that is a RACE-derived version of shortRunPace / longRunPace / tireFalloff, which
+we currently estimate from a single practice session. Historical run-length behaviour at correlated
+tracks would be a genuinely different input rather than another driver-strength proxy. UNVERIFIED -
+find out what they mean before costing any of this.
+OPEN QUESTION FOR THE OPERATOR: pitboard.md 2026-07-26 says new-format rows store driver_rating NULL
+because Lap Raptor dropped it site-wide. But loop_data has driver_rating populated 36/36 through cup
+NH R25. Either the old-format parser still matches, or it is coming from elsewhere. Worth knowing,
+because "our biggest weight term's input is drying up" would change the priority of all of this, and
+right now it does not appear to be drying up.
+BOTTOM LINE: worth ONE gated test, not a project. And it is a multi-weekend bet with a coin-flip prior,
+against a defaults change (2026-08-24 entry above) that is measured, free and available today.
