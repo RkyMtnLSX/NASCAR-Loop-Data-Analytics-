@@ -4770,3 +4770,56 @@ past its bar. Two of the four cup pairs came from boards flagged elsewhere as se
 NH) — watch whether the cup win-market gap narrows as board quality regresses to mean.
 NOTE: three temporary DB objects (pb_norm, pb_prepost, pb_delta) were created for this analysis and
 DROPPED at the end. No schema, model, or code change was made.
+
+### CORRECTION + FOLLOW-ON to the pre/post sweep: THE BOARD READS PACE, NOT FINISH (2026-08-24)
+CORRECTION, operator catch. I used William Byron (cup NH R25, 4.7 pct pre -> 14.3 pct post, finished
+30th) as the one-driver illustration of "post boards are over-confident in cup." That was WRONG.
+Operator: "Byron lost a wheel while inside the top 5." The loop data agrees — 26 laps led, high
+position 1, mid-race 11, 296 of 301 laps, status running. That is a fast car that broke. The post
+board rating him 14.3 pct was VINDICATED by pace and refuted only by attrition. Strike the example.
+
+That prompted the right question: how much of the cup "over-confidence" in FINDING 4 is really
+attrition rather than bad speed reads? Auditing the 12 cup post picks at >=12 pct win: of the 11 that
+did not win, Larson accounts for two (a lap-43 DNF at Indy, 18 laps down at Iowa), Byron is the wheel,
+and Blaney TWICE led the race decisively and lost it late (129 laps led -> P3 at Iowa, 88 laps led ->
+P13 at Richmond). Only a minority were genuine pace misses.
+
+NEW TEST (9 paired boards, same sample). Rank-correlate each board's win pct against TWO targets:
+finishing position, and average running position (pace). Result, in ALL NINE RACES, the board tracks
+PACE better than it tracks FINISH:
+                          pre vs FINISH  post vs FINISH   pre vs PACE  post vs PACE   post gap
+    cup Indy R22              0.407          0.385           0.515        0.632         +0.247
+    cup Iowa R23              0.311          0.358           0.303        0.507         +0.149
+    cup Richmond R24          0.698          0.616           0.704        0.706         +0.090
+    cup NH R25                0.497          0.504           0.578        0.593         +0.089
+    ore Indy R22              0.905          0.856           0.898        0.926         +0.070
+    ore Iowa R23              0.398          0.355           0.798        0.785         +0.430
+    trk IRP R16               0.618          0.634           0.812        0.796         +0.163
+    trk Richmond R17          0.762          0.697           0.824        0.833         +0.136
+    trk NH R18                0.642          0.598           0.823        0.854         +0.256
+9 of 9, gap +0.070 to +0.430, mean +0.181. And the gap WIDENS from pre to post: mean pace-minus-finish
+is +0.113 on pre boards and +0.181 on post boards.
+
+WHAT THIS MEANS. Practice data buys PACE KNOWLEDGE and almost none of it survives into finishing
+position. In cup the pace read improves in 4 of 4 races (mean rho 0.525 -> 0.610) while the finish
+read does not move at all (0.478 -> 0.466). The post board genuinely knows which cars are fast; the
+sim then converts that into a finishing order and the conversion throws most of it away.
+
+THIS REVISES FINDING 4, IT DOES NOT ERASE IT. The cup high-confidence win rate is still 8.3 pct
+realized on 20.8 pct stated (n=12) and the practical advice is unchanged — do not read post cup win
+percentages at face value. But the DIAGNOSIS changes, and so does the fix. It is NOT "the weights are
+over-confident after practice." It is "we model speed well and model attrition, caution timing and
+track position badly, and the post board's extra speed knowledge just makes that gap more visible."
+
+WHERE TO AIM NEXT (candidate, NOT built, NOT tested). The target is the pace-to-finish CONVERSION
+layer, not the weight set: DNF modelling tiered by equipment/organization (already queue item 8), and
+whether a dominant car's late-race loss (Blaney twice, 129 and 88 laps led, finished 3rd and 13th) is
+caution-sequence variance the sim already contains or a systematic miss. The cheap first cut: score
+proj_finish against avg_position instead of finish across the full board archive - if the model is
+near its ceiling on pace, every remaining point of finish accuracy has to come from the conversion,
+and the weight sweeps we keep running are polishing the wrong half of the pipeline.
+
+METHOD NOTE. Both the bad example and the better test came from the operator knowing what happened on
+track. Loop data says "finished 30th"; it does not say "wheel came off while running fifth." Before
+using any single driver as evidence of a calibration failure, check whether the car was FAST and
+UNLUCKY - avg_position, laps led and laps completed are all sitting in the same row.
