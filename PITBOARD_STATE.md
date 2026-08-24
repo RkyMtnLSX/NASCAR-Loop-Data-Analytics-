@@ -6,6 +6,10 @@ Whole session was ANALYSIS ONLY. Zero changes to src/, api/, package.json, the d
 model logic. 12 commits, all of them BACKTEST_LOG.md + PITBOARD_STATE.md. Verified: no src/api diff
 across the whole day, working tree clean, no leftover DB objects.
 
+### SAMPLE SIZE: IT WAS NEVER 9 RACES — sim_grades HOLDS 16 (operator's catch, late in session)
+sim_results has 18 rows / 9 races (pre-07-24 boards genuinely lost). sim_grades SURVIVED that erasure: 30 graded boards over **16 races** back to 07-06. Several 08-24 entries say "n=9" and are UNDERSTATED. What extends: `metrics{}` (per-board Brier/Spearman/MAE) -> pre/post sweep at **14 paired races**; `ev_flags{}` (ev/mev/price/hit) -> flag sweep at **377 flags / 15-16 races**. What does NOT extend: `actual{}` kept only car_number+finish, so the per-driver board is truly gone — calibration-by-band, winner-rank and #1-pick distribution STAY at 9. ev_flags carries no medge, so medge/tail work STAYS at 290 flags.
+RE-RUNS: pre/post at 14 races — Brier still non-significant on all four markets, but SPEARMAN t=2.07 and MAE t=-1.84 both favour post. Conclusion unchanged, ordering half stronger. Flag sweep at 377 — total -31.5%, EV inversion HOLDS and sharpens (ev 10-24 -4.7% on 175; 25-49 -69.3%; 50-99 -60.9%; the 100+ band's +6.8% is n=31 longshot noise, was -11.8% at n=9). mev>0 goes -11.4% (35 bets) -> +18.9% (64 bets) — BUT 5 races positive / 6 negative and EXCLUDING THE BEST RACE IT IS -2.0 UNITS. Quote it as "removes the bleeding (-41.8% -> ~break-even)", NEVER as "+18.9%". BACKTEST_LOG 2026-08-24.
+
 ### SIX OF MY OWN CONCLUSIONS WERE CORRECTED OR RETRACTED THE SAME DAY
 The BACKTEST_LOG entries are chronological, so an early entry may be overturned 300 lines later.
 Do NOT act on an 08-24 entry without checking this list first. Operator caught five of the six.
