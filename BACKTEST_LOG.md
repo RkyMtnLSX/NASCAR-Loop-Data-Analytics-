@@ -5528,3 +5528,54 @@ race's biggest question - who wins - we were at least as right as he was, and ou
 the Hocevar collapse he called a day early. What this race illustrates is the two gaps we already
 measured today: WE BET TOO MANY THINGS (23 vs 1) and WE DO NOT SHOP PRICE (+100 vs -110 on an
 identical play). Both are fixable without touching the model.
+
+### CORRECTION TO MY OWN LANGUAGE: THE FLAG RECORD IS A PAPER RECORD (2026-08-24)
+Operator: "I didn't lose anything because I don't bet everything the model flags - as far as I'm
+concerned this is all just hypothetical data logging until we get this thing more dialed in."
+Correct, and I have been writing it wrong all day. Every "-102 units", "-8.56 units", "ROI -35.2 pct"
+in today's entries is a PAPER RECORD computed by staking 1 flat unit on every flag. Nothing was
+staked. The flag log is a research instrument, not a bet slip. The numbers are still the right way to
+evaluate the FLAGGING RULE - that is what a backtest is - but they are not losses, and no entry above
+should be read as money lost. Read them as "what the rule would have produced if bet blindly," which
+is precisely the thing the operator has correctly declined to do.
+
+### AN OUTSIDE CLAIM CHECKED: "PREDICTION FINISHER NUMBER 1 IS NOW 50 PCT ON THE SEASON" (2026-08-24)
+Operator shared a HighLine Betting (@HighLineBetting) post-New-Hampshire claim. Their table, through
+21 cup races: winner was their #1 pick 10 times (47.62 pct), top-2 12 (57.14), top-3 14 (66.67),
+top-4 15 (71.43), top-5 18 (85.71), outside top-5 3 (14.29). Xfinity 19 races: #1 5 (26.32), top-5
+15 (78.95). Trucks 15 races: #1 3 (20.00), top-5 10 (66.67). With Blaney that is 11 of 22 = 50 pct.
+
+MY FIRST INSTINCT WAS WRONG AND I CHECKED BEFORE SAYING IT. I assumed ~48 pct was implausible because
+cup favourites win maybe 15-20 pct, and I was ready to call the cross-series pattern a red flag on the
+grounds that cup should be the HARDEST series to predict. Both assumptions failed against 2026 data:
+    2026 POLE SITTER WIN RATE (the dumbest available benchmark, full season, our loop_data):
+      cup     9 of 25 = 36.0 pct        oreilly 3 of 23 = 13.0 pct      trucks 4 of 18 = 22.2 pct
+    2026 WINNER CONCENTRATION: cup 11 distinct winners in 25 races, one driver took 5 (20 pct).
+So 2026 cup has been an unusually front-runner-dominant, concentrated season. Against a 36 pct pole
+baseline, 47.6 pct is about 1.3x the naive benchmark - not 3x. And their cross-series ORDERING tracks
+this season's actual difficulty: their edge over the pole baseline is cup +11.6, xfinity +13.3,
+trucks -2.2. My "cup should be hardest" prior was a general belief about series parity, not a fact
+about this season. Checking it saved a seventh error, and an unfair one aimed at someone else's work.
+
+OUR COMPARABLE NUMBER, same metric, post boards, n FAR too small to compare:
+    ALL 9 RACES   winner was our #1 in 4 (44.4 pct), top-3 4 (44.4), top-5 7 (77.8)
+    CUP ONLY (4)  winner was our #1 in 1 (25.0 pct), top-5 3 (75.0)
+Same neighbourhood on top-5, but 9 races against their 21 and our set is simply "the races we have
+boards for." No conclusion available. Recorded so the number exists when the sample grows.
+
+THE PART THAT ACTUALLY MATTERS, AND IT IS NOT THE HIT RATE. This metric is SILENT ON PRICE. "How
+often was the winner our #1" measures DISCRIMINATION - can you sort the field - and says nothing about
+whether the market already knew. Two observations follow:
+1. Taken at face value the claim implies an enormous profit. Cup favourites go off around +350 to
+   +600. Betting a pick that wins 47.6 pct at even +350 returns about +114 pct ROI. Nobody in this
+   sport has that. So either the pick is far shorter than the field's favourite, or the hit rate does
+   not survive contact with the prices, or 22 races is running hot. All three are ordinary; none of
+   them require anyone to be wrong or dishonest. It is simply not a claim about money.
+2. IT IS AN ORDERING METRIC - which is the exact metric OUR model looks BEST on. Today established
+   the post board improves the winner's rank in 9 of 9 races (p=.008) while the betting overlay shows
+   no proven edge. If we published a "winner was our #1 44 pct of the time" graphic it would be true,
+   flattering, and would not establish that the product makes a dollar. Same applies to theirs.
+GENUINE LEAD, unrelated to the claim: pole sitters won 36 pct of 2026 cup races. If that is not what
+they were priced at, that is a market inefficiency worth measuring. We only hold odds for 5 cup races
+(21-25) so it cannot be tested here - but it is a cheap question the moment the odds archive is deeper,
+and it is a far more interesting number than anyone's hit-rate graphic.
