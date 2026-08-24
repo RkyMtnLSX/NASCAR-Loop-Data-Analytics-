@@ -4632,3 +4632,56 @@ projection inflated by ~3 pts. He appears in neither replayed lineup, so the com
 NEXT: (1) a DK-points-specific diagnostic - decompose our FPTS error into finish pts vs place
 differential vs laps led vs fastest laps, to find which term is mis-ranked; that is the actual
 lever, and it is now cheap with the connector. (2) Ownership pool is 7 contests, refit at 8-10.
+
+## 2026-08-24 — DK FPTS DECOMPOSITION at 9 races: no broken component; compounding is real but modest; "the market beats us" was a 2-slate artifact — the real signal is TRUCKS-ONLY
+CORRECTS two claims I made earlier the same day off a 2-race sample. Operator pushed back ("can't
+you use a bigger sample than just these two races?") and he was right — the sample was available
+the whole time. The decomposition needs only published boards + loop_data; it never needed contest
+or ownership data, which is what I had wrongly treated as the binding constraint.
+METHOD: all 9 POST boards with results (cup Indy R22, cup Iowa R23, cup Richmond R24, cup NH R25,
+ore Indy R22, ore Iowa R23, trk IRP R16, trk Richmond R17, trk NH R18), 32-37 drivers each.
+DK scoring split into its four terms: finish points (DK table), place differential (start-finish),
+laps led x0.25, fastest laps x0.45. Projected components from the board (proj_finish, start_pos,
+laps_led, avg_fast_laps); actual from loop_data. Per-race Spearman on each component and on the
+total, then averaged across races (races have different field sizes, so pooling raw ranks would be
+wrong). Variance shares computed per race on ACTUAL component values.
+COMPONENT RESULTS (mean rho across 9 races, and mean share of actual FPTS variance):
+    finish points     0.605    26 pct
+    place differential0.573    19 pct
+    laps led          0.461     7 pct   <- weakest component
+    fastest laps      0.665     4 pct   <- strongest, counterintuitively
+    TOTAL FPTS        0.475     --
+    mean of the four  0.576
+    covariance between terms   45 pct of variance
+FINDING 1 — NO COMPONENT IS BROKEN. Everything sits 0.46-0.67. Laps led is the weakest, which was
+the original hypothesis, but it carries only 7 pct of the variance: ranking it perfectly would barely
+move the total. Fastest laps, which I expected to be noise, is the strongest term. The "find the
+broken term and patch the dominator curve" plan is DEAD — do not spend a weekend on it.
+FINDING 2 — ERRORS COMPOUND, MODESTLY. The total ranks BELOW the average of its components by
+-0.101, in 7 of 9 races. (Below EVERY component in 5 of 9 — my 2-race claim that this was universal
+was overstated.) Summing four estimates whose errors were independent would beat the parts; getting
+worse than the parts means one per-driver error contaminates all four terms in the same direction.
+Consistent with 45 pct of actual variance being covariance: in a real race the four terms move
+together, and so do our misses.
+FINDING 3 — THE CORRECTION THAT MATTERS. "DK salary out-predicts our DK-points ranking" does NOT
+hold at 9 races. Head to head (per-race Spearman vs actual FPTS, drivers with both a salary and a
+result): WE WIN 4, SALARY WINS 5, and one of those losses is 0.362 vs 0.365 (a tie). Means: ours
+0.480, salary 0.499. Essentially even. The earlier 2-slate claim sampled a truck race plus one of
+the worst cup boards of the season.
+    cup      (4 races)  ours 0.402  salary 0.404   dead even
+    oreilly  (2 races)  ours 0.619  salary 0.597   we win
+    trucks   (3 races)  ours 0.492  salary 0.562   SALARY WINS ALL THREE, mean gap -0.070
+THE SURVIVING SIGNAL IS TRUCKS-ONLY: 0-3 against the DK salary line, every truck race on record.
+n=3, so this is a lead and not a finding - but it is a well-targeted lead, and it is the only part
+of the earlier "market beats us" story that survives contact with the full sample.
+ALSO WORTH RECORDING: our DK ranking is 0.475 on average, not the 0.32 quoted from NH. Range across
+boards is 0.288 (cup Indy) to 0.826 (ore Indy). NH cup and Indy cup were two of the worst boards of
+the season; Richmond (0.637 cup, 0.722 trucks) and ore Indy (0.826) are what a good week looks like.
+Single-slate DK correlations are extremely noisy - do not read one.
+NEXT if trucks repeats: compare truck projDK vs salary at 5+ races before acting. If it holds, the
+question is whether truck DK projections should carry a salary/market anchor the way the win market
+already does (marketAnchor v1.4) - a market term is a cheaper fix than a model term and it is the
+one place the market has demonstrably out-predicted us.
+METHOD LESSON, third instance today: I twice drew a conclusion from the smallest sample in reach
+when a 4x sample was one query away. The operator caught it both times. Before reporting any
+cross-race pattern, count the available races FIRST and state n in the same sentence as the claim.
