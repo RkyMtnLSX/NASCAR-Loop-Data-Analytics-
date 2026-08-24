@@ -5234,3 +5234,62 @@ PROPOSED FIX - NOT BUILT, NEEDS OPERATOR APPROVAL. One mechanism, three parts:
 JUDGED BY: the race-level CLV lift ledger, pre-registered at "holds above zero through 15-20 races."
 NOT by in-sample ROI on these 9 races. Sanity-check the shrink against the 9 races to confirm it kills
 the 0-for-99 group and spares the 15-35 pct band - but do NOT tune lambda there.
+
+### RETRACTION: WE DO DE-VIG. THE REAL DEFECT IS THAT WE GATE ON ev INSTEAD OF medge (2026-08-24)
+Operator: "I thought we were devigging the price?" We are. I claimed otherwise from a single row's
+arithmetic and I was wrong. Reading the actual code:
+    SimulationCenter.js:285
+    dvg[bk][k] = s ? imp[k] / s * target : null
+Each book's raw implied is summed across the field and rescaled to the market's TRUE total (1/3/5/10).
+That is proportional de-vigging, per book - the identical method I used in my own CLV analysis today.
+consP is then the LEAVE-ONE-OUT mean of the OTHER books' de-vigged probabilities (excluding the book we
+would actually bet, added 2026-07-12 for exactly the right reason), and medge = (our p - consP)*100.
+So medge is de-vigged AND sharp. My Byron "proof" was a coincidence: consP came to 43.85 against a raw
++125 implied of 44.44, and I read a 0.6-point near-miss as evidence of a missing de-vig. Proposal item
+2 from the previous entry is RETRACTED in full.
+
+THE ACTUAL DEFECT, AND THE CODE PREDICTED IT. Flagging gates on ev, not medge:
+    GradeCenter.js:58/89   MIN_EDGE_BET = 10 ... if (m.ev == null || m.ev < MIN_EDGE_BET) return
+    SimResults.js:442/443  MIN_EDGE_PUBLIC = 10 ... r.ev >= MIN_EDGE_PUBLIC && r.mev > 0
+ev = our probability x the BEST RAW price. So it fires whenever ONE BOOK HANGS A LONG NUMBER, whether
+or not we disagree with the sharp consensus at all. The comment sitting directly above the computation
+(SimulationCenter.js:320-322) says it outright: medge "is the ONLY one of the three that isolates
+model alpha. A model with zero edge still prints a fat ev whenever one book hangs a bad number."
+We compute the right diagnostic, store it on every flag row, and then gate on the wrong one.
+
+TWO INDEPENDENT MEASURES, SAME ANSWER. Graded flags by medge band:
+    band            bets  hits  hit pct   ROI      units   mean odds
+    medge <5         135    8     5.9    -57.1    -77.1     +1808
+    medge 5-9.9       74   10    13.5    -31.8    -23.5      +713
+    medge 10-19.9     50   22    44.0    +20.8    +10.4      +194
+    medge 20-34.9     27   10    37.0    -37.1    -10.0        +49
+    medge 35+          4    1    25.0    -43.8     -1.8       +110
+And the same flags by subsequent PRE->POST line movement (better powered, complete population):
+    medge <5      n=69  move +0.895  (35 toward us / 34 away - a coin flip)   odds +1599
+    medge 5-9.9   n=34  move +1.320  (17 / 17)                                odds  +578
+    medge 10-19.9 n=19  move +3.381  (12 / 7)                                 odds  +195
+    medge 20+     n=9   move +1.979  (4 / 5)                                  odds   +99
+    corr(medge, move) = +0.101      corr(ev, move) = -0.139      (n=131)
+THE SIGN FLIP IS THE HEADLINE. Bigger medge predicts the line coming TOWARD us; bigger ev predicts it
+moving AWAY. That is the flag sweep's EV ladder restated in a completely independent measurement, and
+it is the mechanical consequence of ev rewarding a long raw price rather than a real disagreement.
+medge<5 is 135 of 290 flags - nearly half the book - and carries -77 of the -102 units, 76 pct of the
+entire loss. Those flags exist ONLY because one book hung a number; at mean odds +1599 they are
+line-shop artifacts wearing a model's clothes.
+
+REVISED PROPOSAL - ONE CHANGE, NOT THREE. Gate on medge. Not a shrink function, not a calibration
+layer, not a new model: add a medge floor alongside the existing ev floor in the two gate sites above.
+A floor of 5 is defensible on principle (below it, two independent measures say there is no model
+content) and does not depend on picking the best-looking cell. A floor of 10 is the fitted sweet spot
+and MUST NOT be adopted on this data - n=50 in one band out of five, chosen after looking. Pre-register
+5, forward-test 10 alongside it.
+The earlier proposal's item 1 (disagreement-scaled shrink) is now SECONDARY, not headline - medge
+already IS the disagreement-against-sharp-consensus measure, so gating on it captures most of what the
+shrink was for. Item 3 (hard backstop at 10 pct model prob / +1000) survives, but note it becomes
+largely redundant: the medge<5 group has mean odds +1599 and would mostly be cut anyway.
+JUDGED BY the race-level CLV lift ledger as before. Not by in-sample ROI on these 9 races.
+
+METHOD LESSON, fifth operator catch in two days and the most expensive kind. I inferred a defect in
+code I had not read, from one row of arithmetic that happened to land 0.6 points apart, and built a
+three-part remediation plan on top of it. The correct move - READ THE FUNCTION - took one grep. Before
+asserting that a system does not do X, open the file where X would live.
