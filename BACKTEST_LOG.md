@@ -5478,3 +5478,53 @@ REVISED PLAN, and step 1 is not a model change at all:
    circular. cPOMS is NOT inside driver_rating. The same question can be asked honestly with it.
 CREDIT WHERE DUE: I could not find these definitions published anywhere and would have ingested the
 wrong column. Fourth time today operator domain knowledge changed a conclusion.
+
+### HEAD TO HEAD vs AN OUTSIDE MODEL - NEW HAMPSHIRE CUP R25 (2026-08-24)
+Operator shared a friend's public value report for the Dollar Tree 301 (josephsrigley.com, dated
+2026-08-21). n=1 RACE - this is an anecdote, not a test, and it is logged as a lead only. Also
+NOTE A LIMITATION: the fetched text did not cleanly separate his model's own probabilities from the
+quoted market odds, so this compares NAMES AND CALLS, not probability against probability.
+TIMING: his report is 08-21 and he states he waits for practice and qualifying before finalising, so
+it is PRE-PRACTICE - comparable to our PRE board (published 08-20 03:54), not our post (08-23 17:25).
+
+                    FIN   HIS CALL                        OUR PRE BOARD        OUR PRE FLAGS
+  Ryan Blaney         1    value: win +357/T3-104/T5-229   19.6 pct win, OUR #1  win, t3, t5 all flagged
+  Joey Logano        14    value: win/T3/T5                10.7 win / 70.0 t10   none
+  William Byron      30    PRIMARY BET T10 +100, 0.25u      4.7 win / 55.8 t10   t10 flagged at -110
+  Chase Elliott      25    pivot: T10 +100                  3.9 win / 48.8 t10   none (just under 50)
+  Carson Hocevar     19    "insufficient value" - PASSED    1.9 win / 37.4 t10   t10 ev+57, t3 +66, t5 +56
+
+1. BOTH MODELS HAD BLANEY AND HE WON. He listed Blaney first. Our pre board had him at the very top,
+   19.6 pct win, and we flagged win/t3/t5. Strongest agreement of the day and both right.
+2. HE BEAT US ON PRICE ON THE ONE PLAY WE BOTH LIKED. Byron top-10: he got +100, our best available
+   was -110 (Hard Rock). Same play, same side; his price needs 50.0 pct to break even and ours needs
+   52.4. We logged it at ev+7; at his number it is ev+12. Pure line shopping, and he won that
+   exchange. Both lost anyway - Byron led 26 laps, ran as high as P1, and lost a wheel (finished 30th
+   off ARP 15). Neither model was wrong about the car.
+3. HOCEVAR IS WHERE HE CLEARLY BEAT US, AND IT IS DIAGNOSTIC. He looked at Hocevar and said
+   insufficient value at current prices. We flagged him in THREE markets - t10 ev+57, t3 ev+66, t5
+   ev+56 - the largest single-driver block on our pre slate. Hocevar finished 19th, led 0 laps, ARP
+   21st. THE TELL: our OWN post board collapsed him from 37.4 pct t10 to 13.5 pct once practice and
+   the real grid landed (he started 22nd, not the 3rd our pre grid assumed). His pre-practice read
+   matched our POST-practice read. He got there a day earlier without the practice data.
+4. THE EXPOSURE GAP IS THE WHOLE ARGUMENT IN ONE RACE. His slate: ONE 0.25-unit bet plus a named
+   pivot. Our slate: 23 flags, 5 hits, -8.56 units, -37.2 pct ROI. Both had a losing New Hampshire.
+   He lost a quarter of a unit; we lost 8.56. That is NOT a model-quality difference - it is a
+   SELECTION AND STAKING difference, which is exactly what the flag sweep concluded and exactly what
+   the operator meant by the Speedgeeks 5-star framing. 10 of our 23 pre flags carried medge < 5,
+   the band that went 0-for-72 season-wide.
+5. THE MOST IMPORTANT SENTENCE IN HIS WRITEUP, for us: "The model predicts SPEED rather than FINISHING
+   POSITION," off "15 proprietary metrics straight from lap-by-lap data." That is the cPOMS
+   conversation arriving from outside. Our board predicts finishing position from ORDINAL inputs (ARP,
+   driver_rating which is built from ARP, start position). Today's own chain decomposition said the
+   binding constraint is PREDICTING pace (board->pace 0.61 in cup) and NOT converting it (pace->finish
+   0.83-0.87). An independent practitioner has built toward the thing our own data points at. That is
+   weak evidence - one person's design choice - but it is INDEPENDENT weak evidence, and it lands on
+   the same square as the cPOMS argument and today's decomposition.
+6. HE SIZES AT 0.25 UNITS. We have no staking layer at all (queue item 6, ¼-Kelly display, unbuilt).
+
+TAKEAWAY, kept deliberately small because n=1: nothing here is evidence our model is worse. On the
+race's biggest question - who wins - we were at least as right as he was, and our post board caught
+the Hocevar collapse he called a day early. What this race illustrates is the two gaps we already
+measured today: WE BET TOO MANY THINGS (23 vs 1) and WE DO NOT SHOP PRICE (+100 vs -110 on an
+identical play). Both are fixable without touching the model.
