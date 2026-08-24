@@ -4966,3 +4966,52 @@ NEXT, IN ORDER, NOTHING BUILT YET:
 METHOD NOTE: the EV-band monotonicity is 5 buckets I chose, so treat the exact ROI ladder as
 descriptive - but the DIRECTION was predicted in advance by adverse selection, and the two extreme
 cells (0-for-72 and 0-for-99) carry their own p-values independent of any bucketing choice.
+
+### WHERE THE FIX CAN COME FROM: CLV HAS NO SOFT SPOT, MATCHUPS ARE THE OPEN DOOR (2026-08-24)
+Follow-up to the flag sweep, same day. Two questions: is there ANY slice where we beat the close, and
+is there a market shaped like our actual strength?
+
+Q1 - IS THERE A SOFT MARKET? No, not in outrights. CLV by series (273 logged bets):
+    cup       n=156  mean CLV +1.13  beat 54 / lost 56
+    oreilly   n=29   mean CLV +1.13  beat 12 / lost 7
+    trucks    n=88   mean CLV +0.81  beat 26 / lost 38   <- NEGATIVE on counts
+And by claimed edge: <10 pts n=63 CLV +1.95 (20/25), 10-24 n=79 +0.60 (26/35), 25-49 n=64 +0.42
+(19/20), 50+ n=67 +1.24 (27/21). No monotonic structure, no slice meaningfully positive. The hoped-for
+"trucks and Xfinity are softer books" story is NOT there - trucks is the worst of the three. Do not
+expect to tune the outright flags into profit; there is no measured edge to concentrate.
+
+Q2 - PAIRWISE ORDERING (the matchup hypothesis). Today's pre/post sweep established that ORDERING is
+the model's strength (winner rank improved or tied 9 of 9) while ABSOLUTE PROBABILITY is its weakness
+(flags -35 pct). Matchup betting needs only ordering. So: for every driver pair on the 9 post boards,
+does the better proj_finish actually finish ahead? Baseline = same question using STARTING POSITION.
+    gap <1.0     389 pairs   model 51.7   startpos 48.6   (+3.1)
+    gap 1.0-1.9  426 pairs   model 60.8   startpos 50.9   (+9.9)
+    gap 2.0-3.9  794 pairs   model 63.2   startpos 56.2   (+7.0)
+    gap 4.0-6.9 1119 pairs   model 70.7   startpos 65.5   (+5.2)
+    gap 7.0+    2908 pairs   model 81.5   startpos 79.8   (+1.7)
+    ALL         5636 pairs   model 73.2   startpos 69.3   (+3.9)
+The model beats the naive baseline at every gap, and the lift is LARGEST at 1-4 projected positions -
+which is exactly the range where books actually offer matchups, since they pair similar drivers.
+THIS IS A HYPOTHESIS, NOT A RESULT, and two caveats are load-bearing. (1) Starting position is a WEAK
+proxy for what a book knows; books price matchups off their own power ratings, which are far better
+than the grid. Beating startpos is not beating the market. (2) We have ZERO matchup prices in the
+database, so the actual test - our pick rate against the book's implied probability - CANNOT BE RUN.
+BLOCKER AND THE ACTION IT IMPLIES: start capturing matchup lines (and stage-winner / fastest-lap lines
+while we are at it) every weekend from now on. It costs one habit and nothing else, and without it this
+question stays permanently untestable. 9 races of published boards is also the whole archive - the
+pre-07-24 boards are gone (pitboard.md 1617) - so the pairwise test should be re-run through the
+historical harness the way the startPos sweep was, not just on these 18 boards.
+
+FRAMING FOR THE FIX, and the two tracks must not be blurred:
+TRACK A, CALIBRATION - certain, cheap, creates NO edge. Our BOARD is calibrated (top-10 reliability
+holds in both stages) while our FLAGS are not, and the difference between them is the SELECTION: a
+flag is by definition the subset where the model most exceeds the market, so flagging selects the
+model's own errors. The fix is a disagreement-scaled shrink toward the market at flag time - the
+larger our disagreement, the harder we shrink - which kills the tail by construction and leaves the
+small-edge flags, where we are already calibrated, alone. marketAnchor and the win-market favorite
+shade are the same idea in prototype; this extends them to all four markets and FITS them instead of
+reasoning them. But shrinking toward the market converges to the market. You cannot calibrate your
+way to profit. Track A makes the product HONEST, not PROFITABLE, and it must be sold as such.
+TRACK B, EDGE - uncertain, slow, and the only thing that would justify selling picks. On present
+evidence that means matchups (ordering, soft market) or a genuinely new pace input, not more weight
+sweeps on outrights.
