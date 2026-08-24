@@ -5293,3 +5293,64 @@ METHOD LESSON, fifth operator catch in two days and the most expensive kind. I i
 code I had not read, from one row of arithmetic that happened to land 0.6 points apart, and built a
 three-part remediation plan on top of it. The correct move - READ THE FUNCTION - took one grep. Before
 asserting that a system does not do X, open the file where X would live.
+
+### EXPANDING THE medge FLOOR -> IT IS NOT THE FIRST MOVE. THE BETTER FILTER ALREADY SHIPS, TURNED OFF (2026-08-24)
+Operator asked me to expand the medge-floor proposal before building anything. Doing the work changed
+the recommendation, and turned up a framing error that runs through everything I said today.
+
+FRAMING ERROR FIRST. The -35 pct ROI I have quoted all day is the DEFAULT SimResults view - every row
+above MINP, green EV badge on anything with ev>=10. But SimResults.js:197 defines mvQual = false, and
+line 443 applies a much tighter filter ONLY when the subscriber clicks "Qualified only":
+ev>=10 AND mev>0 AND no favourite past -150. That toggle is OFF BY DEFAULT. So the product has two
+very different lists and I have been scoring the loose one:
+    1. GREEN BADGE (default)              276 bets   30.7/race   ROI -36.2   -99.8u
+    2. + market agrees, mev>0 (the TOGGLE)  35 bets    3.9/race   ROI -11.4    -4.0u
+    3. 2 + medge floor 5                    13 bets    1.4/race   ROI +15.4    +2.0u
+    4. BADGE + medge floor 5, no mev       141 bets   15.7/race   ROI -16.1   -22.7u
+The single largest improvement available is a DEFAULTS CHANGE to code that already exists and is
+already correct. Requiring market agreement takes the list from -36.2 to -11.4 pct. Nobody has to
+build anything; the green badge just has to stop appearing on rows the sharp consensus disagrees with.
+
+THE medge FLOOR LADDER (all rows already pass ev>=10, so this is the conjunction):
+    floor  kept  ROI     units   per race        floor  kept  ROI     units   per race
+      0     287  -34.5   -99.0     31.9            6     134  -24.1   -32.3     14.9
+      2     239  -23.8   -57.0     26.6            8     103   -9.5    -9.8     11.4
+      3     211  -19.3   -40.8     23.4           10      81   -1.7    -1.4      9.0
+      4     176  -19.8   -34.8     19.6           12      67  -12.2    -8.2      7.4
+      5     155  -16.0   -24.9     17.2           15      51  -13.8    -7.1      5.7
+NON-MONOTONIC - improves to 5, WORSENS at 6, improves to 10, worsens after. That wobble is the tell
+that this curve is noise at 9 races with correlated within-race bets. NO floor makes the book
+profitable; the best cell (-1.7 at floor 10) is fitted and flanked by -24.1 and -12.2. Do not adopt 10.
+
+RELATIVE vs ABSOLUTE - a clean answer, and the only monotonic result here. Flooring on medge/consP
+(relative disagreement) instead of medge (points) gets steadily WORSE: ratio 0 -34.5, 0.25 -34.0,
+0.5 -39.2, 0.75 -70.6, 1.0 -63.1, 1.5 and 2.0 both -100 pct. Winner's curse again - relative
+disagreement is largest exactly where we are most wrong. USE ABSOLUTE POINTS, NOT A RATIO. Settled.
+
+BY MARKET, the floor's benefit is uneven: t10 mean medge 12.5, already +1.7 pct, does not need it.
+t3 -50.6 -> -16.2 (cuts -34.5u of losers, the big win). win -65.8 -> -41.7 (cuts -32.0u, still awful;
+win's mean medge is only 4.4, so a floor of 5 removes 42 of 60 win flags). t5 -24.3 -> -24.0, i.e. NO
+HELP AT ALL. A per-market floor is the obvious next thought and is exactly the kind of tuning 9 races
+cannot support - flat floor now, revisit at 20+.
+
+WHAT THE FLOOR ACTUALLY CUTS, in one row: Jeremy Clements t3, our model 5.2 pct, sharp consensus
+1.1 pct, medge 4.15 points, price +7500, EV +295 pct. Finished 30th. The +295 comes from the price,
+not from a real disagreement. That is the artifact in a single line.
+WHAT IT COSTS, honestly: floor 5 cuts 8 of the 51 winners, and they are mostly SHORT prices where a
+small medge was still correct - Honeycutt WON the trucks R17 race at +900 with medge 3.59; Friesen t5
+twice at +750/+900; Briscoe t5 at +155 with medge 4.61, finished 2nd. Real winners, genuinely skipped.
+
+REVISED RECOMMENDATION, in order:
+1. MAKE MARKET AGREEMENT THE DEFAULT. Either default mvQual to true, or - better - require mev>0 for
+   the green badge itself at SimResults.js:479 so the visual "bet this" signal cannot fire on a row the
+   sharp books disagree with. Biggest measured effect of anything on this page, zero new code.
+2. SURFACE medge on the flag rows. It is computed and stored and never shown in the badge path. The
+   operator cannot see the number that separates model alpha from line-shopping.
+3. DO NOT PICK A medge FLOOR YET. At 35 bets the qualified list is indistinguishable from zero OR from
+   -30 pct, and the choice between "3.9 tight plays a race" (option 2) and "15.7 medium plays a race"
+   (option 4) is a PRODUCT SHAPE decision the operator should make, not a number I should fit. The
+   Speedgeeks 5-star framing points at option 2/3; the research log wants option 4. Run both as parallel
+   ledgers for 15-20 races and let the data choose.
+METHOD NOTE, sixth catch of the day and this one was mine to find: I scored a product for a full day
+without checking which list the product actually shows by default. Before measuring a system's output,
+confirm which output the user sees.
