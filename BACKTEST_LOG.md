@@ -5112,3 +5112,70 @@ an analysis unit without asking whether the observations were independent. Corre
 counted as independent trials will mislead in whichever direction the cluster sizes happen to point.
 Both of today's reversals came from the operator applying domain knowledge to a number I had computed
 correctly and framed wrongly.
+
+### CLV DONE PROPERLY: odds_snapshots, pre-sim -> post-sim, WHOLE FIELD. FLAGGED BEAT THE FIELD 9/9 (2026-08-24)
+Two operator corrections drove this and both were right. (1) I offered to BUILD automatic close-odds
+capture. It already exists - odds_snapshots, 57,587 rows, the full board every time he pastes odds
+into a sim, 6-19 capture moments per race-market, 36-39 drivers, 2-3 books. I proposed building
+something we have had all along. (2) I had the WINDOW wrong. The operator: "look at the odds board
+from our pre-simulation... compare it to our last post simulation, and there's our CLV. Logging CLV
+from post practice/qualifying up until the race usually doesn't move because there is a short gap
+between practice and the race." Correct on the domain: the practice-to-green window is minutes on a
+modern schedule, so bet-to-close is a dead window. The live window is PRE-SIM to POST-SIM.
+
+METHOD. Anchor each race's pre and post board to its nearest odds capture moment (NH cup: pre
+2026-08-20 03:54, post 08-23 17:25 - the board publishes are 03:54:21 and 17:25:14). Convert every
+driver's price to implied probability and NORMALIZE the field to the market's true total (1 / 3 / 5 /
+10), which strips vig and vig drift; by construction the field's movement then sums to zero, so this
+measures purely WHO GAINED AT WHOSE EXPENSE. CLV = normalized post minus normalized pre, in
+probability points. NH cup t10 DK excluded (the 8/23 bad outright paste). This is the COMPLETE
+POPULATION - every driver on every board - so the manual-logging selection worry that made the
+earlier clv_log result inadmissible does not apply here at all.
+
+RESULT. Drivers flagged off the PRE board vs everyone else, 9 races, 1,128 driver-market rows:
+    market   n flagged   flagged CLV   unflagged CLV
+    t3          31          +1.955        -0.184
+    t5          41          +1.723        -0.195
+    t10         31          +1.650        -0.437
+    win         28          +1.082        -0.097
+    ALL        131          +1.623        -0.191
+Clustered by race, lift = (flagged mean - unflagged mean): mean +1.731 pts, sem 0.440, t=3.93 (8 df,
+p about .004), POSITIVE IN ALL NINE RACES, negative in none.
+
+CONFOUND 1 - STALE LINES. Flags fire on BEST price across books, which is a max and therefore selects
+the most extreme (possibly stale) book. A briefly-long price would trigger a flag and then "correct,"
+manufacturing CLV with no model content. Re-ran the whole thing on CONSENSUS pricing (mean implied
+across books) instead: flagged +1.441 vs unflagged -0.165, all four markets still positive (t3 +1.809,
+t5 +1.569, t10 +1.251, win +1.055). The effect barely moves. NOT stale-line reversion.
+CONFOUND 2 - FAVORITE DRIFT. If probability mass drifts toward favorites and we flag favorites, the
+zero-sum normalization would hand us a spurious positive. Stratified by the driver's PRE market
+probability, flagged beat unflagged in EVERY stratum:
+    <5 pct      flagged +0.527   unflagged +0.216   (n flag 27)
+    5-15 pct    flagged +1.321   unflagged -0.110   (n flag 52)
+    15-35 pct   flagged +2.159   unflagged -0.620   (n flag 39)
+    35 pct+     flagged +1.660   unflagged -2.126   (n flag 13)
+Not favorite drift. And note the shape: the lift is WEAKEST in the sub-5 pct tail and strongest in the
+15-35 pct band - the same split every other analysis today produced.
+
+WHAT IT MEANS, STATED CAREFULLY. These are PRE-board flags, made BEFORE practice, and the market moves
+toward them by post-practice. That is information the market did not have at pre time, which is the
+actual definition of edge. It is also mechanistically coherent with this morning's pre/post sweep:
+practice genuinely improves the board's ordering, and the market is arriving at the same conclusion a
+few days later.
+WHAT IT DOES NOT MEAN. +1.73 points of relative line movement is REAL BUT MODEST - roughly the vig,
+maybe a bit more, not a crushing edge. It does not rescue the -35 pct flag ROI (positive CLV with
+negative ROI over 9 races is ordinary variance; CLV is the better long-run predictor, which is the
+point, but 9 races is 9 races). It does not save the longshot tail, which is the WEAKEST stratum here
+and was 0-for-99 on results - the tail is bad on every measure we own. And it is 9 races of one
+season, un-pre-registered.
+
+EVERYTHING NOW AGREES, WHICH IS THE PART THAT MATTERS MOST. Four independent analyses today, three of
+which I initially got backwards, converge on one picture: the board is CALIBRATED in the body and
+FABRICATED in the tail; the flags are worthless in the tail and roughly break-even in the body; and
+the body carries a small but consistent informational edge over the market. The disagreements between
+these analyses were all mine - wrong yardstick (ARP), wrong unit (ticket-level CLV), wrong window
+(bet-to-close). The data has been telling one story throughout.
+NEXT: re-run this every weekend - it is now zero marginal work, the capture already happens. Track the
+race-level lift as a running ledger. If it holds above zero through 15-20 races, a subscriber-facing
+product is defensible on evidence rather than hope. Pre-register that threshold NOW, before more data
+arrives, and do not tune the window or the strata again.
