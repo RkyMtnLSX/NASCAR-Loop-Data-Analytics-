@@ -5680,3 +5680,45 @@ across 11 races instead of 35 across 9, and it is still zero new code. But "+18.
 quoted as evidence of profit; quote "-41.8 to break-even" instead. Everything else in the priority
 list is unchanged. The medge floor still cannot be evaluated beyond 9 races because ev_flags does not
 carry medge - which is itself an argument for recommendation #3, surfacing and STORING medge.
+
+### OUR #1 PROJECTION, EVERY RACE WE HAVE, BY SERIES (2026-08-24)
+Operator asked how our number-one projected driver has actually done, as far back as the data goes.
+It goes back to 2026-07-06 via sim_grades.metrics.prec - 16 post boards and 14 pre. GradeCenter.js:55
+defines it exactly: prec('win',1) sorts the field by WIN PROBABILITY, takes the top driver, and checks
+whether he finished 1st. Same question HighLine's first row answers. (Their rows 2-6 are one driver's
+finish distribution; our prec.t3/t5/t10 are SET OVERLAP - how many of our top N finished top N - so
+only the WIN row is directly comparable between us.)
+
+POST BOARDS - our final prediction, 16 races:
+    ALL       16 races   #1 WON 4   25.0 pct    prec5 2.44/5 (48.8)   prec10 5.63/10 (56.3)
+    cup        7 races   #1 WON 1   14.3 pct    prec5 2.14/5 (42.9)
+    oreilly    4 races   #1 WON 0    0.0 pct    prec5 2.50/5 (50.0)
+    trucks     5 races   #1 WON 3   60.0 pct    prec5 2.80/5 (56.0)
+PRE BOARDS, 14 races: ALL 1 of 14 (7.1 pct); cup 1 of 6 (16.7); oreilly 0 of 3; trucks 0 of 5.
+POST BEATS PRE BY A MILE ON THIS METRIC - 25.0 vs 7.1 pct - which is the same story as the pre/post
+sweep, in the bluntest possible form.
+
+THE BENCHMARK, ON THE SAME 16 RACES (pole sitter - the dumbest possible "#1 pick"):
+    ALL   3 of 16 = 18.8 pct   |  cup 1 of 7 = 14.3  |  oreilly 0 of 4 = 0.0  |  trucks 2 of 5 = 40.0
+So against the naive pick on identical races we are +6.2 points overall - AND DEAD EVEN IN CUP
+(14.3 vs 14.3) AND DEAD EVEN IN XFINITY (0 vs 0). THE ENTIRE EDGE IS TRUCKS, 60 vs 40, ON FIVE RACES.
+
+WHICH FOUR RACES WE ACTUALLY WON: cup NH R25 (Blaney), and trucks R16, R17, R18 - THREE CONSECUTIVE
+TRUCK RACES AT THE END OF THE SAMPLE. That is the same hot streak flagged this morning in the pre/post
+sweep ("trucks' Brier edge is 3-for-3 favourite luck at ~25 pct each"). It is one streak, counted twice
+in two different analyses, and it is carrying the headline number in both. Do not treat 60 pct as a
+truck capability.
+
+ON COMPARING THIS TO HIGHLINE'S 47.6 PCT CUP NUMBER - IT IS NOT APPLES TO APPLES, IN BOTH DIRECTIONS.
+Our 7 cup races are a stretch in which the POLE SITTER ALSO WON ONLY 1 OF 7 (14.3 pct) against 9 of 25
+(36.0 pct) season-wide. We happened to cover a low-front-runner stretch of the season; their 21 races
+span more of it, including the front-runner-heavy portion. Our cup #1 matched the benchmark on our own
+races EXACTLY. That is neither a defence nor a boast - it is the only honest way to read 7 races.
+
+THE STEADIER NUMBER IS PRECISION AT 5: 2.44 of 5 (48.8 pct) on post boards, range 1 to 4 per race, and
+far less streak-dependent than the win row - cup 2.14, xfinity 2.50, trucks 2.80. Post MAE runs 4.49
+(ore Indy) to 10.46 (ore Atlanta). If we ever publish a scorecard, publish precision-at-5 and mean
+finish, not the win row. The win row is the one everybody quotes and the one most dominated by luck -
+today's chain decomposition (pace->finish 0.83-0.87) is the reason why.
+CAVEATS: 16 races, 7/4/5 by series. Trucks 3-of-5 is one streak; xfinity 0-of-4 is one cold patch.
+Neither means anything yet. These metrics were computed by GradeCenter at grading time, not by me.
