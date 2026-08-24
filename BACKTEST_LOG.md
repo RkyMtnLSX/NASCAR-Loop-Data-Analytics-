@@ -5179,3 +5179,58 @@ NEXT: re-run this every weekend - it is now zero marginal work, the capture alre
 race-level lift as a running ledger. If it holds above zero through 15-20 races, a subscriber-facing
 product is defensible on evidence rather than hope. Pre-register that threshold NOW, before more data
 arrives, and do not tune the window or the strata again.
+
+### DIALLING IN THE TAIL: IT IS THE SAME SELECTION BUG, NOT A SEPARATE DEFECT (2026-08-24)
+Operator: "how do we dial in the tail?" Answer: it needs no special-case rule, because it is not a
+separate problem. It is the winner's-curse selection effect at the point where relative disagreement
+with the market is largest. One fix covers it and everything else.
+
+FALSE START, RECORDED SO NOBODY REPEATS IT. I first hypothesised favourite-longshot bias in the VIG -
+that books load overround onto longshots, so our EV calc (which uses raw implied, not de-vigged) would
+manufacture fake edge worst at long prices. The test I wrote for it was CIRCULAR: proportional
+de-vigging scales every driver by the same constant, so the "vig multiplier" it produced was fixed
+within a race-market by construction, and the band differences were just composition. Discarded before
+reporting. The valid test needs REALISED OUTCOMES, not a de-vigged number.
+
+MARKET PRICE vs REALITY, whole field, last capture before each race, 9 races:
+    band              n     market implied   actually hit   reality - price
+    negative (fav)    89        62.90            59.55         -3.35
+    +100-399         210        32.48            29.05         -3.43
+    +400-999         171        14.34            10.53         -3.81
+    +1000-1999       172         7.21             7.56         +0.35
+    +2000 or longer  655         1.54             0.76         -0.77   (5 hits, 10.1 expected)
+The steady -3 to -4 points in the short bands IS the vig, as expected. The real finding is the bottom
+row: at +2000 and longer the market prices 1.54 pct where reality is 0.76 pct. In RELATIVE terms the
+market is 2x too high there - so a genuine favourite-longshot bias does exist, just modest in absolute
+points (n=655, 5 hits vs 10.1 expected, p about .05 - real but not overwhelming).
+
+THE NUMBER THAT MATTERS. In that same band our model was flagging at 5.0 pct. So:
+    reality 0.76 pct   |   market 1.54 pct (2x high)   |   PITBOARD 5.0 pct (6.6x high)
+We are not finding value the market missed. We are wrong in the SAME DIRECTION as the vig and far
+further. That is why the tail went 0-for-99: we were taking the worst side of an already-shaded price.
+
+BUT IT IS NOT A MODEL CALIBRATION FAILURE, AND THIS IS THE KEY POINT. The board's own low-probability
+buckets are FINE - win 0-5 pct band says 0.9 happens 0.6 (n=533); top-5 says 1.2 happens 1.0 (n=298).
+The model's 5 pct drivers are not systematically 5 pct wrong. What fails is the SUBSET of the model's
+5 pct drivers that the market prices at 1.5 pct - i.e. exactly where we most disagree. Same selection
+mechanism as everywhere else, at its most violent because RELATIVE disagreement is largest when both
+numbers are tiny (5 vs 1.5 is a 3.3x gap; no such gap is possible at 40 vs 30).
+And the CLV evidence lines up precisely: measured lift by pre-market-probability stratum was
+    <5 pct +0.31   |   5-15 pct +1.43   |   15-35 pct +2.78   |   35 pct+ +3.79
+Our disagreement carries essentially NO information below 5 pct and increasing information above it.
+We have independently measured where our opinion is worth something, on the complete population.
+
+PROPOSED FIX - NOT BUILT, NEEDS OPERATOR APPROVAL. One mechanism, three parts:
+1. DISAGREEMENT-SCALED SHRINK toward the de-vigged market before EV, in log-odds space:
+   p_used = logistic( (1-lambda)*logit(p_model) + lambda*logit(p_market_devig) ), with lambda set from
+   the MEASURED information-by-stratum ladder above rather than fitted to ROI: lambda near 1 (defer to
+   market) below 5 pct, tapering to small at 35 pct+. The tail then collapses on its own - no separate
+   longshot rule needed - and the 15-35 pct band, where we have demonstrated edge, is barely touched.
+2. DE-VIG THE MARKET PRICE before computing edge at all. medge currently appears to be computed off
+   RAW implied (Byron t10: sim 88.1, +125 = 44.4 raw, medge 44.25) which overstates every edge by the
+   vig, ~3-4 points in the bands that matter. This is a straight defect, independent of everything else.
+3. HARD BACKSTOP, dumb and immediate: no flag below 10 pct model probability, none at prices longer
+   than +1000. Not a substitute for 1 and 2 - a floor under them in case they are mis-tuned.
+JUDGED BY: the race-level CLV lift ledger, pre-registered at "holds above zero through 15-20 races."
+NOT by in-sample ROI on these 9 races. Sanity-check the shrink against the 9 races to confirm it kills
+the 0-for-99 group and spares the 15-35 pct band - but do NOT tune lambda there.
