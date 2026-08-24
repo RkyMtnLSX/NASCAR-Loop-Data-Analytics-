@@ -4556,3 +4556,79 @@ distinct-lineup count vs requested, realized max exposure vs requested cap, and 
 appearing in >X pct of builds — and refuses/warns on export when the delivered set is materially
 narrower than asked for. The exposure bug is fixed; the failure CLASS (ship a degenerate set,
 discover it after upload) has now cost real money twice and has no detector.
+
+## 2026-08-24 — CUP NEW HAMPSHIRE R25 POST-RACE: board grades, v6.3-st week 3 (CORRECTED WINS, ledger 2-1), and DFS replay race 6 (FIRST GPP LOSS)
+Result: Blaney won from P8; Wallace P2 from P23; Berry P3; Bell P4; Larson P5.
+
+### BOARD GRADES (sim_grades, both stages graded 08-24 00:11)
+                    PRE (08-20)      POST (08-23 17:25)
+  mae                  7.46             7.13   <- post better
+  mae_rank             8.44             7.67   <- post better
+  spearman_pf          0.477            0.523  <- post better
+  win Brier            0.0199           0.0211 <- PRE better
+  top3 Brier           0.0743           0.0748 <- pre marginally
+  top5 Brier           0.0910           0.0805 <- post better
+  top10 Brier          0.1593           0.1440 <- post better
+  precision t10        6                7      <- post better
+  DK mae              17.38            18.22   <- PRE better
+  DK corr              0.413            0.356  <- PRE better
+  DK spearman          0.407            0.336  <- PRE better
+READ: practice/qualifying input improved FINISH-POSITION accuracy and the top-5/top-10 markets,
+but made the WIN market and every DK-points measure worse. The operator's observation is the
+mechanism: pre had Blaney alone at the top (19.6 pct win); post moved BELL from 10.0 -> 18.8 pct,
+tying him with Blaney at 18.8 and displacing Blaney from the outright top slot. Blaney won, Bell
+finished 4th. Practice also HELPED Berry (proj finish 18.2 -> 11.0, finished 3rd) and HURT Wallace
+(win 1.0 -> 0.3 pct, proj ~17, finished 2nd from P23). Season context for mae 7.13: mid-range
+(trucks Richmond 5.59, cup Richmond 5.79, oreilly Iowa 7.64, cup Iowa 8.09). Normal board.
+CLV: the PRE board DOES carry CLV - 24 plays, 83.3 pct positive, plays avg +20.17 pct vs field
++14.74 pct. The POST board reads all zeros, but that is NOT a logging failure: its flags were
+written 17:19, minutes before lock, so there was no window for the market to move. Structural,
+not operator error. Flags written that close to the close cannot generate CLV by construction.
+
+### v6.3-st PROSPECTIVE WEEK 3 (cup NH R25) — CORRECTED WINS
+Scored against the pre-registered frozen orderings (BACKTEST_LOG 2026-08-23). The uncorrected list
+was TRUNCATED at 17 names when logged - my error - so both cards were REGENERATED from the same
+practice_laps and verified byte-identical to the frozen prefixes (uncorrected first 17 and corrected
+first 10 both match exactly) before scoring the full 36.
+  PROTOCOL TARGET, Spearman vs race-day driver_rating, n=36:
+    CORRECTED 0.624   UNCORRECTED 0.596   delta +0.028  -> CORRECTED WINS
+  Secondary vs raw finish, n=36: corrected 0.445 vs uncorrected 0.448 (dead tie, -0.003)
+LEDGER 2-1 (wk1 trucks +0.026, wk2 cup -0.099, wk3 cup +0.028). Under the RETIRED streak rule this
+would have been "no second consecutive loss, continue"; under the corrected protocol it is simply a
+data point. POOLED so far: mean delta -0.0150, sd 0.0728, sem 0.0420 across 3 sessions - i.e. the
+pooled effect is indistinguishable from zero and is dominated by the single wk2 loss. 3 of the 8-10
+sessions needed. Emergency stop (single-week loss worse than 0.15 rho) NOT approached in any week.
+NOTE: week 3 was the first CLEAN test - A/B practice groups are gone from the format, so the
+group-condition correction self-disabled and only the session-time term was in play.
+
+### DFS REPLAY RACE 6 (cup NH R25, 14,268-entry GPP) — MEAN BEATS GPP, first GPP loss
+Leak check: samples 08-23 17:25, results 08-24 00:09 (~7h gap). Pre-lock.
+  mean-optimal 207.80 -> ~9080/14268 (63.6 pct from top)
+  GPP no.1     150.70 -> ~11674/14268 (81.8 pct from top)   GPP#2 148.3, GPP#3 157.3
+  contest median 225.90 | winner 392.20 | perfect hindsight 409.30
+Both under median, and GPP lost to mean by 57.1 - the FIRST clear GPP loss. Ledger: GPP 4 wins,
+1 tie, 1 loss in 6 replays.
+CAUSE: GPP faded the winner. Mean-optimal rostered Blaney (101.45 pts, the slate's top score);
+the p90-ranked GPP build did not, taking Bell/Wallace/Chastain instead. This was a CHALK-DELIVERS
+slate - the top three scorers were ALL 30 pct+ owned (Blaney 37.3, Berry 35.6, Wallace 30.5) - which
+is precisely the condition where ceiling-mode differentiation is a liability. This CONFIRMS the
+standing finding from the other direction: GPP's edge is proportional to board uncertainty. Iowa
+(flat board, chalk busted) was its big win; here the field's chalk was correct and fading it cost 57.
+CALIBRATION - THE REPEAT FINDING, now 2 for 2 (Spearman vs actual FPTS):
+    our projections 0.322 | DK salary 0.426 | field ownership 0.430
+  Last week (trucks): ours 0.291 | DK salary 0.384 | ownership 0.369.
+  The DK salary line and the crowd have now BOTH out-predicted our DK-points ranking on two
+  consecutive slates, in two different series. At n=2 this stops being a slate anecdote and starts
+  being a pattern worth a real investigation. Note this sits ON TOP of normal finish-position
+  accuracy (mae 7.13, mid-range) - the model ranks FINISH fine and ranks DK POINTS poorly, which
+  points at the DK-specific terms (place differential, laps led, fastest laps) rather than the
+  core speed model.
+VALUE INVERSION DID NOT REPEAT: proj-per-$1k vs actual was +0.256 here against -0.346 at trucks NH.
+So last week's negative value correlation was slate-specific, not structural. Good - that kills the
+scarier of the two hypotheses and leaves the narrower one (DK-points ranking) standing.
+DATA CAVEAT: these samples came from the 17:25 board, which was published from a STALE TAB and
+therefore carries no dk_start_pos - Ty Dillon (rear-overridden, real start P33, sim P36) has a DK
+projection inflated by ~3 pts. He appears in neither replayed lineup, so the comparison is unaffected.
+NEXT: (1) a DK-points-specific diagnostic - decompose our FPTS error into finish pts vs place
+differential vs laps led vs fastest laps, to find which term is mis-ranked; that is the actual
+lever, and it is now cheap with the connector. (2) Ownership pool is 7 contests, refit at 8-10.
