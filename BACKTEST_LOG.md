@@ -5619,3 +5619,64 @@ grows, and because MEAN FINISH OF THE #1 PICK is a better single-number scorecar
 it uses the whole result instead of a threshold, and it is not silent on how badly you miss.
 STILL TRUE FROM THE ENTRY ABOVE: none of these metrics say anything about PRICE. A model can top this
 table and still have no betting edge if the market already knows.
+
+### SAMPLE SIZE, THIRD CATCH: IT WAS NEVER 9 RACES. sim_grades HOLDS 16 (2026-08-24)
+Operator: "Are you sure we only have 9 boards?" No. I checked sim_results (18 rows, 9 races, 07-24 to
+08-23 - the pre-07-24 boards really were lost) and stopped there. sim_grades is a SEPARATE table that
+SURVIVED that erasure: 30 graded boards across 16 RACES back to 2026-07-06. Seven races I never
+touched: cup 19 Chicagoland, ore 20 Chicagoland, trk 14 Lime Rock, ore 21 Atlanta, cup 20 Atlanta,
+trk 15 North Wilkesboro, cup 21 North Wilkesboro.
+This is the THIRD sample-size catch by the operator in two days, and I logged the lesson MYSELF this
+morning - "count the available races FIRST and state n in the same sentence as the claim." I counted
+one table and called it the sample.
+
+WHAT EXTENDS AND WHAT DOES NOT. The jsonb columns decide it:
+  actual   = {car_number, finish} ONLY. The per-driver board (win/t3/t5/t10 pct, proj finish) is
+             genuinely gone, confirming pitboard.md 1617. So BOARD CALIBRATION BY BAND, WINNER-RANK,
+             and the #1-PICK FINISH DISTRIBUTION all STAY AT 9 RACES. Cannot be extended.
+  metrics  = {win_brier, top3_brier, top5_brier, top10_brier, spearman_pf, mae, clv, dk, prec, n}
+             per board -> THE PRE/POST SWEEP EXTENDS TO 14 PAIRED RACES.
+  ev_flags = {driver, market, price, book, ev, mev, hit} -> THE FLAG SWEEP EXTENDS TO 377 FLAGS over
+             15-16 races. But NO medge and NO sim_prob, so the medge/tail analysis STAYS at 290
+             flags / 9 races.
+
+PRE/POST RE-RUN AT 14 PAIRED RACES (was 9). Direction unchanged, ORDERING evidence strengthens:
+    win     post 8 / pre 6    mean -0.00115   t=-1.24
+    top3    post 11 / pre 3   mean -0.00206   t=-1.50
+    top5    post 9 / pre 5    mean -0.00391   t=-1.29
+    top10   post 9 / pre 5    mean -0.00171   t=-0.37
+    MAE     post 10 / pre 3   mean -0.227 positions   t=-1.84
+    SPEARMAN post 10 / pre 4  mean +0.0231    t=2.07   <- nominally significant
+So at 14 races the four BRIER markets remain non-significant exactly as at 9, while FULL-FIELD
+ORDERING crosses into nominal significance and MAE approaches it. That is the same conclusion the
+9-race sweep reached - post is better ORDERED, not better calibrated - now on a bigger sample with
+the ordering half strengthened rather than weakened. CAVEAT: these metrics were computed by
+GradeCenter at grading time under its own conventions, NOT by me. Do not splice them with my own
+numbers in one table; compare directionally only.
+
+FLAG SWEEP AT 377 FLAGS (was 290). Total: 61 hits, 16.2 pct, ROI -31.5 pct, -118.7 paper units
+(PAPER - nothing staked, see the correction entry above). THE EV INVERSION HOLDS AND SHARPENS:
+    ev 10-24   175 flags   26.9 pct hit   ROI  -4.7   <- near break-even
+    ev 25-49   100 flags    8.0 pct hit   ROI -69.3
+    ev 50-99    71 flags    4.2 pct hit   ROI -60.9
+    ev 100+     31 flags    9.7 pct hit   ROI  +6.8   <- longshot band, n=31, was -11.8 at 9 races. NOISE.
+The monotonic collapse across the first three bands is now on 346 flags instead of 273. The lowest-EV
+flags are nearly break-even; everything claiming 25-99 pct EV is a disaster. Unchanged conclusion,
+much firmer footing.
+
+THE mev>0 FILTER - AND THE CHECK THAT STOPS ME CELEBRATING IT.
+    mev <= 0   313 flags   ROI -41.8   -130.8 units
+    mev >  0    64 flags   ROI +18.9   +12.1 units   4.0 per race
+At 9 races this filter was -11.4 pct on 35 bets. At 16 races it is POSITIVE on 64. That looked like
+the story of the day for about ninety seconds. Then: 11 races carry qualified flags, 5 POSITIVE and
+6 NEGATIVE, best race +14.1 units, and EXCLUDING THAT ONE RACE THE SET IS -2.0 UNITS. The entire
+positive ROI is a single race. This is exactly the finding I would have shipped an hour ago.
+HONEST STATEMENT: the mev>0 filter reliably REMOVES THE BLEEDING (-41.8 pct to roughly break-even
+ex-outlier) and is NOT demonstrated profitable. 5-6 on races is a coin flip.
+
+NET EFFECT ON THE RECOMMENDATIONS. #1 (make market agreement the default / require mev>0 for the green
+badge) is STRENGTHENED - it is still the only cut that stops the bleeding, now measured on 64 flags
+across 11 races instead of 35 across 9, and it is still zero new code. But "+18.9 pct ROI" MUST NOT be
+quoted as evidence of profit; quote "-41.8 to break-even" instead. Everything else in the priority
+list is unchanged. The medge floor still cannot be evaluated beyond 9 races because ev_flags does not
+carry medge - which is itself an argument for recommendation #3, surfacing and STORING medge.
