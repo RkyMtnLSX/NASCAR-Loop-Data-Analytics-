@@ -4823,3 +4823,69 @@ METHOD NOTE. Both the bad example and the better test came from the operator kno
 track. Loop data says "finished 30th"; it does not say "wheel came off while running fifth." Before
 using any single driver as evidence of a calibration failure, check whether the car was FAST and
 UNLUCKY - avg_position, laps led and laps completed are all sitting in the same row.
+
+### RETRACTION (same day): "AIM AT THE PACE-TO-FINISH CONVERSION" IS WRONG (2026-08-24)
+Operator: "we have backtested average run position against driver rating and I thought we concluded
+that driver rating predicted better." Two things came out of checking that, and the second one kills
+the recommendation I made an hour earlier.
+
+ONE — THE RECORD, PRECISELY. The 2026-07-07 ARP vs DRIVER RATING ABLATION (task #46) concluded
+EQUIVALENT, not "rating better." Spearman 0.479 for all four configs on train, 0.472-0.474 on test;
+p10 0.564 rating vs 0.552 ARP is noise. Rating was kept as the INCUMBENT (no churn for zero gain),
+and Fable's "ARP beats rating" hypothesis was rejected. Nobody showed rating beats ARP. The log's own
+explanation of the null is the key fact for what follows: NASCAR Driver Rating is built largely FROM
+average running position (roughly ARP x2 plus speed, finish and passing bonuses), so the two are
+near-substitutes.
+
+TWO — WHY THAT BREAKS MY TEST. corrHistory is our largest weight term (about 37 pct effective share
+post-8/20) and its metric IS driver_rating. So the board's biggest input is substantially made of
+average running position. Scoring the board AGAINST avg running position is therefore partly
+CIRCULAR - it will beat its correlation with finish for mechanical reasons, on any board, in any
+race. This is the same trap the 2026-07-07 GFS entry already logged verbatim ("corr(X, rawResidual)
+is INVALID when X correlates with the model's inputs") and I walked straight into it. The "9 of 9
+races track pace better than finish, mean +0.181" number is real arithmetic but it is NOT evidence
+that the sim reads pace well.
+
+THREE — THE TEST THAT ACTUALLY SETTLES IT, AND IT POINTS THE OTHER WAY. Decompose the chain per race
+on the 9 post boards: board->pace, pace->finish, and compare the product against the observed
+board->finish.
+                    board->pace   pace->finish   chain est   ACTUAL board->finish   surplus
+    cup Indy R22       0.632          0.847        0.535           0.385            -0.151
+    cup Iowa R23       0.507          0.896        0.454           0.358            -0.096
+    cup Rich R24       0.706          0.943        0.666           0.616            -0.050
+    cup NH R25         0.593          0.798        0.473           0.504            +0.031
+    ore Indy R22       0.926          0.883        0.818           0.856            +0.038
+    ore Iowa R23       0.785          0.594        0.466           0.355            -0.111
+    trk IRP R16        0.796          0.897        0.714           0.634            -0.081
+    trk Rich R17       0.833          0.885        0.737           0.697            -0.040
+    trk NH R18         0.854          0.719        0.614           0.598            -0.017
+PACE-TO-FINISH IS 0.72 TO 0.94 (mean 0.83). Across the whole archive it is 0.760 over 434 races
+(cup 0.735 n=169, oreilly 0.772 n=155, trucks 0.782 n=110). Meanwhile BOARD-TO-PACE in cup is 0.61.
+The weak link in the chain is PREDICTING pace, not CONVERTING it. Our board falls short of the naive
+chain product by a mean of only 0.053 (7 of 9 races) - and chain composition is an approximation, so
+a 0.05 deviation is inside the formula's own error, not a smoking gun.
+And the circularity above makes this WORSE for my old claim, not better: board-to-pace of 0.61 is
+INFLATED by inputs that are already ARP-shaped, so true pace-prediction skill is below 0.61, and the
+gap I attributed to a broken conversion belongs even more firmly to pace prediction.
+
+RETRACTED: "practice buys pace knowledge and the conversion layer throws it away; aim the next model
+effort at conversion (DNF tiering, caution sequencing) rather than weight sweeps." That was wrong in
+DIRECTION, not just in confidence. The conversion is the healthy part of the pipeline at ~0.83 within
+race. Predicting how fast a car will run is the weak part, and that IS what the weight and signal work
+has always targeted. The weight sweeps are polishing the right half after all.
+
+STILL STANDING from the pre/post sweep (none of these use pace as a target): winner's board rank
+improves or ties 9 of 9 with zero regressions; Brier directionally post on all four markets and
+significant on none; post boards concentrate hard (top favorite 17.8 -> 25.3 pct); cup high-confidence
+win picks 8.3 pct realized on 20.8 pct stated, n=12, now known to be heavily attrition-driven (Byron's
+wheel, two Larson failures, and Blaney leading 129 and 88 laps in two races he did not win). The
+practical advice is unchanged: keep publishing post, discount post cup win percentages.
+ALSO NOTE: the DNF/attrition question is NOT closed by this - it is simply not supported by the
+evidence I offered. Queue item 8 stands on its own merits, unpromoted.
+
+METHOD LESSON, and this is the fourth operator catch in two days. Twice now the operator has corrected
+this same thread from race knowledge and archive memory, and both times the correction reversed a
+conclusion. The specific failure here is that I proposed a NEW yardstick (avg running position) without
+first asking whether the model's own inputs are made of it - and the answer was sitting in this very
+log, 4000 lines up, in an entry that names the trap. BEFORE adopting any new evaluation target, check
+it against the input list first. A yardstick built from your own inputs measures nothing.
