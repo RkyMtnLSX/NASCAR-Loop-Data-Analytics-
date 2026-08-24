@@ -4889,3 +4889,80 @@ conclusion. The specific failure here is that I proposed a NEW yardstick (avg ru
 first asking whether the model's own inputs are made of it - and the answer was sitting in this very
 log, 4000 lines up, in an entry that names the trap. BEFORE adopting any new evaluation target, check
 it against the input list first. A yardstick built from your own inputs measures nothing.
+
+### FLAG SWEEP (#69 / queue 5) -> THE MODEL'S BEST-LOOKING BETS ARE ITS WORST BETS (2026-08-24)
+Operator question, and it is the right one to be asking before launch: is this sellable? He framed it
+against Speedgeeks, who only publish 5-star plays to subscribers, never borderline value. So: grade
+every flag we have ever produced and find out whether a conviction tier exists.
+
+SAMPLE, STATED FIRST. 332 flags total, 9 races (cup Indy R22 / Iowa R23 / Richmond R24 / NH R25,
+oreilly Indy R22 / Iowa R23, trucks IRP R16 / Richmond R17 / NH R18), pre and post boards both. 40
+voided (39 of them the NH cup post board killed by the bad DK odds paste on 8/23, 1 other), leaving
+292 live; 290 joined to loop_data and graded. Flat 1 unit per flag at the flagged best_price.
+CAVEAT THROUGHOUT: 9 races, and flags inside one race are heavily correlated - if the favorite holds,
+a dozen resolve together. Treat unit counts as descriptive and the per-cell significance below as the
+only inferential claims.
+
+HEADLINE: 290 bets, 51 hits (17.6 pct) against a mean model probability of 26.0 pct. ROI -35.2 pct,
+-101.95 units. By market: win -65.8 pct (3 of 60), t3 -50.6 pct (10 of 80), t5 -24.3 pct (21 of 94),
+t10 +1.7 pct (17 of 56, and only 4 races of coverage). Pre-stage flags beat post-stage flags in every
+market, which is its own uncomfortable note.
+
+FINDING 1 - THE TAIL IS FABRICATED, AND IT IS NOT VARIANCE.
+  Model probability under 10 pct:  72 bets, ZERO hits, model said 5.9 pct.  -72.0 units.
+  Odds +1000 or longer, win/t3/t5: 99 bets, ZERO hits, model said ~7.5 pct.  -99.0 units.
+  Odds +2000 or longer:            49 bets, ZERO hits, model said 5.0 pct.
+P(0 hits | true 5.9 pct, n=72) = 0.013. P(0 hits | true 7.5 pct, n=99) = 0.0004, about 1 in 2300.
+This is a real defect, not a cold streak. The whole loss lives here: 103 flags (35 pct of the book)
+account for -88 of the -102 units. Everything else combined is -14 units on 187 bets.
+NOTE the tail flags are not stupid picks - the sub-10 pct WIN flags averaged a 12.4 finish with 16 of
+35 finishing top-10 and a best of P2. The model is right that these cars are live. It is wrong about
+how often live converts to a WIN at 30-1. That is exactly the MC tail-noise failure the 2026-07-09
+MARKET VALUE TAIL GUARD was built for - and the guard's MINP floors (win 2 / t3 5 / t5 8 / t10 12 pct)
+are set FAR too low. Every one of the 0-for-99 sat above the current floor.
+
+FINDING 2 - THE IMPORTANT ONE. EV IS INVERSELY RELATED TO RELIABILITY. Monotonic, four straight bands:
+    EV under 10 pct   71 bets   model 26.7   ACTUAL 25.4   ROI -12.6   (essentially CALIBRATED)
+    EV 10-24 pct      78 bets   model 25.2   ACTUAL 23.1   ROI -23.6
+    EV 25-49 pct      68 bets   model 29.4   ACTUAL 16.2   ROI -48.0
+    EV 50-99 pct      56 bets   model 24.0   ACTUAL  5.4   ROI -71.4
+    EV 100 pct+       17 bets   model 18.8   ACTUAL  5.9   ROI -11.8  (n=17, one longshot hit)
+The flags the model is MOST excited about are the ones it is MOST wrong about. Where we claim a small
+edge we are nearly calibrated (25.4 actual vs 26.7 claimed). Where we claim a huge edge we are
+fantasising (5.4 actual vs 24.0 claimed). This is textbook adverse selection: EV = model_prob x payout
+- 1, so a big EV requires either long odds or a big disagreement with the market, and both select
+precisely for our own largest errors. The market is not asleep at those prices; we are.
+CONSEQUENCE FOR THE PRODUCT, AND IT INVERTS THE OBVIOUS DESIGN: a star rating that awards MORE stars
+for MORE EV would be a machine for surfacing our worst plays. If we ship a tiered recommendation, the
+tier must be built on MODEL CONFIDENCE AND PRICE - high sim_prob, short-to-medium odds, modest edge -
+and NOT on edge size. Ranking the current flag list by EV descending is close to ranking it worst-first.
+
+FINDING 3 - CLV AGREES, AND IS BLUNTER. 273 logged bets: mean CLV +1.03, beat close 92, lost to close
+101. A coin flip. Against a mean CLAIMED edge of 41.9 points. We tell ourselves we have a 42-point
+edge and the closing line moves one point our way. CLV is far lower-variance than ROI, so this is the
+strongest single statement in the entry: there is NO demonstrated edge in the flag list as it stands.
+
+WHAT A FILTER BUYS (IN-SAMPLE, NOT A RESULT). Cutting to sim_prob >= 10 pct AND odds <= +900:
+    KEEP  187 bets, 50 hits, ROI -7.5 pct   |   CUT  103 bets, 1 hit, ROI -85.4 pct
+So the filter turns a catastrophe into roughly the vig. It does NOT turn it into a winner. Those two
+thresholds were chosen after looking at these same 290 bets and are worth nothing until they survive
+forward. They are recorded here to be FROZEN and tested prospectively, not to be tuned further.
+
+VERDICT ON THE OPERATOR'S QUESTION. He is right to hold. As a bet-recommendation product the flag list
+is not sellable today: unfiltered it loses 35 pct, and the best honest statement about the filtered
+version is "indistinguishable from no edge." What IS shippable-adjacent is the defect fix - the tail
+guard is demonstrably too permissive and 35 pct of our flags have a measured hit rate of 1 pct.
+Separately, none of this touches the parts of PitBoard that are not bet recommendations (the board
+itself, practice grading, DFS, lap data), and the pre/post sweep earlier today says the board's
+ORDERING is sound. The weak product is the betting overlay, not the analytics.
+
+NEXT, IN ORDER, NOTHING BUILT YET:
+1. Raise MINP hard, and add an absolute odds ceiling per market. Pre-register the numbers BEFORE the
+   next race; do not fit them further on these 9 races.
+2. Re-grade prospectively for 6-8 weekends against the frozen filter. ROI and CLV both.
+3. Only if CLV turns positive is a subscriber-facing "5-star" list defensible. Until then the honest
+   product is the board and the tools, with flags shown as model opinion rather than recommendation.
+4. If a star system ships, stars track sim_prob and price. NEVER EV. See Finding 2.
+METHOD NOTE: the EV-band monotonicity is 5 buckets I chose, so treat the exact ROI ladder as
+descriptive - but the DIRECTION was predicted in advance by adverse selection, and the two extreme
+cells (0-for-72 and 0-for-99) carry their own p-values independent of any bucketing choice.
