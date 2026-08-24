@@ -4685,3 +4685,88 @@ one place the market has demonstrably out-predicted us.
 METHOD LESSON, third instance today: I twice drew a conclusion from the smallest sample in reach
 when a 4x sample was one query away. The operator caught it both times. Before reporting any
 cross-race pattern, count the available races FIRST and state n in the same sentence as the claim.
+
+### PRE vs POST BOARD SWEEP — does practice+qualifying actually improve the board? (2026-08-24)
+QUESTION the operator raised after New Hampshire: the pre board had Blaney projected to win and he
+won; the post board dropped him to second. Is the post-practice board actually better, or are we
+publishing a downgrade? The pre/post stage was shipped 2026-07-06 to measure "the marginal value of
+practice+qualifying" and has never been scored across races.
+
+SAMPLE — STATED FIRST (method lesson from 2026-08-24 applied). NINE paired boards, every race in the
+DB that has BOTH a pre and a post publish: cup Indy R22 / Iowa R23 / Richmond R24 / NH R25; oreilly
+Indy R22 / Iowa R23; trucks IRP R16 / Richmond R17 / NH R18. All 2026. 327 paired driver-rows joined
+to loop_data (about 95 pct of board rows; misses are name variants — A.J. Allmendinger, Daniel
+Suarez, J.J. Yeley, Nick Sanchez, Andres Perez, Jackson MacEnko, Mike Christopher Jr — all resolved
+by a normalizing join, plus Christopher Bell listed on the trucks R17 pre board and never started).
+All 9 races have their winner inside the matched set. Probabilities renormalized per board over the
+matched set so the pre board is not punished for carrying a non-starter; RAW (unrenormalized) results
+are reported alongside and are indistinguishable.
+
+HEADLINE — POST IS BETTER ORDERED, NOT BETTER CALIBRATED.
+
+FINDING 1 (STRONGEST). The eventual winner's rank on the win board improves or ties in 9 of 9 races
+and REGRESSES IN NONE. Pre -> post: 21->13, 7->4, 4->4, 1->1, 7->6, 5->4, 2->1, 3->1, 2->1. Seven
+strict improvements, two ties, zero regressions (exact binomial on the 7 non-ties, p=0.008). The
+same direction shows in a wider ordering metric: the actual top-5 finishers sit at mean board rank
+7.04 pre and 6.40 post (-0.64 slots), improving in 7 of 9 races. CAVEAT: winner-rank was chosen
+AFTER looking at the Brier table, while chasing the mechanism — it is not a pre-registered metric.
+It is reported first because it is the most natural single ordering statistic and because the
+top-5-finisher version, computed independently, agrees.
+
+FINDING 2. Brier says "post, probably" and cannot prove it at n=9. Paired per-race deltas
+(post minus pre, negative = post better):
+    win    post 5 / pre 4   mean -0.00158   t=-1.24
+    top3   post 6 / pre 3   mean -0.00146   t=-0.77
+    top5   post 7 / pre 2   mean -0.00455   t=-1.17
+    top10  post 5 / pre 4   mean -0.00416   t=-0.85
+Directionally post on all four markets, significant on none. RAW check: win 5/4 -0.00160 t=-1.25,
+top5 7/2 -0.00463 t=-1.19, top10 5/4 -0.00449 t=-0.95 — renormalization changes nothing.
+
+FINDING 3. Post boards are much SHARPER. Top favorite's win pct averages 17.8 pre and 25.3 post;
+Shannon entropy of the win distribution falls in 8 of 9 boards. Cup is where it is extreme: Iowa
+18.1 -> 39.5 and Richmond 28.0 -> 39.6. Practice data does not merely reorder the board, it
+concentrates it.
+
+FINDING 4 — WHERE THE SHARPENING IS NOT EARNED. High-confidence win picks (model >= 12 pct):
+    cup      pre  n=11  predicted 16.8  hit 9.1      post  n=12  predicted 20.8  hit 8.3
+    non-cup  pre  n=11  predicted 14.8  hit 9.1      post  n=13  predicted 17.5  hit 23.1
+Cup favorites were ALREADY over-confident pre (16.8 stated vs 9.1 realized — consistent with the
+long-standing win-market overconfidence that marketAnchor and the favorite-shade tool exist to
+address), and the post board makes it WORSE, not better. This is the one place the post board is a
+genuine downgrade, and it is the win market only — top-N calibration is fine in both stages (top-10
+reliability, pooled 9 races: pre 0.077 predicted / 0.102 observed in the 0-20 band, post 0.055 /
+0.076; both bands above 20 pct track within a few points).
+
+FINDING 5 — THE SERIES SPLIT IS REAL IN DIRECTION AND OVERSOLD IN SIZE. Brier by series:
+    cup (n=4)      win 0-4 PRE WINS (+0.00160, t=+2.38)   t3 2-2   t5 2-2   t10 2-2   MAE 3-1 post
+    non-cup (n=5)  win 5-0 POST (-0.00413, t=-2.96)  t3 4-1 (t=-2.60)  t5 5-0 (-0.01085, t=-3.60)
+Tempting story: practice matters more in trucks/Xfinity (thin history, wide talent spread) than in
+Cup (rich history, practice adds little). DO NOT BANK IT. The non-cup edge is largely favorite-hit
+luck: the post favorite WON ALL THREE truck races at a stated ~25 pct each (3-for-3 at 25 pct is a
+1.6 pct event). Strip that and the Brier advantage mostly evaporates. Conversely, on FULL-FIELD
+ordering the split runs the OTHER WAY — Spearman(proj_finish, actual finish) improves post in 4 of 4
+CUP races (+0.029/+0.039/+0.021/+0.045, mean +0.034) and in only 1 of 5 non-cup. Two metrics, two
+opposite series splits, both at n=4/n=5. Neither is a finding. Subgroup was not pre-registered.
+
+THE OPERATOR'S CASE, RESOLVED. NH cup R25: pre had Blaney at projFin 7.50, top of the board. Post
+had Blaney 7.10 with Christopher Bell 6.90 — Blaney to second by 0.20 of a position. Real, and a
+coin flip, not a systematic downgrade; on win pct both sat at 18.8 and Blaney stayed the co-favorite,
+and that same post board scored the BEST full-field Spearman gain of the four cup races (+0.045).
+The instructive miss on that board is elsewhere: William Byron 4.7 pct pre -> 14.3 pct post, finished
+30th. That is Finding 4 in one driver — practice pushed a Cup driver up and the confidence was not
+earned.
+
+VERDICT. Nothing to ship; this is a measurement of an existing feature, not a candidate change.
+Keep publishing post as the operative board — it is better ordered on every ordering statistic tested
+and never once ranked the winner worse. Do NOT read post-board CUP win percentages at face value for
+win-market bets; that is where the added confidence is demonstrably unearned. Concrete candidate for
+later (NOT built, NOT tested): make the favorite shade / marketAnchor STAGE-AWARE, leaning harder on
+post cup boards than pre. That is a real proposal with a real mechanism behind it, and it needs its
+own pre-registered test before anything moves.
+
+NEXT DATA. This sweep gains a pair every race weekend that gets both publishes. Re-run at 15-18
+pairs; the Brier deltas are the metric that needs the sample, the winner-rank result is already
+past its bar. Two of the four cup pairs came from boards flagged elsewhere as season-worst (Indy,
+NH) — watch whether the cup win-market gap narrows as board quality regresses to mean.
+NOTE: three temporary DB objects (pb_norm, pb_prepost, pb_delta) were created for this analysis and
+DROPPED at the end. No schema, model, or code change was made.
