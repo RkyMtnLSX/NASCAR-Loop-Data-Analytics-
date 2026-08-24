@@ -5722,3 +5722,41 @@ finish, not the win row. The win row is the one everybody quotes and the one mos
 today's chain decomposition (pace->finish 0.83-0.87) is the reason why.
 CAVEATS: 16 races, 7/4/5 by series. Trucks 3-of-5 is one streak; xfinity 0-of-4 is one cold patch.
 Neither means anything yet. These metrics were computed by GradeCenter at grading time, not by me.
+
+### THE POLE-SITTER BENCHMARK WAS A BAD CHOICE. IT IS INSIDE OUR OWN MODEL (2026-08-24)
+Operator: "Why are you so infatuated with the pole sitter?" Because it was the only zero-model #1 pick
+available for the full 2026 season in our data, and I never asked the one question I had already
+learned to ask today. THE POLE SITTER IS AN INPUT TO OUR SIM. DEFAULT_WEIGHTS.startPos is 0.23, and
+0.33 under TRUCK_SHORT_WEIGHTS. Our #1 pick is PARTLY MADE OF the pole sitter, so "we beat the pole
+sitter by 6.2 points" measures what the rest of the sim adds over ONE OF ITS OWN TERMS. That is not an
+outside benchmark. It is a milder replay of the ARP circularity retracted this morning, and it is the
+FOURTH time today I adopted a yardstick without checking it against the model's input list.
+Two further problems, independent of the circularity: (1) the pole is not known until qualifying, so
+it is not even available at PRE-board time; (2) 2026 is an outlier season for it - cup poles won 36
+pct - which inflates the baseline and understates any model measured against it.
+DISCOUNT the pole comparisons in the two entries above accordingly.
+
+THE RIGHT BENCHMARK IS THE MARKET FAVOURITE - the free pick any bettor gets by looking at a price, and
+genuinely independent of our model. I used pole only because our odds archive is thin. It covers 10 of
+the 16 graded races. Market favourite = shortest win price at the last capture before each race:
+    cup R21 Bell 19th | R22 Hamlin 5th | R23 Blaney 3rd | R24 Blaney 13th | R25 Blaney 1st
+    ore R22 Allgaier 2nd | R23 Allgaier 24th
+    trk R16 Riggs 1st | R17 Majeski 19th | R18 Riggs 1st
+                        MARKET FAVOURITE      OUR POST #1
+    ALL 10 races        3 of 10 = 30.0 pct    4 of 10 = 40.0 pct
+    cup  5 races        1 of 5  = 20.0        1 of 5  = 20.0    DEAD EVEN
+    ore  2 races        0 of 2  =  0.0        0 of 2  =  0.0    DEAD EVEN
+    trk  3 races        2 of 3  = 66.7        3 of 3  = 100.0
+THE ENTIRE MARGIN OVER THE MARKET IS ONE TRUCK RACE - Richmond R17, where we had Honeycutt (won) and
+the market had Majeski (19th). Cup is dead even at 1 of 5 each. Xfinity is 0 and 0. Ten races, a
+one-race difference: statistically this is nothing, and it is the honest reading.
+
+WHY THIS MATTERS MORE THAN THE POLE VERSION. Against a component of our own model we looked +6.2 and
+flattering. Against the actual competitive alternative we are +1 RACE IN TEN, concentrated in the same
+truck streak that is already carrying two other analyses today. That is fully consistent with
+everything else measured today: the CLV lift is real but modest, outright flag ROI shows no edge, and
+the board's strength is ORDERING rather than winner-picking. Nothing here contradicts those; it just
+removes a benchmark that was quietly flattering us.
+STANDING RULE, now four incidents deep: before adopting ANY evaluation target or benchmark, check it
+against the model's input list. ARP was inside driver_rating. Start position is inside the weight set.
+Both looked like independent yardsticks and neither was.
