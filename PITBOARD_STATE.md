@@ -3,7 +3,9 @@ Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2
 
 ## 2026-08-24 SESSION HANDOFF — READ THIS BEFORE ACTING ON ANY 2026-08-24 ENTRY
 Whole session was ANALYSIS ONLY. Zero changes to src/, api/, package.json, the database, or any
-model logic. All commits are BACKTEST_LOG.md + PITBOARD_STATE.md. Verified: no src/api diff across
+model logic. DOC SPLIT (2026-08-24, Fable): BACKTEST_LOG.md was ~129k tokens and unreadable whole; entries
+before 2026-08-03 moved VERBATIM to BACKTEST_ARCHIVE.md (~86k tok, CLOSED - never append there).
+Active log is now ~44k tok. Verified line-for-line: archive+log content == pre-split file (096acad). All commits are BACKTEST_LOG.md + PITBOARD_STATE.md. Verified: no src/api diff across
 the whole day, working tree clean, no leftover DB objects.
 
 ### EVERY UNIT AND ROI FIGURE BELOW IS A **PAPER RECORD** — NOTHING WAS EVER STAKED
