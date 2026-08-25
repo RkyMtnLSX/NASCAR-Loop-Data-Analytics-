@@ -3,16 +3,23 @@ Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2
 
 ## 2026-08-24 SESSION HANDOFF — READ THIS BEFORE ACTING ON ANY 2026-08-24 ENTRY
 Whole session was ANALYSIS ONLY. Zero changes to src/, api/, package.json, the database, or any
-model logic. 12 commits, all of them BACKTEST_LOG.md + PITBOARD_STATE.md. Verified: no src/api diff
-across the whole day, working tree clean, no leftover DB objects.
+model logic. All commits are BACKTEST_LOG.md + PITBOARD_STATE.md. Verified: no src/api diff across
+the whole day, working tree clean, no leftover DB objects.
+
+### EVERY UNIT AND ROI FIGURE BELOW IS A **PAPER RECORD** — NOTHING WAS EVER STAKED
+Operator: "I don't bet everything the model flags; this is all hypothetical data logging until we get
+this thing dialed in." Correct, and I wrote it wrong all day. "-102 units", "-8.56 units",
+"ROI -35.2%" etc. are computed by staking 1 flat unit on EVERY flag. That is the right way to
+evaluate the FLAGGING RULE — it is what a backtest is — but they are NOT losses. Read every one as
+"what the rule would have produced if bet blindly," which is exactly what the operator declined to do.
 
 ### SAMPLE SIZE: IT WAS NEVER 9 RACES — sim_grades HOLDS 16 (operator's catch, late in session)
 sim_results has 18 rows / 9 races (pre-07-24 boards genuinely lost). sim_grades SURVIVED that erasure: 30 graded boards over **16 races** back to 07-06. Several 08-24 entries say "n=9" and are UNDERSTATED. What extends: `metrics{}` (per-board Brier/Spearman/MAE) -> pre/post sweep at **14 paired races**; `ev_flags{}` (ev/mev/price/hit) -> flag sweep at **377 flags / 15-16 races**. What does NOT extend: `actual{}` kept only car_number+finish, so the per-driver board is truly gone — calibration-by-band, winner-rank and #1-pick distribution STAY at 9. ev_flags carries no medge, so medge/tail work STAYS at 290 flags.
 RE-RUNS: pre/post at 14 races — Brier still non-significant on all four markets, but SPEARMAN t=2.07 and MAE t=-1.84 both favour post. Conclusion unchanged, ordering half stronger. Flag sweep at 377 — total -31.5%, EV inversion HOLDS and sharpens (ev 10-24 -4.7% on 175; 25-49 -69.3%; 50-99 -60.9%; the 100+ band's +6.8% is n=31 longshot noise, was -11.8% at n=9). mev>0 goes -11.4% (35 bets) -> +18.9% (64 bets) — BUT 5 races positive / 6 negative and EXCLUDING THE BEST RACE IT IS -2.0 UNITS. Quote it as "removes the bleeding (-41.8% -> ~break-even)", NEVER as "+18.9%". BACKTEST_LOG 2026-08-24.
 
-### SIX OF MY OWN CONCLUSIONS WERE CORRECTED OR RETRACTED THE SAME DAY
+### TEN OF MY OWN CONCLUSIONS WERE CORRECTED OR RETRACTED THE SAME DAY
 The BACKTEST_LOG entries are chronological, so an early entry may be overturned 300 lines later.
-Do NOT act on an 08-24 entry without checking this list first. Operator caught five of the six.
+Do NOT act on an 08-24 entry without checking this list first. The operator caught nine of the ten.
 1. "Byron 14.3% post was over-confidence" — WRONG. He lost a wheel running top 5 (26 laps led,
    high pos 1, 296/301). Fast car, killed by attrition. Example struck.
 2. "The board reads pace well; the pace-to-finish CONVERSION throws it away; aim at conversion not
@@ -31,6 +38,16 @@ Do NOT act on an 08-24 entry without checking this list first. Operator caught f
 6. "Ingest LSP, the new orthogonal speed signal" — BACKWARDS. LSP is a RANK metric and the
    rank-metric family is already closed by the 2026-07-07 saturation finding. cPOMS is the one that
    matters — it is a RATIO and preserves margin. Operator supplied the definitions.
+7. "We only have 9 boards" — WRONG, sim_grades holds 16 races. See the sample-size block above.
+8. "We lost N units" — WRONG FRAMING. Paper record, nothing staked. See the block above.
+9. Misread the HighLine table as "how deep on their board was the winner." It is "where did their #1
+   projected driver FINISH." The first row is identical either way so the 47.6% analysis stands; rows
+   2-6 are what I got wrong, and they are where the signal is (their #1 is top-5 85.7% but wins
+   47.6% — that gap IS the pace-to-finish conversion noise).
+10. THE POLE-SITTER BENCHMARK IS INSIDE OUR OWN MODEL. DEFAULT_WEIGHTS.startPos 0.23 (0.33 truck
+   short/flat), so our #1 pick is partly made of it. "We beat pole by 6.2 points" measures the sim
+   against one of its own terms. Fourth yardstick-inside-the-model error of the day. DISCOUNT every
+   pole comparison. The right benchmark is the MARKET FAVOURITE — see below.
 
 ### WHAT IS ESTABLISHED (survived scrutiny, safe to build on)
 - BOARD CALIBRATION IS SOUND. 644 driver-rows/market, 9 races, both stages. Top-5 within ~5pts of
@@ -44,6 +61,23 @@ Do NOT act on an 08-24 entry without checking this list first. Operator caught f
 - EV IS INVERSELY RELATED TO RELIABILITY, monotonic. corr(ev, line move) = -0.139 while
   corr(medge, line move) = +0.101. A star rating keyed to EV would surface our worst plays first.
 - ABSOLUTE POINTS BEAT A RELATIVE RATIO for any medge floor — monotonic, settled.
+
+### OUR #1 PROJECTION'S ACTUAL RECORD (sim_grades.metrics.prec, back to 07-06)
+GradeCenter.js:55 — prec('win',1) sorts by WIN PROBABILITY, takes the top driver, checks if he
+finished 1st. Same question HighLine's first row answers.
+POST boards, 16 races: #1 WON 4 = 25.0% overall | cup 1 of 7 (14.3) | xfinity 0 of 4 | trucks 3 of 5
+(60.0). Precision at 5 = 2.44/5 (48.8%). PRE boards, 14 races: 1 of 14 = 7.1%. Post crushes pre on
+this metric (25.0 v 7.1) — the pre/post finding in its bluntest form.
+BENCHMARK — MARKET FAVOURITE (independent of our model; covers 10 of the 16 graded races):
+    ALL  market 3/10 = 30.0%   ours 4/10 = 40.0%
+    cup  market 1/5  = 20.0%   ours 1/5  = 20.0%   DEAD EVEN
+    ore  market 0/2            ours 0/2            DEAD EVEN
+    trk  market 2/3  = 66.7%   ours 3/3  = 100%
+THE ENTIRE MARGIN OVER THE MARKET IS ONE TRUCK RACE (Richmond R17, Honeycutt over Majeski). Ten races,
+one-race difference — statistically nothing. Our four wins are cup NH R25 plus trucks R16/R17/R18,
+three CONSECUTIVE truck races: the same streak already carrying two other analyses today. 60% is not
+a truck capability. IF WE EVER PUBLISH A SCORECARD, publish precision-at-5 and mean finish, NOT the
+win row — the win row is the most luck-dominated, which pace->finish 0.83-0.87 predicts.
 
 ### PROPOSED AND UNBUILT — nothing here has been written
 Priority order as of end of session:
@@ -63,6 +97,12 @@ Priority order as of end of session:
    Needs #2 first, plus a backfill. Test cPOMS, not LSP.
 6. CAPTURE MATCHUP LINES (operator habit). Zero matchup prices exist, so the one hypothesis with a
    real shot cannot be tested at all. Matchups need ORDERING only — the model's proven strength.
+
+### STANDING RULE, FOUR INCIDENTS DEEP
+Before adopting ANY evaluation target or benchmark, check it against the model's INPUT LIST. ARP was
+inside driver_rating. Start position is inside the weight set. Both looked like independent yardsticks
+and neither was. Corollary, three incidents deep: count the races in EVERY table that could hold them
+before stating n.
 
 ### PRE-REGISTERED — DO NOT RE-TUNE THESE ON EXISTING DATA
 - CLV lift ledger: race-level, re-run every weekend (zero marginal work, odds_snapshots already
