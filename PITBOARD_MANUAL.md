@@ -1,5 +1,5 @@
 # PITBOARD MANUAL
-Stable operating rules. Edit ONLY when a rule actually changes. Session start: read this + PITBOARD_STATE.md (~5k tokens total). The archives — pitboard.md (operational log) and BACKTEST_LOG.md (model evidence) — are append-only history: SEARCH them for specific answers, never read in full (~140k tokens combined).
+Stable operating rules. Edit ONLY when a rule actually changes. Session start: read this + PITBOARD_STATE.md (~5k tokens total). The archives — pitboard.md (operational log, ~62k tok), BACKTEST_LOG.md (model evidence 2026-08-03 onward, ~44k tok), and BACKTEST_ARCHIVE.md (model evidence season-start through 2026-07-28, ~86k tok, CLOSED — never append) — are append-only history: SEARCH them for specific answers, never read in full.
 
 ## What this is
 PitBoard — NASCAR betting + DFS analytics product approaching subscriber launch. Operator: Aaron (atmmstrs2@gmail.com; master admin uid d7a9f822-1237-4660-9e17-0b8b526e3c44; DK username atmmstrs2). Stack: React CRA on Vercel (https://nascar-loop-data-analytics.vercel.app) + Supabase (https://dqexnylexbypjtiuctxd.supabase.co, publishable key sb_publishable_pVrtVEoQD1i9LiIvaXhS4g_ZDaUUccj). Repo: RkyMtnLSX/NASCAR-Loop-Data-Analytics- (main branch, Vercel auto-deploys). Local scraper cockpit: NascarDataScrapperV3 folder (practice watcher w/ per-lap timestamps, sheet builder w/ LAPS_RAW tab, penalties backfill).
@@ -25,6 +25,12 @@ Quirks: the content filter blocks tool OUTPUTS containing = & ? : ; together —
   stays mandatory for anything touching money, auth, gating, data writes, or model output.
 - Check `date` via bash before narrating day/time.
 - Sportskeeda is not a legitimate source.
+- STALE-COPY GUARD (2026-08-24 split): before ANY write to BACKTEST_LOG.md, verify the first
+  entry header in the copy you are editing is `## 2026-08-03`. If you see July entries, you
+  hold a PRE-SPLIT copy — STOP and re-GET; pushing it would resurrect the 129k-token file.
+  Contents-API sessions: PUT only with the sha from the same GET as your content (protocol
+  rule 3 — the sha check is the enforcement; re-fetching a fresh sha defeats it). Git
+  sessions: pull --rebase before push (a conflict is the guard working).
 
 ## Data map (Supabase — the quirks that bite)
 - loop_data: Racing Reference paste (Admin loop-data box) = full rows incl. laps_completed + driver_rating (old 19-col regex). Lap Raptor new-format paste = real finish_status text but NULL laps_completed/driver_rating. Never paste both for one race (duplicate rows). finish_status before 2026-08-15 is junk ('running' default). DNF definition everywhere: status!='running' OR laps_completed<0.9×winner.

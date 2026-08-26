@@ -1,4 +1,7 @@
-> SESSION START: read PITBOARD_MANUAL.md + PITBOARD_STATE.md first. This file is an append-only ARCHIVE of model evidence (~90k tokens) - SEARCH it for specific backtests; do not read it in full.
+> SESSION START: read PITBOARD_MANUAL.md + PITBOARD_STATE.md first. This file is append-only model
+> evidence from 2026-08-03 onward (~44k tokens; earlier entries: BACKTEST_ARCHIVE.md, CLOSED).
+> SEARCH it; do not read in full. CANARY: the FIRST entry below must be `## 2026-08-03`. If your
+> copy shows July entries first, it is PRE-SPLIT and STALE — re-GET before any write.
 
 # PitBoard — Backtest & Reconstruction Archive
 

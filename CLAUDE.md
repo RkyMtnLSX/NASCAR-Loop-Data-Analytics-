@@ -208,7 +208,8 @@ export const supabase = createClient(
 
 ## Where the full docs live (added 2026-07-09)
 
-The COMPLETE handoff doc (`pitboard.md`) and the full backtest archive (`BACKTEST_LOG.md`)
+The COMPLETE handoff doc (`pitboard.md`) and the backtest evidence (`BACKTEST_LOG.md`, 2026-08-03
+onward; earlier seasons' entries in `BACKTEST_ARCHIVE.md`, closed 2026-08-24)
 are now IN THIS REPO at the root, synced from the local PitBoard Handoff folder on
 2026-07-09. If you are a model session working via the GitHub API: fetch those two files
 before touching model logic or re-testing anything. They supersede the summaries in this
