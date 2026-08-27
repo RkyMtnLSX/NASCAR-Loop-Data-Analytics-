@@ -2625,3 +2625,19 @@ comes from the operator or the record, never from inference. (The Talladega R10 
 Superspeedway 2026 group therefore remains: Daytona 500, Atlanta R2, Atlanta R20 (Talladega R10
 excluded as metric). Optional follow-up if wanted: re-paste Atlanta R2 qualifying from Racing
 Reference to backfill the missing speeds - positions are already correct.
+
+## 2026-08-27 - Atlanta 2026 race_number 2 tagged METRIC (operator); a naming ambiguity nearly flipped it
+Sequence, recorded honestly: operator said "atlanta 2 2026 had a real qualifying session." I read
+"atlanta 2" as race_number 2 and tagged the FEBRUARY race 'qualifying' (SQL ran before he interrupted
+the commit). He then clarified: "atlanta 1, race 2 on the season, did NOT have a qualifying session"
+- "Atlanta 2" meant the SECOND ATLANTA RACE (R20, July, real session, already tagged). Corrected:
+race_number 2 -> lineup_source='metric' (38 rows). Verified final state:
+  Atl R2 metric (0 speeds) | Atl R20 qualifying (37/38 speeds) | Daytona R1 null=real (44/45 speeds)
+  | Daytona R26 null, draw-order only, 0 positions (no column - position-gated) | Tal R10 metric.
+SUPERSPEEDWAY 2026 GROUP IS NOW: Daytona 500 + Atlanta R20 only. The 2026 Avg rests on those two
+real sessions - thin but honest.
+TWO LESSONS: (1) the zero-speeds signature was RIGHT both times it fired (Tal R10, Atl R2) - but it
+stays corroboration, not proof; ground truth is the operator/record. (2) "TrackName N" is ambiguous
+between race_number N and Nth-visit-of-season. When confirming a data action, echo back track +
+race_number + MONTH ("Atlanta race_number 2, the February race") and wait for a yes. The interrupted
+commit was the guardrail working.
