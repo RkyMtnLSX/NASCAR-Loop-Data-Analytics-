@@ -376,6 +376,17 @@ export default function QualifyingCenter({ isSubscriber }) {
 
     const corrYearPositions = corrCols
       .map(function(col) { return d.positions[col.pk] })
+      // FIX (2026-08-27, operator catch): the featured track's own corr-year races were
+      // missing from the group average - the 2026 Daytona 500 didn't count toward the
+      // Superspeedway 2026 Avg while Atlanta/Talladega did. corrCols rightly excludes the
+      // featured track (those columns render in the track-history block), so its same-year
+      // positions are pulled into the AVERAGE here explicitly, same year set as corrCols.
+      // The sim pool was never affected (it iterates the featured track separately).
+      .concat(
+        Array.from(new Set(show2025 ? [2025, corrYear] : [corrYear])).flatMap(function(yr) {
+          return racesFor(config.track_name, yr).map(function(rn) { return d.positions[config.track_name + '_' + yr + '_' + rn] })
+        })
+      )
       .filter(function(p) { return p != null })
     d.corrYearAvg = corrYearPositions.length > 0
       ? corrYearPositions.reduce(function(a, b) { return a + b }, 0) / corrYearPositions.length

@@ -2553,3 +2553,21 @@ STALE-BUNDLE REMINDER (bit us again today): the operator could not see the new C
 his tab was still running main.98a1f73b while the deploy was main.41263d11. Second time this class
 has caused a false bug report (first was the Edge paywall-redirect false alarm 8/19). CHECK THE
 LOADED SCRIPT TAG AGAINST asset-manifest BEFORE debugging a "missing" feature - Ctrl+F5 first.
+
+## 2026-08-27 - Qualifying Center: Daytona 500 missing from Superspeedway 2026 Avg (operator catch)
+Operator noticed the 2026 Daytona 500 qualifying showed in Daytona's track-history columns but not in
+the Superspeedway 2026 section, with Daytona featured (R26 summer race, corr year 2026). DIAGNOSIS:
+data fine (45 rows, lineup_source null, passes the real-session guard); sim pool fine (it iterates
+the featured track's own races separately at year-weight 5); the hole was DISPLAY-ONLY. corrCols
+(QualifyingCenter.js ~329) deliberately excludes the featured track - its races render in the
+track-history block, which is why the 500 appeared there - but corrYearAvg (~377) was computed ONLY
+from corrCols, so the "2026 Avg" column (and its sort) counted Atlanta x2 + Talladega while excluding
+the 500, the single most relevant 2026 SS race for the summer Daytona weekend.
+FIX: corrYearPositions now concats the featured track's corr-year positions (same year set as
+corrCols, incl. the show2025 toggle). Column placement unchanged - the 500's column stays in the
+track block, no duplicate. Once R26's own qualifying uploads it will also enter the avg (consistent
+with the sim pool's existing behavior).
+VERIFY AFTER DEPLOY (2026 Avg, show2025 OFF): Hamlin 20.0 -> 16.0, Elliott 6.3 -> 7.0,
+Blaney 12.7 -> 14.5, Byron 15.3 -> 17.0. SS 2026 sessions in the avg: Atlanta R2 + R20, Talladega
+R10, Daytona R1. esbuild syntax-verified before push; display-layer change under the 2026-08-19
+cosmetic exception - operator eyeballs the numbers above.
