@@ -2588,3 +2588,26 @@ Follow-on to the 2026 Avg fix, three changes shipped together:
 VERIFY: after Driver [+ Qualifying Order]: 2026 Avg | Daytona 2026 | Atl R2 | Atl R20 | Tal R10 |
 Avg @ DIS | 2022-2025 history. Toggle off -> table ends after Tal R10. 2026 Avg values as logged in
 the previous entry (Hamlin 16.0 etc). esbuild-verified; display-layer, cosmetic-exception light check.
+
+## 2026-08-27 - Qualifying Center: blank-column guard, Loop-Data-style scrolling, Talladega metric tag
+Three operator catches in one pass, right after the layout ship:
+1. BLANK COLUMN: loading the R26 qualifying ORDER inserted rows with null qualifying_position, and
+   racesByTY keyed on row existence - a "Daytona 2026 (2)" column of dashes appeared. Columns now
+   require a real qualifying_position; drawOrderMap reads qualData directly so Qualifying Order is
+   unaffected. The column will materialize by itself when actual qualifying uploads.
+2. SCROLL DISCOVERABILITY: the main table had no height cap, so its horizontal scrollbar sat below
+   40 driver rows, off-screen - users had no cue the table scrolls (Loop Data caps at 72vh, which is
+   why its bars are visible). Same 72vh cap applied + STICKY THEAD (position sticky top 0, z 3) so
+   headers pin while rows scroll inside the container, matching Loop Data.
+3. TALLADEGA R10 2026 tagged lineup_source='metric' (41 rows, DB update, no code). Operator: that
+   lineup was metric-set, not real qualifying. It predates the 2026-07-09 tagging ship, so its null
+   source sailed through the real-session guard into the group columns, the 2026 Avg AND the sim
+   pool. Signature confirmed before writing: 0 of 41 rows have qualifying_speed/time, vs 44/45 on
+   Daytona R1 (real session).
+OPEN QUESTION FOR OPERATOR: Atlanta 2026 R2 has the identical signature (0 of 38 with speeds, null
+source) while every real Atlanta session 2024-2025 is 100 pct speed-covered. Almost certainly also a
+metric/rain lineup predating the tagger - awaiting confirmation before tagging. If tagged, the
+Superspeedway 2026 Avg rests on Daytona 500 + Atlanta R20 only.
+VERIFY: no blank Daytona (2) column; visible h-scrollbar under the table + v-scrollbar right, headers
+pinned; Talladega column gone and 2026 Avg re-averaged over Daytona R1 + Atl R2 + Atl R20 (pending
+the Atlanta call). esbuild-verified.

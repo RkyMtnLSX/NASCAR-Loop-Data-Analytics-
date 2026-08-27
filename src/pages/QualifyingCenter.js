@@ -312,7 +312,10 @@ export default function QualifyingCenter({ isSubscriber }) {
 
   // Only show columns where qualifying data actually exists
   const racesByTY = {}
-  qualData.forEach(function(r) { const k = r.track_name + '_' + r.year; const rn = r.race_number == null ? 0 : r.race_number; if (!racesByTY[k]) racesByTY[k] = []; if (racesByTY[k].indexOf(rn) < 0) racesByTY[k].push(rn) })
+  // Only rows with a real qualifying_position create a column (2026-08-27, operator catch):
+  // loading the qualifying ORDER inserts rows with null positions, which was spawning a blank
+  // race column before the session ran. drawOrderMap reads qualData directly, so unaffected.
+  qualData.forEach(function(r) { if (r.qualifying_position == null) return; const k = r.track_name + '_' + r.year; const rn = r.race_number == null ? 0 : r.race_number; if (!racesByTY[k]) racesByTY[k] = []; if (racesByTY[k].indexOf(rn) < 0) racesByTY[k].push(rn) })
   Object.keys(racesByTY).forEach(function(k) { racesByTY[k].sort(function(a, b) { return a - b }) })
   const racesFor = function(tk, yr) { return racesByTY[tk + '_' + yr] || [] }
   const trackYearCombosWithData = new Set(Object.keys(racesByTY))
@@ -602,9 +605,11 @@ export default function QualifyingCenter({ isSubscriber }) {
               )
             })}
           </div>
-          <XScroll style={{ borderRadius: 10, border: '1px solid var(--border)', marginBottom: 28 }}>
+          <XScroll style={{ maxHeight: '72vh', borderRadius: 10, border: '1px solid var(--border)', marginBottom: 28 }}>
             <table style={{ borderCollapse: 'separate', borderSpacing: 0, width: '100%', whiteSpace: 'nowrap' }}>
-              <thead>
+              {/* sticky thead (2026-08-27): the 72vh cap scrolls rows inside the container, so
+                  headers pin to its top like Loop Data. th backgrounds are already opaque. */}
+              <thead style={{ position: 'sticky', top: 0, zIndex: 3 }}>
                 <tr>
                   <th style={Object.assign({}, thStyle, { textAlign: 'center', width: 36 })}>#</th>
                   <th onClick={function() { handleSort('name') }} style={Object.assign({}, thStyle, { textAlign: 'left', paddingLeft: 14, minWidth: 170, position: 'sticky', left: 0, zIndex: 2, cursor: 'pointer', background: 'var(--bg-surface)', borderRight: '2px solid var(--border)', boxShadow: '4px 0 8px -2px rgba(0,0,0,0.6)' })}>Driver{sortArrow('name')}</th>
