@@ -1,4 +1,7 @@
-> SESSION START: read PITBOARD_MANUAL.md + PITBOARD_STATE.md first. This file is an append-only ARCHIVE of model evidence (~90k tokens) - SEARCH it for specific backtests; do not read it in full.
+> THIS FILE IS CLOSED (2026-08-24 split). Model evidence season-start through 2026-07-28, ~86k
+> tokens, preserved VERBATIM. NEVER append here - new entries go to BACKTEST_LOG.md. SEARCH this
+> file for pre-August backtests; do not read it in full. The SHARED-FILE PROTOCOL block below is
+> kept for historical fidelity - its append rules now apply to BACKTEST_LOG.md, not this file.
 
 # PitBoard — Backtest & Reconstruction Archive
 

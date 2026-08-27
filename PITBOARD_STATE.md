@@ -94,7 +94,7 @@ Priority order as of end of session:
 4. medge FLOOR — DO NOT PICK ONE YET. Ladder is non-monotonic (5:-16.0, 6:-24.1, 8:-9.5, 10:-1.7,
    12:-12.2) = noise at 9 races. No floor makes it profitable. Product-shape call for the operator:
    3.9 tight plays/race (mev>0) vs 15.7 medium (medge>=5). Run BOTH as parallel ledgers.
-5. cPOMS GATED TEST — identical 2026-07-07 partial-correlation structure GFS failed. Residualise
+5. cPOMS GATED TEST — identical 2026-07-07 partial-correlation structure GFS failed (entry now in BACKTEST_ARCHIVE.md). Residualise
    cPOMS and finish on rating+startPos, train 2022-24 / test 2025-26, sign flip = noise = stop.
    Needs #2 first, plus a backfill. Test cPOMS, not LSP.
 6. CAPTURE MATCHUP LINES (operator habit). Zero matchup prices exist, so the one hypothesis with a
@@ -111,7 +111,7 @@ before stating n.
   captures it). BAR = holds above zero through 15-20 races. Do not re-tune the window or the strata.
 - medge floor 5 is the PRINCIPLED value (below it, two independent measures say no model content).
   10 is the FITTED sweet spot and must not be adopted on these 9 races — forward-test it alongside.
-- cPOMS gate is inherited from the GFS test. I did not design it and it must not be modified.
+- cPOMS gate is inherited from the GFS test (BACKTEST_ARCHIVE.md, 2026-07-07 GFS entry). I did not design it and it must not be modified.
 
 ### OPEN QUESTIONS FOR THE OPERATOR
 - driver_rating: pitboard.md 2026-07-26 says new-format rows store it NULL because Lap Raptor
