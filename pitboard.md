@@ -2641,3 +2641,15 @@ stays corroboration, not proof; ground truth is the operator/record. (2) "TrackN
 between race_number N and Nth-visit-of-season. When confirming a data action, echo back track +
 race_number + MONTH ("Atlanta race_number 2, the February race") and wait for a yes. The interrupted
 commit was the guardrail working.
+
+## 2026-08-27 - Qualifying Center: race labels always carry the season-visit number (operator request)
+After the Atlanta R2 metric exclusion, the lone remaining Atlanta 2026 column read just "ATL '26" -
+the ordinal only rendered when BOTH visits had data (rns.length > 1 on displayable races). Labels now
+use a SEASON-VISIT ordinal computed from ALL KNOWN visits in qualifying_results, metric-excluded
+races included: the fetch now pulls the group unfiltered (+~79 rows globally, groups already fit the
+cap) and applies the real-session guard CLIENT-SIDE, unchanged semantics for every consumer; a
+visitsByTY map feeds visitOrd(track, yr, rn) at all three label sites (hist, featured-curr, corr).
+So Atlanta R20 shows "ATL '26 R2" even though visit 1 has no column. Single-visit tracks keep clean
+labels. Fallback to racesByTY if the map is empty.
+VERIFY: superspeedway block shows "ATL '26 R2" (not bare "ATL '26"); Daytona/Talladega single-visit
+style labels unchanged; qualData row counts identical (guard moved, not changed). esbuild-verified.

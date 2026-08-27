@@ -201,6 +201,7 @@ export default function QualifyingCenter({ isSubscriber }) {
   const [simRunning, setSimRunning] = useState(false)
   const [show2025, setShow2025] = useState(false)
   const [showTrackHist, setShowTrackHist] = useState(true)  // LAYOUT 2026-08-27: toggle for the track-history block
+  const [visitsByTY, setVisitsByTY] = useState({})  // track_year -> sorted race_numbers of ALL known visits (metric incl.) for labeling
   const [sortBy, setSortBy] = useState('trackAvg')
   const [sortDir, setSortDir] = useState('asc')
 
@@ -254,18 +255,23 @@ export default function QualifyingCenter({ isSubscriber }) {
       setCorrTracks(corrTrackNames)
 
       const allTrackNames = Array.from(new Set([cfg.track_name].concat(corrTrackNames)))
-      const { data: rows, error: rowErr } = await supabase
+      const { data: rowsAll, error: rowErr } = await supabase
         .from('qualifying_results')
-        .select('driver_name, car_number, track_name, year, qualifying_position, qualifying_speed, draw_order, race_number')
+        .select('driver_name, car_number, track_name, year, qualifying_position, qualifying_speed, draw_order, race_number, lineup_source')
         .eq('series', 'cup')
-        // Guard (2026-07-11): only REAL time-trial sessions count as qualifying history.
-        // Metric/rain/practice-fallback lineups (lineup_source tagging, 2026-07-09) are
-        // points-order artifacts and would contaminate the position distributions.
-        .or('lineup_source.is.null,lineup_source.eq.qualifying')
         .in('track_name', allTrackNames)
         .order('qualifying_position')
       if (rowErr) throw rowErr
-      setQualData(rows || [])
+      // Guard (2026-07-11, moved client-side 2026-08-27): only REAL time-trial sessions count
+      // as qualifying history - metric/rain/practice-fallback lineups are points-order
+      // artifacts and would contaminate the position distributions. Fetching unfiltered
+      // (+~79 rows globally) lets the label logic know about EVERY season visit, so
+      // "Atlanta '26" still reads "R2" when visit 1 was metric-set and excluded.
+      setQualData((rowsAll || []).filter(function(r) { return r.lineup_source == null || r.lineup_source === 'qualifying' }))
+      const vMap = {}
+      ;(rowsAll || []).forEach(function(r) { const k = r.track_name + '_' + r.year; const rn = r.race_number == null ? 0 : r.race_number; if (!vMap[k]) vMap[k] = []; if (vMap[k].indexOf(rn) < 0) vMap[k].push(rn) })
+      Object.keys(vMap).forEach(function(k) { vMap[k].sort(function(a, b) { return a - b }) })
+      setVisitsByTY(vMap)
 
       const { data: elRows } = await supabase
         .from('entry_list')
@@ -318,6 +324,13 @@ export default function QualifyingCenter({ isSubscriber }) {
   qualData.forEach(function(r) { if (r.qualifying_position == null) return; const k = r.track_name + '_' + r.year; const rn = r.race_number == null ? 0 : r.race_number; if (!racesByTY[k]) racesByTY[k] = []; if (racesByTY[k].indexOf(rn) < 0) racesByTY[k].push(rn) })
   Object.keys(racesByTY).forEach(function(k) { racesByTY[k].sort(function(a, b) { return a - b }) })
   const racesFor = function(tk, yr) { return racesByTY[tk + '_' + yr] || [] }
+  // Season-visit ordinal (2026-08-27, operator): label by position among ALL KNOWN visits that
+  // year (metric-excluded races included), so a lone displayed column still says which visit it
+  // is - e.g. Atlanta R20 labels "R2" even though visit 1 (metric) shows no column.
+  const visitOrd = function(tk, yr, rn) {
+    const v = visitsByTY[tk + '_' + yr] || racesByTY[tk + '_' + yr] || []
+    return v.length > 1 ? v.indexOf(rn) + 1 : 0
+  }
   const trackYearCombosWithData = new Set(Object.keys(racesByTY))
 
   // LAYOUT (2026-08-27, operator): the current-year block (2026 Avg + all corr-year races,
@@ -330,7 +343,7 @@ export default function QualifyingCenter({ isSubscriber }) {
     .flatMap(function(yr) {
       const rns = racesFor(config.track_name, yr)
       return rns.map(function(rn, i) {
-        return { key: 'hist_' + yr + '_' + rn, pk: config.track_name + '_' + yr + '_' + rn, label: eventLabel(config.track_name, yr, rns.length > 1 ? i + 1 : 0), trackName: config.track_name, year: yr, rn: rn }
+        return { key: 'hist_' + yr + '_' + rn, pk: config.track_name + '_' + yr + '_' + rn, label: eventLabel(config.track_name, yr, visitOrd(config.track_name, yr, rn)), trackName: config.track_name, year: yr, rn: rn }
       })
     })
 
@@ -341,14 +354,14 @@ export default function QualifyingCenter({ isSubscriber }) {
       return yrs.flatMap(function(yr) {
         const rns = racesFor(t, yr)
         return rns.map(function(rn, i) {
-          return { key: 'corr_' + t + '_' + yr + '_' + rn, pk: t + '_' + yr + '_' + rn, label: eventLabel(t, yr, rns.length > 1 ? i + 1 : 0), trackName: t, year: yr, rn: rn }
+          return { key: 'corr_' + t + '_' + yr + '_' + rn, pk: t + '_' + yr + '_' + rn, label: eventLabel(t, yr, visitOrd(t, yr, rn)), trackName: t, year: yr, rn: rn }
         })
       })
     })
 
   const featuredCurrYear = trackYearCombosWithData.has(config.track_name + '_' + corrYear)
     ? racesFor(config.track_name, corrYear).map(function(rn, i, arr) {
-        return { key: 'feat_curr_' + corrYear + '_' + rn, pk: config.track_name + '_' + corrYear + '_' + rn, label: eventLabel(config.track_name, corrYear, arr.length > 1 ? i + 1 : 0), trackName: config.track_name, year: corrYear, rn: rn }
+        return { key: 'feat_curr_' + corrYear + '_' + rn, pk: config.track_name + '_' + corrYear + '_' + rn, label: eventLabel(config.track_name, corrYear, visitOrd(config.track_name, corrYear, rn)), trackName: config.track_name, year: corrYear, rn: rn }
       })
     : []
 
