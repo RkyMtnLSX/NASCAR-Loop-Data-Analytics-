@@ -2571,3 +2571,20 @@ VERIFY AFTER DEPLOY (2026 Avg, show2025 OFF): Hamlin 20.0 -> 16.0, Elliott 6.3 -
 Blaney 12.7 -> 14.5, Byron 15.3 -> 17.0. SS 2026 sessions in the avg: Atlanta R2 + R20, Talladega
 R10, Daytona R1. esbuild syntax-verified before push; display-layer change under the 2026-08-19
 cosmetic exception - operator eyeballs the numbers above.
+
+## 2026-08-27 - Qualifying Center layout: betting view first + Track History toggle (operator request)
+Follow-on to the 2026 Avg fix, three changes shipped together:
+1. COLUMN ORDER: the current-year track-type block (2026 Avg, then "{group} · 2026" columns) now sits
+   immediately right of the driver names - operator: "what works best for qualifying betting is the
+   most current year avg." The featured-track block (Avg @ track + history) moved to the far side.
+2. THE FEATURED TRACK'S CORR-YEAR RACE NOW RENDERS INSIDE THE GROUP BLOCK, not the history block -
+   histCols excludes corrYear, featuredCurrYear lost its !trackYears.includes(corrYear) gate. With
+   Daytona featured, the "Superspeedway · 2026" block = Daytona 500, Atlanta R2, Atlanta R20,
+   Talladega R10 - visually matching what the 2026 Avg counts. Daytona History block = 2022-2025.
+   Avg @ DIS unchanged (still all track_years incl. 2026 - it iterates trackYears, not histCols).
+3. "Track History" TOGGLE (default ON) next to Show 2025: hides Avg @ track + history columns for a
+   clean current-year-only view - "without having the current track eat up the whole screen."
+   showCorrAvgCol now counts featuredCurrYear too. Sort by any column pk unaffected.
+VERIFY: after Driver [+ Qualifying Order]: 2026 Avg | Daytona 2026 | Atl R2 | Atl R20 | Tal R10 |
+Avg @ DIS | 2022-2025 history. Toggle off -> table ends after Tal R10. 2026 Avg values as logged in
+the previous entry (Hamlin 16.0 etc). esbuild-verified; display-layer, cosmetic-exception light check.
