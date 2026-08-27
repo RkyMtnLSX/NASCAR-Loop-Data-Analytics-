@@ -2611,3 +2611,17 @@ Superspeedway 2026 Avg rests on Daytona 500 + Atlanta R20 only.
 VERIFY: no blank Daytona (2) column; visible h-scrollbar under the table + v-scrollbar right, headers
 pinned; Talladega column gone and 2026 Avg re-averaged over Daytona R1 + Atl R2 + Atl R20 (pending
 the Atlanta call). esbuild-verified.
+
+## 2026-08-27 - Atlanta R2 2026: REAL qualifying session (operator ground truth); heuristic falsified
+Operator confirms Atlanta 2026 R2 had a real qualifying session. Tagged its 38 rows
+lineup_source='qualifying' (functional no-op - null already passed the guard - but it locks the
+ground truth in so no future session re-infers "metric" from the missing speeds). NOT touched
+otherwise; it stays in the group columns, the 2026 Avg and the sim pool.
+METHOD CORRECTION, logged so it is not reused: "zero qualifying_speed rows = metric lineup" is NOT
+a valid signature. Atlanta R2 has 0/38 speeds and WAS a real session - some load paths simply do
+not capture speeds. Speed coverage indicates the LOAD, not the SESSION. lineup_source ground truth
+comes from the operator or the record, never from inference. (The Talladega R10 'metric' tag stands
+- it was operator-stated fact, with the signature only as corroboration.)
+Superspeedway 2026 group therefore remains: Daytona 500, Atlanta R2, Atlanta R20 (Talladega R10
+excluded as metric). Optional follow-up if wanted: re-paste Atlanta R2 qualifying from Racing
+Reference to backfill the missing speeds - positions are already correct.
