@@ -1155,12 +1155,17 @@ function LoadQualifying() {
         return
       }
 
-      // Look up driver names from entry_list by car number
+      // Look up driver names from entry_list by car number.
+      // TRACK FILTER REQUIRED (2026-08-28 incident): without .eq('track_name') this map was built
+      // from EVERY weekend's entries for the year, later rows overwriting earlier - car 88 got
+      // Chase Elliott from a stale weekend instead of this week's driver, and the corrupted grid
+      // silently dropped 10 cars from the sim. The PDF has no names; this map is the only source.
       const { data: entryList } = await supabase
         .from('entry_list')
         .select('car_number, driver_name')
         .eq('series', series)
         .eq('race_year', parseInt(year))
+        .eq('track_name', trackName)
 
       const carMap = {}
       if (entryList) {
@@ -1176,6 +1181,13 @@ function LoadQualifying() {
           speed:      p.speed,
         }))
         .sort((a, b) => a.rank - b.rank)
+
+      // Surface unmapped cars instead of letting 'Car #N' rows slide into the load unnoticed:
+      // a car with no entry-list row this weekend means the entry list is missing/stale.
+      const unmapped = previewRows.filter(r => r.driverName.startsWith('Car #'))
+      if (unmapped.length) {
+        setStatus({ type: 'error', msg: unmapped.length + ' car(s) not in this weekend\'s entry list: ' + unmapped.map(r => '#' + r.carNumber).join(', ') + ' - fix the entry list, then re-parse (names come from it, the PDF has none)' })
+      }
 
       setPreview(previewRows)
     } catch (err) {

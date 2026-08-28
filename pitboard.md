@@ -2779,3 +2779,24 @@ the 1 entry without qualifying is Dawson Cram 47, a real DNQ, correctly dropped.
 QUEUE CANDIDATE (bug class, 2nd sighting incl. Sanchez spelling): the sim should SURFACE unmatched
 qualifying rows ("N qualifying rows match no entry-list driver") instead of silently dropping
 drivers via the DNQ filter. Cheap badge next to the lineup-state indicator.
+
+## 2026-08-28 - CORRECTION + ROOT CAUSE: the qualifying PDF loader invented the driver swaps
+REVERSAL of the previous entry. The "eight driver swaps" were NOT real - the operator challenged
+the result ("why is it putting Chase Elliott in the 88 and not Rajah Caruth") and he was right.
+ROOT CAUSE (Admin.js LoadQualifyingResults PDF path): the qualifying PDF carries POS/CAR/TIME but
+NO NAMES; the loader fills names from entry_list filtered ONLY by series+year - no track filter -
+so the car->driver map was built from EVERY 2026 weekend's entries, later rows overwriting earlier.
+Car 88 resolved to Chase Elliott from a stale weekend, car 1 to Zilisch, car 92 to Honeyman, and a
+phantom "Will Rodgers car 42" appeared the same way. The entry list for THIS weekend was correct
+the entire time.
+MY ERROR (logged as a correction, 11th of the class): I treated the corrupted load as ground truth
+BECAUSE it looked internally coherent (positions sequential, speeds descending, plausible names),
+diagnosed the operator's entry list as stale, and rewrote it - propagating the corruption. Internal
+coherence is NOT provenance: a car-number join against the wrong roster produces perfectly
+coherent nonsense. The operator's curated data and his word outrank any parsed source. STANDING
+RULE ADDITION: before declaring one of two conflicting tables stale, trace WHERE each side's
+values came from - the corrupted one usually has a join in its history.
+FIX SHIPPED: (1) full revert - entry list restored to operator's names, 38 bad qualifying rows
+deleted; (2) Admin.js PDF path now filters the name lookup to the CURRENT track and refuses to
+stay silent about unmapped cars ("N car(s) not in this weekend's entry list" error). Operator
+re-uploads the Jayski PDF after deploy; names will come from this weekend's entry list only.
