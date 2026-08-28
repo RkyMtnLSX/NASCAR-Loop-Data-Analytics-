@@ -2684,3 +2684,18 @@ functions also available. NOT covered: env vars (Stripe env swaps remain operato
 secrets never pass through sessions). Discovered retroactively: commit c601aa1 (08-24, md-only)
 deployed with state ERROR and was invisible at the time - production stayed on the prior READY
 build, no impact. Plan confirmed hobby - the Hobby->Pro cutover runway item stands.
+
+## 2026-08-28 - Vercel retrospective sweep (first use of the connector for bug archaeology)
+BUILD HISTORY: 40 deployments scanned back through 08-19 - exactly ONE failure (c601aa1, md-only,
+08-24, already logged) + one canceled-as-superseded. Every code ship built clean; production never
+regressed. RUNTIME, 7d window: zero errors AND ZERO INVOCATIONS - the /api serverless functions are
+DORMANT (workflow is browser->Supabase direct; only the Stripe webhook would invoke serverless, and
+it fires only on purchase events). Future sessions: do not hunt bugs in /api runtime - nothing runs
+there. LAUNCH IMPLICATION: post-Stripe-cutover, the webhook is the one live serverless path and
+runtime errors are now checkable - add "check get_runtime_errors" to launch verification (a failed
+webhook = a paying customer without access, previously invisible). HONEST LIMIT, logged so nobody
+oversells the connector: every bug that has actually bitten (FD futures section, group-market
+overwrite, DK start, qualifying joins) is CLIENT-SIDE and invisible to Vercel - production was green
+all morning while the FD paste poisoned the board. Queue candidate (unbuilt): ~15-line window.onerror
+reporter writing uncaught client exceptions to a small Supabase table, for when subscribers who are
+not the operator hit crashes.
