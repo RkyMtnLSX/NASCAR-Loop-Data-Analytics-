@@ -1937,3 +1937,22 @@ STANDING RULE, now four incidents deep: before adopting ANY evaluation target or
 against the model's input list. ARP was inside driver_rating. Start position is inside the weight set.
 Both looked like independent yardsticks and neither was.
 
+
+## 2026-08-28 - LAP RAPTOR GLOSSARY READ (operator-directed) + FORWARD-CAPTURE START DATE
+Two things every future analysis of fastest_laps must know:
+CAPTURE START: cpoms/lsp/arp/p50/p95 columns exist in fastest_laps as of today but are NULL for
+all rows loaded before 2026-08-28. Do not treat NULL as "driver lacked pace shape" - it means
+"parser discarded the column back then." Backfill pending (browser path).
+ARP IS SYNTHETIC (glossary, lapraptor.com/glossary): Lap Raptor's ARP is an ESTIMATE -
+((1 x laps led) + 0.5(start + finish)(laps run - laps led)) / laps run. It is a FORMULA OF LAPS
+LED, START AND FINISH POSITION, not a measured average of per-lap running positions. This lands on
+the standing benchmark rule (5th instance of the class): ARP was already known to sit inside
+driver_rating; now we know it is not even an independent measurement OF pace - it is start/finish
+restated. Any future temptation to use Lap Raptor ARP as a pace input or evaluation yardstick dies
+here. cPOMS remains the genuinely new cardinal input: glossary confirms the operator's definition
+(rPOMS-style averaging, each lap graded against the FASTEST LAP OF THAT LAP NUMBER, ratio not
+rank). POMS family context: POMS = each lap's speed as a fraction of the race's fastest, averaged;
+cPOMS swaps the denominator to per-lap-number fastest, removing fuel-run/phase bias. Also in the
+glossary and possibly useful later, NOT now: Speed Score (1000 x driver P95 / race P95 - another
+ratio metric, coarser than cPOMS), WARP (finish-prediction-weighted running position), delta-POMS
+(last-segment vs first-segment pace), segment stats. Logged so nobody re-derives these.

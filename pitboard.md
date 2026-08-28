@@ -2738,3 +2738,26 @@ the 08-28 FD futures page, the 07-12 group-market page, HR bare-Race + name norm
 minus, empty/null, and a legit-header no-false-positive sweep. No CI runs them yet - run manually
 with CI=true npm test; adding CI is queue material. Any future parser regex change MUST add its
 motivating page as a fixture.
+
+## 2026-08-28 - cPOMS PROJECT STEP 1 SHIPPED: FORWARD CAPTURE (commit 2bd066c)
+The Admin fastest-laps parser no longer throws away Lap Raptor's pace-shape columns. Three pieces:
+(1) MIGRATION fastest_laps_add_lap_raptor_metrics: 7 numeric columns added to fastest_laps -
+arp, cpoms, lsp, p50_time, p95_time, p50_speed, p95_speed. Historical rows stay NULL until the
+browser-path backfill; real cPOMS data begins with pastes loaded ON OR AFTER 2026-08-28.
+(2) Admin.js parsePaste: the regex now CAPTURES the (?:...){1,3} pace blob (ARP alone pre-07/26;
+ARP cPOMS LSP after) and the P50/P95 time columns it previously skipped, plus an OPTIONAL trailing
+P50/P95 speed pair so truncated pastes still parse. Matching behavior unchanged - PROVEN by a node
+harness running old regex (git HEAD) vs new on synthetic lines for all three known layouts
+(pre-07/12 w/ Make, 07/12 Number-NN, 07/26 w/ cPOMS+LSP), a truncated tail, multi-line count
+parity, and junk-line rejection: ALL PASS, core fields byte-identical.
+(3) api/load-fastest-laps.js: the records whitelist passes the 7 fields through with a
+parseFloat/NaN->null guard. UI untouched (parsed rows only surface as a count, so new fields are
+inert to the Admin preview).
+BACKFILL PATH CONFIRMED: Lap Raptor race pages live at lapraptor.com/races/{id}/ - sequential
+numeric ids across ALL THREE SERIES (2026 season spans ~5593-5690), Lap Performance tab is
+?report=lap_performance. Season selector on /races/schedule/one-sheet/ is a UI control (ids, not
+year params), so the Chrome sitting starts by flipping seasons on the one-sheet and harvesting
+{id, race name, date} per year. Cloud fetch of /races/ hit a 403 (bot protection) - one more
+reason the backfill goes through the operator's Chrome and the PRODUCTION parser, as planned.
+PUSH: committed locally on top of origin/main; push pending operator's per-session GitHub token
+(not recoverable from transcript this session - rotation ate it).
