@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import { parseSect, FD_HEADERS, HR_HEADERS, normDriver } from '../lib/oddsSectionParser'
 import { supabase } from '../lib/supabase'
 import useSubscriber from '../lib/useSubscriber'
 
@@ -230,27 +231,16 @@ function normalizeName(s) {
 
 export function __marketValue(winTxt, t10Txt, fdTxt, hrTxt, drivers) {
   try {
-    var norm = function (s) { return (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[.']/g, '').replace(/\b(jr|sr|ii|iii|iv)\b/g, '').replace(/\s+/g, ' ').trim(); };
+    var norm = normDriver; // shared with oddsSectionParser - maps are keyed and looked up with the same normalizer
     var amer = function (l) { var m = l.trim().replace(/[\u2212\u2013\u2014]/g, '-'); return /^[+\-]\d{2,6}$/.test(m) ? parseInt(m, 10) : null; };
     var dec = function (a) { return a > 0 ? a / 100 + 1 : 100 / (-a) + 1; };
     var impl = function (a) { return a > 0 ? 100 / (a + 100) : -a / (-a + 100); };
     var parseDK = function (txt, n) { var out = {}, name = null, buf = []; var flush = function () { if (name && buf.length >= n) out[norm(name)] = buf.slice(0, n); name = null; buf = []; }; (txt || '').split('\n').forEach(function (raw) { var l = raw.trim(); if (!l) return; var o = amer(l); if (o !== null) { if (name) buf.push(o); } else if (/[a-zA-Z]{2,}/.test(l)) { flush(); name = l; } }); flush(); return out; };
-    // CRITICAL (fixed 2026-07-12): the books now publish GROUP markets (Top Chevrolet / Top Ford /
-    // Top Toyota / Winning Manufacturer / Team of Winner) on the SAME page, AFTER the Top 10 section.
-    // The old code skipped only the group HEADER line and left `cur` pointing at t10 -- so every driver
-    // under "Top Chevrolet" OVERWROTE that driver's TOP 10 price (Bowman t10 +200 became his top-Chevy
-    // +1400). Silent and poisonous: it produced +800pct "edges" comparing a top-10 probability against a
-    // top-Chevrolet price, and 34 junk bets "qualified". A group header must set cur = null, not just
-    // name = null. If a market ever fills with prices from the market BELOW it on the page, look here.
-    // SAME BUG CLASS 2026-08-28 (operator catch, oreilly Daytona): FanDuel put the SEASON FUTURES
-    // section (\"O'Reilly Auto Parts Series 2026 Winner\" / \"...2026 Outright Winner\") on the race
-    // page. Both lines match /winner|outright/i, re-armed cur='win', and the 14 championship prices
-    // OVERWROTE race-winner prices (Hill +300 -> +700, Allgaier +800 -> +125). FanDuel never says
-    // the word 'futures', so the junk filter missed it. A championship/year+winner line now KILLS
-    // the section (cur = null) before header matching. Market headers never contain years.
-    var parseSect = function (txt, hdr) { var m = { win: {}, t3: {}, t5: {}, t10: {} }; var cur = null, name = null; (txt || '').split('\n').forEach(function (raw) { var l = raw.trim().replace(/^\*\s*/, ''); if (!l) return; if (/championship|season\s*long|20\d\d\s*(winner|outright)|(winner|outright).{0,20}20\d\d/i.test(l)) { cur = null; name = null; return; } for (var h = 0; h < hdr.length; h++) { if (hdr[h][0].test(l)) { cur = hdr[h][1]; name = null; return; } } if (/winning\s+manufacturer|manufacturer\s+of\s+race|top\s+(chevrolet|chevy|ford|toyota)|team\s+of\s+|winning\s+team|odd\s+vs\s+even|grid\s+position|car\s+number\s+of|in-season|matchup/i.test(l)) { cur = null; name = null; return; } if (/ford|toyota|chev|manufacturer|team of|group |chance|in-season| vs |show |MT$|betslip|matchup|special|future|single|parlay|about|career|privacy|terms|faq|responsible|house rule|setting|appearance|download|copyright|build:|server time|^eero|^winner$/i.test(l) && !/finish/i.test(l)) { name = null; return; } var o = amer(l); if (o !== null) { if (name && cur) m[cur][norm(name)] = o; name = null; } else if (/[a-zA-Z]{2,}/.test(l)) { name = l; } }); return m; };
-    var FDh = [[/winner|outright/i, 'win'], [/top[\s-]*3/i, 't3'], [/top[\s-]*5/i, 't5'], [/top[\s-]*10/i, 't10']];
-    var HRh = [[/winner|outright|^race$/i, 'win'], [/top[\s-]*3/i, 't3'], [/top[\s-]*5/i, 't5'], [/top[\s-]*10/i, 't10']];
+    // parseSect + section-killer regexes live in src/lib/oddsSectionParser.js (extracted
+    // 2026-08-28, code-review m3) - the group-market and season-futures bug history is documented there.
+
+    var FDh = FD_HEADERS;
+    var HRh = HR_HEADERS;
     // DK COLUMN-ORDER AUTO-DETECT (2026-07-14). DK sometimes prints the 3-col winner box in a
     // different column order (seen~ Top 5 / Top 3 / Race Winner instead of Winner / Top 3 / Top 5).
     // parseDK collects the 3 numbers per row positionally; we must map columns by the HEADER CELLS

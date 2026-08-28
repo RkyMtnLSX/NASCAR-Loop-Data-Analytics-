@@ -2719,3 +2719,22 @@ toggle states; sticky thead safe (borderCollapse separate, z-order 3/2/1); futur
 no false positive against any known header; fix flows to GradeCenter closeMv automatically; no
 corrYearAvg double-count; draw-order path unaffected by the position gate.
 PROCESS CHANGE: code review now standard before push on non-trivial code changes.
+
+## 2026-08-28 - CODE REVIEW FINDINGS FIXED (m1/m2/m3) + M1 CLOSED (operator-confirmed)
+M1 CLOSED, no code: operator confirms DraftKings never lists championship futures on the race-odds
+page - the FD futures bug class cannot reach the DK paste path by book behavior. Recorded in the
+new parser module's header so no future session re-flags it.
+m1: hiding Track History while sorted on Avg@track or a history race column now falls back to the
+group-year average sort, and the Avg@track sort chip hides with its column.
+m2+m3 (one change): parseSect EXTRACTED to src/lib/oddsSectionParser.js - the ~1,600-char single
+line is now a readable state machine with named regexes (FUTURES_SECTION, GROUP_MARKET, JUNK_LINE),
+both bug histories (07-12 group markets, 08-28 futures) documented in the file header, escaping
+blemish gone with the move. SimulationCenter imports { parseSect, FD_HEADERS, HR_HEADERS,
+normDriver }; its local norm is now an alias of the shared normalizer (maps keyed and looked up
+with ONE function). EQUIVALENCE PROVEN before ship: old inline parser (git HEAD) vs new module ran
+IDENTICAL on the real 08-28 FD paste, a synthetic HR page exercising every guard, and empty/null.
+FIXTURE TESTS shipped (src/lib/oddsSectionParser.test.js, 5 tests, all passing via node harness):
+the 08-28 FD futures page, the 07-12 group-market page, HR bare-Race + name normalization + unicode
+minus, empty/null, and a legit-header no-false-positive sweep. No CI runs them yet - run manually
+with CI=true npm test; adding CI is queue material. Any future parser regex change MUST add its
+motivating page as a fixture.

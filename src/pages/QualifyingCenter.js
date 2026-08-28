@@ -584,7 +584,14 @@ export default function QualifyingCenter({ isSubscriber }) {
               background: show2025 ? 'var(--accent)' : 'var(--bg-elevated)',
               color: show2025 ? '#fff' : 'var(--text-secondary)', cursor: 'pointer',
             }}>Show 2025</button>
-            <button onClick={function() { setShowTrackHist(!showTrackHist) }} style={{
+            <button onClick={function() {
+              var next = !showTrackHist
+              // m1 (code review 2026-08-28): never leave the table sorted by a column the user
+              // cannot see - hiding history while sorted on Avg@track or a history race column
+              // falls back to the group-year average sort.
+              if (!next && (sortBy === 'trackAvg' || histCols.some(function(c) { return c.pk === sortBy }))) { setSortBy('corrYearAvg'); setSortDir('asc') }
+              setShowTrackHist(next)
+            }} style={{
               padding: '4px 12px', borderRadius: 20, fontSize: '0.89rem',
               border: '1px solid var(--border)',
               background: showTrackHist ? 'var(--accent)' : 'var(--bg-elevated)',
@@ -603,7 +610,7 @@ export default function QualifyingCenter({ isSubscriber }) {
           <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginRight: 2 }}>Sort:</span>
             {[
-              { key: 'trackAvg', label: 'Avg @ ' + trackAbbr(config.track_name) },
+              showTrackHist ? { key: 'trackAvg', label: 'Avg @ ' + trackAbbr(config.track_name) } : null,
               hasDrawOrder ? { key: 'drawOrder', label: 'Draw Order' } : null,
               { key: 'name', label: 'A–Z' },
             ].filter(Boolean).map(function(opt) {
