@@ -2672,3 +2672,15 @@ flags voided 5 (reason recorded) | FD win snapshot rows deleted 114 | board 0801
 sim_matrices 1 + dfs_sim_samples 1 deleted. DK and HR snapshots kept (their pastes were clean).
 OPERATOR RERUN after Vercel deploy: hard-refresh Sim Admin, re-paste all books (same FD paste is now
 safe), re-run and republish pre board R24. Race 1:00pm MT - fix pushed 8:3x AM MT.
+
+## 2026-08-28 - VERCEL CONNECTOR LIVE (operator connected mid-session)
+Sessions with the Vercel MCP connector can now verify deploys DIRECTLY: team
+team_kt4BXJ9tbJRrkMRd9o9uohau, project prj_lBg1Q2ZUWxMQpXh0TlkfxphCWRcY (nascar-loop-data-analytics,
+github-linked, auto-deploy from main). Confirmed live by listing deployments: parser fix 4433b3f =
+READY in production at time of writing. WORKFLOW CHANGE: before telling the operator "hard refresh
+and verify", CHECK THE DEPLOY STATE (list_deployments / get_deployment) - and on a red build, read
+get_deployment_build_logs instead of asking for dashboard screenshots. Runtime logs for /api
+functions also available. NOT covered: env vars (Stripe env swaps remain operator-in-dashboard;
+secrets never pass through sessions). Discovered retroactively: commit c601aa1 (08-24, md-only)
+deployed with state ERROR and was invisible at the time - production stayed on the prior READY
+build, no impact. Plan confirmed hobby - the Hobby->Pro cutover runway item stands.
