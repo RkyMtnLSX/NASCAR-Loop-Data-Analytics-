@@ -2761,3 +2761,21 @@ year params), so the Chrome sitting starts by flipping seasons on the one-sheet 
 reason the backfill goes through the operator's Chrome and the PRODUCTION parser, as planned.
 PUSH: committed locally on top of origin/main; push pending operator's per-session GitHub token
 (not recoverable from transcript this session - rotation ate it).
+
+## 2026-08-28 - STALE ENTRY LIST DROPPED THE FRONT OF THE OREILLY R24 GRID (data fix, no code)
+Operator: "top 3 drivers are missing" from the sim's starting grid after loading Daytona R24
+oreilly qualifying. Qualifying rows were FINE (38 rows, Elliott P1 / Zilisch P2 / Love P3). Root
+cause: the sim's driver pool is entry_list, and the join to qualifying is BY NAME - the entry list
+predated eight driver swaps (88 Caruth->Elliott, 1 Kvapil->Zilisch, 0 Smithley->Custer, 32
+Dye->Chastain, 38 Sieg->Emerling, 39 Jankowiak->Sieg, 53 Ware->Tomassi, 91 Maggio->Bean), missed
+car 42 (Rodgers) entirely, and spelled 87 "Nicholas Sanchez" vs qualifying's "Nick Sanchez". Every
+mismatched qualifying row matched nobody; entries without a start were then removed by the >=20
+DNQ filter - so the sim silently deleted 10 real cars including the front row.
+FIX (operator-approved, SQL): entry_list updated to the qualified field, car 42 inserted; PLUS a
+source error the operator adjudicated - the qualifying source printed "Leland Honeyman" for car 92
+P19 while Honeyman Jr also sat in 71 P20; real 92 qualifier is Josh Williams, qualifying row
+corrected. VERIFIED: 38/38 qualifying rows now name-match an entry (suffix/punct-insensitive);
+the 1 entry without qualifying is Dawson Cram 47, a real DNQ, correctly dropped.
+QUEUE CANDIDATE (bug class, 2nd sighting incl. Sanchez spelling): the sim should SURFACE unmatched
+qualifying rows ("N qualifying rows match no entry-list driver") instead of silently dropping
+drivers via the DNQ filter. Cheap badge next to the lineup-state indicator.
