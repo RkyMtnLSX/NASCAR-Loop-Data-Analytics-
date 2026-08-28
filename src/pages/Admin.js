@@ -1525,20 +1525,32 @@ function LoadFastestLaps() {
   //   NEW: Driver  "Number NN"  Start  Finish  Status  ARP  FL#  FL_Time  P50_T  P95_T  FL_Speed  P50_S  P95_S
   //   OLD: Driver  NN  Make     Start  Finish  Status  ARP  FL#  FL_Time  P50_T  P95_T  FL_Speed  P50_S  P95_S
   // If it ever returns 0 rows again, diff a fresh paste against these two shapes first.
+  // CAPTURE CHANGE 2026-08-28 (cPOMS project): the regex used to DISCARD ARP/cPOMS/LSP (the
+  // (?:...){1,3} blob) and P50/P95 times (bare [\d.]+). It now CAPTURES them - same matching
+  // behavior, more groups. The blob splits by length: 1 = ARP only (pre-07/26), 3 = ARP cPOMS LSP
+  // (07/26+). The trailing P50/P95 SPEED pair is optional so older partial pastes still parse.
   function parsePaste() {
-    const RE = /^(.+?)\s+(?:Number\s+)?(\d{1,3})\s+(?:(?:Chevy|Chevrolet|Ford|Toyota|Dodge|Ram)\s+)?(\d+)\s+(\d+)\s+(\w+)\s+(?:[\d.]+\s+){1,3}(\d+)\s+([\d.]+)\s+[\d.]+\s+[\d.]+\s+([\d.]+)/gm
+    const RE = /^(.+?)\s+(?:Number\s+)?(\d{1,3})\s+(?:(?:Chevy|Chevrolet|Ford|Toyota|Dodge|Ram)\s+)?(\d+)\s+(\d+)\s+(\w+)\s+((?:[\d.]+\s+){1,3})(\d+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)(?:\s+([\d.]+)\s+([\d.]+))?/gm
     const rows = []
     let m
     while ((m = RE.exec(pasteText)) !== null) {
+      const pace = m[6].trim().split(/\s+/) // ARP alone, or ARP cPOMS LSP
       rows.push({
         driver:          canonDriverName(m[1]),
         car:             m[2].trim(),
         start_pos:       m[3].trim(),
         finish_pos:      m[4].trim(),
         status:          m[5].trim(),
-        fastest_lap_num: m[6].trim(),
-        fastest_time:    m[7].trim(),
-        fastest_speed:   m[8].trim(),
+        arp:             pace[0] || null,
+        cpoms:           pace.length === 3 ? pace[1] : null,
+        lsp:             pace.length === 3 ? pace[2] : null,
+        fastest_lap_num: m[7].trim(),
+        fastest_time:    m[8].trim(),
+        p50_time:        m[9].trim(),
+        p95_time:        m[10].trim(),
+        fastest_speed:   m[11].trim(),
+        p50_speed:       m[12] ? m[12].trim() : null,
+        p95_speed:       m[13] ? m[13].trim() : null,
       })
     }
     // Sort by fastest_time ascending and assign rank (1 = fastest lap in race)

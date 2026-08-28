@@ -14,6 +14,7 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: 'Missing required fields: year, race_name, race_date, track, rows[]' })
   }
   const sorted = [...rows].sort((a, b) => (parseFloat(b.fastest_speed) || 0) - (parseFloat(a.fastest_speed) || 0))
+  const num = (v) => { const n = parseFloat(v); return Number.isFinite(n) ? n : null }
   const records = sorted.map((r, i) => ({
     year: parseInt(year), track_type: track_type || null, race_name, race_date, track,
     rank: i + 1, driver: (r.driver || '').trim(), car: r.car ? String(r.car).trim() : null,
@@ -23,6 +24,10 @@ module.exports = async function handler(req, res) {
     start_pos: r.start_pos ? parseInt(r.start_pos) : null,
     finish_pos: r.finish_pos ? parseInt(r.finish_pos) : null,
     status: r.status ? String(r.status).trim() : null,
+    // Lap Raptor pace-shape metrics (2026-08-28, cPOMS project - previously discarded by the parser)
+    arp: num(r.arp), cpoms: num(r.cpoms), lsp: num(r.lsp),
+    p50_time: num(r.p50_time), p95_time: num(r.p95_time),
+    p50_speed: num(r.p50_speed), p95_speed: num(r.p95_speed),
   })).filter(r => r.driver)
   if (!records.length) return res.status(400).json({ error: 'No valid driver rows after filtering' })
   const { error: delError } = await supabase.from('fastest_laps').delete().eq('race_name', race_name).eq('race_date', race_date)
