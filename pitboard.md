@@ -2653,3 +2653,22 @@ So Atlanta R20 shows "ATL '26 R2" even though visit 1 has no column. Single-visi
 labels. Fallback to racesByTY if the map is empty.
 VERIFY: superspeedway block shows "ATL '26 R2" (not bare "ATL '26"); Daytona/Talladega single-visit
 style labels unchanged; qualData row counts identical (guard moved, not changed). esbuild-verified.
+
+## 2026-08-28 - PRE-RACE INCIDENT: FanDuel futures section parsed as race-winner odds (fixed 4433b3f)
+Operator caught false value on the oreilly Daytona (Winn-Dixie 250, R24) pre board: Austin Hill
+showing FD +700 to win when the real race price was +300. ROOT CAUSE: FanDuel put the SEASON FUTURES
+section on the race page, and both of its headers - "O'Reilly Auto Parts Series 2026 Winner" and
+"...2026 Outright Winner" - match parseSect's FDh win test /winner|outright/i. cur re-armed to 'win'
+and all 14 championship prices OVERWROTE race prices (Hill +300->+700, Allgaier +800->+125, Love
++500->+850...). False value in BOTH directions. FanDuel never prints the word "futures", so the
+2026-07-12-era junk filter missed it - same bug class as the group-market incident, now documented
+beside it in the code.
+FIX: parseSect kills the section (cur=null) on any championship / season-long / year+winner line,
+BEFORE header matching; market headers never contain years. VERIFIED against the operator's actual
+Ctrl+A paste via the extracted real functions: 38 win entries, Hill +300, Love +500, Allgaier +800,
+Crews +2000 (race price, not his +500 futures), futures section contributes zero.
+SCRAP (operator-directed; the market anchor consumes pasted win odds, so the sim itself was tainted):
+flags voided 5 (reason recorded) | FD win snapshot rows deleted 114 | board 08016e1b deleted |
+sim_matrices 1 + dfs_sim_samples 1 deleted. DK and HR snapshots kept (their pastes were clean).
+OPERATOR RERUN after Vercel deploy: hard-refresh Sim Admin, re-paste all books (same FD paste is now
+safe), re-run and republish pre board R24. Race 1:00pm MT - fix pushed 8:3x AM MT.
