@@ -2699,3 +2699,23 @@ overwrite, DK start, qualifying joins) is CLIENT-SIDE and invisible to Vercel - 
 all morning while the FD paste poisoned the board. Queue candidate (unbuilt): ~15-line window.onerror
 reporter writing uncaught client exceptions to a small Supabase table, for when subscribers who are
 not the operator hit crashes.
+
+## 2026-08-28 - FIRST STRUCTURED CODE REVIEW (engineering:code-review plugin, operator-installed)
+Reviewed the five code commits since 08-27 (5303d65..4433b3f: QualifyingCenter avg/layout/toggle/
+gating/labels + SimulationCenter futures fix) adversarially. VERDICT: approve as shipped. Findings:
+- M1 (OPEN QUESTION FOR OPERATOR): the DK paste path (parseDK/detectDkOrder) has NO futures guard -
+  same bug class as today's FD incident, mitigated only by the DK paste habit being box-scoped and
+  DK naming futures "Champion" not "winner". If the DK paste is ever full-page, the section-killer
+  should be added there too. Awaiting operator: is the DK paste always box-scoped?
+- m1: default sort is trackAvg and its chip stays active while Track History is hidden - sorting by
+  an invisible column. Proposed: fall back to corrYearAvg sort when showTrackHist is false.
+- m2: literal \" escapes in the new SimulationCenter comment (edit-tooling blemish, clean on next touch).
+- m3: parseSect is a ~1,600-char single line on its third accreted regex family - today's bug hid in
+  it. Proposed: extract + paste-fixture tests (today's FD Ctrl+A = fixture 1, the 07-12 group-market
+  page = fixture 2). Ties to testing-strategy.
+VERIFIED GOOD: row-cap headroom (biggest group 2,360 v 5,000; unfiltered fetch adds rows only to
+superspeedway +79, all other groups' excluded count is ZERO); header/body alignment across all 8
+toggle states; sticky thead safe (borderCollapse separate, z-order 3/2/1); futures-killer regex has
+no false positive against any known header; fix flows to GradeCenter closeMv automatically; no
+corrYearAvg double-count; draw-order path unaffected by the position gate.
+PROCESS CHANGE: code review now standard before push on non-trivial code changes.
