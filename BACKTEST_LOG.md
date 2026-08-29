@@ -1995,3 +1995,31 @@ COVERAGE: 2022:29 races/1058 rows, 2023:29/1059, 2024:31/1161, 2025:30/1142, 202
 excluded). oreilly/trucks backfill NOT done - same pipeline works if wanted.
 NEXT: the pre-registered cPOMS gated test (BACKTEST_ARCHIVE.md 2026-07-07 GFS partial-correlation
 structure, DO NOT MODIFY) now has its data. Operator 5-race manual-paste cross-check still open.
+
+## 2026-08-29 - THE PRE-REGISTERED cPOMS TEST: GATE PASSED (WEAKLY), SWEEP FAILED - DO NOT ADD TO THE COMPOSITE
+Ran the 2026-07-07/08 pre-registered structure UNMODIFIED: cup non-SS ovals (Intermediate + Short
+& Flat), leak-free pooling exactly like corrHistory (prior same-group races, production yrWt
+2.0/1.3/0.9/0.6/0.4, min 2 prior with cPOMS), train 2022-24 (67 races / 2,362 obs) vs test
+2025-26 (41 / 1,508). Encoding decision fixed BEFORE results: raw ratio is the registered thesis
+(percentiling = LSP = rank); percentile ran as reference only.
+GATE (proper partial correlation, both sides residualized on pooledRating + startPos):
+  RAW cPOMS:   train -0.0378 (t -1.84), test -0.0259 (t -1.00) - SAME SIGN, right direction. PASS.
+  PERCENTILE:  train -0.0694, test +0.0295 - SIGN FLIP, dies exactly like GFS. 
+  corr(pooledCPOMS, pooledRating) = 0.815/0.856 - NOT the 0.972 GFS near-clone; ~25-30 pct of its
+  variance is unshared with rating. The thesis half-confirmed: the cardinal margin carries the
+  only surviving orthogonal signal, and rank encodings of pace are conclusively dead.
+WEIGHT SWEEP (protocol next step after a gate pass; production composite z-sum, startPos 0.48
+fixed, corr budget 0.52 split rating/cPOMS; per-race Spearman + p5/p10, races >=10 obs):
+  TRAIN Spearman: rating .4825 / +c10 .4842 / +c20 .4825 / c-only .4797
+  TEST  Spearman: rating .4805 / +c10 .4789 / +c20 .4755 / c-only .4658
+  The +0.002 train gain at 10 pct REVERSES out-of-sample; every cPOMS config <= rating on test
+  p10; c-only strictly worse everywhere. Same shape as the pass_diff "wrinkle": in-sample dust.
+VERDICT: cPOMS does NOT enter the finish composite. The saturation family now includes it: ARP,
+quality passes, pass_diff, GFS, and cPOMS all <= driver_rating for FINISH ORDERING on ovals. The
+orthogonal sliver is real (stable -0.03 partial) but too small to move a rank composite.
+WHAT THIS DOES NOT SAY (queue material, each needs its own pre-registered test): cPOMS as a
+DOMINATOR input (laps-led/fastest-laps share for DFS - pace shape plausibly matters more there
+than for finish rank); cPOMS for matchup markets; cPOMS tails for the win-variance layer. The
+backfilled columns stay - they cost nothing and any future test now has 139 races of history.
+DISCIPLINE NOTE: gate rule was written 7 weeks before the data existed, ran once, unmodified,
+and the answer is a clean negative on the primary question. That is the system working.
