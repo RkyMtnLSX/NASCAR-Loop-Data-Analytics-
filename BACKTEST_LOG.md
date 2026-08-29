@@ -2440,3 +2440,15 @@ stays consistent (do not ship the "compute ev below MINP" change; this is delibe
 oversight). Guard revisit, when wanted, runs RETROACTIVELY from odds_snapshots x sim_results
 (full prices + probs are already captured), so no evidence is lost by waiting. A graduated
 long-price gate keyed on mev/medge is the candidate landing spot - registered test, later.
+
+## 2026-08-29 - R24 OREILLY REPLAY UNDER m=1.75 (retro, score-reconstruction method): still ZERO flags, correctly
+Recalibrated probs (harness, validated port) x stored R24 odds x actual finishes:
+- Full gates: 0 flags (unchanged). No-tail-guard (mev>0 kept): 3 - all 500-1 dust, all lost.
+- Model-EV-only (consensus gate dropped): 24 bets, ALL tail cars, ALL lost (P17-P38). The
+  calibrated tail's fatter probs collide with the ~2.8x SS book margin - "model > implied" in
+  the SS tail is margin, not value. THE mev>0 GATE ALONE FILTERED ALL 24 LOSERS - strongest
+  evidence yet that the consensus gate is load-bearing; weight this when the tail-guard
+  relaxation is eventually designed.
+- Sieg (winner): calibration tripled him 0.6 -> 1.55 pct but +3000 (implied 3.2) still = -52 EV.
+  Market closer to truth than model on the winner. SS books' longshot pricing carries info our
+  inputs don't (third independent confirmation).
