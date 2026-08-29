@@ -2429,3 +2429,14 @@ IMPLICATION (the real yield of tonight): the existing tables are mined out - inp
 variance (calibrations), and now trait layers all adjudicated. Future signal-hunting goes to NEW
 data only: Lap Raptor GR/LR columns (operator question open), pit-stop data, road boards when
 they exist, and the one permitted dominator re-test on future races.
+
+## 2026-08-29 - TAIL GUARD DECISION (Daytona R26, Dye case): guards STAY, write path STAYS AS IS
+Post-qualifying board surfaced Dye t10 model 10.6 vs FD +2700 (DK 11.1/HR 9.1 implied agree with
+model; mev +96) - blocked by the MINP t10 floor (12) upstream of both display and flagged_bets.
+Guard-removal blast radius measured on the live board: 1 flag -> 15, and mev separates them
+cleanly (credible cluster mev 60-104, fake-tail-shaped cluster mev 1-8: sub-2pct t3/win at
++10000 to +25000). OPERATOR DECISION: no gate changes, and NO write-path ungating - logging
+stays consistent (do not ship the "compute ev below MINP" change; this is deliberate, not an
+oversight). Guard revisit, when wanted, runs RETROACTIVELY from odds_snapshots x sim_results
+(full prices + probs are already captured), so no evidence is lost by waiting. A graduated
+long-price gate keyed on mev/medge is the candidate landing spot - registered test, later.
