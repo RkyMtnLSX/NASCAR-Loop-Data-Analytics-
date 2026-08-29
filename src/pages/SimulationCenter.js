@@ -434,9 +434,18 @@ function buildSpeedScores(drivers, weights) {
   })
 }
 
+// SS NOISE CALIBRATION (2026-08-29, pre-registered - BACKTEST_LOG same date): the MC's
+// rank->win curve at superspeedways was uniformly too steep vs 59 SS races / 1,989 driver-obs
+// (sim top-3 16.5 pct vs real 12.4; ranks 16-20 sim 0.8 vs real 2.7 - reality is FLAT ~2.5 pct
+// from rank 7 to 20). One dial, fit 2022-24 / validated 2025-26 holdout (all bands within 1.25
+// SE, winner log-likelihood +0.94, R24 board win-Brier improved 0.0299 -> 0.0277): multiply the
+// outcome noise by 1.75 at SS only. Flows through win/t3/t5/t10, medge, DFS samples - one story.
+// DO NOT retune from in-sample results; the forward judge is SS board win-Brier + the CLV ledger.
+const GROUP_NOISE_MULT = { SS: 1.75 }
+
 function runRaceSim(drivers, simConfig) {
   const { numSims, cautionPreset, dnfRate, totalRaceLaps, trackGroup, startSampling } = simConfig
-  const noiseWidth = cautionPreset.noise
+  const noiseWidth = cautionPreset.noise * (GROUP_NOISE_MULT[trackGroup] || 1)
   const __cb = cautionPreset.value <= 5 ? 'low' : cautionPreset.value <= 8 ? 'mid' : 'high'
   const __LLC = ((LL_CURVES_G[trackGroup] || {})[__cb]) || LL_CURVES[__cb]
   const __FLC = ((FL_CURVES_G[trackGroup] || {})[__cb]) || FL_CURVES[__cb]

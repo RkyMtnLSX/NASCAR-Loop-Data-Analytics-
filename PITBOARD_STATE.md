@@ -116,6 +116,10 @@ before stating n.
 - medge floor 5 is the PRINCIPLED value (below it, two independent measures say no model content).
   10 is the FITTED sweet spot and must not be adopted on these 9 races — forward-test it alongside.
 - cPOMS gate is inherited from the GFS test (BACKTEST_ARCHIVE.md, 2026-07-07 GFS entry). I did not design it and it must not be modified.
+- SS noise multiplier m=1.75 (GROUP_NOISE_MULT, runRaceSim) is FROZEN per the 2026-08-29
+  pre-registered calibration (fit 2022-24, validated 2025-26). Do NOT refit from in-sample
+  results; next legitimate refit after ~10 new SS races, same split discipline rolled forward.
+  Judge: win-Brier on future graded SS boards + CLV ledger.
 
 ### OPEN QUESTIONS FOR THE OPERATOR
 - driver_rating: pitboard.md 2026-07-26 says new-format rows store it NULL because Lap Raptor
