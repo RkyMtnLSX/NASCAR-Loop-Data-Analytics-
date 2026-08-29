@@ -2211,3 +2211,22 @@ lineup, update counts, repeat to the requested count. Top-ups rank by projected 
 ceiling; noted in the UI). Verified on the actual R24 slate offline: 12 after filtering -> 20/20
 unique, max exposure exactly at the cap. Both cash and GPP paths; under-delivery warning now
 fires only when truly infeasible (locks/excludes leave too few drivers).
+
+## 2026-08-29 - PRE-REGISTERED: SS VARIANCE CALIBRATION (written before any fitting - DO NOT MODIFY)
+FINDING THAT MOTIVATES IT (measured first, no parameters touched): the sim's rank->win curve at
+superspeedways is uniformly too steep vs 59 SS races / 1,989 driver-obs (all 3 series 2022-2026,
+leak-free pooled-rating strength ranks):
+  band 01-03: sim 16.5 vs real 12.4 | 04-06: 7.0 vs 5.1 | 07-10: 3.4 vs 2.5
+  band 11-15: 1.7 vs 2.4 | 16-20: 0.8 vs 2.7 | 21+: 0.20 vs 0.62
+Reality is FLAT ~2.5 pct from rank 7 to rank 20. One defect, both tail failures: overconfident
+favorites (fake-value flags) and 3x-starved mid-pack (Sieg 0.5 pct vs real ~2.5).
+PROTOCOL:
+- PARAMETER: the SS-group MC variance/upset dial only (whatever form it takes in runRaceSim).
+  Nothing else moves - no weights, no inputs, no other groups.
+- FIT: 2022-2024 SS races ONLY (~35 races). Target: minimize distance between the sim's
+  rank->win curve and the empirical 2022-24 curve, rank->top5 as joint target.
+- VALIDATE (untouched until fit is frozen): 2025-2026 SS races. PASS = the fitted parameter's
+  curve matches the 2025-26 empirical curve within band SEs AND win-Brier on the graded SS
+  boards does not degrade vs current. One shot; no refitting after seeing holdout.
+- SHIP only on pass; the change applies to SUPERSPEEDWAY_WEIGHTS group sims across series.
+- JUDGED FORWARD by: SS board win-Brier on future graded boards + the CLV ledger unchanged rules.
