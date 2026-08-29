@@ -2059,3 +2059,28 @@ on a finish-ordering hypothesis; only a DOMINATOR-target or matchup-target hypot
 new collection.
 STANDING DOOR (the one left): cPOMS/P95/consistency vs DOMINATOR SHARE (laps led, fastest laps)
 for DFS - different target, plausibly pace-shaped, pre-register before running.
+
+## 2026-08-29 - PRE-REGISTERED: THE DOMINATOR GATE (written before any data examined - DO NOT MODIFY)
+Question: does pace shape predict DOMINATOR SHARE (what DFS pays for) beyond what the sim and the
+trivial incumbent already know? Registered in full before running; a future session runs this
+EXACTLY as written or not at all.
+TARGETS (separate tests): T1 laps-led share = ld.laps_led / races.total_laps; T2 fastest-laps
+share = ld.fastest_laps / race sum of ld.fastest_laps.
+SCOPE/SPLIT/POOLING: cup non-SS ovals (Intermediate + Short & Flat), leak-free pooling exactly as
+all prior harnesses (prior same-group races, yrWt 2.0/1.3/0.9/0.6/0.4, min 2 prior with cPOMS),
+train 2022-24 / test 2025-26.
+PRIMARY CANDIDATE: pooled RAW cPOMS only. Secondaries (reference, cannot ship from this run,
+would need fresh confirmation): pooled P95-ratio, pooled consistency (p50_time/p95_time).
+STAGE 1 GATE: partial SPEARMAN (rank-transform all variables per split - declared now because
+shares are zero-inflated; midranks for the zero mass) of pooled cPOMS vs target share,
+controlling THREE variables: pooledRating, startPos, and pooled PAST share of the same target
+(same pooling - the incumbent-beater control, stricter than the finish gate on purpose).
+PASS REQUIRES ALL OF: positive sign both splits AND |partial| >= 0.05 in BOTH splits (floor
+added because 2026-08-29 proved |r|~0.03 stable-sign signals fail integration). Wrong sign,
+flip, or sub-floor anywhere = STOP.
+STAGE 2 UTILITY (only on a Stage-1 pass): incumbent = rank from linear combo of the three
+controls, weights fit on TRAIN only; challengers add cPOMS at 10 and 20 pct. SHIP only if a
+challenger beats incumbent on the TEST split on BOTH per-race Spearman of share ranks AND
+precision@2 (top-2 actual dominators per race). Any test-split loss on either metric = STOP.
+DATA PRECHECK (allowed before gating, integrity only): confirm ld.laps_led / ld.fastest_laps
+population rates and races.total_laps coverage; no looking at candidate-target relationships.
