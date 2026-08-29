@@ -2252,3 +2252,19 @@ FORWARD JUDGE (pre-registered, do not retune): win-Brier on future graded SS boa
 engine's grades + the CLV ledger's unchanged rules. m is not to be refit from in-sample data;
 next legitimate refit is after ~10 new SS races, on the same fit/holdout discipline rolled
 forward.
+
+## 2026-08-29 - PRE-REGISTERED: SHORT + INT VARIANCE CALIBRATION (written before any fitting - DO NOT MODIFY)
+Extension of the SS protocol to the other simulated groups, on operator instruction ("do this for
+all track types"). DIAGNOSTIC MEASURED FIRST (pooled-rating strength ranks, sim __trackGroup
+regex, dirt excluded; sim curves from the graded post boards - SHORT n=7 boards, INT n=2):
+  INT:   sim 15.68/7.68/3.93/1.64/0.67/0.04 vs real 14.65/6.76/4.46/1.55/0.60/0.25 - near-calibrated
+  SHORT: sim 19.00/7.43/3.06/1.01/0.25/0.03 vs real 15.52/9.48/3.45/1.21/0.00/0.13 - top-heavy
+         (band 01-03 +1.8 SE high, but 04-06 is LOW by -1.3 SE: shape differs from the SS signature)
+  ROAD:  zero graded post boards exist - UNTESTABLE until boards accumulate; nothing fit, nothing shipped.
+PROTOCOL (identical to SS): parameter = per-group entry in GROUP_NOISE_MULT only, nothing else
+moves. FIT on 2022-24 empirical bands (n-weighted log loss), per group. VALIDATE one-shot on
+2025-26: bands within SEs + board Brier non-degradation. m ~= 1 at the fit stage = the group is
+CERTIFIED as-is and nothing ships - that is a success outcome, not a failure. An honest "defect
+is shape, not scale" no-ship verdict for SHORT is acceptable and expected as a possibility.
+Boards used for score reconstruction: cup25 (NH R25, SHORT, noise 16 cval 8 dnf .10647 n=36) and
+cup22 (Indy R22, INT, noise 16 cval 8 dnf .13692 n=39).
