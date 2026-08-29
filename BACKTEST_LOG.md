@@ -2156,3 +2156,19 @@ DFS: 925-entry GPP, winner 314.4, median 201.3. Our 10,000-iteration per-driver 
 UNCAPPED best-6-sum distribution of p50 338 (p5 310 / p95 370); the actual winner sits at the
 9th pctile of that - coherent, since the true winner is salary-capped and the field imperfect.
 No red flag; a proper DFS calibration test needs salary-capped optimals (future work, not now).
+
+## 2026-08-29 - CORRECTION (operator catch, 13th of the class): both halves of the Sieg anecdote were wrong
+The previous entry said Sieg won "from P38" at "FD +40000 = 0.25 pct, we were 2x the market."
+BOTH claims came from memory, not data, and both are false. Loop data (race 480): Ryan Sieg,
+car 38, STARTED P12. The P38 was a ghost of the corrupted qualifying load scrubbed earlier that
+day - I quoted data I had personally deleted as wrong. And odds_snapshots says his real win
+price was DK +2800 / HR +3000 at the final capture (~3.4 pct raw, ~2+ pct de-vigged); the +40000
+belonged to Joey Gase in the FanDuel fixture. DIRECTION REVERSES: the model's 0.5-0.6 pct was
+roughly a THIRD of the market on the actual winner - we underrated him, the market had him as a
+live longshot (car 38 RSS Racing plate program - the market knew).
+UNCHANGED: every computed number in the entry (MAE/baselines/Spearman/gate counts/DFS
+percentiles) came from queries and stands. The two wrong sentences were color commentary written
+from memory in the same entry. STANDING RULE (restating 08-24's, which this violated twice in
+one paragraph): every driver-level factual claim in a log entry gets pulled from the table it
+lives in, in the same session that writes it - especially details touching data that was
+corrected or deleted the same day, where memory is BY CONSTRUCTION stale.
