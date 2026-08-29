@@ -2185,3 +2185,19 @@ verdict: top ~27 pct of a 925-entry field, good-not-great; 5 of 6 picks scored 3
 was Clements (3.9). The Honeyman salary name-join gap stands (bug class, 3rd sighting).
 LOAD GUARD QUEUED: the race loader should count results rows vs the qualifying grid and warn on
 a gap - a missing driver on RR's page silently corrupted a replay and a DFS verdict today.
+
+## 2026-08-29 - DFS ENTRY-FILL BUG: wrap-around defeated the exposure cap and printed duplicates (FIXED)
+Operator uploaded the R24 Daytona GPP standings (925 entries, his 20 optimizer entries,
+username-verified). Portfolio results: best rank 33 (96.5 pctile, 294.10), 13/20 above field
+median, median entry 235 vs field 201. BUT 5 exact duplicate PAIRS among his 20, and 4 drivers
+at 18/20 exposure despite a cap being set. ROOT CAUSE (DFSPage.js applyEntriesFill):
+`lineups[filled % lineups.length]` - when the exposure cap delivered fewer unique lineups than
+reserved entries, the fill wrapped around and re-used the TOP lineups, simultaneously creating
+in-contest duplicates (wasted GPP equity) and pushing exposure back to ~90 pct (defeating the
+cap). The cap logic itself (applyExposure) worked as configured. FIX SHIPPED: one entry per
+unique lineup per contest; excess rows OMITTED from the upload file (DK leaves them untouched)
+with an explicit SKIPPED note; cross-contest reuse preserved. Real-money path - third incident
+class on it (see 2026-08-23 under-delivery warnings).
+NOTED, not built (operator to weigh in): max-exposure default for GPP builds; market-vs-model
+disagreement exposure rule (Sieg 56.5 pts at 0 pct exposure while the market priced him 3x our
+sim - one pivot from winning the contest outright).

@@ -358,23 +358,34 @@ export default function DFSPage() {
     const missing = new Set()
     const out = entFile.lines.slice(0, entFile.hdrIdx + 1)
     let filled = 0
+    // NO WRAP-AROUND WITHIN A CONTEST (2026-08-29 incident): the old `filled % lineups.length`
+    // silently re-used the top lineups when the exposure cap delivered fewer than the reserved
+    // entries - R24 Daytona GPP got 5 exact duplicate pairs out of 20 entries, which both wasted
+    // GPP equity AND pushed real exposure back up to ~90%, defeating the cap the operator set.
+    // Now: each contest gets at most one entry per unique lineup; excess rows are OMITTED from
+    // the output (DK only edits rows present in the upload, so those entries stay untouched).
+    // Re-using the same lineup across DIFFERENT contests remains fine and intended.
+    let skipped = 0
     entFile.groups.forEach(g => {
       if (!entFile.sel.has(g.name)) return
+      let gi = 0
       g.rows.forEach(li => {
+        if (gi >= lineups.length) { skipped++; return }
         const cells = __csvParse(entFile.lines[li])
-        const lu = lineups[filled % lineups.length]
+        const lu = lineups[gi]
         lu.drivers.forEach((d2, k2) => { const id = ids[d2.name]; if (!id) missing.add(d2.name); cells[entFile.dCols[k2]] = id ? d2.name + ' (' + id + ')' : d2.name })
         out.push(__csvSer(cells))
-        filled++
+        gi++; filled++
       })
     })
     if (!filled) { setNote('No contests selected.'); return }
+    const skipMsg = skipped ? ' SKIPPED ' + skipped + ' entr' + (skipped === 1 ? 'y' : 'ies') + ' (only ' + lineups.length + ' unique lineups at the current exposure cap - no duplicates written; those entries are untouched on DK. Raise the cap or lineup count and re-run to fill them).' : ''
     const a = document.createElement('a')
     a.href = URL.createObjectURL(new Blob([out.join('\n')], { type: 'text/csv' }))
     const __trk2 = race && race.track ? String(race.track).replace(/[^a-zA-Z0-9]+/g, '_') : 'race'
     a.download = 'PitBoard_DK_ENTRIES_' + series + '_' + __trk2 + '_filled.csv'
     a.click(); URL.revokeObjectURL(a.href)
-    setNote('Filled ' + filled + ' entr' + (filled === 1 ? 'y' : 'ies') + ' across ' + entFile.sel.size + ' contest(s) - upload back on the DK Upload Lineups page. Unselected contests untouched.' + (missing.size ? ' WARNING: no DK ID for ' + [...missing].join(', ') : ''))
+    setNote('Filled ' + filled + ' entr' + (filled === 1 ? 'y' : 'ies') + ' across ' + entFile.sel.size + ' contest(s) - upload back on the DK Upload Lineups page. Unselected contests untouched.' + skipMsg + (missing.size ? ' WARNING: no DK ID for ' + [...missing].join(', ') : ''))
     setEntFile(null)
   }
 
