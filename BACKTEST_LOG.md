@@ -2023,3 +2023,12 @@ than for finish rank); cPOMS for matchup markets; cPOMS tails for the win-varian
 backfilled columns stay - they cost nothing and any future test now has 139 races of history.
 DISCIPLINE NOTE: gate rule was written 7 weeks before the data existed, ran once, unmodified,
 and the answer is a clean negative on the primary question. That is the system working.
+
+## 2026-08-29 - ADDENDUM (operator follow-up): cPOMS as a full REPLACEMENT for rating
+Two variants, same harness. (1) In the composite with startPos 0.48: cPOMS 0.52 / rating 0 was
+already config D of the sweep - worst line (test Spearman .4658 vs .4805, p10 .532 vs .561).
+(2) Pure single-signal head-to-head, NO startPos: train rating .4625 vs cPOMS .4566 (near tie);
+test rating .4644 vs cPOMS .4400 (rating clearly better). Test p10 nudged cPOMS .541 vs .534 -
+one race worth, noise. Same shape as the ARP ablation: pace metrics tie in-sample and lose
+out-of-sample. cPOMS cannot replace driver_rating any more than it can supplement it for finish
+ordering. Substitution question CLOSED alongside the addition question.
