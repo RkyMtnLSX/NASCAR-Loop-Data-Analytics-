@@ -30,13 +30,17 @@ LIVE (livemode) — EMPTY. No products, no prices, no webhook endpoint. Everythi
 
 ## Pre-cutover (any time before launch week)
 
-- [ ] Weekly sandbox test above.
-- [ ] **The launch code change**: flip src/App.js from the hardcoded `const [isSubscriber] =
-  useState(true)` to the real useSubscriber() gate. This is the one intentional exception to the
-  NEVER-CHANGE rule, made once, at launch, deliberately. Review useSubscriber.js first; ship
-  behind its own commit so rollback is a one-line revert.
+- [x] ~~Flip the subscriber gate~~ — ALREADY DONE AND TESTED (correction 2026-08-29: the first
+  draft of this runbook listed the App.js flip as pending; PITBOARD_STATE says otherwise and the
+  code confirms). PAYWALL_ENABLED = true shipped 9b9d72f, full flip test passed 2026-08-19
+  (subscriber pass / admin block / expired lockout / cancel->webhook->paid-through / portal).
+  The hardcoded isSubscriber prop at App.js:54 is a permissive per-page prop; enforcement lives
+  in PaywallGate via useSubscriber(). The rollback lever is PAYWALL_ENABLED = false (one line).
+- [ ] Weekly sandbox test above. Per STATE this also needs [OPERATOR] to point the
+  STRIPE_PRICE_WEEKPASS env at the recurring weekly price (price_1U34UHBoJdzYFWwLaZ1MhPqX exists
+  in sandbox since 8/7 - the audit found zero subscriptions on it, consistent with STATE's
+  "weekly buy button BROKEN until env swap") -> redeploy -> test purchase.
 - [ ] [OPERATOR] Vercel Hobby -> Pro (before real traffic).
-- [ ] Code review of the flip commit (standard practice).
 
 ## Cutover day — order matters
 
@@ -68,10 +72,10 @@ LIVE (livemode) — EMPTY. No products, no prices, no webhook endpoint. Everythi
 
 TRIGGERS: webhook deliveries failing (non-2xx) / subscribers rows not appearing after a real
 checkout / env-guard 500s / any paying customer locked out.
-PLAN: (a) re-flip the App.js gate to hardcoded true (one-line revert commit - paying users keep
-access while debugging; this fails OPEN, which is correct for a subscriber product at launch
-scale); (b) fix webhook/env issue; (c) re-flip. Never leave a paying subscriber locked out while
-debugging infra.
+PLAN: (a) set PAYWALL_ENABLED = false in App.js (one-line commit - paying users keep access
+while debugging; fails OPEN, correct for a subscriber product at launch scale); (b) fix the
+webhook/env issue; (c) re-enable. Never leave a paying subscriber locked out while debugging
+infra.
 
 ## Domain change (pitboardanalytics.com) — what it touches (audited 2026-08-29)
 

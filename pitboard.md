@@ -2828,3 +2828,20 @@ the Vercel "Note (Optional)" trap), post-cutover watch (webhook delivery log + g
 per the 08-28 retrospective note), and rollback triggers with a FAIL-OPEN plan (re-flip the gate
 so paying users never get locked out while infra is debugged). Live objects (products/prices/
 webhook endpoint) will be created via connector ONLY on the operator's explicit go.
+
+## 2026-08-29 - CORRECTION: runbook contradicted STATE on the paywall flip + doc-map gap closed
+Operator asked whether pitboard.md knows about all the md files - it did not: STRIPE_CUTOVER.md
+(written hours earlier) was absent from the MANUAL's session-start doc map, so a fresh session
+would never find it. FIXED: MANUAL now lists it under "Topic docs (read when the topic is live)"
+and the archive token sizes were refreshed (~68k / ~48k).
+The check also caught a CORRECTION (12th of the operator-era class): the runbook's first draft
+listed "flip App.js isSubscriber" as pending launch work. WRONG - PITBOARD_STATE and the code
+both show the paywall shipped and flip-tested 2026-08-19 (PAYWALL_ENABLED=true, enforcement in
+PaywallGate via useSubscriber; the hardcoded prop at App.js:54 is permissive by design). Runbook
+corrected: that item marked done, rollback lever restated as PAYWALL_ENABLED=false, and the
+weekly-pass gap merged with STATE's standing item (operator env swap of STRIPE_PRICE_WEEKPASS +
+test purchase - the audit's "zero weekly subscriptions" and STATE's "weekly buy button BROKEN
+until env swap" are the same fact seen from two sides).
+LESSON (standing): before writing any operational doc, re-read PITBOARD_STATE for the components
+it touches - the state doc had this exactly right and the runbook was drafted from code + Stripe
+alone. And every new md file gets a doc-map entry in the MANUAL in the same commit it is born.
