@@ -72,3 +72,19 @@ PLAN: (a) re-flip the App.js gate to hardcoded true (one-line revert commit - pa
 access while debugging; this fails OPEN, which is correct for a subscriber product at launch
 scale); (b) fix webhook/env issue; (c) re-flip. Never leave a paying subscriber locked out while
 debugging infra.
+
+## Domain change (pitboardanalytics.com) — what it touches (audited 2026-08-29)
+
+Nothing breaks by itself, and doing the domain BEFORE cutover day is the clean order:
+- Checkout success/cancel + portal return URLs derive from the request origin — they follow the
+  new domain automatically. Only the hardcoded FALLBACKS in create-checkout-session.js:23 and
+  create-portal-session.js:23 name the vercel.app address (used only when the origin header is
+  missing) — one-line update each when the domain lands.
+- The sandbox webhook points at the .vercel.app URL, which Vercel serves forever alongside any
+  custom domain — keeps working untouched. The LIVE endpoint does not exist yet: add the domain
+  first and it gets created on pitboardanalytics.com from day one; nothing ever migrates.
+- [OPERATOR] Stripe dashboard business-website field -> pitboardanalytics.com before live
+  activation (shown on disputes; helps verification).
+- [OPERATOR] Adjacent, not Stripe: Supabase Auth site URL + redirect allowlist must include the
+  new domain or sign-in links bounce — and sign-in is the front door to checkout. Plus the Vercel
+  domain add itself.
