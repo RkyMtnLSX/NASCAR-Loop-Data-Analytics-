@@ -120,9 +120,14 @@ before stating n.
   pre-registered calibration (fit 2022-24, validated 2025-26). Do NOT refit from in-sample
   results; next legitimate refit after ~10 new SS races, same split discipline rolled forward.
   Judge: win-Brier on future graded SS boards + CLV ledger.
-- SHORT and INT are CERTIFIED at m=1 (2026-08-29 registered fit: SHORT minimum exactly 1.00,
-  holdout chi-sq 1.84; INT fit said 1.3 but the one-shot holdout rejected it — era noise).
-  Do not re-run these fits on existing data. ROAD is untestable (no graded boards yet).
+- SHORT and INT noise mult CERTIFIED at m=1 (2026-08-29 win-curve fits), but the WIN test was
+  too narrow: the same day's placement-tail calibration (win+t5+t10+fin25 jointly) found the
+  real defect in WRECK_SURV_COST and shipped SHORT 1.6→16, INT 2.5→18 (operator-approved with
+  disclosed holdout residuals — see BACKTEST_LOG 2026-08-29). All four constants (SS m=1.75,
+  SHORT/INT surv, m=1 elsewhere) are FROZEN; no in-sample retuning; next refit after ~8-10
+  fresh races per group. Forward judge: reliability (pred-vs-actual t10 buckets) on future
+  boards. Known residual: INT t10 ranks 16-20 may over-flag mid-pack. ROAD untestable (no
+  graded boards yet; surv 2.7 unexamined — same mechanism suspect when boards exist).
 
 ### OPEN QUESTIONS FOR THE OPERATOR
 - driver_rating: pitboard.md 2026-07-26 says new-format rows store it NULL because Lap Raptor
