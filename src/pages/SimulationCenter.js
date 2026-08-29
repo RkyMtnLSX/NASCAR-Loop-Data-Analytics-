@@ -143,7 +143,12 @@ const DNF_FLOOR = 0.03, DNF_CAP = 0.30
 // independent draws. dnfRate remains the TOTAL calibrated budget. Toy gate PASSED (BACKTEST_LOG
 // 2026-07-28): sim accDNF/race matches observed within ~1 at every quartile, SS mean 8.18 vs 8.24.
 const WRECK_ACC_SHARE = { SHORT: 0.63, INT: 0.70, SS: 0.85, ROAD: 0.50 }
-const WRECK_SURV_COST = { SHORT: 1.6, INT: 2.5, SS: 2.9, ROAD: 2.7 }
+// SHORT surv 1.6 -> 16 (2026-08-29 pre-registered placement-tail calibration, BACKTEST_LOG):
+// at 1.6 a wrecked-but-running car lost ~2 score pts vs noise 16 (~1 position) - elites never
+// failed, so mid-pack top10s starved (slots are conserved). Fit 2022-24 on win+t5+t10+fin25
+// bands jointly (noise mult stayed 1.0); holdout 2025-26 chi-sq 182 -> 20, 21/24 cells within
+// 1.25 SE; 2 cells just past 2 SE - operator-approved ship 2026-08-29. DO NOT retune in-sample.
+const WRECK_SURV_COST = { SHORT: 16, INT: 2.5, SS: 2.9, ROAD: 2.7 }
 const WRECK_P = { SHORT: { a: 0.165, b: 0.179, c: 0.261 }, INT: { a: 0.200, b: 0.189, c: 0.235 }, SS: { a: 0.270, b: 0.321, c: 0.335 }, ROAD: { a: 0.090, b: 0.070, c: 0.128 } }
 // Overlap-corrected normalizer (2026-07-28): raw sum(size x P) per group is SHORT 2.90 /
 // INT 3.47 / SS 10.57 / ROAD 3.07, but cluster overlap + field-edge clamping eat 6-17% of
