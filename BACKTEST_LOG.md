@@ -2201,3 +2201,13 @@ class on it (see 2026-08-23 under-delivery warnings).
 NOTED, not built (operator to weigh in): max-exposure default for GPP builds; market-vs-model
 disagreement exposure rule (Sieg 56.5 pts at 0 pct exposure while the market priced him 3x our
 sim - one pivot from winning the contest outright).
+
+## 2026-08-29 - DFS BUILDER: exposure cap now CONSTRUCTS missing lineups instead of under-delivering
+Operator (fresh build, no locks): 20 lineups @ 60 pct cap delivered only 13. Cause: applyExposure
+only FILTERS the ranked candidates - on a chalky slate every top candidate shares one core, so
+once the core caps, all remaining candidates are blocked. FIX: topUpLineups() - when the filter
+pass under-delivers, re-run the optimizer with capped drivers EXCLUDED, take the best new unique
+lineup, update counts, repeat to the requested count. Top-ups rank by projected mean (not sim
+ceiling; noted in the UI). Verified on the actual R24 slate offline: 12 after filtering -> 20/20
+unique, max exposure exactly at the cap. Both cash and GPP paths; under-delivery warning now
+fires only when truly infeasible (locks/excludes leave too few drivers).

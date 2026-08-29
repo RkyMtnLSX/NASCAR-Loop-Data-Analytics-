@@ -68,6 +68,41 @@ function applyExposure(ranked, want, maxExp, locks) {
   return picked
 }
 
+// TOP-UP (2026-08-29, operator: "why cant it just do what it needs to do to set 20 unique
+// lineups?"): applyExposure only FILTERS the ranked candidates - on a chalky slate the top
+// candidates all share one core, so once the core hits the cap every remaining candidate is
+// blocked and the request under-delivers (20 @ 60% delivered 13). This CONSTRUCTS the missing
+// lineups: re-run the optimizer with capped drivers excluded, take the best new unique lineup,
+// update counts, repeat. Top-ups are ranked by projected mean (not sim ceiling) - they are the
+// depth of the portfolio, and re-scoring them on samples is not worth freezing the tab for.
+function topUpLineups(picked, want, maxExp, locks, pool, excludes) {
+  if (maxExp >= 1 || picked.length >= want) return picked
+  const lk = locks || new Set()
+  const capCount = Math.max(1, Math.floor(want * maxExp))
+  const keyOf = lu => lu.drivers.map(d => d.name).sort().join('|')
+  const used = {}
+  const have = new Set()
+  picked.forEach(lu => { have.add(keyOf(lu)); lu.drivers.forEach(d => { if (!lk.has(d.name)) used[d.name] = (used[d.name] || 0) + 1 }) })
+  let guard = 0
+  while (picked.length < want && guard++ < want * 4) {
+    const ex2 = new Set(excludes)
+    Object.keys(used).forEach(n => { if (used[n] >= capCount) ex2.add(n) })
+    const res = optimize(pool, lk, ex2, 60)
+    if (res.error || !res.lineups || !res.lineups.length) break
+    let added = false
+    for (const lu of res.lineups) {
+      if (have.has(keyOf(lu))) continue
+      if (lu.drivers.some(d => !lk.has(d.name) && (used[d.name] || 0) >= capCount)) continue
+      picked.push(lu); have.add(keyOf(lu))
+      lu.drivers.forEach(d => { if (!lk.has(d.name)) used[d.name] = (used[d.name] || 0) + 1 })
+      added = true
+      break
+    }
+    if (!added) break
+  }
+  return picked
+}
+
 function bestLineup(pool) {
   const usable = pool.filter(d => d.sal > 0 && d.val > 0)
   if (usable.length < ROSTER) return null
@@ -278,14 +313,16 @@ export default function DFSPage() {
       if (ci < cands2.length) setTimeout(step2, 0)
       else {
         scored.sort((a2, b2) => b2.ceil - a2.ceil)
-        const picked = applyExposure(scored, numLineups, maxExp, locks)
+        let picked = applyExposure(scored, numLineups, maxExp, locks)
+        const nFiltered = picked.length
+        picked = topUpLineups(picked, numLineups, maxExp, locks, pool2, excludes)
         setLineups(picked)
         // UNDER-DELIVERY WARNING (2026-08-23): the cash path has always reported this; GPP did not,
         // so a narrowed set could ship silently. Both real-money incidents were degenerate sets
         // uploaded before the problem was visible - see BACKTEST_LOG 2026-08-23.
         const gppShort = picked.length < numLineups
-          ? 'ONLY ' + picked.length + ' of ' + numLineups + ' lineups delivered at ' + Math.round(maxExp * 100) + '% max exposure - check the set before uploading. Raise the cap, the lineup count, or lock fewer drivers. '
-          : ''
+          ? 'ONLY ' + picked.length + ' of ' + numLineups + ' lineups possible at ' + Math.round(maxExp * 100) + '% max exposure even after constructing fresh lineups - lock/exclude settings leave too few drivers. '
+          : (picked.length > nFiltered ? (picked.length - nFiltered) + ' of ' + picked.length + ' lineups were constructed under the exposure cap and ranked by projection (not sim ceiling). ' : '')
         setNote(gppShort + 'GPP mode: ' + cands2.length + ' candidates scored across ' + nS2 + ' sampled sim draws, ranked by p90 total.')
         setBuilding(false)
       }
@@ -300,9 +337,10 @@ export default function DFSPage() {
       const K = Math.min(1500, Math.max(numLineups * 20, 200))   // deeper pool so exposure caps can actually fill the request
       const res = optimize(pool, locks, excludes, K)
       if (res.error) { setNote(res.error); setBuilding(false); return }
-      const picked = applyExposure(res.lineups, numLineups, maxExp, locks)
+      let picked = applyExposure(res.lineups, numLineups, maxExp, locks)
+      picked = topUpLineups(picked, numLineups, maxExp, locks, pool, excludes)
       setLineups(picked)
-      const expMsg = picked.length < numLineups ? 'Exposure cap: only ' + picked.length + ' of ' + numLineups + ' lineups possible at ' + Math.round(maxExp * 100) + '% max exposure (locked drivers exempt). Raise the cap, the lineup count, or lock fewer drivers.' : ''
+      const expMsg = picked.length < numLineups ? 'Exposure cap: only ' + picked.length + ' of ' + numLineups + ' lineups possible at ' + Math.round(maxExp * 100) + '% max exposure even after constructing fresh lineups (locked drivers exempt) - lock/exclude settings leave too few drivers.' : ''
       setNote(expMsg)
       setBuilding(false)
     }, 30)
