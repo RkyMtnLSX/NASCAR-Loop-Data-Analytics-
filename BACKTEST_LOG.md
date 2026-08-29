@@ -2287,3 +2287,28 @@ ROAD: zero graded post boards - untestable, documented, revisit when boards exis
 NET: GROUP_NOISE_MULT stays { SS: 1.75 } only. SS remains the one group where the engine's
 variance was measurably wrong; SHORT/INT engines are certified against 5 years of empirical
 rank->win data. No code changed; no re-fit permitted from this data (same freeze rules as SS).
+
+## 2026-08-29 - PRE-REGISTERED: SHORT PLACEMENT-TAIL CALIBRATION (written before fitting - DO NOT MODIFY)
+MOTIVATION (measured first; operator: tails still feel wrong at SHORT/INT despite win certification).
+The win-only certification was too narrow - it asked "can noise fix the WIN curve" and the answer
+(m=1) was correct for that question. The full finish distribution tells a different story:
+- Direct reliability, sim's own 7 SHORT boards vs actual finishes (no rank proxy): drivers given
+  70+pct top10 hit 71.4 actual (pred avg 81.9, n=28); drivers given 5-15 hit 15.0 (pred 8.7, n=40);
+  pooled sub-30pct buckets: predicted 7.9 actual 11.5 - longshots hit top10s ~1.5x the board rate.
+- 5yr rank curves (same strength-rank machinery): sim t10 84/76/55/38/17/1.6 vs real 69/59/50/38/20/5.4;
+  elite blowups (fin>=25) real 10.1 vs sim 7.6. Era-STABLE: fit vs holdout empirical bands agree.
+- MECHANISM: top-10 slots are conserved, so elite overconfidence IS mid-pack starvation - one defect.
+  WRECK_SURV_COST.SHORT=1.6 makes a wreck cost ~2 score pts vs noise sigma 16: a collected car loses
+  ~1 position. Elites never fail; everyone below starves. (INT: no defect signature - board reliability
+  and rank curves both within noise; INT placement checked and left alone.)
+PROTOCOL:
+- PARAMETERS: exactly two, SHORT group only: GROUP_NOISE_MULT.SHORT and WRECK_SURV_COST.SHORT.
+  Nothing else moves.
+- FIT: 2022-24 SHORT empirical bands, JOINT target = win + top5 + top10 + fin25plus curves
+  (n-weighted squared log-ratio, all 24 cells). Grid over (m, surv).
+- VALIDATE one-shot on 2025-26: all 24 holdout cells within 2 SE, at least 18/24 within 1.25 SE,
+  and pooled holdout chi-sq improves vs current (m=1, surv=1.6). No refit after seeing holdout.
+- HONESTY NOTE: an exploratory sweep saw pooled 2022-26 curves before this registration (that is
+  how the surv mechanism was found); the fit below uses 2022-24 targets only and the holdout
+  criteria above were set before the fit ran.
+- SHIP on pass; judged forward by reliability on future SHORT boards + the unchanged CLV/DFS ledgers.
