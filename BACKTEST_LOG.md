@@ -2497,3 +2497,20 @@ FL beta -0.45 (NEGATIVE - the wrong-direction slope was rank-machinery and must 
 -> 2.2/2.2/2.3/2.4/2.5/2.7 (target 1.9/2.4/2.5/2.6/2.8). LESSON for the log: before shipping a
 multiplier change, verify the multiplier's INPUT is live on the target board - a neutral-defaulted
 input turns any coefficient into a no-op and invalidates fits attributed to it.
+
+## 2026-08-29 - CORRECTION #16 + CUP-SS m SWEEP: "flat win pct" investigated on operator order - NO CHANGE SHIPS
+CORRECTION #16: the t10 "2.2 SE elite deficit" I reported earlier tonight was MY error - that
+empirical query was missing its series filter, so the cup board was compared against a 3-series
+curve (oreilly/truck plate-favorite dominance included). Correct CUP-ONLY t10 bands:
+34.6/34.6/34.6/33.1/30.0/18.9 vs board 36.8/32.0/31.1/27.5/25.7/19.0 - every band within ~1 SE.
+Cup SS PLACEMENT (what DFS scores) is CERTIFIED as-is. Win curve residual: top band real 9.0+/-3.2
+vs sim 4.9 (-1.3 SE) against ranks 7-10 at 0-for-104 and 16-20 > 11-15 - cup SS wins are chaos.
+SWEEP (operator ordered a fix; the machinery decided): board reconstructed at m=1.75 (validated:
+win bands to 0.05, t10 to ~1pt), m swept 1.0-2.1 against CORRECT cup-only win+t5+t10+f25 jointly,
+n-weighted: loss flat 1.4-2.1 (2097->2060, within MC noise), minimum NOT below 1.75. The cup
+sample cannot support sharpening; the remaining market tension (no-vig favorite ~7.3 vs sim 4.9)
+is consistent with book demand-shading of plate favorites. m=1.75 STANDS for all series; the
+series-conditional question goes to the registered refit after ~10 fresh SS races as planned.
+Two lessons banked: (a) always verify the series filter in an empirical comparison query - a
+contaminated reference curve manufactured tonight's "defect"; (b) when ordered to fix on a felt
+defect, run the registered fit and let it say no - it did.
