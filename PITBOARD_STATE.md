@@ -83,20 +83,24 @@ win row — the win row is the most luck-dominated, which pace->finish 0.83-0.87
 
 ### PROPOSED AND UNBUILT — nothing here has been written
 Priority order as of end of session:
-1. MAKE MARKET AGREEMENT THE DEFAULT. Either default mvQual true, or require mev>0 for the green
-   badge at SimResults.js:479. Takes the acted-on list from -36.2% to -11.4%. Zero new code.
-   Biggest measured effect available.
-2. STOP DISCARDING LAP RAPTOR DATA. Admin.js:1529 — (?:[\d.]+\s+){1,3} is a NON-capturing group
-   swallowing ARP, cPOMS and LSP; the two bare [\d.]+ before the last capture swallow P50/P95.
-   Every paste the operator already makes contains all five. Add capture groups + columns on
-   fastest_laps. ZERO extra operator work per race. Data collection, not modelling.
-3. SURFACE medge on flag rows — computed, stored, never shown in the badge path.
-4. medge FLOOR — DO NOT PICK ONE YET. Ladder is non-monotonic (5:-16.0, 6:-24.1, 8:-9.5, 10:-1.7,
-   12:-12.2) = noise at 9 races. No floor makes it profitable. Product-shape call for the operator:
-   3.9 tight plays/race (mev>0) vs 15.7 medium (medge>=5). Run BOTH as parallel ledgers.
-5. cPOMS GATED TEST — identical 2026-07-07 partial-correlation structure GFS failed (entry now in BACKTEST_ARCHIVE.md). Residualise
-   cPOMS and finish on rating+startPos, train 2022-24 / test 2025-26, sign flip = noise = stop.
-   Needs #2 first, plus a backfill. Test cPOMS, not LSP.
+1. [SHIPPED 2026-08-29 - THE TAIL FIX] Green badge + Qualified filter now require mev>0 AND the
+   backstop (model prob >= 10, no prices past +1000) on top of ev>=10. Retro partition on the 324
+   logged flags: old badge showed 238, new shows 20 (~1.3/race); the 0-for-72 sub-10% and
+   0-for-99 +1000 groups are structurally excluded. Write-side logging stays ungated (doctrine
+   2026-08-08 #69). Judged forward by the CLV lift ledger, as pre-registered.
+2. [DONE 2026-08-28/29] Lap Raptor capture shipped (forward parser) AND 139-race backfill
+   executed. Note the OUTCOME (BACKTEST_LOG 2026-08-29): all lap_performance metrics closed for
+   finish ordering; dominator gate also stopped. The data collection paid off in certainty, not
+   in a new input.
+3. [SHIPPED 2026-08-29] medge surfaced: badge chip (m+X, green at >=5) on SimResults, flag rows
+   in GradeCenter show m+X, medge added to flagged_bets fetches.
+4. medge FLOOR — DO NOT PICK ONE YET (unchanged). Ladder non-monotonic at 9 races. PARALLEL
+   LEDGERS NOW LIVE in GradeCenter roi: consensus (mev>0, tight), medge5+ (principled), medge10+
+   (fitted - forward-test ONLY). The CLV ledger decides; do not adopt 10 from the 9-race data.
+5. [RUN 2026-08-29 - STOPPED AT THE GATE] cPOMS gated test executed exactly as pre-registered:
+   finish gate passed weakly then the sweep failed OOS; dominator gate stopped (LL wrong sign,
+   FL under the 0.05 floor). Nothing ships. One narrow re-run permitted on FUTURE data only
+   (FL-share x cPOMS/P95) - see BACKTEST_LOG 2026-08-29.
 6. CAPTURE MATCHUP LINES (operator habit). Zero matchup prices exist, so the one hypothesis with a
    real shot cannot be tested at all. Matchups need ORDERING only — the model's proven strength.
 

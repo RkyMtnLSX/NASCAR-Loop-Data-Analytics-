@@ -83,13 +83,16 @@ function __gradeRace(board, actualMap, preOwned, dkActMap, takenFlags) {
         if (!Ncut[f.market]) return
         __hit = a <= Ncut[f.market]
       }
-      evFlags.push({ driver: f.driver_name, market: f.market, price: f.best_price, book: (f.book || '').toUpperCase(), ev: f.ev, mev: f.mev, hit: __hit })
+      evFlags.push({ driver: f.driver_name, market: f.market, price: f.best_price, book: (f.book || '').toUpperCase(), ev: f.ev, mev: f.mev, medge: (f.medge == null ? null : f.medge), hit: __hit })
     })
   } else {
-  rows.forEach(r => { if (!r.mv) return; ['win', 't3', 't5', 't10'].forEach(mk => { const m = r.mv[mk]; if (!m || m.ev == null || m.ev < MIN_EDGE_BET) return; if (m.best != null && m.best < 0 && m.best < MAX_FAV_BET) return; if (preOwned && preOwned.has(r.name + '|' + mk)) return; evFlags.push({ driver: r.name, market: mk, price: m.best, book: (m.bb || '').toUpperCase(), ev: m.ev, mev: m.mev, hit: r.act <= Ncut[mk] }) }) })
+  rows.forEach(r => { if (!r.mv) return; ['win', 't3', 't5', 't10'].forEach(mk => { const m = r.mv[mk]; if (!m || m.ev == null || m.ev < MIN_EDGE_BET) return; if (m.best != null && m.best < 0 && m.best < MAX_FAV_BET) return; if (preOwned && preOwned.has(r.name + '|' + mk)) return; evFlags.push({ driver: r.name, market: mk, price: m.best, book: (m.bb || '').toUpperCase(), ev: m.ev, mev: m.mev, medge: (m.medge == null ? null : m.medge), hit: r.act <= Ncut[mk] }) }) })
   }
   const roiOf = fl => { if (!fl.length) return { bets: 0, profit: 0, roi: 0 }; const ret = fl.reduce((s, f) => s + (f.hit ? dec(f.price) : 0), 0); return { bets: fl.length, profit: +(ret - fl.length).toFixed(2), roi: +(((ret - fl.length) / fl.length) * 100).toFixed(1) } }
-  const roi = { all: roiOf(evFlags), win: roiOf(evFlags.filter(f => f.market === 'win')), exwin: roiOf(evFlags.filter(f => f.market !== 'win')), consensus: roiOf(evFlags.filter(f => f.mev > 0)) }
+  // PARALLEL LEDGERS (2026-08-29 tail fix, STATE item 4): floor NOT picked - ladder non-monotonic
+  // at 9 races. consensus = mev>0 (tight, ~4 plays/race); medge5 = principled floor; medge10 = the
+  // FITTED sweet spot, forward-test ONLY, never adopt from the 9-race data. CLV ledger decides.
+  const roi = { all: roiOf(evFlags), win: roiOf(evFlags.filter(f => f.market === 'win')), exwin: roiOf(evFlags.filter(f => f.market !== 'win')), consensus: roiOf(evFlags.filter(f => f.mev > 0)), medge5: roiOf(evFlags.filter(f => f.medge != null && f.medge >= 5)), medge10: roiOf(evFlags.filter(f => f.medge != null && f.medge >= 10)) }
   const detail = rows.slice().sort((a, b) => a.act - b.act).map(r => ({ name: r.name, car: r.car, pf: r.pf, act: r.act, win: r.win, flags: evFlags.filter(f => f.driver === r.name).map(f => f.market) }))
   return { metrics: metrics, evFlags: evFlags, roi: roi, detail: detail }
 }
@@ -269,7 +272,7 @@ export default function GradeCenter() {
     const parsed = __parseFinish(gradeTxt, row.results)
     if (Object.keys(parsed.actualMap).length < 3) { setPrev(null); setMsg('Could not read the finishing order - paste one driver per line, winner first.'); return }
     const __preOwned = gradeStage === 'post' ? await __preOwnedFlags(series, row) : null
-    const { data: __tf } = await supabase.from('flagged_bets').select('driver_name,market,best_price,ev,mev,book,group_drivers,created_at').eq('series', series).eq('race_year', row.race_year).eq('race_number', row.race_number).eq('stage', gradeStage).is('voided_at', null).order('created_at', { ascending: true })
+    const { data: __tf } = await supabase.from('flagged_bets').select('driver_name,market,best_price,ev,mev,medge,sim_prob,book,group_drivers,created_at').eq('series', series).eq('race_year', row.race_year).eq('race_number', row.race_number).eq('stage', gradeStage).is('voided_at', null).order('created_at', { ascending: true })
     const g = __gradeRace(row.results, parsed.actualMap, __preOwned, undefined, __tf || [])
     setPrev({ metrics: g.metrics, evFlags: g.evFlags, roi: g.roi, detail: g.detail, parsed: parsed, simId: row.id, track: row.track_name, year: row.race_year, config: row.config })
     setMsg(parsed.matched.length + ' matched' + (parsed.unmatched.length ? ', ' + parsed.unmatched.length + ' skipped' : '') + '.')
@@ -308,7 +311,7 @@ export default function GradeCenter() {
       dkActMap[car] = (fin <= 40 ? __dkTbl[fin] : 0) + (st - fin) + (parseFloat(l.laps_led) || 0) * 0.25 + (parseFloat(l.fastest_laps) || 0) * 0.45 })
     if (Object.keys(actualMap).length < 3) { setPrev(null); setMsg('Could not match loop-data drivers to the published sim.'); return }
     const __preOwned2 = gradeStage === 'post' ? await __preOwnedFlags(series, row) : null
-    const { data: __tf2 } = await supabase.from('flagged_bets').select('driver_name,market,best_price,ev,mev,book,group_drivers,created_at').eq('series', series).eq('race_year', row.race_year).eq('race_number', row.race_number).eq('stage', gradeStage).is('voided_at', null).order('created_at', { ascending: true })
+    const { data: __tf2 } = await supabase.from('flagged_bets').select('driver_name,market,best_price,ev,mev,medge,sim_prob,book,group_drivers,created_at').eq('series', series).eq('race_year', row.race_year).eq('race_number', row.race_number).eq('stage', gradeStage).is('voided_at', null).order('created_at', { ascending: true })
     const g = __gradeRace(row.results, actualMap, __preOwned2, dkActMap, __tf2 || [])
     // CLV (2026-07-18): closing line = last odds snapshot cluster for this race; CLV compares the
     // odds stamped on the published board (bettable at publish) vs the close, same book per play.
@@ -405,6 +408,8 @@ export default function GradeCenter() {
             <span>ex-win ({prev.roi.exwin.bets}) <b style={pill(prev.roi.exwin.roi)}>{prev.roi.exwin.roi}%</b></span>
             <span>win-only ({prev.roi.win.bets}) <b style={pill(prev.roi.win.roi)}>{prev.roi.win.roi}%</b></span>
             <span>consensus ({prev.roi.consensus.bets}) <b style={pill(prev.roi.consensus.roi)}>{prev.roi.consensus.roi}%</b></span>
+            {prev.roi.medge5 ? <span>medge5+ ({prev.roi.medge5.bets}) <b style={pill(prev.roi.medge5.roi)}>{prev.roi.medge5.roi}%</b></span> : null}
+            {prev.roi.medge10 ? <span>medge10+ ({prev.roi.medge10.bets}) <b style={pill(prev.roi.medge10.roi)}>{prev.roi.medge10.roi}%</b></span> : null}
           </div>
           <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
             <div style={{ flex: '1 1 380px' }}>
@@ -436,7 +441,7 @@ export default function GradeCenter() {
                       <td style={{ padding: '3px 6px', textTransform: 'uppercase' }}>{f.market}</td>
                       <td>{f.driver.split(' ').slice(-1)[0]}</td>
                       <td>{f.price > 0 ? '+' : ''}{f.price} {f.book}</td>
-                      <td>+{f.ev}{f.mev > 0 ? ' c+' + f.mev : ''}</td>
+                      <td>+{f.ev}{f.mev > 0 ? ' c+' + f.mev : ''}{f.medge != null ? ' m' + (f.medge > 0 ? '+' : '') + f.medge : ''}</td>
                       <td style={{ color: f.hit ? '#2e9e52' : '#dd3355', fontWeight: 600 }}>{f.hit ? 'HIT' : 'miss'}</td>
                     </tr>
                   ))}

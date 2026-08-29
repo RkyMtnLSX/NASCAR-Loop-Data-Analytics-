@@ -2107,3 +2107,26 @@ PERMITTED FUTURE RE-RUN (one, narrow): FL-share x cPOMS/P95 may be re-tested ONC
 data only (2026 playoff + 2027 races, as fresh confirmation - never by re-pooling or re-splitting
 the data above). If a fresh sample independently clears +0.05 both splits, Stage 2 unlocks.
 Anything else requires a new registration.
+
+## 2026-08-29 - TAIL FIX SHIPPED: BACKSTOP + mev>0 DEFAULT + medge SURFACED + PARALLEL LEDGERS
+Operator: "I still want to fix the tail of the simulation." Built exactly what the 08-24 analyses
+settled on - display/report gates only, write-side logging untouched (doctrine #69), no medge
+floor picked (STATE item 4: ladder non-monotonic at 9 races).
+SHIPPED (SimResults.js + GradeCenter.js):
+- BACKSTOP, deterministic: no green badge / Qualified row below 10 pct model probability or at
+  prices past +1000. This alone structurally excludes both fabricated-tail cells (0-for-72
+  sub-10 pct, 0-for-99 >= +1000).
+- mev>0 REQUIRED ON THE DEFAULT VIEW (was opt-in via Qualified only): ev alone fires whenever one
+  book hangs a number (corr(ev, line move) -0.139 vs medge +0.101).
+- medge SURFACED everywhere flags appear: badge chip m+X (green at >=5), GradeCenter flag rows,
+  fetches now carry medge + sim_prob.
+- PARALLEL LEDGERS live in GradeCenter roi: consensus (mev>0) / medge5+ / medge10+ - 10 is the
+  fitted value and is forward-test ONLY. The pre-registered CLV lift ledger remains the judge.
+RETRO PARTITION (sanity check, not tuning; 324 logged flags, 16 races): old badge would show 238;
+new gate shows 20 (~1.3 suggestions/race). Killed by backstop: 86 sub-10 pct prob, 104 past
++1000 (overlapping). Ledger cohorts: medge>=5 n=166, >=10 n=86, zero null-medge rows.
+WHAT THIS IS AND IS NOT: it does not recalibrate the simulator's tail probabilities - it stops
+SELLING them. The 08-24 finding stands: the model's low-prob buckets are fine in aggregate; what
+fails is the subset where we most disagree with the sharp consensus at tiny probabilities
+(winner's curse). The suggestion surface now refuses exactly that subset. Sim-internals work
+(variance layer) remains a separate, unscheduled project.
