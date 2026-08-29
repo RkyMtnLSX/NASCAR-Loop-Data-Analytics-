@@ -2452,3 +2452,17 @@ Recalibrated probs (harness, validated port) x stored R24 odds x actual finishes
 - Sieg (winner): calibration tripled him 0.6 -> 1.55 pct but +3000 (implied 3.2) still = -52 EV.
   Market closer to truth than model on the winner. SS books' longshot pricing carries info our
   inputs don't (third independent confirmation).
+
+## 2026-08-29 - CORRECTION to the R24 recalibrated replay (operator ground-truth, correction #14)
+Operator reran the actual engine on the R24 oreilly board (not republished; his readout): Ryan
+Sieg 2.4 pct win under m=1.75 - NOT the 1.55 my harness reconstruction produced. Cause: deep-tail
+score inversion is ill-conditioned (old board win values quantized to 0.1; a 0.55-vs-0.65 input
+difference matters) and the reconstruction ignores start-position sampling/per-driver adj (Sieg
+started P12; startPos weight 0.23). METHOD BOUND, now standing: the reconstruction harness is
+validated to ~0.1 pt on BANDS; its PER-DRIVER deep-tail values carry meaningful relative error -
+treat them as indicative only, live engine authoritative for driver-level claims.
+CONCLUSIONS UNCHANGED, verified at the corrected number: Sieg 2.4 pct at +3000 (implied 3.2) =
+-26 pct EV (not -52) - still negative, still no flag, market still above the model on the winner.
+The fatter real tail makes the model-only "edge" list LONGER, all still consensus-negative, all
+still losers - the mev-gate finding strengthens. (Driver-level claims from tables, same session:
+rule reaffirmed the hard way, again.)
