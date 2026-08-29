@@ -2411,3 +2411,21 @@ DESIGN (all declared now):
   from prior same-series SHORT loop_data at sim time (machinery already pulls history), alpha and
   clips frozen from this fit. Expectation stated ex ante: ~coin flip; a fail closes personal
   attrition everywhere and redirects signal-hunting to new data sources.
+
+## 2026-08-29 - STAGE B EXECUTED: SHORT PERSONAL ATTRITION FAILS - personal attrition CLOSED (all groups)
+alpha fit on 2022-24: 0.5 (exactly the ~2x overshoot correction Stage A predicted). Test split
+2025-26, 1,628 driver-obs, judges applied verbatim:
+  J1 DNF Brier:  flat .10123 vs personal .10101 - point improvement, z=-0.52: NOISE, not signal.
+  J2 f25 Brier:  flat .18732 vs personal .18766 - WORSE (+z 1.07). FAIL.
+  J3 t10 Brier:  +z 1.81 (holds under 2 SE, leaning bad); win Brier flat.
+VERDICT: FAIL on J2, J1 indistinguishable from zero. In the BEST-CASE group (largest stable
+gradient, calibrated engine that can express the trait), honestly-shrunk personal attrition adds
+nothing at the driver level out of sample. This is the definitive close: personal attrition is
+CLOSED everywhere - SHORT (this test), INT/SS (Stage A), global (2026-07-11 archive). ROAD stays
+parked with a now-strong prior of unpriceability; do not run its Stage B without new evidence
+plus graded ROAD boards. No redesign/refit after test per registration - clip/renorm choices die
+with the test.
+IMPLICATION (the real yield of tonight): the existing tables are mined out - inputs (LR program),
+variance (calibrations), and now trait layers all adjudicated. Future signal-hunting goes to NEW
+data only: Lap Raptor GR/LR columns (operator question open), pit-stop data, road boards when
+they exist, and the one permitted dominator re-test on future races.
