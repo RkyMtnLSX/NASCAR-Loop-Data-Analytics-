@@ -120,6 +120,9 @@ before stating n.
   pre-registered calibration (fit 2022-24, validated 2025-26). Do NOT refit from in-sample
   results; next legitimate refit after ~10 new SS races, same split discipline rolled forward.
   Judge: win-Brier on future graded SS boards + CLV ledger.
+- SHORT and INT are CERTIFIED at m=1 (2026-08-29 registered fit: SHORT minimum exactly 1.00,
+  holdout chi-sq 1.84; INT fit said 1.3 but the one-shot holdout rejected it — era noise).
+  Do not re-run these fits on existing data. ROAD is untestable (no graded boards yet).
 
 ### OPEN QUESTIONS FOR THE OPERATOR
 - driver_rating: pitboard.md 2026-07-26 says new-format rows store it NULL because Lap Raptor

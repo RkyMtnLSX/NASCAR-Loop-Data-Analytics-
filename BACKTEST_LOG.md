@@ -2268,3 +2268,22 @@ CERTIFIED as-is and nothing ships - that is a success outcome, not a failure. An
 is shape, not scale" no-ship verdict for SHORT is acceptable and expected as a possibility.
 Boards used for score reconstruction: cup25 (NH R25, SHORT, noise 16 cval 8 dnf .10647 n=36) and
 cup22 (Indy R22, INT, noise 16 cval 8 dnf .13692 n=39).
+
+## 2026-08-29 - SHORT + INT CALIBRATION EXECUTED: NOTHING SHIPS (both groups certified at m=1)
+Same harness as SS (python port per group, group constants + mid wreck sets verbatim from source;
+score vectors reconstructed from the cup25/NH and cup22/Indy boards at m=1 - both reconstructions
+reproduced their boards' bands to ~0.2 pt, validating the ports).
+SHORT: fit minimum lands exactly at m=1.00 (loss 753 vs 801 at 0.85, 851 at 1.15). Holdout
+2025-26 at m=1: all six bands within 1 SE (chi-sq 1.84). CERTIFIED CLEAN. The +1.8 SE top-heavy
+signature in the pooled 7-board diagnostic is SHAPE, not scale (band 04-06 is UNDER, so widening
+noise cannot fix band 01-03 without breaking 04-06) - exactly the no-ship outcome the
+pre-registration named as acceptable.
+INT: fit (2022-24) preferred m=1.30, but the one-shot holdout REJECTED it: chi-sq degrades
+monotonically with m (4.50 at m=1.0 -> 7.33 at 1.3), winner log-likelihood flat (-156.7 vs
+-156.8). Registered pass required holdout non-degradation; m=1.3 fails it. NO SHIP - the 2022-24
+vs 2025-26 empirical bands disagree with each other (band 01-03: 12.3 vs 18.9), i.e. the fit
+signal was era noise, not engine miscalibration. INT stays at m=1.
+ROAD: zero graded post boards - untestable, documented, revisit when boards exist.
+NET: GROUP_NOISE_MULT stays { SS: 1.75 } only. SS remains the one group where the engine's
+variance was measurably wrong; SHORT/INT engines are certified against 5 years of empirical
+rank->win data. No code changed; no re-fit permitted from this data (same freeze rules as SS).
