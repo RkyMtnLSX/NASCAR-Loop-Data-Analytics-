@@ -2812,3 +2812,19 @@ divergence), and repair accounting (2 partial Richmonds completed, 5 missing dri
 remaps, 75 inserts) in BACKTEST_LOG 2026-08-29. New Hampshire 2026 left for the operator's normal
 paste. The desktop-app browser pane crashed the bridge twice on Lap Raptor (Cloudflare); the
 Chrome extension sailed through - extension is the standing browser path for this site.
+
+## 2026-08-29 - STRIPE CONNECTOR LIVE: FULL AUDIT + CUTOVER RUNBOOK (STRIPE_CUTOVER.md)
+Operator connected the Stripe connector ("do what you see fit"). Read-only audit executed:
+SANDBOX HEALTHY - both prices exist ($24.99 monthly Founding, $9.99 weekly recurring), webhook
+endpoint enabled with exactly the handler's 3 events, and the monthly flow is END-TO-END PROVEN
+(active test sub 8/11 + cancel flow 8/19, both mirrored exactly in subscribers - the webhook->DB
+pipeline is verified consistent). LIVE MODE IS EMPTY (no products/prices/webhook) - the full
+cutover surface is known and now written down. ONE GAP: the weekly pass has never been
+subscribed since becoming recurring on 08-19 - 2-minute sandbox test queued for the operator.
+STRIPE_CUTOVER.md added at repo root: verified-state snapshot, the gap, pre-cutover items
+(including the one-time deliberate App.js isSubscriber flip and its 1-line rollback), the
+ordered cutover-day steps with [OPERATOR]-only steps for every secret (signing secret, env swap,
+the Vercel "Note (Optional)" trap), post-cutover watch (webhook delivery log + get_runtime_errors
+per the 08-28 retrospective note), and rollback triggers with a FAIL-OPEN plan (re-flip the gate
+so paying users never get locked out while infra is debugged). Live objects (products/prices/
+webhook endpoint) will be created via connector ONLY on the operator's explicit go.
