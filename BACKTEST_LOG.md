@@ -2483,3 +2483,17 @@ PROCESS NOTE, honest: this shipped hours before a race on operator instruction w
 validation (no holdout - 26 races is the whole cup SS sample). Compressed protocol: measured
 before touching, single-purpose constants, other groups byte-identical. FORWARD JUDGE: DK proj vs
 actual dominator points on SS races, starting tonight; revisit constants only via that ledger.
+
+## 2026-08-29 - CORRECTION #15 (same night): the SS dominator tilt v1 was a NO-OP - fixed and refit
+Operator reran and got identical output (Logano 5.5 ll). Cause: the tilt multiplies practice-pace
+percentile (__spdPct, task #71), which defaults to NEUTRAL 0.5 for every driver when no practice
+data is loaded - and this SS weekend had none, so old and new tilts both evaluated to 1.0 for the
+whole field. v1's offline fit also mis-attributed the board's existing spread to a multiplier that
+was not active. FIX: at SS the dominator tilt now keys off the sim's own speedScore percentile
+(always present; matches the strength-ranked empirical targets); other groups keep practice-based
+__spdPct. REFIT with correct attribution (board values = rank-machinery expectation, tilt=1):
+LL beta 1.5 + 1.5x kick top decile -> bands 7.1/4.7/3.6/2.9/2.4/1.2 (target 8.7/3.9/3.0/3.1/2.3/1.4);
+FL beta -0.45 (NEGATIVE - the wrong-direction slope was rank-machinery and must be countered)
+-> 2.2/2.2/2.3/2.4/2.5/2.7 (target 1.9/2.4/2.5/2.6/2.8). LESSON for the log: before shipping a
+multiplier change, verify the multiplier's INPUT is live on the target board - a neutral-defaulted
+input turns any coefficient into a no-op and invalidates fits attributed to it.
