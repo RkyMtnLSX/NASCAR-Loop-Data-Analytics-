@@ -2800,3 +2800,15 @@ FIX SHIPPED: (1) full revert - entry list restored to operator's names, 38 bad q
 deleted; (2) Admin.js PDF path now filters the name lookup to the CURRENT track and refuses to
 stay silent about unmapped cars ("N car(s) not in this weekend's entry list" error). Operator
 re-uploads the Jayski PDF after deploy; names will come from this weekend's entry list only.
+
+## 2026-08-29 - cPOMS BACKFILL SHIPPED (no code, data + browser pipeline)
+139 Cup oval races 2022-2026 backfilled into fastest_laps' new metric columns (5,174 rows with
+cPOMS) via the operator's Chrome extension: schedule harvested from Lap Raptor's one-sheet +
+races index (race pages are lapraptor.com/races/{id}/, sequential ids across series), pages
+fetched same-origin and DOM-extracted, staged via the app's public client key, validated in
+Postgres (row parity, 100% name join, start/finish/car exact-match, winner, ranges), UPDATE-only
+into existing rows. Full provenance, adjudications (DQ races, rain grids, ARP definitional
+divergence), and repair accounting (2 partial Richmonds completed, 5 missing drivers, 3 date
+remaps, 75 inserts) in BACKTEST_LOG 2026-08-29. New Hampshire 2026 left for the operator's normal
+paste. The desktop-app browser pane crashed the bridge twice on Lap Raptor (Cloudflare); the
+Chrome extension sailed through - extension is the standing browser path for this site.

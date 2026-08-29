@@ -1956,3 +1956,42 @@ cPOMS swaps the denominator to per-lap-number fastest, removing fuel-run/phase b
 glossary and possibly useful later, NOT now: Speed Score (1000 x driver P95 / race P95 - another
 ratio metric, coarser than cPOMS), WARP (finish-prediction-weighted running position), delta-POMS
 (last-segment vs first-segment pace), segment stats. Logged so nobody re-derives these.
+
+## 2026-08-29 - cPOMS BACKFILL EXECUTED: 139 CUP OVAL RACES 2022-2026 NOW CARRY PACE-SHAPE METRICS
+DATA PROVENANCE (read this before analyzing cpoms/lsp/arp/p50/p95 in fastest_laps):
+SOURCE + METHOD: Lap Raptor race pages (lapraptor.com/races/{id}/?report=lap_performance),
+server-rendered and carrying the FULL current column set for historical races - cPOMS/LSP exist
+site-wide, not just post-07/26. Fetched same-origin inside the operator's Chrome (extension),
+DOM-extracted (not regex - car numbers recovered from img alt), staged to a temp table via the
+app's public client key, validated set-based in Postgres, then UPDATE-only into the 7 new metric
+columns of EXISTING fastest_laps rows (row keys the app queries were never touched). All pb_ temp
+objects dropped after.
+VALIDATION RESULTS (140 races incl. 08-28 pilot = 2024 Coca-Cola 600): row-count parity vs
+loop_data 140/140; name-join 100% (zero unmatched rows anywhere); start/finish/car agreement
+exact except the adjudicated cases below; winner check vs races.winning_driver passed everywhere
+except one adjudicated DQ case; cPOMS/LSP ranges clean (cPOMS 0.859-0.997; LSP is a 0-1 FRACTION
+in this data, not 0-100).
+ADJUDICATIONS (all verified benign, none blocked the load):
+- DQ races (Pocono-22, Martinsville-22/25, Talladega-23x2/24/25): LR carries OFFICIAL post-penalty
+  finishes, loop_data the as-timed order. Not touched - we wrote pace columns only. NOTE: our own
+  races.winning_driver for Pocono 2022 holds the pre-DQ winner (Hamlin) - latent data wart.
+- Michigan 2023 (rain-postponed): 5 adjacent-pair start-position swaps LR vs loop_data; row
+  identity certain via name+finish+car.
+- ARP-corr vs loop_data avg_position: report-only criterion; 0.90+ in 101 races, 0.53-0.90 in 39
+  (17 of them superspeedway pack races). Definitional divergence - LR ARP is green-flag-measured,
+  avg_position is all laps. NEVER a blocker; row integrity was proven by the exact-match gates.
+- 3 crash-DNF drivers have NULL cpoms/lsp (too few green laps to grade) - legitimate, keep NULL.
+- Suarez 2026 x4: loop_data car_number is NULL (our gap, LR right). Nemechek NH-26 ran 40 not 42.
+REPAIRS BEYOND THE UPDATE (operator's fastest_laps had pre-existing holes, filled from the same
+source his pastes use): date remaps to his entries for Dover-22 (05/01), Michigan-23 (08/06),
+Pocono-26 (06/15 typo); Richmond 08/11/2024 COMPLETED from 3 rows to 37 and Richmond 08/16/2025
+from 2 to 38 (old partial pastes); 5 single missing driver rows inserted (Stenhouse Richmond-22,
+Williams Atlanta-24, Berry Kansas-24, Zilisch Chicagoland-26, Finchum NW-26); ranks recomputed for
+affected races by fastest_speed desc (API convention). 75 rows inserted total, everything else
+UPDATE-only. NOT LOADED: New Hampshire 2026-08-23 (operator never pasted it; his next normal Admin
+paste captures cPOMS via the 08-28 forward-capture parser).
+COVERAGE: 2022:29 races/1058 rows, 2023:29/1059, 2024:31/1161, 2025:30/1142, 2026:20/754 =
+139 races, 5,174 rows with cPOMS. Scope was CUP OVALS (road/street/dirt excluded, exhibitions
+excluded). oreilly/trucks backfill NOT done - same pipeline works if wanted.
+NEXT: the pre-registered cPOMS gated test (BACKTEST_ARCHIVE.md 2026-07-07 GFS partial-correlation
+structure, DO NOT MODIFY) now has its data. Operator 5-race manual-paste cross-check still open.
