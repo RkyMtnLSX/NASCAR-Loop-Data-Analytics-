@@ -2389,3 +2389,25 @@ scaled to REALIZED spreads or shrunk harder, or it will overtax high-propensity 
 NEXT: Stage B for SHORT only (separate registration before running): personal attrition layer in
 the new engine (surv 16), train 2022-24 / test 2025-26, driver-level judges. INT and SS are
 CLOSED for personal attrition (this supersedes nothing - July's global rejection stands too).
+
+## 2026-08-29 - PRE-REGISTERED: STAGE B, SHORT PERSONAL ATTRITION (written before running - DO NOT MODIFY)
+DESIGN (all declared now):
+- Personal hazard: walk-forward p_i (k=12, age-weighted, min 5 prior SHORT races in series; else
+  flat), CALIBRATED p_cal = clamp(b + alpha*(p_i - b), .005, .6) with the single scalar alpha fit
+  on 2022-24 by Bernoulli likelihood (Stage A showed raw spreads overshoot ~2-3x). In the MC each
+  driver's wreck-DNF and mech-DNF channel probabilities scale by w_i = p_cal/b, clipped [0.3, 3],
+  RENORMALIZED so the race-mean hazard equals the flat base - total attrition identical, only its
+  distribution across drivers moves. Flat config: w_i = 1 for all.
+- Harness: the validated SHORT python port (new engine, surv 16, noise 16, mid wreck sets);
+  per-race score vector = canonical reconstructed SHORT score shape assigned by leak-free pooled-
+  rating strength rank (interpolated to field size); race base hazard = trailing series+SHORT
+  field DNF rate, walk-forward. All SHORT races 2022-26, fld >= 25, all 3 series.
+- JUDGES on test split 2025-26 only (train 2022-24 fits alpha, nothing else):
+  J1: driver-level DNF Brier, p_cal vs flat base - personal must IMPROVE.
+  J2: driver-level fin>=25 Brier from the MC, personal vs flat - personal must IMPROVE.
+  J3: driver-level top10 AND win Brier - personal must NOT DEGRADE (within 2 SE of zero diff).
+  PASS = J1 and J2 improve and J3 holds. One shot; no refitting after seeing test.
+- SHIP path if pass: per-driver hazard multiplier in runRaceSim for SHORT group only, computed
+  from prior same-series SHORT loop_data at sim time (machinery already pulls history), alpha and
+  clips frozen from this fit. Expectation stated ex ante: ~coin flip; a fail closes personal
+  attrition everywhere and redirects signal-hunting to new data sources.
