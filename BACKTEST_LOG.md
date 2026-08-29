@@ -2032,3 +2032,30 @@ test rating .4644 vs cPOMS .4400 (rating clearly better). Test p10 nudged cPOMS 
 one race worth, noise. Same shape as the ARP ablation: pace metrics tie in-sample and lose
 out-of-sample. cPOMS cannot replace driver_rating any more than it can supplement it for finish
 ordering. Substitution question CLOSED alongside the addition question.
+
+## 2026-08-29 - REMAINING LAP RAPTOR COLUMNS ALL TESTED, ALL CLOSED FOR FINISH ORDERING
+Operator: "what about any of the other metrics lap raptor stores?" Ran all four remaining
+backfilled columns through the identical gate + sweep, candidates and bar declared before
+results (4 candidates at once = family-wise false-pass risk; bar = same-sign both splits AND
+survive the sweep OOS).
+GATES (partial corr vs finish, residualized on pooledRating + startPos, train/test):
+  LSP:          -0.046 / -0.018  same sign, but a 0.97-0.98 rating clone (as predicted for ranks)
+  P50-ratio:    -0.023 / -0.034  same sign (median-lap pace vs race best)
+  P95-ratio:    -0.024 / -0.034  same sign (= Lap Raptor Speed Score construction)
+  CONSISTENCY:  +0.005 / +0.017  (p50_time/p95_time spread) - the most ORTHOGONAL input ever
+    tested here (rating corr only 0.27/0.47), and it carries ZERO finish information once
+    rating+start are controlled. Its raw -0.13/-0.20 corr with finish is entirely mediated.
+SWEEP (production composite, startPos 0.48, corr budget split with rating; P50 and P95 at
+10/20 pct): NO config beats rating baseline on EITHER split - not even the in-sample mirage
+cPOMS showed. Train: rating .4825 vs .4814-.4822 all configs. Test: .4805 vs .4765-.4800.
+p10 ties within noise.
+VERDICT - the lap_performance table is now FULLY adjudicated for finish ordering: ARP (closed
+twice), cPOMS (add + replace), LSP, P50, P95/Speed Score, consistency spread. All <= driver
+rating. The saturation family is complete across every level AND dispersion statistic of lap
+pace. Nothing in this table will improve finish projection; do not re-test without a new target.
+NOT STORED (would need a different LR report harvest, and are position-derived = presumptively
+saturated): WARP, PFARP/PFAE, gain/loss/net ratings, delta-POMS, segment stats. Do not harvest
+on a finish-ordering hypothesis; only a DOMINATOR-target or matchup-target hypothesis justifies
+new collection.
+STANDING DOOR (the one left): cPOMS/P95/consistency vs DOMINATOR SHARE (laps led, fastest laps)
+for DFS - different target, plausibly pace-shaped, pre-register before running.
