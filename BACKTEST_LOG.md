@@ -2130,3 +2130,29 @@ SELLING them. The 08-24 finding stands: the model's low-prob buckets are fine in
 fails is the subset where we most disagree with the sharp consensus at tiny probabilities
 (winner's curse). The suggestion surface now refuses exactly that subset. Sim-internals work
 (variance layer) remains a separate, unscheduled project.
+
+## 2026-08-29 - REPLAY: OREILLY R24 DAYTONA (Winn-Dixie 250) + WHAT MAE 10 MEANS AT A SUPERSPEEDWAY
+Race graded vs loop_data (race_id 480, 35/37 board drivers joined both stages). Winner: Ryan
+Sieg from P38 at model 0.5-0.6 pct (FD morning price +40000 = 0.25 pct implied - we were 2x the
+market on the actual winner; a lottery ticket either way).
+BOARD: MAE pre 10.28 / post 10.19; Spearman 0.10 / 0.12; top pick finished P2; p5 hits 0,
+p10 hits 1.
+THE BASELINE FINDING (the point of this entry): projecting EVERY driver at P19 flat scores MAE
+9.83 on this race. The model scored 10.19 - AT/BELOW the no-information floor. Start-as-
+projection scores 12.66 (start is anti-signal in the draft). Historical SS boards (n=4 + these
+2): MAE 8.64-10.83, avg ~9.7, vs the ~9.5-9.8 constant-projection floor; other tracks avg 7.02
+vs the same floor - real signal. CONCLUSION: at superspeedways the sim's proj_finish carries
+approximately ZERO point-estimate information, and MAE ~10 is not a performance level to improve
+- it IS the floor. Pack racing, not a defect. Ordering retains a pulse (top pick P2; SS Spearman
+0.19 avg) but point projections do not. OPERATOR'S "MAE 10 consistently at SS" observation is
+confirmed and now explained.
+PRODUCT IMPLICATION (queue): on SS weekends the sellable content is ordering/probabilities/DFS/
+matchups, never finish projections; consider surfacing per-track-type MAE context so subscribers
+see SS uncertainty honestly.
+TAIL FIX, FIRST OUT-OF-SAMPLE RACE: 9 flags logged; the OLD badge would have shown 4 (1 hit);
+the NEW gate showed ZERO suggestions. Given the floor finding above, zero is the CORRECT number
+of SS finish-market suggestions - the gate refused to sell noise on its first live weekend.
+DFS: 925-entry GPP, winner 314.4, median 201.3. Our 10,000-iteration per-driver samples give an
+UNCAPPED best-6-sum distribution of p50 338 (p5 310 / p95 370); the actual winner sits at the
+9th pctile of that - coherent, since the true winner is salary-capped and the field imperfect.
+No red flag; a proper DFS calibration test needs salary-capped optimals (future work, not now).
