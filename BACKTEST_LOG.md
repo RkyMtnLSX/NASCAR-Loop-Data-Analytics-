@@ -2347,3 +2347,27 @@ FORWARD JUDGE (pre-registered): prediction-vs-actual reliability on future SHORT
 boards (the t10-bucket table in today's entries is the template) + unchanged CLV/DFS ledgers.
 Constants frozen; no in-sample retuning; next legitimate refit after ~8-10 fresh races per group.
 ROAD: same engine, surv 2.7, zero graded boards - untestable, flagged when boards exist.
+
+## 2026-08-29 - PRE-REGISTERED: PER-GROUP DRIVER ATTRITION (Stage A all groups) - written before running
+CONTEXT: per-driver DNF propensity was tested and REJECTED 2026-07-11 (archive) as a GLOBAL term,
+with a standing "do not retry as a global term" rule. This registration is the refinement that
+entry itself named as legitimate: TRACK-TYPE-SPECIFIC propensity. Two things have changed since
+July: (1) the July Stage B was judged on cup INTERMEDIATES, the one group whose own tier table
+shows a flat gradient (11.1 elite vs 13.6 tail); the gradient is real only at short/flat (4.1 vs
+11.6, ~3x); (2) the engine could not express the trait before today - surv 1.6 meant bad days
+cost ~1 position; now they destroy finishes. Operator asked to test ALL groups, agreed protocol:
+measure everywhere, fit only where measurement passes.
+STAGE A (persistence, pure measurement, no knobs) - ALL FOUR GROUPS, declared before running:
+- Data: loop_data 2022-2026, all 3 series, exhibitions + dirt excluded, sim __trackGroup regex.
+  DNF := laps_completed < 90 pct of the race winner's laps (July definition, unchanged).
+- Walk-forward personal rate per (driver, series, group): age-weighted (2.0/1.3/0.9/0.6/0.4 by
+  year gap, same as pooled-rating), shrunk k in {8,12,18} toward the trailing same-series+group
+  field base, prior races only, min 5 prior races in group.
+- PASS BAR (per group, declared now): terciles of predicted rate monotone in realized DNF for
+  ALL THREE k values AND (T3 - T1 realized) >= 3.0 pts AND the T3>T1 sign holds in both halves
+  (2022-24 vs 2025-26). Fail any leg = that group is CLOSED for personal attrition.
+- EXPECTATIONS stated ex ante: SHORT live candidate; ROAD maybe (non-monotone July bump, and no
+  boards to validate Stage B against - a ROAD Stage A pass is LOGGED, not acted on, until ROAD
+  boards exist); INT and SS expected fails confirming the July picture.
+STAGE B (only for Stage A passers, separate registration before it runs): market + placement
+impact on the NEW engine (surv 16/18), train 2022-24 / test 2025-26, ship only on pass.
