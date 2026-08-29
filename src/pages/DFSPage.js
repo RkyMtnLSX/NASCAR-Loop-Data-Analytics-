@@ -50,19 +50,29 @@ function optimize(pool, locks, excludes, K) {
   return { lineups: results.map(r => ({ drivers: locked.concat(r.ids.map(i => cand[i])), salary: r.sal, proj: r.proj })) }
 }
 
-function applyExposure(ranked, want, maxExp, locks) {
+// Per-driver exposure (2026-08-29, operator: "I cant force the optimizer to take logano so i
+// have to lock him but then he is set at 100%"): expo = { name: { min, max } } in whole percents.
+// max overrides the global cap per driver; min is enforced by quota construction (see
+// enforceMinExposure). Locked drivers remain exempt from caps (lock = 100% by definition).
+function __capFor(name, want, maxExp, expo) {
+  const mx = expo && expo[name] && expo[name].max != null ? expo[name].max / 100 : maxExp
+  return mx >= 1 ? Infinity : Math.max(1, Math.floor(want * mx))
+}
+function __hasMaxOverride(expo) {
+  return !!(expo && Object.keys(expo).some(n => expo[n] && expo[n].max != null && expo[n].max < 100))
+}
+function applyExposure(ranked, want, maxExp, locks, expo) {
   const lk = locks || new Set()
-  if (maxExp >= 1) return ranked.slice(0, want)
+  if (maxExp >= 1 && !__hasMaxOverride(expo)) return ranked.slice(0, want)
   // Cap = appearances vs the REQUESTED count (floor(want x maxExp)), greedy down the
   // ranking. 2026-08-21: the 7/23 delivered-set trim loop is GONE - with a driver present
   // in ~every candidate (chalk on a small slate) it death-spiraled cap2 down to ONE lineup
   // (operator hit it: 20 @ 90% -> 1). If the pool exhausts early, delivered exposure can
   // exceed maxExp - the Exposure column shows the truth; lower the cap if that matters.
-  const capCount = Math.max(1, Math.floor(want * maxExp))
   const used = {}, picked = []
   for (const lu of ranked) {
     if (picked.length >= want) break
-    if (lu.drivers.some(d => !lk.has(d.name) && (used[d.name] || 0) >= capCount)) continue
+    if (lu.drivers.some(d => !lk.has(d.name) && (used[d.name] || 0) >= __capFor(d.name, want, maxExp, expo))) continue
     picked.push(lu); lu.drivers.forEach(d => { used[d.name] = (used[d.name] || 0) + 1 })
   }
   return picked
@@ -75,10 +85,9 @@ function applyExposure(ranked, want, maxExp, locks) {
 // lineups: re-run the optimizer with capped drivers excluded, take the best new unique lineup,
 // update counts, repeat. Top-ups are ranked by projected mean (not sim ceiling) - they are the
 // depth of the portfolio, and re-scoring them on samples is not worth freezing the tab for.
-function topUpLineups(picked, want, maxExp, locks, pool, excludes) {
-  if (maxExp >= 1 || picked.length >= want) return picked
+function topUpLineups(picked, want, maxExp, locks, pool, excludes, expo) {
+  if ((maxExp >= 1 && !__hasMaxOverride(expo)) || picked.length >= want) return picked
   const lk = locks || new Set()
-  const capCount = Math.max(1, Math.floor(want * maxExp))
   const keyOf = lu => lu.drivers.map(d => d.name).sort().join('|')
   const used = {}
   const have = new Set()
@@ -86,19 +95,70 @@ function topUpLineups(picked, want, maxExp, locks, pool, excludes) {
   let guard = 0
   while (picked.length < want && guard++ < want * 4) {
     const ex2 = new Set(excludes)
-    Object.keys(used).forEach(n => { if (used[n] >= capCount) ex2.add(n) })
+    Object.keys(used).forEach(n => { if (used[n] >= __capFor(n, want, maxExp, expo)) ex2.add(n) })
     const res = optimize(pool, lk, ex2, 60)
     if (res.error || !res.lineups || !res.lineups.length) break
     let added = false
     for (const lu of res.lineups) {
       if (have.has(keyOf(lu))) continue
-      if (lu.drivers.some(d => !lk.has(d.name) && (used[d.name] || 0) >= capCount)) continue
+      if (lu.drivers.some(d => !lk.has(d.name) && (used[d.name] || 0) >= __capFor(d.name, want, maxExp, expo))) continue
       picked.push(lu); have.add(keyOf(lu))
       lu.drivers.forEach(d => { if (!lk.has(d.name)) used[d.name] = (used[d.name] || 0) + 1 })
       added = true
       break
     }
     if (!added) break
+  }
+  return picked
+}
+
+// MIN exposure enforcement: for each driver with a min%, ensure they appear in at least
+// ceil(want x min%) delivered lineups. Builds a fresh lineup with the under-quota driver
+// forced in (plus the global locks), then swaps out the lowest-ranked lineup that does not
+// contain them and whose removal strands no other driver below their own met quota. If the
+// set is under-delivered it just adds. Quotas are best-effort: salary/cap conflicts stop the
+// loop rather than spiraling (guard = 4x want), and the Exposure column shows the truth.
+function enforceMinExposure(picked, want, maxExp, locks, pool, excludes, expo) {
+  const lk = locks || new Set()
+  const mins = Object.keys(expo || {}).filter(n => expo[n] && expo[n].min > 0 && !lk.has(n))
+  if (!mins.length || !picked.length) return picked
+  const keyOf = lu => lu.drivers.map(d => d.name).sort().join('|')
+  const quota = {}; mins.forEach(n => { quota[n] = Math.min(want, Math.ceil(want * expo[n].min / 100)) })
+  const count = {}
+  picked.forEach(lu => lu.drivers.forEach(d => { count[d.name] = (count[d.name] || 0) + 1 }))
+  const have = new Set(picked.map(keyOf))
+  let guard = 0
+  while (guard++ < want * 4) {
+    const under = mins.filter(n => (count[n] || 0) < quota[n]).sort((a, b) => (quota[b] - (count[b] || 0)) - (quota[a] - (count[a] || 0)))
+    if (!under.length) break
+    const target = under[0]
+    const ex2 = new Set(excludes)
+    Object.keys(count).forEach(n => { if (n !== target && !lk.has(n) && (count[n] || 0) >= __capFor(n, want, maxExp, expo)) ex2.add(n) })
+    const lk2 = new Set(lk); lk2.add(target)
+    const res = optimize(pool, lk2, ex2, 60)
+    if (res.error || !res.lineups || !res.lineups.length) break
+    let cand = null
+    for (const lu of res.lineups) { if (!have.has(keyOf(lu))) { cand = lu; break } }
+    if (!cand) break
+    if (picked.length < want) {
+      picked.push(cand); have.add(keyOf(cand))
+      cand.drivers.forEach(d => { count[d.name] = (count[d.name] || 0) + 1 })
+      continue
+    }
+    let dropIdx = -1
+    for (let i = picked.length - 1; i >= 0; i--) {
+      const lu = picked[i]
+      if (lu.drivers.some(d => d.name === target)) continue
+      const breaks = lu.drivers.some(d => quota[d.name] != null && (count[d.name] || 0) - 1 < quota[d.name])
+      if (!breaks) { dropIdx = i; break }
+    }
+    if (dropIdx < 0) break
+    const dropped = picked[dropIdx]
+    dropped.drivers.forEach(d => { count[d.name] = (count[d.name] || 0) - 1 })
+    have.delete(keyOf(dropped))
+    picked = picked.slice(0, dropIdx).concat(picked.slice(dropIdx + 1))
+    picked.push(cand); have.add(keyOf(cand))
+    cand.drivers.forEach(d => { count[d.name] = (count[d.name] || 0) + 1 })
   }
   return picked
 }
@@ -136,6 +196,7 @@ export default function DFSPage() {
   const [excludes, setExcludes] = useState(() => new Set())
   const [numLineups, setNumLineups] = useState(20)
   const [maxExp, setMaxExp] = useState(1)
+  const [expo, setExpo] = useState({}) // { name: { min, max } } whole percents; see __capFor/enforceMinExposure
   const [lineups, setLineups] = useState([])
   const [optPct, setOptPct] = useState({})
   const [building, setBuilding] = useState(false)
@@ -148,7 +209,7 @@ export default function DFSPage() {
 
   useEffect(() => {
     let alive = true
-    setLoading(true); setLineups([]); setOptPct({}); setSimCands(null); setLocks(new Set()); setExcludes(new Set()); setSalaries({}); setSamples(null); setNote('')
+    setLoading(true); setLineups([]); setOptPct({}); setSimCands(null); setLocks(new Set()); setExcludes(new Set()); setExpo({}); setSalaries({}); setSamples(null); setNote('')
     ;(async () => {
       const { data } = await supabase.from('sim_results').select('track_name,race_year,race_number,results').eq('series', series).order('published_at', { ascending: false }).limit(1)   // FIX 2026-07-23: id is a UUID — ordering by it is RANDOM, served stale boards
       if (!alive) return
@@ -313,9 +374,10 @@ export default function DFSPage() {
       if (ci < cands2.length) setTimeout(step2, 0)
       else {
         scored.sort((a2, b2) => b2.ceil - a2.ceil)
-        let picked = applyExposure(scored, numLineups, maxExp, locks)
+        let picked = applyExposure(scored, numLineups, maxExp, locks, expo)
         const nFiltered = picked.length
-        picked = topUpLineups(picked, numLineups, maxExp, locks, pool2, excludes)
+        picked = topUpLineups(picked, numLineups, maxExp, locks, pool2, excludes, expo)
+        picked = enforceMinExposure(picked, numLineups, maxExp, locks, pool2, excludes, expo)
         setLineups(picked)
         // UNDER-DELIVERY WARNING (2026-08-23): the cash path has always reported this; GPP did not,
         // so a narrowed set could ship silently. Both real-money incidents were degenerate sets
@@ -337,8 +399,9 @@ export default function DFSPage() {
       const K = Math.min(1500, Math.max(numLineups * 20, 200))   // deeper pool so exposure caps can actually fill the request
       const res = optimize(pool, locks, excludes, K)
       if (res.error) { setNote(res.error); setBuilding(false); return }
-      let picked = applyExposure(res.lineups, numLineups, maxExp, locks)
-      picked = topUpLineups(picked, numLineups, maxExp, locks, pool, excludes)
+      let picked = applyExposure(res.lineups, numLineups, maxExp, locks, expo)
+      picked = topUpLineups(picked, numLineups, maxExp, locks, pool, excludes, expo)
+      picked = enforceMinExposure(picked, numLineups, maxExp, locks, pool, excludes, expo)
       setLineups(picked)
       const expMsg = picked.length < numLineups ? 'Exposure cap: only ' + picked.length + ' of ' + numLineups + ' lineups possible at ' + Math.round(maxExp * 100) + '% max exposure even after constructing fresh lineups (locked drivers exempt) - lock/exclude settings leave too few drivers.' : ''
       setNote(expMsg)
@@ -543,7 +606,7 @@ export default function DFSPage() {
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead><tr style={{ color: 'var(--text-secondary,#9aa0aa)' }}>
-                <th style={{ padding: '7px 8px', textAlign: 'left' }}>Lock/Excl</th>
+                <th style={{ padding: '7px 8px', textAlign: 'left' }}>Lock/Excl · Min/Max %</th>
                 {th('name', 'Driver', 'left')}{th('startPos', 'Start')}{th('sal', 'Salary')}{th('projDK', 'Proj DK')}{th('ceil', 'Ceiling')}{th('value', 'Value')}{th('opt', 'Optimal%')}
                 {th('winPct', 'Win%')}{th('lapsLed', 'Laps Led')}{th('avgFast', 'Fast Laps')}{th('projFinish', 'Proj Fin')}
                 <th style={{ padding: '7px 8px', textAlign: 'right' }}>Exposure</th>
@@ -558,6 +621,14 @@ export default function DFSPage() {
                       <td style={{ padding: '4px 8px', whiteSpace: 'nowrap' }}>
                         <button onClick={() => toggle(setLocks, d.name)} title="Lock" style={{ marginRight: 4, padding: '2px 7px', borderRadius: 5, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: locked ? 'var(--accent,#e11d2a)' : 'transparent', color: locked ? '#fff' : 'var(--text-secondary,#9aa0aa)' }}>L</button>
                         <button onClick={() => toggle(setExcludes, d.name)} title="Exclude" style={{ padding: '2px 7px', borderRadius: 5, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: excl ? '#555' : 'transparent', color: '#fff' }}>X</button>
+                        <input type="number" min={0} max={100} placeholder="min" title="Min exposure % - forces this driver into at least this share of lineups without locking to 100%"
+                          value={expo[d.name] && expo[d.name].min != null ? expo[d.name].min : ''}
+                          onChange={e => { const v = e.target.value === '' ? null : Math.max(0, Math.min(100, +e.target.value || 0)); setExpo(prev => ({ ...prev, [d.name]: { ...(prev[d.name] || {}), min: v } })) }}
+                          style={{ width: 44, marginLeft: 6, background: 'var(--bg,#0e0f13)', color: expo[d.name] && expo[d.name].min > 0 ? 'var(--accent,#e11d2a)' : 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 5, padding: '2px 4px', fontSize: 12 }} />
+                        <input type="number" min={0} max={100} placeholder="max" title="Max exposure % - per-driver cap, overrides the global max exposure for this driver"
+                          value={expo[d.name] && expo[d.name].max != null ? expo[d.name].max : ''}
+                          onChange={e => { const v = e.target.value === '' ? null : Math.max(0, Math.min(100, +e.target.value || 0)); setExpo(prev => ({ ...prev, [d.name]: { ...(prev[d.name] || {}), max: v } })) }}
+                          style={{ width: 44, marginLeft: 4, background: 'var(--bg,#0e0f13)', color: expo[d.name] && expo[d.name].max != null && expo[d.name].max < 100 ? '#e8b923' : 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 5, padding: '2px 4px', fontSize: 12 }} />
                       </td>
                       <td style={{ padding: '4px 8px', textAlign: 'left', whiteSpace: 'nowrap' }}><CarNum car={d.car} series={series} />{d.name}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right', fontWeight: 600 }}>{d.startPos ? 'P' + d.startPos : '\u2014'}</td>
