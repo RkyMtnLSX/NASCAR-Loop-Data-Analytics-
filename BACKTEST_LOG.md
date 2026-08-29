@@ -2172,3 +2172,16 @@ from memory in the same entry. STANDING RULE (restating 08-24's, which this viol
 one paragraph): every driver-level factual claim in a log entry gets pulled from the table it
 lives in, in the same session that writes it - especially details touching data that was
 corrected or deleted the same day, where memory is BY CONSTRUCTION stale.
+
+## 2026-08-29 - DATA FIX + CORRECTION: Jankowiak raced (operator). RR omitted him; row inserted; DFS re-answered
+Racing Reference's results page omitted Andy Jankowiak from R24 Daytona (oreilly); loop_data's
+finish column had exactly P30 vacant, corroborating the operator: car 39, started 38, finished
+30. Row inserted manually (lap-level stats null - no source). CORRECTED NUMBERS: replay MAE
+(full 37 joins + Sanchez name patch) pre 10.17 / post 10.01 vs const-baseline 9.69 - conclusion
+unchanged. DFS: there was NO DNS - the previous entry's "swap scenario 278, top decile" is
+retracted as an artifact of the missing row. The actual projection-optimal lineup scored ~235.0
+(Jankowiak 20+ pts; his fastest-lap count unknown) = just under the GPP p75 (237.3). Honest
+verdict: top ~27 pct of a 925-entry field, good-not-great; 5 of 6 picks scored 39-63, the miss
+was Clements (3.9). The Honeyman salary name-join gap stands (bug class, 3rd sighting).
+LOAD GUARD QUEUED: the race loader should count results rows vs the qualifying grid and warn on
+a gap - a missing driver on RR's page silently corrupted a replay and a DFS verdict today.
