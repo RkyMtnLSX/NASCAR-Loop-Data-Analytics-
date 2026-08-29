@@ -2371,3 +2371,21 @@ STAGE A (persistence, pure measurement, no knobs) - ALL FOUR GROUPS, declared be
   boards exist); INT and SS expected fails confirming the July picture.
 STAGE B (only for Stage A passers, separate registration before it runs): market + placement
 impact on the NEW engine (surv 16/18), train 2022-24 / test 2025-26, ship only on pass.
+
+## 2026-08-29 - STAGE A EXECUTED: per-group attrition persistence (registered bar applied verbatim)
+15,981 driver-races -> 11,129 scoreable (min 5 prior in series+group). Walk-forward, all 3 series.
+Registered bar: monotone terciles at k=8/12/18 AND realized T3-T1 >= 3.0 AND sign holds both eras.
+- SHORT (n=3215, base 10.0): monotone all k; spreads +4.5/+4.8/+4.8; eras +5.4/+3.3. PASS.
+- INT (n=5011, base 10.7): monotone all k BUT spreads +2.1/+2.5/+2.2 < 3.0. FAIL - confirms the
+  July picture with a sharper instrument: the gradient exists at INT but is too thin to price.
+- SS (n=1552, base 16.8): non-monotone at k=8/12, spread -1.2 to +0.4, era sign FLIPS. FAIL
+  decisively - pack racing erases the trait, as the July reversal suggested.
+- ROAD (n=1351, base 11.3): monotone all k; spreads +5.1/+7.0/+6.8 (LARGEST of any group); eras
+  +5.3/+7.5. PASS - but per the registration this is LOGGED AND PARKED: zero graded ROAD boards
+  exist to validate a Stage B against. Revisit when ROAD boards accumulate.
+CALIBRATION NOTE for Stage B design: predicted tercile spreads overshoot realized ~2-3x (pred T3
+~17 vs real ~12.5 at SHORT) - the k=8-18 shrinkage is too weak; Stage B's personal term must be
+scaled to REALIZED spreads or shrunk harder, or it will overtax high-propensity drivers.
+NEXT: Stage B for SHORT only (separate registration before running): personal attrition layer in
+the new engine (surv 16), train 2022-24 / test 2025-26, driver-level judges. INT and SS are
+CLOSED for personal attrition (this supersedes nothing - July's global rejection stands too).
