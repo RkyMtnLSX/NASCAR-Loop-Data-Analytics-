@@ -2326,3 +2326,24 @@ FIT 2022-24, joint win+t5+t10+f25 bands, n-weighted squared log-ratio, grid over
 VALIDATE one-shot 2025-26: all 24 cells within 2 SE, >=18/24 within 1.25 SE, pooled chi-sq
 improves vs current (m=1, surv=2.5). No refit after holdout. Ship on pass; marginal misses go to
 the operator with the failure disclosed, as with SHORT.
+
+## 2026-08-29 - SHORT + INT PLACEMENT CALIBRATION EXECUTED AND SHIPPED (surv 16 / 18, noise untouched)
+SHORT: fit minimum (m=1.00, surv~16; basin flat 15-18, noise dial confirmed clean at 1.0).
+Holdout: chi-sq 182 -> 20, 21/24 cells within 1.25 SE, blowup curve essentially exact. Two cells
+just past 2 SE (t10 band 04-06 z=2.25, band 21+ z=-2.01) -> strict criterion technically failed;
+disclosed to operator, operator approved ship. WRECK_SURV_COST.SHORT = 16 (was 1.6).
+INT: fit basin flat (m 1.0-1.1 x surv 18-26); froze parsimonious m=1.00, surv=18. Holdout:
+chi-sq 165 -> 36, 20/24 within 1.25 SE, 23/24 cells better or equal; elite blowups 13.0 vs real
+14.4 (was 9.5). Two cells ~3.4 SE, one degrading (t10 ranks 16-20, 30.2 vs real 21.3, was 27.7)
+- traces to the Indy reconstruction board's unusually strong mid-pack (pooled stored-sim value
+for that band is 23.5, near reality, so the live-engine error is likely smaller than the harness
+shows); residual direction is conservative (over-flags mid-pack, does not hide it). Disclosed;
+operator approved ship. WRECK_SURV_COST.INT = 18 (was 2.5).
+MECHANISM NOTE for future sessions: the wreck-seed clamp (victims = consecutive run-order slots,
+seed+j clamped at N-1) piles hits onto the tail of the running order - part of the backmarker
+over-burial. Not touched in this calibration; a structural candidate if f25 band 21+ residuals
+persist on forward boards.
+FORWARD JUDGE (pre-registered): prediction-vs-actual reliability on future SHORT/INT graded
+boards (the t10-bucket table in today's entries is the template) + unchanged CLV/DFS ledgers.
+Constants frozen; no in-sample retuning; next legitimate refit after ~8-10 fresh races per group.
+ROAD: same engine, surv 2.7, zero graded boards - untestable, flagged when boards exist.

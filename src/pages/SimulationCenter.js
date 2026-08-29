@@ -148,7 +148,11 @@ const WRECK_ACC_SHARE = { SHORT: 0.63, INT: 0.70, SS: 0.85, ROAD: 0.50 }
 // failed, so mid-pack top10s starved (slots are conserved). Fit 2022-24 on win+t5+t10+fin25
 // bands jointly (noise mult stayed 1.0); holdout 2025-26 chi-sq 182 -> 20, 21/24 cells within
 // 1.25 SE; 2 cells just past 2 SE - operator-approved ship 2026-08-29. DO NOT retune in-sample.
-const WRECK_SURV_COST = { SHORT: 16, INT: 2.5, SS: 2.9, ROAD: 2.7 }
+// INT surv 2.5 -> 18 (same registered protocol, same day): elite fin>=25 was 9.5 sim vs 14.3
+// real, backmarkers over-buried. Holdout chi-sq 165 -> 36, 23/24 cells better/equal; known
+// residual: t10 ranks 16-20 overshoots (traces to Indy-board harness mid-pack strength).
+// Operator-approved ship 2026-08-29. Forward judge: reliability on future SHORT/INT boards.
+const WRECK_SURV_COST = { SHORT: 16, INT: 18, SS: 2.9, ROAD: 2.7 }
 const WRECK_P = { SHORT: { a: 0.165, b: 0.179, c: 0.261 }, INT: { a: 0.200, b: 0.189, c: 0.235 }, SS: { a: 0.270, b: 0.321, c: 0.335 }, ROAD: { a: 0.090, b: 0.070, c: 0.128 } }
 // Overlap-corrected normalizer (2026-07-28): raw sum(size x P) per group is SHORT 2.90 /
 // INT 3.47 / SS 10.57 / ROAD 3.07, but cluster overlap + field-edge clamping eat 6-17% of
