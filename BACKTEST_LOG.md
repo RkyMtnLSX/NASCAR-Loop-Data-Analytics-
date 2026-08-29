@@ -2312,3 +2312,17 @@ PROTOCOL:
   how the surv mechanism was found); the fit below uses 2022-24 targets only and the holdout
   criteria above were set before the fit ran.
 - SHIP on pass; judged forward by reliability on future SHORT boards + the unchanged CLV/DFS ledgers.
+
+## 2026-08-29 - PRE-REGISTERED: INT PLACEMENT-TAIL CALIBRATION (written before fitting - DO NOT MODIFY)
+CORRECTION to today's earlier "INT placement looks fine": that clearance rested on top5/top10 from
+the 2 stored INT boards and board reliability (n=75, weak). The blowup curve is NOT stored on
+boards; the harness (Indy cup22 reconstruction, port validated on NH/R24 boards) exposes the same
+surv-mechanism defect at INT: elite fin>=25 sim ~9.5 vs real 14.3 (z~3 on n=505), backmarkers
+over-buried (21+ band f25 sim 66 vs real 50.5, partly the wreck-seed clamp piling hits onto the
+tail of the running order). Placement curves are ERA-STABLE across 2022-24 vs 2025-26 (unlike
+INT's win band 01-03, which is why the win-only fit's holdout failed - wins were the noisy metric).
+PROTOCOL (identical to SHORT): parameters = GROUP_NOISE_MULT.INT and WRECK_SURV_COST.INT only.
+FIT 2022-24, joint win+t5+t10+f25 bands, n-weighted squared log-ratio, grid over (m, surv).
+VALIDATE one-shot 2025-26: all 24 cells within 2 SE, >=18/24 within 1.25 SE, pooled chi-sq
+improves vs current (m=1, surv=2.5). No refit after holdout. Ship on pass; marginal misses go to
+the operator with the failure disclosed, as with SHORT.
