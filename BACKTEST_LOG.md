@@ -2466,3 +2466,20 @@ CONCLUSIONS UNCHANGED, verified at the corrected number: Sieg 2.4 pct at +3000 (
 The fatter real tail makes the model-only "edge" list LONGER, all still consensus-negative, all
 still losers - the mev-gate finding strengthens. (Driver-level claims from tables, same session:
 rule reaffirmed the hard way, again.)
+
+## 2026-08-29 - SS DOMINATOR TILT FIX SHIPPED RACE-DAY (operator instruction, real-money DFS tonight)
+MEASURED FIRST (cup SS 2022-26, 26 races / 953 driver-obs, strength-rank bands, share of race laps):
+  LL share/driver: real 8.68/3.89/3.00/3.07/2.32/1.36 vs board ~3.3 flat at top - sim ~2.6x too
+  flat on elite laps led (real top-3 cars avg 19 laps, lead 15+ in 40 pct of races).
+  FL share/driver: real 1.87/2.39/2.48/2.46/2.58/2.80 - RISES down the field (clean-air/laps-down
+  cars log fast laps the boxed-in lead pack cannot); sim sloped it downward. Wrong direction.
+CHANGE (SS only, dominator layer only - win/finish machinery and frozen constants untouched):
+  speed-tilt overrides inside runRaceSim: LL mult = max(.1, 1+2.0(sp-.5)) x2 for sp>.9 (elite
+  aero group); FL mult = 1+0.5(sp-.5). Fit offline by re-tilting the published board's own output
+  (rank-machinery expectation held fixed): LL bands 7.5/4.4/3.1/2.8/2.4/1.3, FL 2.2/2.2/2.3/2.3/
+  2.4/2.7 - all within ~15 pct of real. Known residual: linear+kick cannot fully reach the real
+  top-3 LL spike (8.7); shipped value is the best monotone fit.
+PROCESS NOTE, honest: this shipped hours before a race on operator instruction with offline-only
+validation (no holdout - 26 races is the whole cup SS sample). Compressed protocol: measured
+before touching, single-purpose constants, other groups byte-identical. FORWARD JUDGE: DK proj vs
+actual dominator points on SS races, starting tonight; revisit constants only via that ledger.

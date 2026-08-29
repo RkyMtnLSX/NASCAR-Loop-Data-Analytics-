@@ -561,14 +561,22 @@ function runRaceSim(drivers, simConfig) {
     const simFastLaps = new Int32Array(n)
     if (active.length > 0) {
       // rounding remainder goes to the LEADER (was: last active driver - caused tail FL artifact)
+      // SS dominator tilts (2026-08-29, race-day fit on cup SS 2022-26 rank-share bands, BACKTEST_LOG):
+      // LL was ~2.6x too flat at the top (real top-3 strength cars lead 8.7% of laps each, sim gave 3.3%);
+      // FL sloped the WRONG direction (real FL share RISES down the field at SS: 1.87 top -> 2.80 tail).
+      // Fix: SS-only speed-tilt overrides. LL: beta 2.0 + 2x elite kick (top speed decile). FL: beta 0.5.
+      // Fitted bands LL 7.5/4.4/3.1/2.8/2.4/1.3 vs real 8.7/3.9/3.0/3.1/2.3/1.4; FL 2.2/2.2/2.3/2.3/2.4/2.7
+      // vs real 1.9/2.4/2.5/2.5/2.6/2.8. Other groups untouched. Judge: DK proj vs actuals on SS races.
+      const __llTilt = (sp) => (trackGroup === 'SS' ? Math.max(0.1, 1 + 2.0 * (sp - 0.5)) * (sp > 0.9 ? 2.0 : 1) : Math.max(0.1, 1 + 1.1 * (sp - 0.5)))
+      const __flTilt = (sp) => (trackGroup === 'SS' ? Math.max(0.1, 1 + 0.5 * (sp - 0.5)) : Math.max(0.1, 1 + 1.0 * (sp - 0.5)))
       let llW = 0
-      const llw = __pool.map((s, r) => { const c = r < __LLC.length ? __LLC[r] : __LLC[__LLC.length - 1] * Math.pow(0.75, r - __LLC.length + 1); const sp = drivers[s.i].__spdPct != null ? drivers[s.i].__spdPct : 0.5; const w = c * Math.max(0.1, 1 + 1.1 * (sp - 0.5)) * __wLL(s); llW += w; return w })
+      const llw = __pool.map((s, r) => { const c = r < __LLC.length ? __LLC[r] : __LLC[__LLC.length - 1] * Math.pow(0.75, r - __LLC.length + 1); const sp = drivers[s.i].__spdPct != null ? drivers[s.i].__spdPct : 0.5; const w = c * __llTilt(sp) * __wLL(s); llW += w; return w })
       let remLL = totalRaceLaps
       for (let r = __pool.length - 1; r >= 0; r--) { if (r === __lead) continue; const ll = Math.max(0, Math.min(Math.round(llw[r] / llW * totalRaceLaps), remLL)); simLL[__pool[r].i] = ll; remLL -= ll }
       simLL[__pool[__lead].i] = remLL
       scored.forEach((s) => { sumLapsLed[s.i] += simLL[s.i] })
       let flWt = 0
-      const flw = __pool.map((s, r) => { const c = r < __FLC.length ? __FLC[r] : __FLC[__FLC.length - 1] * Math.pow(0.85, r - __FLC.length + 1); const sp = drivers[s.i].__spdPct != null ? drivers[s.i].__spdPct : 0.5; const w = c * Math.max(0.1, 1 + 1.0 * (sp - 0.5)) * __wLL(s); flWt += w; return w })
+      const flw = __pool.map((s, r) => { const c = r < __FLC.length ? __FLC[r] : __FLC[__FLC.length - 1] * Math.pow(0.85, r - __FLC.length + 1); const sp = drivers[s.i].__spdPct != null ? drivers[s.i].__spdPct : 0.5; const w = c * __flTilt(sp) * __wLL(s); flWt += w; return w })
       let remFL = totalRaceLaps
       for (let r = __pool.length - 1; r >= 0; r--) { if (r === __lead) continue; const fl = Math.max(0, Math.min(Math.round(flw[r] / flWt * totalRaceLaps), remFL)); simFastLaps[__pool[r].i] = fl; remFL -= fl }
       simFastLaps[__pool[__lead].i] = remFL
