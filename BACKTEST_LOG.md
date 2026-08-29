@@ -2084,3 +2084,26 @@ challenger beats incumbent on the TEST split on BOTH per-race Spearman of share 
 precision@2 (top-2 actual dominators per race). Any test-split loss on either metric = STOP.
 DATA PRECHECK (allowed before gating, integrity only): confirm ld.laps_led / ld.fastest_laps
 population rates and races.total_laps coverage; no looking at candidate-target relationships.
+
+## 2026-08-29 - DOMINATOR GATE EXECUTED AS REGISTERED: BOTH TARGETS STOP AT STAGE 1
+Precheck clean (4,130 obs full population; no missing total_laps). Obs after pooling: train
+1,726 / 49 races, test 1,394 / 38. Zero-inflation as expected (27 pct led any lap, 67 pct set
+any fastest lap) - midrank Spearman per the registration.
+STAGE 1 partial Spearman (controls: pooledRating + startPos + pooled PAST share of same target):
+  LL-SHARE, cPOMS (primary):  train -0.0338, test -0.0657 -> STOP, WRONG SIGN (registration
+    required positive). Sign-consistent but negative: given the controls, higher pooled cPOMS
+    associates with marginally FEWER laps led. Not interpreted further per protocol.
+  FL-SHARE, cPOMS (primary):  train +0.0636 (t +2.64), test +0.0345 (t +1.28) -> STOP, UNDER
+    THE 0.05 FLOOR on test. Positive both splits - the closest any pace metric has come in this
+    program - but the floor exists because this exact magnitude class (0.03-0.06) passed the
+    finish gate and then failed integration. Rules are rules; that is their job.
+  Secondaries (reference only, unshippable from this run): P95 on FL-share +0.0655/+0.0494
+    (also just under floor, sign-consistent); CONS sign-flips on FL, dead on LL.
+VERDICT: nothing ships. The dominator door closes on current data. The full Lap Raptor program
+is now COMPLETE: six metrics x two target families, every path adjudicated, zero model changes -
+and that is a finding: the sim's existing inputs already contain everything the lap_performance
+table knows, for every target we pay for.
+PERMITTED FUTURE RE-RUN (one, narrow): FL-share x cPOMS/P95 may be re-tested ONCE on FUTURE
+data only (2026 playoff + 2027 races, as fresh confirmation - never by re-pooling or re-splitting
+the data above). If a fresh sample independently clears +0.05 both splits, Stage 2 unlocks.
+Anything else requires a new registration.
