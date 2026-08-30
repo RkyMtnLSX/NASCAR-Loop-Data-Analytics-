@@ -3644,3 +3644,48 @@ lap fractions as it does, and the "future caution/pit layer" loses its main moti
 DECLARED IN ADVANCE: `laps_completed` as the wreck lap is imprecise for a car that limps several
 laps after contact — this biases k UPWARD and therefore works AGAINST the hypothesis. Any deviation
 gets appended here before the numbers are read.
+
+## 2026-08-30 — RESTART PROXIMITY: bar FAILS AS WRITTEN. Effect is large; my control says the design cannot cleanly attribute it.
+Measured exactly as registered. Green-flag car-laps only, accident statuses only, k = laps since the
+most recent restart, 5-lap window, all four track types named in advance.
+
+    track type        car-laps k<=5   acc k<=5   car-laps k>5   acc k>5   ACCIDENT RATIO   MECH CONTROL
+    Intermediate          194,140        228        621,720       143         5.106            1.401
+    Short & Flat          145,216        103        641,708       100         4.552            1.419
+    Road Course            53,481         74         64,379        29         3.072            1.029
+    Superspeedway          73,314        200        162,894       207         2.147            1.228
+    POOLED                466,151        605      1,490,701       479         4.039            1.590
+
+Bar 1, >= 1.5x pooled: **PASS**, 4.039.
+Bar 2, >= 3 of 4 track types: **PASS**, all four, 2.15 to 5.11.
+Bar 3, mechanical control < 1.2: **FAIL.** Pooled 1.590; per group 1.03 / 1.23 / 1.40 / 1.42.
+All three were required. **THE STUDY FAILS.**
+
+WHAT THE CONTROL IS TELLING US. Mechanical DNFs also concentrate after restarts, at 1.59x pooled.
+Engine failures do not care about restarts, so this is a measurement artifact, and the most likely
+mechanism is obvious in hindsight: a car that is already hurt — damaged in the incident that CAUSED
+the caution, or nursing a failure — limps through the yellow, takes the green, and parks within a few
+laps. `laps_completed` then lands just after a restart for reasons that have nothing to do with
+restart risk. That inflates BOTH accident and mechanical counts in the k<=5 bucket.
+
+WHY I AM NOT CALLING THIS A PASS. The accident ratio (4.04) is 2.5x the mechanical ratio (1.59), so
+the artifact plainly does not explain all of it. But "accident ratio divided by mechanical ratio" is
+a statistic I did NOT pre-register, and adopting it now, after seeing that it rescues the result, is
+exactly the move the registration exists to prevent. The control was written to catch a confound and
+it caught one. The correct reading is that MY DESIGN WAS INADEQUATE to separate effect from artifact,
+not that the effect is absent.
+
+WHAT IS ACTUALLY KNOWN, stated conservatively: 23.8% of green car-laps fall within 5 laps of a
+restart, and 55.8% of accident DNFs (605 of 1,084) fall there. Accident clustering after restarts is
+large and present in every track type. It is NOT cleanly separated from the tendency of already-
+damaged cars to retire shortly after going green.
+
+THE FIX, FOR A FUTURE REGISTRATION, NOT RUN NOW. `caution_segments.comment` names the cars involved
+in each incident — "#77, 43, 54 Incident Turn 4". Excluding cars named in the PRECEDING caution's
+comment removes the already-damaged population directly, at source, rather than trying to net it out
+with a control. That is a materially better design and it is available because of tonight's capture.
+It needs its own protocol written before looking, with the exclusion rule and the bar fixed in
+advance. I am not writing it in the same breath as reading this result.
+
+FOURTH REGISTERED STUDY IN TWO DAYS, FOURTH NON-PASS. The other three were nulls; this one is a large
+effect I cannot cleanly claim. Different failure, same discipline.
