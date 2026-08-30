@@ -11,6 +11,7 @@ import { gradePracticeSession } from '../lib/practiceGrader'
 import SimulationCenter, { DEFAULT_WEIGHTS, ROAD_COURSE_WEIGHTS, SUPERSPEEDWAY_WEIGHTS, TRUCK_ROAD_WEIGHTS, ONEILLY_SUPERSPEEDWAY_WEIGHTS } from './SimulationCenter'
 import GradeCenter from './GradeCenter'
 import DfsReplay from './DfsReplay'
+import { LoadRaceFromFeed, FeedBackfill } from './NascarFeedAdmin'
 
 
 // Strip NASCAR roster markers that ride along with scraped driver names:
@@ -2280,6 +2281,8 @@ export default function Admin() {
 
       </>)}
       {adminTab === 'load' && (<>
+      <LoadRaceFromFeed />
+      <FeedBackfill />
       <div className="card" style={{ marginBottom: 20 }}>
         <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 8 }}>Data Audit</h2>
         <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 12 }}>
