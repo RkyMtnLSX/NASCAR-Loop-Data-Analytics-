@@ -208,6 +208,12 @@ export const supabase = createClient(
 
 ## Where the full docs live (added 2026-07-09)
 
+**Data-pull scripts (the Python scrapers on the operator's machine) are documented in
+`PITBOARD_SCRIPTS.md` at the repo root — prerequisites (notably the SUPABASE_KEY service-role
+requirement), the weekly ritual, every script, and the failure-mode table. Pipeline operations go
+there, not in BACKTEST_LOG.md.**
+
+
 The COMPLETE handoff doc (`pitboard.md`) and the backtest evidence (`BACKTEST_LOG.md`, 2026-08-03
 onward; earlier seasons' entries in `BACKTEST_ARCHIVE.md`, closed 2026-08-24)
 are now IN THIS REPO at the root, synced from the local PitBoard Handoff folder on
