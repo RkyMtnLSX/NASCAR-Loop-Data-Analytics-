@@ -3210,3 +3210,45 @@ subgroup is superspeedways, reported separately and judged on the same two bars.
 
 DECLARED DEVIATIONS, none yet. Any deviation forced by the data gets appended before the holdout is
 read, in the same way the SS study declared its organization-fallback deviation.
+
+## 2026-08-30 — closing_ps STAGE 1: training fit frozen. HOLDOUT NOT YET READ.
+Protocol registered earlier today, before the column existed. Data now present: 16,130 of 16,130
+loop_data rows carry `closing_ps`. This entry is written and pushed BEFORE the holdout is scored.
+
+DATA. 16,021 usable driver-races (exhibitions excluded, correlation label required).
+TRAIN 2022-2024 n=10,019. HOLDOUT 2025-2026 n=6,002. Driver identity is `nascar_driver_id`, so the
+panel is keyed on an integer rather than on names — that is new as of tonight and removes the
+"is this the same driver" question from the study entirely.
+
+DECLARED DEVIATIONS, all three conservative, all declared before the holdout was touched:
+  1. The protocol said under-minimum rows get "the group mean" without saying from which set. They
+     get the TRAIN-set group mean, for train and holdout alike. Leak-free by construction.
+     1,968 of 10,019 train rows (19.6%) are neutral-filled.
+  2. Bristol Motor Speedway Dirt Track has no `correlation_group_label`, so its 109 rows are
+     dropped rather than assigned a group by hand.
+  3. Prior windows are per (driver, correlation group) ordered by race_date, strictly preceding.
+
+FEATURE DIAGNOSTIC, run before fitting because it could have invalidated the design. On train,
+corr(closing_ps, finish_position) = 0.856 — high, but not degenerate: mean |closing - finish| is
+3.28 positions and only 2,963 of 10,019 rows (30%) have them equal. Per group: Short & Flat 0.909,
+Intermediate 0.888, Road Course 0.845, **Superspeedway 0.710**. The two diverge MOST at exactly the
+tracks where the hypothesis lives, which is what makes this a fair test rather than a tautology.
+Had the correlation been ~0.99 I would have said the pre-registration was flawed and stopped here.
+
+THE FROZEN FITS (OLS on train, solved from sufficient statistics):
+
+    BASELINE  fin_hat = 5.269886 + 0.324647*start + 0.410804*priorFin
+    TEST      fin_hat = 5.302680 + 0.318051*start + 0.162463*priorFin + 0.253806*priorClose
+
+In sample, priorClose takes weight AWAY from priorFin: 0.4108 -> 0.1625, with 0.2538 going to
+closing position. Total prior weight is nearly unchanged (0.411 vs 0.416) — it is redistributed, not
+added. So in-sample, closing position is the better half of "prior record". That is suggestive and
+proves nothing; the in-sample gain of the superspeedway study was +0.0244 and it still failed its
+holdout.
+
+BARS, unchanged: mean per-race Spearman delta (test - baseline) >= +0.05 on the holdout AND positive
+in >= 60% of holdout races. Superspeedways are the one pre-registered subgroup, judged on the same
+bars and reported separately. A miss on either bar closes closing_ps as a predictor and it stays a
+stored column with no model role.
+
+Holdout scored in the next entry.
