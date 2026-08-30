@@ -2951,3 +2951,31 @@ STILL OPEN, and now the highest-value DFS work: the optimizer has no portfolio o
 exposure caps are a blunt proxy for it. Ranking a SET of 20 lineups on the probability that at
 least one of them clears a target score is a different and better objective than ranking each
 lineup by its own p90. That needs pre-registration before anything is built.
+
+## 2026-08-30 — PORTFOLIO COVERAGE OBJECTIVE: tested, beats both shipped modes, NOT shipped yet
+THE CHANGE UNDER TEST: stop ranking each lineup by its own p90 and then filtering by exposure cap.
+Instead pick the SET of 20 that maximises the fraction of simulated draws in which AT LEAST ONE
+lineup clears a target score T. Greedy selection (the objective is submodular, so greedy is
+near-optimal): repeatedly add whichever candidate covers the most still-uncovered draws.
+T IS DERIVED PRE-RACE, NO LEAK: for each draw, take the best score achievable by any candidate in
+that draw, then set T at the q-th percentile of that distribution. Nothing from the contest or the
+result enters. Tested q = 40/50/60/70.
+RESULT - best-of-20, all 8 replayable races, product's own candidate generation:
+                        no cap   cap 50%   cov q40   cov q50   cov q60   cov q70
+  field percentile        79.8      87.0      89.3      90.9      86.1      91.6
+  raw best-of-20 score  280.82    295.84    300.54    306.19    294.04    309.42
+  unique drivers /20      17.1      18.5    ~20.6     ~19.9     ~19.8     ~20.6
+Against the newly-shipped 50 pct cap, coverage q50 wins 4 races, loses 3, ties 1 - but the wins are
+large (cup R23 75.0 -> 96.3 percentile, trucks R18 79.2 -> 91.1) and the losses are small (cup R24
+-6.8, cup R25 -4.9, cup R26 -0.4). q70 wins 5, loses 2, ties 1.
+WHY IT WORKS, and it is not the same thing as diversification: the cap forces spread by refusing
+repeats; coverage BUYS spread only where spread pays, keeping duplicated cores when the draws say
+one core dominates and splitting when they do not. Unique-driver counts land ~20 either way - the
+sets differ in WHICH lineups, not in how many names.
+WHAT I AM NOT CLAIMING: the q level is not calibrated. 40/50/60/70 gives 89.3/90.9/86.1/91.6 - not
+monotone, so the ordering among them is noise at n=8, and I picked the reported winners after seeing
+them. The FAMILY beating the current objective is the finding; the setting inside it is not.
+STATUS: not shipped. Registration owed before this replaces anything: freeze q, freeze the greedy
+rule, and judge on forward races through the replay ledger. The defensible interim step is a third
+selectable mode (Cash / GPP / Portfolio) that ships OFF by default so the ledger can measure it
+without betting the launch default on 8 in-sample races.
