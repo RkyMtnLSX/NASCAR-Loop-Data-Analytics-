@@ -3451,3 +3451,40 @@ failure.
 SCOREBOARD, three registered studies in two days, all failed on holdout: SS finish-quality
 (-0.0041), closing_ps (-0.0001), organisation (+0.0051 against a +0.05 bar). Two of the three had
 positive in-sample signals. The bar is doing exactly what it was set up to do.
+
+### 2026-08-30 — WHY the organization effect was +0.005: it is two effects cancelling
+Post-hoc diagnostic on an already-CLOSED study. Changes no conclusion and ships nothing. Recorded
+because it explains the mechanism of the failure, which the headline number hides.
+
+Operator's read, verbatim: *"Organization may just be an SVG signal to be honest lol"* — i.e. the
+road-course result might just be Trackhouse having Shane Van Gisbergen. The instinct was right about
+WHERE the feature breaks and the sign is the reverse of what it implies.
+
+SVG on road courses, holdout era: **10 races, 7 wins, 5.30 average finish.** Trackhouse's road course
+team average is 15.09 — strip SVG out and his team-mates average roughly 19.5, mid-pack. So the org
+average describes nobody on that team.
+
+Mean absolute finishing-position error per organisation, road courses, baseline vs with priorOrg
+(positive = the org feature helped):
+
+    HELPS                             HURTS
+    Joey Gase Motorsports   +0.576    23XI Racing              -0.278
+    JR Motorsports          +0.255    Legacy Motor Club        -0.183
+    Young's Motorsports     +0.249    Trackhouse Racing        -0.139
+    McAnally Hilgemann      +0.235    Jordan Anderson Racing   -0.126
+    DGM Racing x JIM        +0.156    Spire Motorsports        -0.112
+
+**Trackhouse is among the WORST cases for the feature, not the best**, and carries the highest
+baseline error of any org (10.377). The feature helps on small homogeneous teams whose cars genuinely
+run alike — and on JR Motorsports, where they are alike and strong. It hurts wherever one driver
+carries the organisation.
+
+THE POINT. The pooled +0.005 is not a weak signal spread thinly. It is a real signal on homogeneous
+teams cancelling against a real ANTI-signal on top-heavy ones. **Averaging a team hides a driver**,
+and a mean is the wrong summary when within-team spread is the whole story. That is a better
+explanation of the null than "organisation does not matter", and it is the kind of thing only
+visible after the result, which is why it is filed as a diagnostic rather than a finding.
+
+NOT A PROPOSAL. A within-team-dispersion-aware construction is an obvious next thought and it is NOT
+being run on the back of a failed study. If it is ever tested it needs its own pre-registration
+written before looking, with the same bars. Filed as an idea, not a plan.
