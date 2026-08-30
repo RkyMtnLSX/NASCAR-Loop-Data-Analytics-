@@ -3488,3 +3488,39 @@ visible after the result, which is why it is filed as a diagnostic rather than a
 NOT A PROPOSAL. A within-team-dispersion-aware construction is an obvious next thought and it is NOT
 being run on the back of a failed study. If it is ever tested it needs its own pre-registration
 written before looking, with the same bars. Filed as an idea, not a plan.
+
+### 2026-08-30 — WHERE the organization effect lives: thin driver history, not road courses
+Second post-hoc diagnostic on the CLOSED organisation study. Ships nothing, changes no conclusion.
+Operator follow-up to the SVG point: *"Or road courses"*.
+
+Split every holdout row by whether the driver had >= 3 prior starts in that correlation group.
+Metric is mean absolute error in finishing POSITIONS — a diagnostic, NOT the registered per-race
+Spearman, and deliberately not comparable to the pass bars:
+
+    track type        % thin   improvement THIN   improvement ESTABLISHED   ratio
+    Short & Flat        6.5%        0.578               0.018               32x
+    Intermediate        3.9%        0.342               0.033               10x
+    Road Course        11.5%        0.213               0.039              5.5x
+    Superspeedway       8.2%        0.065               0.020                3x
+
+The effect is 3-32x larger for drivers with thin history, in EVERY track type. And road courses lead
+the registered table not because road courses are special but because they carry by far the highest
+share of thin-history drivers — 11.5%, nearly triple intermediates. That is the one-off specialist
+population: SVG, Allmendinger, Raikkonen, Button, Jordan Taylor, Kobayashi, Will Brown, Cameron
+Waters all appear in our data with 1-3 starts.
+
+THE MECHANISM, stated plainly: **organisation strength SUBSTITUTES for driver history rather than
+adding to it.** Where the driver is known, the team adds 0.02-0.04 positions — nothing. Where the
+driver is not, it adds 0.2-0.6. Since 88-96% of rows are drivers we already know, the pooled average
+buried it. Combined with the previous diagnostic, the failure has two distinct causes and neither is
+"organisation is irrelevant":
+  1. averaging a team hides a driver (helps homogeneous teams, hurts top-heavy ones), and
+  2. averaging over all drivers hides the only population it helps (the ones with no history).
+
+STILL CLOSED, AND STILL NOT A PROPOSAL. The registered study asked whether org strength improves
+predictions for the field, and the answer is no. "Org strength as a prior for drivers with fewer
+than three starts at a track type" is a DIFFERENT question, arrived at by looking at the residuals of
+a failed test, and it is exactly the sort of thing that looks compelling because the data was
+consulted first. If it is ever run it needs its own pre-registration, its own holdout, and the same
+bars. Two operator instincts in a row have now improved the DIAGNOSIS of a null result — worth noting
+as a working pattern, not as licence to act on either.
