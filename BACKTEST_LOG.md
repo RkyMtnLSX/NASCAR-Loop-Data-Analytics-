@@ -3689,3 +3689,52 @@ advance. I am not writing it in the same breath as reading this result.
 
 FOURTH REGISTERED STUDY IN TWO DAYS, FOURTH NON-PASS. The other three were nulls; this one is a large
 effect I cannot cleanly claim. Different failure, same discipline.
+
+## 2026-08-30 — PRE-REGISTRATION: restart proximity v2, with damaged cars removed at source
+WRITTEN AND PUSHED BEFORE LOOKING. v1 failed its own control (mechanical DNFs clustered at 1.59x when
+they should not have). This is the replacement design, not a re-cut of the same test.
+
+THE PROBLEM v1 COULD NOT SOLVE. A car already hurt in the incident that CAUSED a caution limps through
+the yellow, takes the green and parks. Its `laps_completed` lands just after a restart for reasons
+unrelated to restart risk, inflating both accident and mechanical counts in the k<=5 bucket. Netting
+that out with a control failed; the fix is to remove the population instead.
+
+WHAT MAKES THIS POSSIBLE. `caution_segments.comment` names the cars in each incident — measured
+tonight, 78.6% of Accident cautions and 76.3% of Spin cautions carry a leading '#' list
+("#77, 43, 54 Incident Turn 4"). That did not exist in the database before today.
+
+DESIGN, frozen now.
+  * CAR EXTRACTION: only from a LEADING '#' list, i.e. the comment starts with '#' followed by
+    comma/space separated numbers, terminated by the first alphabetic word. This deliberately ignores
+    "Debris in Turn 1 from #39" and "No. 18 Stalled", where the car is mentioned but is not a
+    multi-car incident. Car numbers keep leading zeros ('0', '00', '07') and match
+    `loop_data.car_number`, which is now 100% populated.
+  * COMPROMISED-CAR RULE: a car is COMPROMISED from the start_lap of the first caution whose comment
+    names it, onward. From that lap it is excluded from BOTH the at-risk denominator and the wreck
+    numerator, in BOTH buckets. Symmetric by construction — it cannot manufacture a k<=5 effect,
+    because it removes the same cars from both sides.
+  * Everything else is v1 unchanged: green-flag car-laps only, wreck lap = `laps_completed`,
+    restarts from `caution_segments.restart_lap`, k = laps since most recent restart, 5-lap window,
+    accident statuses ('accident','dvp','damage','fire'), mechanical DNFs as the control.
+  * Reported for all four track types, named in advance, plus pooled.
+
+PASS BARS, all three required, identical to v1 so the two are comparable:
+  1. accident ratio (k<=5 vs k>5) >= 1.5x pooled, AND
+  2. >= 3 of the 4 track types above 1.5x, AND
+  3. mechanical control < 1.2.
+Bar 3 is the one v1 failed and it is the point of this design. If the compromised-car rule works, the
+mechanical control should fall toward 1.0. **If bar 3 fails again, restart proximity is CLOSED** —
+two designs will have failed to separate it from retirement-timing artifacts, and I am not writing a
+third.
+
+WHAT A PASS BUYS. Still nothing shipped. It earns a registered attempt at conditioning wreck-event
+lap fractions on restart proximity, judged on a 2025-26 holdout by the 2026-08-29 placement-tail
+chi-square gate.
+
+DECLARED IN ADVANCE:
+  * Restricting to cautions that name cars is NOT required — a caution with no named cars simply
+    compromises nobody. The rule uses whatever information exists.
+  * `laps_completed` remains an imprecise wreck lap for a car that limps; as in v1 this biases k
+    upward and works AGAINST the hypothesis.
+  * Removing compromised cars shrinks the sample. If the accident numerator in any track type falls
+    below 30 events, that group is reported as UNDERPOWERED rather than judged.
