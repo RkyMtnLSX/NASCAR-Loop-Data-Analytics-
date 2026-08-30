@@ -7,6 +7,13 @@ node_modules/
 npm-debug.log*
 .DS_Store
 
-# package-lock.json is deliberately NOT ignored here. It is simply not tracked
-# yet — adding it would switch Vercel's install from `npm install` to `npm ci`,
-# which is a build-behaviour change and not one to make in passing.
+# package-lock.json is deliberately NOT ignored here, and also not tracked.
+# Committing it would switch Vercel's install from `npm install` to `npm ci` and
+# pin whatever tree the committing machine resolved that day — a change to the
+# production build, not a housekeeping tidy, so it wants to be a decision rather
+# than a side effect.
+#
+# Practical consequence: a local `npm install` generates it and leaves it showing
+# as untracked. Delete it when you are done building, or commit it on purpose.
+# Do not add it to this file to silence the noise — that would quietly rule out
+# ever adopting a lockfile.
