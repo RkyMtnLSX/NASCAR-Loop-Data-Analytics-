@@ -3045,3 +3045,33 @@ gpp_entries / gpp_uniq; the eight seeded rows predate this and carry nulls.
 NO SECOND IMPLEMENTATION: the selector is now exported from DFSPage (makeEmaxSelector) and is
 resumable - the page yields to the browser between picks, the admin tool loops to completion. One
 piece of code, two callers, which is the standing rule after tonight.
+
+## 2026-08-30 — DO WE NEED TO PROJECT OWNERSHIP? No. We already do, and nothing we hold beats it.
+OPERATOR: "So are you saying we need to project ownership?" Measured it instead of arguing it.
+8 races with banked ownership (292 driver-rows), predictors we already hold, Spearman vs ACTUAL
+ownership, per race and leave-one-race-out (fit on 7, predict the 8th):
+    single predictor, no fit:  proj_dk 0.762 | optimal% 0.697 | salary 0.592 | value 0.540
+    LORO fitted models:  proj only 0.762 | +salary 0.755 | +salary+optimal% 0.750 | +all 0.754
+OUR OWN PROJECTION IS THE OWNERSHIP MODEL. It predicts the field at rho 0.76 out of sample, it is
+stable race to race (0.649-0.840 vs salary's 0.089-0.841), and every feature we added made it WORSE.
+There is no ownership model to build here - a fitted one would just reproduce proj_dk.
+WHAT THAT KILLS: leverage-as-edge. The premise of "optimal% minus ownership" is that we can see
+where the crowd is wrong. We cannot - our best estimate of the crowd IS our board. Any leverage
+number we shipped would be dressing up our own projection error as a market inefficiency.
+WHAT IT LEAVES, and it is real: duplication is structural, not predictive. The highest-projection
+lineups are also the most-rostered ones, so their PAYOUT value sits below their SCORE value no
+matter whose projection is right. E[max] currently ignores this entirely - it maximises our score
+as if we were alone in the contest. A duplication-weighted objective needs no new model: proj-rank
+is a rho-0.76 ownership proxy, available today, for free.
+RESIDUAL CHECKED FOR EXPLOITABLE STRUCTURE - none found. residual = ownership percentile minus our
+projection percentile; mean 0.000, sd 0.205. It correlates negatively with salary (-0.133), value
+(-0.212) and optimal% (-0.290, negative in 8/8 races), which LOOKS like a signal - the field
+under-owns our high-optimal% drivers. It is almost certainly an artifact of differencing two
+correlated percentiles rather than a fitted residual, and the LORO test settles it: adding optimal%
+to the model made out-of-sample prediction WORSE (0.750 vs 0.762). No edge there.
+PER-DRIVER RESIDUALS, logged as a watch not a finding (n=3-5 each, sd 0.205 gives SE ~0.10, so these
+are 1.5-2 SE and nothing more): consistently over-owned vs our board - Reddick +0.203, Preece +0.185,
+Gilliland +0.168, Cindric +0.152, Suárez +0.139. Consistently under-owned - Byron -0.205, Larson
+-0.152, Chastain -0.134, Allmendinger -0.133, Ware -0.118. If a real name-level crowd bias exists,
+this is where it will show up first; it costs nothing to keep accumulating because the operator
+uploads contests anyway. Revisit at ~20 races, not before.
