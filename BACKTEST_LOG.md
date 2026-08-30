@@ -3294,3 +3294,34 @@ missing feature.
 METHOD NOTE. This is the second study in two days where the in-sample signal pointed one way and the
 holdout said zero (SS finish-quality: in-sample +0.0244, holdout -0.0041). The pattern is worth
 naming: an in-sample gain under +0.05 has now twice predicted a holdout of exactly nothing.
+
+### 2026-08-30 — closing_ps, all four track types (EXPLORATORY, cannot ship on this evidence)
+Operator asked about the other track types. Only Superspeedway was pre-registered, so the other
+three are diagnostics, not findings — a positive here would have required a NEW registered holdout,
+not a decision. Recorded because "did we miss a subgroup?" is the obvious question and it deserves
+an answer on the record rather than in a chat.
+
+    track type            races  baseline rho   delta   positive   raw c-vs-f   AVERAGED pc-vs-pf
+    Short & Flat Tracks     43       0.5415    -0.0003    44.2%       0.912          0.9888
+    Intermediate            64       0.4863     0.0000    51.6%       0.895          0.9864
+    Road Course             28       0.4352    +0.0001    50.0%       0.844          0.9535
+    Superspeedway (reg.)    27       0.1723    -0.0003    48.1%       0.725          0.8356
+
+Nothing anywhere: every delta is zero to three decimals and every group is a coin flip.
+
+The last two columns are the point. Averaging over a driver's prior races drives EVERY group toward
+collinearity — 0.895 -> 0.986, 0.912 -> 0.989. Superspeedway retains the most distinction (0.836)
+and therefore had the most room for a different answer; it is also the one group that was registered
+in advance; and it is as flat as the others. **This strengthens the closure rather than qualifying
+it.** There is no track type where prior-average closing position is anything but a restatement of
+prior-average finishing position.
+
+BYPRODUCT WORTH KEEPING, and it is not about closing_ps at all. The BASELINE per-race Spearman
+varies by more than 3x across track types:
+
+    Short & Flat 0.5415 · Intermediate 0.4863 · Road Course 0.4352 · Superspeedway 0.1723
+
+Start position plus prior finishing record predicts the finishing order roughly three times better
+at short tracks than at superspeedways. That is a property of the sport, measured on a holdout,
+independent of anything in this study — and it is the same ordering our GROUP_NOISE_MULT already
+encodes by hand. Two registered studies and this baseline now agree on the superspeedway end of it.
