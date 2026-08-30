@@ -3325,3 +3325,56 @@ Start position plus prior finishing record predicts the finishing order roughly 
 at short tracks than at superspeedways. That is a property of the sport, measured on a holdout,
 independent of anything in this study — and it is the same ordering our GROUP_NOISE_MULT already
 encodes by hand. Two registered studies and this baseline now agree on the superspeedway end of it.
+
+## 2026-08-30 — PRE-REGISTRATION: does ORGANIZATION strength predict finish beyond driver record?
+WRITTEN AND PUSHED BEFORE ANY FIT. Holdout unread.
+
+WHY THIS ONE, AND WHY NOW. Operator's correction, verbatim: *"I think you are focusing on
+superspeedways to much sometimes remember we do all track types."* Fair. The schedule is
+**Intermediate 173 · Short & Flat 118 · Road Course 71 · Superspeedway 71** — two thirds of it is
+the two track types the last three studies barely addressed. So: all four track types are named as
+subgroups HERE, in advance, each judged on the same bars. A per-track-type answer is then a result
+rather than a subgroup hunt.
+
+`loop_data.team_name` arrived tonight and has never existed before: 16,052 rows, 100 organizations.
+It is the single most plausible untested addition, and its absence has already blocked a study —
+the 2026-08-30 superspeedway entry declares a deviation because *"the organization fallback is not
+implementable (no team column)."* That blocker is gone.
+
+HYPOTHESIS. The recent strength of a driver's ORGANIZATION at a track type predicts that driver's
+finish, beyond starting position and the driver's own prior finishing record.
+
+DESIGN, frozen now.
+  * Unit: one driver-race. Every feature from races STRICTLY BEFORE the race being predicted.
+  * **priorOrg** = mean `finish_position` over rows that are: same `correlation_group_label`,
+    strictly earlier by race_date, same `team_name` as this driver has in THIS race, and
+    **`nascar_driver_id` <> this driver**. Excluding the driver's own history is the whole point —
+    it makes the feature about the equipment rather than a second copy of priorFin.
+  * Minimum 3 qualifying prior rows; below that, neutral fill with the TRAIN-set group mean finish
+    (same convention as the closing_ps study, leak-free, conservative).
+  * Rows with no `team_name` (78, from the two races NASCAR published with no weekend feed) are
+    dropped.
+  * Baseline: fin_hat = a + b*start + c*priorFin      <- IDENTICAL to the closing_ps baseline, so
+    the two studies are directly comparable.
+  * Test:     fin_hat = a + b*start + c*priorFin + d*priorOrg
+  * OLS on TRAIN 2022-2024, scored on HOLDOUT 2025-2026. All three series, points races only,
+    exhibitions excluded.
+  * Metric: per-race Spearman between predicted and actual finish; report mean delta (test minus
+    baseline) across holdout races.
+
+PASS BARS, per subgroup, both required:
+  1. mean per-race Spearman delta >= +0.05 on the holdout, AND
+  2. delta positive in >= 60% of that subgroup's holdout races.
+**Subgroups registered in advance: ALL of Intermediate, Short & Flat Tracks, Road Course,
+Superspeedway, plus the pooled result.** A pass in a subgroup ships nothing on its own; it earns a
+second registered holdout on races run after this date. A subgroup that fails is closed for this
+feature.
+
+MANDATORY STAGE-1 CHECK, added because of tonight's miss. The closing_ps study measured collinearity
+on the RAW column (0.856, looked safe) and never checked the CONSTRUCTED feature, which turned out to
+be 0.967 after averaging — that alone determined the null. So before the holdout is read I will
+report **corr(priorFin, priorOrg) on the constructed features, per track type.** If it exceeds 0.95
+in a group, that group is called uninformative BEFORE scoring, not after.
+
+A fail closes organization-as-equipment-strength in the failing groups. No re-cutting the split, no
+changing the metric, no new subgroups afterwards.
