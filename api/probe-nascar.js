@@ -238,6 +238,52 @@ async function sweep(res, year, deadline) {
   })
 }
 
+// Pull one race's weekend results as a compact pipe-delimited table, so the
+// fields can be checked row-by-row against what we already store rather than
+// assumed to match. Verification, not ingestion — nothing here writes.
+async function weekend(res, year, series, race) {
+  const url = `https://cf.nascar.com/cacher/${year}/${series}/${race}/weekend-feed.json`
+  const { data, status } = await getJson(url)
+  if (!data) return res.status(200).json({ mode: 'weekend', error: `unavailable [${status}]`, url })
+
+  const hits = findDriverMap(data)
+  const path = Object.keys(hits)[0]
+  if (!path) return res.status(200).json({ mode: 'weekend', error: 'no results array found', url })
+
+  // findDriverMap gives a path like "/weekend_race[]/results[]". Walk it to the
+  // containing array: descend by key, and step into element 0 for every "[]"
+  // except the last, which IS the array we want.
+  const parts = path.split('/').filter(Boolean)
+  let arr = data
+  for (let i = 0; i < parts.length && arr != null; i++) {
+    const isArr = parts[i].endsWith('[]')
+    const key = isArr ? parts[i].slice(0, -2) : parts[i]
+    if (key) arr = arr[key]
+    if (isArr && i < parts.length - 1 && Array.isArray(arr)) arr = arr[0]
+  }
+  if (!Array.isArray(arr)) {
+    return res.status(200).json({ mode: 'weekend', error: 'path did not resolve to an array', path, url })
+  }
+
+  const COLS = [
+    'driver_id', 'driver_fullname', 'car_number', 'official_car_number',
+    'team_name', 'owner_fullname', 'crew_chief_fullname', 'car_make',
+    'starting_position', 'finishing_position', 'finishing_status', 'disqualified',
+    'laps_completed', 'laps_led', 'times_led',
+    'qualifying_order', 'qualifying_position', 'qualifying_speed',
+    'points_earned', 'playoff_points_earned',
+  ]
+  const rows = arr
+    .slice()
+    .sort((a, b) => (a.finishing_position || 999) - (b.finishing_position || 999))
+    .map(r => COLS.map(c => (r[c] === null || r[c] === undefined ? '' : r[c])).join('|'))
+
+  return res.status(200).json({
+    mode: 'weekend', year, series, race, path, url,
+    columns: COLS, n: rows.length, rows,
+  })
+}
+
 async function single(res, year, series, race) {
   const url = `https://cf.nascar.com/loopstats/prod/${year}/${series}/${race}.json`
   const started = Date.now()
@@ -316,5 +362,6 @@ module.exports = async function handler(req, res) {
 
   const deadline = Date.now() + BUDGET_MS
   if (q.mode === 'sweep') return sweep(res, year, deadline)
+  if (q.mode === 'weekend') return weekend(res, year, series, race)
   return single(res, year, series, race)
 }
