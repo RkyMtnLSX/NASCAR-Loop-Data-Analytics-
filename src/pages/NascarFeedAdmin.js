@@ -35,7 +35,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
-import { SERIES_ID, SERIES_OPTS, makeResolver, feed, mapRace } from '../lib/nascarFeedMap'
+import { SERIES_ID, SERIES_OPTS, fold, makeResolver, feed, mapRace } from '../lib/nascarFeedMap'
 
 const card = { marginBottom: 20 }
 const inputStyle = { padding: '6px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: '0.85rem', width: '100%' }
@@ -289,7 +289,7 @@ export function FeedBackfill() {
 
   async function run() {
     setRunning(true); setLog([]); setSummary(null); stop.current = false
-    const tally = { races: 0, skipped: 0, rows: 0, lapsFixed: 0, statusFixed: 0, carMismatch: 0, newNames: 0 }
+    const tally = { races: 0, skipped: 0, rows: 0, lapsFixed: 0, statusFixed: 0, carMismatch: 0, newNames: 0, nameConflict: 0 }
     const seriesList = series === 'all' ? Object.keys(SERIES_ID) : [series]
     const yearList = year === 'all' ? ALL_YEARS : [parseInt(year, 10)]
     say(`${dryRun ? 'DRY RUN — nothing will be written.' : 'WRITING.'} `
@@ -352,19 +352,49 @@ export function FeedBackfill() {
           trackName: race.track_name, resolve,
         })
 
-        // The bijection test. Both directions, so an extra row on either side fails.
+        // POSITION MATCH, with a name cross-check as the real guard.
+        //
+        // Finish position is unique within a race on both sides, so it is an exact
+        // key. It does NOT have to be a bijection: 10 of 436 races are missing a
+        // driver from loop_data (n=38 rows but positions running to 39). Those gaps
+        // are PRESERVED rather than renumbered - which is exactly what proves the
+        // two sides still refer to the same positions - so requiring set equality
+        // would skip ten repairable races for no gain.
+        //
+        // What is required: our positions unique, and a subset of the feed's. Then
+        // every row is checked by NAME before anything is written. A renumbering
+        // would show up immediately as a wall of name mismatches, and any single
+        // row that disagrees is left untouched rather than overwritten.
         const ourPos = new Set(ours.map(r => r.finish_position))
-        const feedPos = new Set(mapped.rows.map(r => r.finish_position))
-        const same = ourPos.size === ours.length && feedPos.size === mapped.rows.length
-          && ourPos.size === feedPos.size && [...ourPos].every(p => feedPos.has(p))
-        if (!same) {
-          say(`  SKIP ${label}: finish positions do not correspond (ours ${ours.length}, feed ${mapped.rows.length})`)
+        const feedByPos = new Map(mapped.rows.map(r => [r.finish_position, r]))
+        if (ourPos.size !== ours.length) {
+          say(`  SKIP ${label}: duplicate finish positions in loop_data`); tally.skipped++; continue
+        }
+        const missing = [...ourPos].filter(p => !feedByPos.has(p))
+        if (missing.length) {
+          say(`  SKIP ${label}: ${missing.length} stored position(s) absent from the feed (${missing.slice(0, 6).join(', ')})`)
+          tally.skipped++; continue
+        }
+        if (ourPos.size !== feedByPos.size) {
+          say(`    note ${label}: feed has ${feedByPos.size} drivers, loop_data has ${ourPos.size} — enriching the ${ourPos.size} we hold`)
+        }
+
+        const nameMismatch = ours.filter(row => {
+          const f = feedByPos.get(row.finish_position)
+          return fold(row.driver_name) !== fold(f.driver_name)
+        })
+        if (nameMismatch.length > Math.max(2, ours.length * 0.2)) {
+          say(`  SKIP ${label}: ${nameMismatch.length}/${ours.length} names disagree at the same finish position — positions are not comparable`)
           tally.skipped++; continue
         }
 
-        const feedByPos = new Map(mapped.rows.map(r => [r.finish_position, r]))
         const merged = ours.map(row => {
           const f = feedByPos.get(row.finish_position)
+          if (fold(row.driver_name) !== fold(f.driver_name)) {
+            say(`    LEFT ALONE P${row.finish_position}: stored "${row.driver_name}", feed "${f.driver_name}"`)
+            tally.nameConflict++
+            return row
+          }
           if (f.__how === 'new') tally.newNames++
           if (row.car_number && f.car_number && String(row.car_number) !== String(f.car_number)) {
             tally.carMismatch++
@@ -460,7 +490,7 @@ export function FeedBackfill() {
         <div style={{ ...mono, padding: '8px 10px', borderRadius: 6, marginBottom: 10, background: 'rgba(34,197,94,0.12)', color: '#86efac' }}>
           {summary.races} races, {summary.rows} rows · total_laps corrected on {summary.lapsFixed} ·
           finish_status changed on {summary.statusFixed} · car# disagreements {summary.carMismatch} ·
-          unmatched names {summary.newNames} · skipped {summary.skipped}
+          unmatched names {summary.newNames} · left alone on name conflict {summary.nameConflict} · skipped {summary.skipped}
         </div>
       )}
 

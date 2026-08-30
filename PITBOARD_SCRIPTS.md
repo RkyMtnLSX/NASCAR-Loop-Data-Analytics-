@@ -253,10 +253,22 @@ race id from the schedule, +/-1 day, and refuses to guess if the match is not un
 preview* (full table, with any name it could not match to an existing spelling flagged), *Load*.
 
 **Feed Backfill** - repairs races already stored. Defaults to all three series, all seasons, dry run.
-**Run it dry first and read the log.** Rows are matched on **finish position**, which is unique
-within a race, so the join is exact and self-checking: a race whose positions do not correspond
-exactly on both sides is skipped and reported, never partially written. Existing rows are read in
-full and merged, so no column can be nulled by omission.
+**Run it dry first and read the log.**
+
+Rows are matched on **finish position** - unique within a race, so it is an exact key, and no name
+matching happens in this path. It is deliberately NOT a strict bijection: 10 of 436 races are
+missing a driver from `loop_data` (38 rows but positions running to 39). Those gaps are *preserved*
+rather than renumbered, which is what proves both sides still mean the same positions, so requiring
+set equality would skip ten repairable races for nothing. What is required is that our positions are
+unique and a subset of the feed's.
+
+The real guard is a **name cross-check on every row**: if the stored name and the feed's name at the
+same finish position do not fold-match, that row is **left untouched** and printed. If more than 20%
+of a race's rows disagree, the whole race is skipped - which is what a renumbering would look like.
+Existing rows are read in full and merged, so no column can be nulled by omission.
+
+Expected before the first run: 426 of 436 races are clean 1..N, 0 have duplicate or null finish
+positions, and 142 will report a `total_laps` correction.
 
 ### Where the writes happen
 
