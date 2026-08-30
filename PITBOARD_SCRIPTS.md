@@ -286,6 +286,27 @@ template with range-checked integer parameters.
   quantities. `qualifying_order` does fill a column we only have on 1,980 of 6,093 rows.
 - **Lap Raptor fastest-lap paste.** Different source. `lap-times.json` may cover it; unverified.
 
+### When NASCAR publishes no weekend feed
+
+Some races have complete loopstats and an **empty weekend feed** — the file exists but
+`weekend_race` and `weekend_runs` are both `null`. Confirmed on cup 2025 R34 Talladega, oreilly
+2024 R7 Martinsville and trucks 2022 R5 Martinsville.
+
+Loopstats is treated as the spine and the weekend feed as an enrichment, so those races still load:
+the 15 loop columns, `closing_ps`, `nascar_driver_id`, full-precision average position and rating,
+and the scheduled-vs-actual lap correction all come from loopstats alone. What is unavailable —
+car number, team, finish status, stage results, and the race-level cautions / lead changes /
+average speed / margin — is **left exactly as stored**, never blanked.
+
+The mechanism is a deliberate `undefined` vs `null` distinction in `src/lib/nascarFeedMap.js`:
+`undefined` means *unknown, do not touch*; `null` means *the feed answered and had nothing there*.
+The backfill merges with `?? stored` on every weekend-sourced field and strips `undefined` keys from
+the race-level update.
+
+Alignment is still verified in that case — the resolver's first rung maps a NASCAR driver id to the
+name we already hold for it, so rows are checked against ids learned from other races. A race where
+fewer than half the drivers have a known id is skipped. The check degrades; it does not disappear.
+
 ### Egress
 
 `cf.nascar.com` is reachable from **Vercel** (measured 107ms from iad1) and from the operator's

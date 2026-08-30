@@ -1,6 +1,34 @@
 # PITBOARD STATE
 Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2026-08-30. DFS was rebuilt this session: GPP is now a SET objective (E[max] across the sim draws, no tuning parameter, scales 1-150 entries), a DFS Replay admin tool grades the delivered SET against the real contest and banks it in dfs_replays, projected ownership ships on the board, and the whole replay ledger was recomputed through the product's own solvers (4-1-1 -> 3-2-3). Superspeedway finish-quality CLOSED on a registered holdout. BLOCKER: four races have no pit data - the local scrapers need SUPABASE_KEY set (see PITBOARD_SCRIPTS.md).
 
+## 2026-08-30 (backfill run) — RESULT AND THE TWO RESIDUES
+
+**First write:** 432 races, 15,977 rows. `total_laps` corrected on **143** races. `finish_status`
+changed on **2,598** rows — 16% of the table. `loop_data.car_number` NULLs fell 120 -> 8.
+`finish_status` now carries real causes: accident 1,606 · engine 162 · suspension 123 · dvp 102 ·
+electrical 65 · brakes 60 · transmission 45. **SimulationCenter's auto DNF rate reads this column,
+so its output has moved.**
+
+**Second write** (after the variant fix): 16,016 of 16,130 rows enriched.
+
+**The 51 "name conflicts" were five drivers, not misalignments.** 40 were "Andres Perez", which
+NASCAR spells "Andres Perez De Lara"; the rest Cleetus McFarland / Garrett Mitchell (one person;
+NASCAR files him under both "Cleetus McFarland" and "Cleetus Mitchell" against id 4530), Conner
+Dean, William Dean, Tim Viens. NASCAR's own feed is inconsistent — `pit_stops` holds "Andes Perez
+De Lara #", their typo, against the same id. Rows are now enriched anyway when the rest of the race
+aligns; **our stored `driver_name` is never changed.**
+
+**4 of 5 skipped races were matcher misses.** cup 2026 R17 is ours vs theirs: we call it "Naval Base
+Coronado", NASCAR calls it "San Diego Street Course", and our date is a day later. Seeded
+`races.nascar_race_id` from `pit_stops`, which agreed with the feed **410/410** where both existed.
+
+**3 races then still failed, for a different reason:** NASCAR publishes them with complete loopstats
+and a NULL weekend feed. Handled — see PITBOARD_SCRIPTS.md §5. **One more backfill run picks up
+those ~114 rows.**
+
+**Still open:** cup 2026 "R0" Dover is a stub row (no date, no loop_data) that should be looked at
+and probably deleted. `drivers.nascar_driver_id` is still NULL for pre-existing driver rows.
+
 ## 2026-08-30 (later) — RACE INGESTION MOVED OFF RACING REFERENCE
 
 **Shipped.** Admin -> Load Data has two new panels: **Load Race from NASCAR Feed** (replaces the
