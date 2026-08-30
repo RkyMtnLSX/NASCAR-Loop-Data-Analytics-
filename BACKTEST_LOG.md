@@ -2614,10 +2614,12 @@ an NFD accent fold first, so the accented letter was deleted outright: board "Da
 null) return` guard fired, and the flag left the graded ledger with NO error and NO count anywhere
 in the UI. Same failure class as the A.J. Allmendinger punctuation bug (2026-08-09) - punctuation
 was fixed then, accents were not.
-SCOPE: 15 logged flagged_bets on Suárez. Races 23/24/25 all lost (fin 23/16/17), so the bug had
-only ever hidden LOSSES - which is exactly why nine graded races never looked wrong. Tonight it
-would have hidden WINS: Suárez P2 at Daytona R26 with t10 +350/+340, t3 +1600/+1700 and t5
-+750/+850 all hitting.
+SCOPE (pulled from flagged_bets + loop_data this session): 20 logged flags on Suárez, cup races
+22-26, finishes 17/23/16/17/2. Races 22-25 were all losses, so the bug had only ever hidden
+LOSSES - which is exactly why nine graded races never looked wrong. R26 is where it flips: 8 flags
+(4 pre, 4 post), and the post four are all pre-owned duplicates, so the graded set is the PRE
+prices - t10 +350 HIT, t3 +1600 HIT, t5 +750 HIT, win +4500 miss = +25.0u on 4 units, none of
+which was reaching the ledger.
 FIX: module-level `__nmName` (NFD fold -> strip combining marks -> strip non-alphanumerics), used
 by the taken-flag join, the group-market members, and BOTH sides of the pre-owned key (which had
 been raw-name on both sides - consistent today, but only because pre and post boards happen to
