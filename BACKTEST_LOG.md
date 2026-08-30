@@ -3524,3 +3524,77 @@ a failed test, and it is exactly the sort of thing that looks compelling because
 consulted first. If it is ever run it needs its own pre-registration, its own holdout, and the same
 bars. Two operator instincts in a row have now improved the DIAGNOSIS of a null result — worth noting
 as a working pattern, not as licence to act on either.
+
+## 2026-08-30 — DNF DATA vs THE SIM: what the real statuses change, and the leader-wreck residual
+Read of SimulationCenter's DNF path against the newly-populated `finish_status`. No parameter moved.
+
+HOW THE SIM HANDLES DNFs, for the record. `dnfRate` is a TOTAL attrition budget per car from
+`resolveDnfRate()` — the live per-track rate measured off loop_data, shrunk toward a hardcoded
+per-group constant by conf = min(1, nTrackRaces/8). That budget is split by WRECK_ACC_SHARE into
+accident DNFs, spent as correlated multi-car events bootstrapped from real races and bucketed by the
+caution forecast, and independent mechanical draws. Survivors of an event pay WRECK_SURV_COST;
+DNFers keep laps led before wrecking at weight min(1, dnfLap x WRECK_LL_B); DNFs sort behind all
+running cars, ordered by dnfLap.
+
+1. THE LIVE RATE ALREADY MOVED, AND resolveDnfRate NOW CONTRADICTS ITSELF.
+The rate expression is an OR: `(fs && fs !== 'running') || (lc > 0 && lc < 0.9*mx)`. Until tonight
+`fs` was the junk heuristic so the laps branch did all the work; there are now ZERO rows left on the
+old 'running'/'dnf' vocabulary, so the status branch is live. Rates by series x group, old rule vs
+now, against the hardcoded fallback:
+
+    cup Short & Flat   0.0802 -> 0.0914   (hardcoded 0.081)
+    cup Road Course    0.0813 -> 0.0948   (hardcoded 0.085)
+    cup Intermediate   0.1266 -> 0.1547   (hardcoded 0.127)
+    cup Superspeedway  0.1778 -> 0.2551   (hardcoded 0.184)
+    oreilly SS         0.2145 -> 0.2841   (hardcoded 0.220)
+
+**The constants match the OLD rule almost exactly** — they were measured with it on 2026-07-14. So
+the function now blends a new-rule trackAvg against an old-rule base: at cup superspeedways 0.255
+against 0.184, a 7-point disagreement inside one function. Worst where the fallback was designed to
+matter — a track with little history (the comment names North Wilkesboro) is dragged toward a stale
+number. This is a bug regardless of which definition is preferred.
+
+Sanity check on the wider definition before recommending it: the 453 rows the status branch newly
+counts finish at average position 29.1, 77.6% of field, 60.7% in the bottom quarter, 2.0% in the top
+half — against 92.1% of field for hard DNFs. Genuinely back-of-field, so counting them is right, but
+they are NOT the same object the budget was calibrated against. dnfLap ordering absorbs some of that.
+Whether it absorbs all of it is empirical, which is why the constant was NOT swapped.
+
+2. WRECK_ACC_SHARE VALIDATES. Coded SHORT 0.63 / INT 0.70 / SS 0.85 / ROAD 0.50; measured now from
+real causes on all 436 races: 0.585 / 0.666 / 0.812 / 0.447. Close, from an independent source
+(the coded values came from a 359-race lap-note join). Nothing to change.
+
+3. THE DOMINATOR MEASUREMENT ALSO VALIDATES. Share of laps led by eventual DNFers, coded from a
+370-race join as SHORT 2.0 / INT 8.2 / SS 17.3 / ROAD 4.1; measured now on 436 races from stored
+statuses: **2.8 / 8.6 / 17.5 / 4.5.** The gxc-v3.1-dnfLL work was right.
+
+4. THE LEADER-WRECK RESIDUAL IS NOW QUANTIFIED. Operator, unprompted, on the Daytona R26 case:
+*"Zane smith crashed on the last lap from the lead ... he was contending for the win."* Our row:
+start 34, finish 32, 165 of 166 laps, 15 laps led, closing_ps 3 — the largest closing-vs-finish gap
+in that race. The WRECK_LL_B comment already names this as the known open residual: *"Saturated fit
+lands SS ~14% vs 17.3 measured — residual is unmodeled leader-wreck correlation."*
+
+Mean lap fraction at which a DNFer wrecks, split by whether they had led:
+
+    group          led laps   did not lead   gap
+    Superspeedway    0.784        0.593      +0.191
+    Short & Flat     0.781        0.579      +0.202
+    Road Course      0.760        0.597      +0.163
+    Intermediate     0.707        0.550      +0.157
+
+**Leaders wreck late, in every track type, by a consistent ~+0.16 to +0.20 of race distance.** The
+sim selects wreck victims as position-adjacent clusters in running order without conditioning WHO is
+hit on WHEN the event happens, so late events reach the front of the field less often than reality.
+That is the mechanism behind the 14% vs 17.5% shortfall.
+
+Why it matters more for DFS than for finish order: laps led and fastest laps are banked before the
+wreck and only place differential and finishing points collapse. A car that leads 15 laps and is
+classified 32nd from a 34th start is a completely different DFS object from one that wrecks on lap
+30 — same dnf flag, different score — and it is the highest-variance object at superspeedways, which
+is where the operator's own 301.45 lineup method came from.
+
+STATUS: nothing shipped. Item 1 is a bug needing a decision (refresh constants under a registered
+calibration, or make both halves use the old rule as a stopgap). Item 4 is a PRE-EXISTING documented
+residual that has become measurable — NOT a hypothesis mined from tonight's residuals — and any
+change to victim selection still needs its own pre-registration and holdout, judged like the
+2026-08-29 placement-tail calibration.
