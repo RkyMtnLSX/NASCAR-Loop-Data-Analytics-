@@ -128,13 +128,51 @@ const DNF_PRESETS = [
 // where Cup has ZERO races, so the old code fell through to a hard-coded Medium (0.15) against a
 // true short-track rate of 0.081. That is ~2x the real attrition, and it buries every contender's
 // floor. See BACKTEST_LOG.
+// REFRESHED 2026-08-30 to match the live rule. These are FALLBACKS only: a track
+// with 8+ races of its own history has conf = 1 and the measured rate wins outright.
+//
+// Why they had to move. The live rate is `(status !== 'running') || (laps < 90% of
+// winner)`. Until 2026-08-30 finish_status was a laps<90% guess, so the status
+// branch was inert and the two agreed. loop_data now carries NASCAR's real
+// classification on every row (zero left on the old 'running'/'dnf' vocabulary),
+// so the status branch fires and the measured rate rose - while these constants,
+// taken on 2026-07-14, still encoded the OLD rule. The function was blending a
+// new-rule trackAvg against an old-rule base: 0.255 vs 0.184 at cup superspeedways,
+// a 7-point contradiction inside one function, worst exactly where the fallback
+// matters (a low-history track like North Wilkesboro).
+//
+// Measured under the live rule, 2022-2026, exhibitions excluded, per-race rates
+// averaged. Race counts per cell: cup 46/27/66/29, oreilly 34/31/63/28,
+// trucks 38/13/44/14.
+//
+// Sanity-checked before adopting: the rows the status branch newly counts finish at
+// 77.6% of field on average, 60.7% in the bottom quarter, 2.0% in the top half -
+// genuinely back-of-field, which is what the sim's dnf flag means.
+//
+// STILL OPEN, deliberately: whether the sim's DNF BUDGET should equal the observed
+// retirement rate at all. A late wreck that is classified 29th is a retirement but
+// not the same object as a car parked at half distance; dnfLap ordering absorbs some
+// of that difference and it has not been shown to absorb all of it. That question
+// wants the registered treatment the 2026-08-29 placement-tail calibration got.
+// This change only removes the self-contradiction, in the direction of the more
+// accurate measurement. To revert, the pre-2026-08-30 values are in git history.
 const DNF_BY_GROUP = {
-  cup:     { 'Short & Flat Tracks': 0.081, 'Road Course': 0.085, 'Intermediate': 0.127, 'Superspeedway': 0.184 },
-  oreilly: { 'Short & Flat Tracks': 0.134, 'Road Course': 0.159, 'Intermediate': 0.108, 'Superspeedway': 0.220 },
-  trucks:  { 'Short & Flat Tracks': 0.133, 'Road Course': 0.176, 'Intermediate': 0.140, 'Superspeedway': 0.187 },
+  cup:     { 'Short & Flat Tracks': 0.091, 'Road Course': 0.095, 'Intermediate': 0.155, 'Superspeedway': 0.255 },
+  oreilly: { 'Short & Flat Tracks': 0.163, 'Road Course': 0.187, 'Intermediate': 0.135, 'Superspeedway': 0.284 },
+  trucks:  { 'Short & Flat Tracks': 0.147, 'Road Course': 0.214, 'Intermediate': 0.149, 'Superspeedway': 0.240 },
 }
-const DNF_SERIES_MEAN = { cup: 0.118, oreilly: 0.141, trucks: 0.149 }
-const DNF_FLOOR = 0.03, DNF_CAP = 0.30
+const DNF_SERIES_MEAN = { cup: 0.145, oreilly: 0.178, trucks: 0.168 }
+// DNF_CAP raised 0.30 -> 0.40 on 2026-08-30, in the same motion as the constant
+// refresh above and for the same reason. The cap is a rail against a garbage
+// measurement, not a modelling opinion, and 0.30 was set when the old rule put the
+// worst cell at ~0.22. Under the live rule three REAL track cells now exceed it -
+// oreilly Daytona 0.329, cup Daytona 0.319, trucks Talladega 0.306 - so leaving it
+// would have silently truncated the highest-attrition tracks on the schedule, which
+// are the plate races where the DNF model matters most. Raising the base rates
+// without raising the rail would have been a quiet distortion of exactly the wrong
+// races. 0.40 clears the observed maximum (0.329) with headroom while still
+// catching an obviously broken value.
+const DNF_FLOOR = 0.03, DNF_CAP = 0.40
 
 // #51 wreck-v1 (2026-07-28): event-based accident DNFs. The accident share of the DNF budget
 // is spent through multi-car wreck events bootstrapped from 359 real races (lap-note accident
