@@ -1,5 +1,74 @@
 # PITBOARD STATE
-Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2026-08-24. DFS multi-entry toolchain COMPLETE: fill-by-contest picker (b0361752), exposure cap fixed - sub-100% no longer collapses to 1 lineup (8a48b136); NH entry JHN fix + parser hardened (e3b7ec39). NH weekend live: v6.3 wk3 + startPos watch both judged Sunday.
+Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2026-08-30. DFS was rebuilt this session: GPP is now a SET objective (E[max] across the sim draws, no tuning parameter, scales 1-150 entries), a DFS Replay admin tool grades the delivered SET against the real contest and banks it in dfs_replays, projected ownership ships on the board, and the whole replay ledger was recomputed through the product's own solvers (4-1-1 -> 3-2-3). Superspeedway finish-quality CLOSED on a registered holdout. BLOCKER: four races have no pit data - the local scrapers need SUPABASE_KEY set (see PITBOARD_SCRIPTS.md).
+
+## 2026-08-30 SESSION HANDOFF — WHAT CHANGED, AND WHAT BELOW IS NOW FALSE
+Long session, heavy shipping, and FIVE corrections of my own work - read this before trusting any
+pre-08-30 line in this file.
+
+### SHIPPED
+- **GPP IS A SET OBJECTIVE.** Was: rank each lineup by its own p90, then filter by exposure cap.
+  Now: greedy maximisation of E[max] - the expected score of the BEST lineup in the delivered set -
+  across the stored draws. No tuning parameter (at N=1 it returns the cash lineup). Best-of-20 field
+  percentile over the 8 replayable races: 79.8 old uncapped, 87.0 old + 50% cap, 90.0 E[max]. Holds
+  at every entry count (wins 5-7 of 8 races at N=5..150); at 150 entries it reaches the 96.5th
+  percentile. Selector is exported (makeEmaxSelector), resumable, used by the page AND the replay.
+- **MAX EXPOSURE DEFAULT: 100% -> 50% -> back to 100%, same night.** The 50% was measured against
+  the OLD objective, where the cap was the only thing forcing spread. Under E[max] spread is
+  endogenous (22.4 unique drivers vs 18.5) and the cap buys nothing (90.0 vs 90.0) while costing
+  delivery (20/20 -> 18.1). The control stays for manual use.
+- **DFS REPLAY admin tool** (Admin -> DFS Replay) + `dfs_replays` table. Rebuilds both modes from the
+  pre-lock draws through DFSPage's own solvers, grades BEST-OF-N against loop_data, places it in the
+  uploaded contest, reports the three calibration correlations, stamps engine_era. Eight rows seeded.
+- **PROJECTED OWNERSHIP** column in the DFS pool (600 * exp(2.2 * proj percentile) / sum, fitted LORO,
+  MAE 6.11 ownership points; the 600 total is measured, not assumed).
+- **/dfs-optimals + /optimal-lineups** pages and a 2022-26 optimal-lineup corpus (dfs_optimal_history,
+  330 rows; dfs_race_field, 41 races).
+- **GradeCenter name-join hardening** (shared __nmName) - see the retraction below.
+- **PITBOARD_SCRIPTS.md** created; pipeline operations move out of BACKTEST_LOG.
+
+### CORRECTED OR RETRACTED THIS SESSION (five)
+1. **GradeCenter "accent bug" - RETRACTED.** I claimed an accent-folding miss was silently dropping
+   Suárez's flags and costing +25u. The pre-fix grade row already contained them: both sides of that
+   join carry BOARD spellings, so the fold was consistently wrong and still matched. The commit is
+   hardening, not a fix. LESSON: go find a record the bug should have suppressed before claiming it.
+2. **DFS replay 7 (Daytona) - my harness was not the product.** It optimised on the draw mean instead
+   of the board's proj_dk and used a thin candidate set. Corrected by the tool: cash 230.25 beats GPP
+   202.40, not a tie.
+3. **THE WHOLE REPLAY LEDGER - 4-1-1 becomes 3-2-3.** All eight races re-run through the product
+   solvers. Biggest single correction: cup NH R25, logged as "first GPP loss, GPP faded Blaney", is
+   actually a TIE on IDENTICAL lineups at 171.30. The fade-the-winner pattern is one instance, not a
+   trend, so the top-k-by-mean patch was never built.
+4. **SS "car quality survives" - RETRACTED.** Argued from one race; 27 held-out races say no.
+5. **"We can't project ownership" - WRONG HEADLINE.** We can (MAE 6.1). What we cannot do is get an
+   EDGE from it, because it is derived from proj_dk. Different claim.
+
+### WHAT IS NOW FALSE IN THE OLDER SECTIONS
+- "DFS replay ledger: 6 races - GPP 4 wins, 1 tie, 1 LOSS" -> **3 wins, 2 ties, 3 losses over 8
+  races**, and SEVEN of those eight ran on pre-2026-08-29 draws (old SS dominator allocator, old
+  SHORT/INT wreck survival). As evidence about the CURRENT engine the ledger is n=1. Neither the old
+  4-1 nor the corrected 3-2-3 justifies a default-mode change.
+- "Operator's cup DK entries used no-cap exposure -> habit fix = exposure ~50%" -> superseded; under
+  E[max] the cap is not the mechanism.
+- "Ownership ground truth: 7 contests banked. Refit at 8-10." -> 8 banked, and the refit question is
+  ANSWERED: our own proj_dk predicts ownership at LORO Spearman 0.762 and every added feature made it
+  worse (salary 0.755, +optimal% 0.750, +value 0.754). There is no ownership model to build.
+- Queue 1 (ownership-leverage overlay) and Queue 2 (replay report UI) - see the queue notes below.
+
+### CLOSED THIS SESSION
+- **Superspeedway finish-quality** - registered holdout FAILED both bars (see the pre-registered
+  section). GROUP_NOISE_MULT SS 1.75 is now supported by a holdout, not just the win curve.
+- **Leverage as an edge** - our best estimate of the crowd IS our board, so optimal% minus ownership
+  restates our own projection error. Reopens only with an ownership signal independent of proj_dk.
+  Drive was swept for one (Phil's sheets: none; the FCFM "Interest" column is the analyst's own play
+  preferences, not an ownership read - operator checked and corrected me).
+
+### BLOCKING, OPERATOR ACTION
+Four races have loop data but NO pit stops or penalties - trucks R18 NH (8/22), cup R25 NH (8/23),
+oreilly R24 Daytona (8/28), cup R26 Daytona (8/29). The local backfills fall back to the publishable
+key when SUPABASE_KEY is unset, and RLS grants those tables to `authenticated` only, so PostgREST
+returned 200 + an empty array and the script reported "0 races in scope" and exited clean for eight
+days. FIX: `setx SUPABASE_KEY "<service role key>"`, new terminal, run POST_RACE_UPDATE.bat once.
+Both scripts now refuse to run silently in that state. Full detail: PITBOARD_SCRIPTS.md.
 
 ## 2026-08-24 SESSION HANDOFF — READ THIS BEFORE ACTING ON ANY 2026-08-24 ENTRY
 Whole session was ANALYSIS ONLY. Zero changes to src/, api/, package.json, the database, or any
@@ -178,18 +247,18 @@ before stating n.
 
 ## Open experiments (ledgers)
 - v6.3-st session-time correction: LEDGER 2-1 (wk1 trucks +.026, wk2 cup -.099, wk3 cup NH +.028 CORRECTED WINS, protocol target rho .624 v .596 n=36). POOLED mean delta -0.0150, sem 0.0420 over 3 sessions - indistinguishable from zero, dominated by wk2. Verdict deferred to 8-10 sessions per the 2026-08-23 protocol correction; emergency stop (single week worse than -0.15 rho) never approached. Wk3 was the FIRST CLEAN test (A/B groups gone, gc correction self-disabled). BLOCKER unchanged: truck sessions still upload with no captured_at, so the pool fills at half rate - fix the watcher for truck practice.
-- DFS replay ledger: 6 races - GPP 4 wins, 1 tie, 1 LOSS. R6 cup NH: mean 207.8 (~9080/14268) BEAT GPP 150.7 (~11674) - GPP faded Blaney (winner, 101.45pts, 37.3% owned) on a CHALK-DELIVERS slate (top 3 scorers all 30%+ owned). Confirms GPP edge is proportional to board uncertainty.
+- DFS replay ledger: **SUPERSEDED 2026-08-30 - the 6-race 4-1-1 does not reproduce.** All 8 replayable races re-run through the product's own solvers: GPP 3 wins, 2 ties, 3 losses; mean best-of-20 field percentile cash 40.6 v GPP 39.0. The cup NH R25 entry above is WRONG - both modes build the identical lineup and score 171.30, a tie, so 'GPP faded Blaney' is not a finding. Seven of the eight ran on pre-08-29 draws (engine_era stamped in dfs_replays), so as evidence about today's engine this is n=1. Ledger rebuilds from here through Admin -> DFS Replay.
 - DK FPTS decomposition (9 post boards, 2026-08-24): NO broken component - finish .605, place .573, laps led .461 (weakest, but only 7% of variance), fastest laps .665 (strongest), TOTAL .475; 45% of variance is covariance between terms. Errors compound: total ranks below the component average by -0.101 in 7 of 9 races. CORRECTION to the earlier 2-slate claim: DK salary does NOT generally out-predict us (we win 4, salary 5, one a tie; means .480 v .499). The surviving signal is TRUCKS-ONLY - salary wins all 3 truck races, mean gap -.070, n=3. Watch for a 4th/5th truck race; if it holds, consider a market anchor on truck DK projections.
 - Pre/post board sweep (9 paired boards, 2026-08-24): POST IS BETTER ORDERED, NOT BETTER CALIBRATED. Winner's win-board rank improves or ties 9/9, regresses in NONE (7 strict, p=.008); actual top-5 finishers gain 0.64 board slots. Brier favors post on all four markets but proves nothing at n=9 (|t| <= 1.24; robust to renormalization). Post boards are much sharper - top favorite 17.8% -> 25.3%, entropy down 8/9. THE SHARPENING IS UNEARNED IN THE CUP WIN MARKET: cup picks >=12% predict 20.8% and hit 8.3% post (pre was already bad at 16.8/9.1). Series split is NOT a finding - trucks' Brier edge is 3-for-3 favorite luck at ~25% each, and full-field Spearman splits the OTHER way (post better 4/4 cup, 1/5 non-cup). Keep publishing post; discount post CUP win pct for win-market bets. Re-run at 15-18 pairs. BACKTEST_LOG 2026-08-24.
 - [BYRON CORRECTION, same day - STANDS] Operator corrected my "over-confident" example: Byron lost a wheel running top 5 (26 laps led, high pos 1, 296/301), so the 14.3% post rating was right on speed and killed by attrition. The cup high-confidence gap (8.3% realized on 20.8% stated, n=12) is heavily ATTRITION-driven - also two Larson failures and Blaney leading 129 and 88 laps in two races he didn't win. Practical advice unchanged (discount post cup win pct), diagnosis softened.
 - [RETRACTED same day - I WAS WRONG IN DIRECTION] I claimed "the board reads pace well and the pace-to-finish conversion throws it away; aim at conversion, not weight sweeps." Operator challenged it from the ARP-vs-driver-rating archive. Two problems: (1) CIRCULARITY - corrHistory (~37% effective weight) IS driver_rating, which is built largely FROM avg running position, so scoring the board against ARP is scoring it against its own input. The 2026-07-07 GFS entry logs this exact trap and I walked into it. (2) The chain decomposition points the OTHER way: pace->finish is 0.83 within these 9 races and 0.760 across 434 archive races (cup .735/oreilly .772/trucks .782), while board->pace in cup is only 0.61. The weak link is PREDICTING pace, not converting it; our shortfall vs the naive chain product is just 0.053. Weight/signal work is aimed at the right half of the pipeline after all. Queue 8 (DNF tiering) stands on its own merits, unpromoted. For the record the 2026-07-07 ablation concluded ARP and driver_rating EQUIVALENT (.472-.474 test, all configs), not "rating better" - rating was kept as incumbent. METHOD: before adopting any new evaluation target, check it against the model's input list. BACKTEST_LOG 2026-08-24.
-- Ownership ground truth: 7 contests banked (Iowa cup+ore, Richmond trucks+cup, NH trucks+cup). Refit at 8-10.
+- Ownership ground truth: 8 contests banked (+ cup Daytona R26). QUESTION ANSWERED 2026-08-30, no refit needed: our proj_dk predicts field ownership at LORO Spearman 0.762 and NOTHING we hold improves it (+salary 0.755, +optimal% 0.750, +value 0.754). Shipped as a Proj Own% column (MAE 6.11 pts). The residual (actual minus predicted) is the only place a real crowd bias could show; per-driver residuals are 1.5-2 SE at n=3-5, revisit at ~20 races.
 
 - BOARD CALIBRATION IS SOUND (2026-08-24, 644 driver-rows/market over 9 races, both stages). Top-5 lands within ~5pts of truth in EVERY band (says 1.2/happens 1.0 ... says 67.9/happens 66.7); top-10 close and mildly UNDER-confident at 10-20; win fine where n supports it. Known exception: cup favourites at the top of the win market are over-confident (12 picks, 20.8% stated v 8.3% realised). THE FLAGS' -35% ROI IS NOT EVIDENCE OF A MISCALIBRATED SIM - flagging selects where model>market, which selects the model's own upward errors (winner's curse, arithmetic not defect). Different objects, different measurements. Do not let one be quoted against the other. BACKTEST_LOG 2026-08-24.
 
 ## Queue (rough priority)
-1. Ownership-leverage overlay in DFS: projected-ownership model + chalk-trap flags + build diversification (fixes the conviction-collapse failure; Majeski 55%-owned bust + Blaney fade are the motivating cases).
-2. DFS replay report UI — auto compute/place both modes from each standings upload.
+1. [SPLIT 2026-08-30] Ownership-leverage overlay: the PROJECTED-OWNERSHIP half is SHIPPED (Proj Own% column, MAE 6.1). The LEVERAGE half is CLOSED - it is derived from proj_dk, so chalk-trap flags would restate our own projection error as a market inefficiency. Build diversification is also done, differently and better: E[max] diversifies endogenously. WHAT REMAINS AND IS NOW THE TOP DFS ITEM: a DUPLICATION-weighted objective - E[max] currently maximises our score as if we were the only entrant, when a tournament pays on beating other entries. Needs no new model (proj-rank is the ownership proxy); needs pre-registration.
+2. [SHIPPED 2026-08-30] DFS replay report UI - Admin -> DFS Replay. Picks a race, rebuilds both modes from the stored draws via the product's own exported solvers, grades BEST-OF-N against loop_data, places it in the uploaded contest, reports rho vs model/salary/ownership, flags unmatched names, and saves to dfs_replays with an engine_era stamp. Ledger table with the running tally is on the same panel.
 3. [CLOSED 2026-08-23 - NO SHIP] All-tracks blend into corrAvgRating tested at board level: 341 races, all four track groups, production weight set per race. EVERY arm (w .25-.75) ties current on win/t3/t5/t10; mean win Brier degrades monotonically with w. The pre-test's decisive rating-prediction gain (W244/L138 p<1e-7) did NOT reach the market bar. corrAvgRating stays type-only. Harness validated first by reproducing the startPos result 134W/64L p<.001. BACKTEST_LOG 2026-08-23.
 4. Sim A/B: long-run practice input.
 4b. [SHIPPED 2026-08-20] startPos conditioned sweep: 230-race full-model sweep ->
@@ -234,5 +303,5 @@ before stating n.
   at next weekly sync, fix = operator access_token in headers (2026-08-19).
 - Trucks Richmond practice never re-uploaded with timestamps — live truck card still uncorrected (cup wk2 check was run via harness instead).
 - sim_matrices exists only for boards published after 2026-08-15 evening; older boards fall back to 4k sample in Matchup Compare.
-- Operator's 7 cup DK entries used no-cap exposure → one thesis ×7; habit fix = exposure ~50% for multi-entry.
-- New Hampshire week owed: v6.3 wk3 check + weekly DFS replay after standings upload. Trucks R18 board accidentally published as 'post' 8/19 — retagged to 'pre' (board + 9 flags + sim_matrices); stage-guard confirm didn't stop it, consider defaulting stage selector to 'pre' when no practice exists.
+- [SUPERSEDED 2026-08-30] The 'one thesis x7' failure is now handled by the objective, not by a cap: E[max] selects a SET, so it only duplicates a core where the draws say duplication pays. Default max exposure is back at 100% deliberately - see the handoff. The operator's own method (exclusions + per-driver caps + wide spread) still works on top and is what produced his 301.45 / rank 179 at Daytona.
+- [DONE] New Hampshire week: v6.3 wk3 check + DFS replay both completed (the replay was later recomputed - see the handoff). Trucks R18 board accidentally published as 'post' 8/19 — retagged to 'pre' (board + 9 flags + sim_matrices); stage-guard confirm didn't stop it, consider defaulting stage selector to 'pre' when no practice exists.
