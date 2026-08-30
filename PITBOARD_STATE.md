@@ -1,6 +1,25 @@
 # PITBOARD STATE
 Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2026-08-30. DFS was rebuilt this session: GPP is now a SET objective (E[max] across the sim draws, no tuning parameter, scales 1-150 entries), a DFS Replay admin tool grades the delivered SET against the real contest and banks it in dfs_replays, projected ownership ships on the board, and the whole replay ledger was recomputed through the product's own solvers (4-1-1 -> 3-2-3). Superspeedway finish-quality CLOSED on a registered holdout. BLOCKER: four races have no pit data - the local scrapers need SUPABASE_KEY set (see PITBOARD_SCRIPTS.md).
 
+## 2026-08-30 — ORGANIZATION STUDY CLOSED (registered, failed on materiality not existence)
+
+`team_name` (100 organisations, 16,052 rows) tested as recent-org-strength at a track type, all four
+track types registered in advance. **Fails everywhere.** Pooled delta **+0.0051** against a +0.05
+bar; best group Road Course +0.0098. Per track type: Road 0.0098 (67.9% positive) · Short & Flat
+0.0076 · Superspeedway 0.0052 · **Intermediate 0.0014, the weakest.**
+
+Unlike closing_ps this is a REAL effect (pooled t=2.31, consistently positive in all five cuts) —
+just ~10x too small. Pooled 95% CI [0.0008, 0.0095]: even the optimistic end is 5x under the bar, so
+this is not "underpowered, revisit later" — the data now rules out an effect of the size that would
+matter.
+
+**My stage-1 prediction was wrong and is recorded as such:** I argued organisation would matter most
+at intermediates because equipment and aero matter most there. Intermediate came back weakest.
+
+`team_name` stays a stored column for grouping/filtering/display, no model role. Contemporaneous
+team pace, teammate practice speed and crew-chief identity were NOT tested and would each need their
+own pre-registration.
+
 ## 2026-08-30 — closing_ps STUDY CLOSED (registered, failed)
 
 `closing_ps` is populated on all 16,130 rows and **no model uses it.** Registered study ran the same

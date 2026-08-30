@@ -3405,3 +3405,49 @@ information relabelled.
 Encouraging and not yet worth anything. The superspeedway study's in-sample gain was +0.0244 and its
 holdout was -0.0041. Bars unchanged: >= +0.05 mean per-race Spearman delta AND positive in >= 60% of
 races, judged separately for each of the four registered track types and pooled.
+
+## 2026-08-30 — ORGANIZATION STUDY STAGE 2: real effect, ~10x too small. FAILS. CLOSED.
+Scored on the frozen coefficients. Nothing refit, no parameter moved, all four track types as
+registered.
+
+    scope            races  baseline  test    mean delta  positive   t     95% CI
+    ALL (pooled)      161    0.4415   0.4466   +0.00512    56.5%    2.31  [ 0.0008, 0.0095]
+    Road Course        28    0.4347   0.4445   +0.00980    67.9%    1.50  [-0.0030, 0.0226]
+    Short & Flat       43    0.5414   0.5491   +0.00764    55.8%    1.86  [-0.0004, 0.0157]
+    Superspeedway      26    0.1732   0.1784   +0.00515    53.8%    1.24  [-0.0030, 0.0133]
+    Intermediate       64    0.4864   0.4877   +0.00136    53.1%    0.38  [-0.0056, 0.0084]
+
+Bar 1 needed >= +0.05. Best group managed **+0.0098**. Bar 2 needed >= 60% positive; only Road
+Course cleared it (67.9%) and it misses bar 1 by 5x. **FAILS in every registered group. CLOSED.**
+
+THIS IS A DIFFERENT KIND OF FAILURE FROM closing_ps, AND THE DISTINCTION MATTERS.
+closing_ps was **nothing**: delta -0.0001, positive in 48.8%, a coin flip, because the constructed
+feature was a 0.967 copy of priorFin. Organisation strength is **real but tiny**: the pooled effect
+is positive, consistently signed in all five cuts, and statistically distinguishable from zero
+(t=2.31). It is simply an order of magnitude below the size that would justify touching the model.
+
+The confidence interval is what closes it properly. Pooled 95% CI is [0.0008, 0.0095] — **even the
+optimistic end is five times below the registered bar.** This is not "underpowered, revisit with more
+data." The data is now precise enough to rule out an effect of the size we said would matter. That
+is a stronger negative than a wide interval straddling zero would have been.
+
+MY OWN PREDICTION WAS WRONG, ON THE RECORD. Stage 1 argued organisation would matter MOST at
+intermediates, "where equipment and aero matter most," and least at superspeedways "where the draft
+flattens everything." The holdout says the reverse of the first half: **Intermediate is the WEAKEST
+of the four (+0.0014, t=0.38)** and Road Course the strongest (+0.0098, 67.9% positive). I have no
+registered hypothesis that explains that and I am not inventing one now — noting that the stated
+mechanism failed is the honest end of it.
+
+WHAT IS CLOSED. Organisation recent-strength at a track type, measured as the mean finish of the
+org's OTHER cars in prior races in that group, as a predictor beyond start position and the driver's
+own prior finish. Closed in all four track types. `team_name` remains a stored column, useful for
+grouping, filtering and display, with no model role.
+
+WHAT THIS DOES NOT CLOSE. Any other use of team_name — contemporaneous (same-weekend) team pace
+rather than a prior average, teammate practice speed, crew-chief identity. None were tested. Each
+would need its own pre-registration written before looking. I am not proposing one on the back of a
+failure.
+
+SCOREBOARD, three registered studies in two days, all failed on holdout: SS finish-quality
+(-0.0041), closing_ps (-0.0001), organisation (+0.0051 against a +0.05 bar). Two of the three had
+positive in-sample signals. The bar is doing exactly what it was set up to do.
