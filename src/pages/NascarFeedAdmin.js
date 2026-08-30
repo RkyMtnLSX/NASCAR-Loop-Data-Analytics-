@@ -299,7 +299,7 @@ export function FeedBackfill() {
 
   async function run() {
     setRunning(true); setLog([]); setSummary(null); stop.current = false
-    const tally = { races: 0, skipped: 0, rows: 0, lapsFixed: 0, statusFixed: 0, carMismatch: 0, newNames: 0, nameConflict: 0, exhibitions: 0, cautions: 0 }
+    const tally = { races: 0, skipped: 0, rows: 0, lapsFixed: 0, statusFixed: 0, carMismatch: 0, newNames: 0, nameConflict: 0, exhibitions: 0, cautions: 0, stageLaps: 0 }
     const seriesList = series === 'all' ? Object.keys(SERIES_ID) : [series]
     const yearList = year === 'all' ? ALL_YEARS : [parseInt(year, 10)]
     say(`${dryRun ? 'DRY RUN — nothing will be written.' : 'WRITING.'} `
@@ -507,6 +507,15 @@ export function FeedBackfill() {
             avg_speed: mapped.race.avg_speed,
             margin_of_victory: mapped.race.margin_of_victory,
             margin_of_victory_text: mapped.race.margin_of_victory_text,
+            // Stage boundaries. These were added to mapRace but missed here on the
+            // first pass, because this update names its keys explicitly while the
+            // one-race loader spreads the whole race object — so the loader wrote
+            // them and the backfill silently did not. If you add a race-level field
+            // to mapRace, add it HERE too.
+            stage_1_laps: mapped.race.stage_1_laps,
+            stage_2_laps: mapped.race.stage_2_laps,
+            stage_3_laps: mapped.race.stage_3_laps,
+            stage_4_laps: mapped.race.stage_4_laps,
           }
           Object.keys(raceUpdate).forEach(k => {
             if (raceUpdate[k] === undefined) delete raceUpdate[k]
@@ -523,6 +532,7 @@ export function FeedBackfill() {
             if (e3) say(`    caution segments failed for ${label}: ${e3.message}`)
             else tally.cautions += cautions.length
           }
+          if (raceUpdate.stage_1_laps != null) tally.stageLaps++
         }
 
         tally.races++; tally.rows += merged.length
@@ -577,7 +587,7 @@ export function FeedBackfill() {
         <div style={{ ...mono, padding: '8px 10px', borderRadius: 6, marginBottom: 10, background: 'rgba(34,197,94,0.12)', color: '#86efac' }}>
           {summary.races} races, {summary.rows} rows · total_laps corrected on {summary.lapsFixed} ·
           finish_status changed on {summary.statusFixed} · car# disagreements {summary.carMismatch} ·
-          unmatched names {summary.newNames} · name variants kept {summary.nameConflict} · exhibitions excluded {summary.exhibitions} · caution segments {summary.cautions} · skipped {summary.skipped}
+          unmatched names {summary.newNames} · name variants kept {summary.nameConflict} · exhibitions excluded {summary.exhibitions} · caution segments {summary.cautions} · stage laps {summary.stageLaps} · skipped {summary.skipped}
         </div>
       )}
 
