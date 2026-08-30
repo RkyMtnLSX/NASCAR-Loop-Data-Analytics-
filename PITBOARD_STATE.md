@@ -284,6 +284,14 @@ before stating n.
 8. Mech DNF tiered by equipment; tire-management earned/dashed column; matchup pricer; RR+LR loop-data merge mode; PENALTIES_BACKFILL_ALL history run (operator); best-5 tooltip wording.
 
 ## Loose ends
+- [NEW 2026-08-30] `loop_data.car_number` stamping is a NAME join against the rolling `entry_list`
+  (Admin.js ~903) and `api/load-race.js` never writes it at all - 1,962 rows over 72 races had NULL,
+  which silently drops those drivers from every pit-crew analysis (crew key = car+org+season). 650
+  repaired from `pit_stops` (exact/prefix only, single-candidate, additive); 2026 went 21 -> 5. The
+  1,312 left are 2022 races and races with no NASCAR pit feed - no second source exists. FIX AT
+  SOURCE, not built: give the stamp DfsReplay's resolution ladder and fall back to pit_stops.
+  UNRESOLVED BY DESIGN: trucks NH R18 - loop says Sutton #27 / Baldwin #2, the pit feed says #26 /
+  #33. Sources disagree on the truck; needs an eyeball, not a merge rule. pitboard.md 2026-08-30.
 - [RETRACTED 2026-08-22] The "practice duplicate/session-collision" loose end was MY OWN
   grouping error - I scanned practice_laps without race_number, and Phoenix-type tracks host two
   races a season under session_number 1. Same 60k rows: 204 collisions without race_number, 0

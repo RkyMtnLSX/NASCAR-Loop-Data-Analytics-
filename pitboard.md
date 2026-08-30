@@ -2845,3 +2845,34 @@ until env swap" are the same fact seen from two sides).
 LESSON (standing): before writing any operational doc, re-read PITBOARD_STATE for the components
 it touches - the state doc had this exactly right and the runbook was drafted from code + Stripe
 alone. And every new md file gets a doc-map entry in the MANUAL in the same commit it is born.
+
+## 2026-08-30 — loop_data.car_number was NULL on 1,962 rows; 650 repaired from the pit feed
+FOUND while verifying the post-race backfill: POST_RACE_UPDATE reported `trucks 2026 R18 New Hampshire:
+cars 89% names 94%` in its join-quality line. Chased it rather than waving it through.
+CAUSE: `loop_data.car_number` is stamped at load time by a NAME join against `entry_list`
+(Admin.js ~line 903, `__elNorm`). That normalizer accent-folds and strips punctuation and jr/sr/ii
+suffixes correctly, but it cannot bridge NICKNAMES or dropped surname parts, and `entry_list` is a
+rolling per-weekend table, so a race loaded outside its own weekend gets no map at all. The
+serverless path (`api/load-race.js`) never writes car_number in the first place. Failures found:
+"Mike Christopher, Jr." vs entry "Michael Christopher Jr", "Andres Perez" vs "Andres Perez De Lara",
+"Nick Sanchez" vs "Nicholas Sanchez", plus Daniel Suarez on five straight cup races.
+WHY IT MATTERS: the pit-crew key is car + organization + season. A NULL car_number silently drops
+that driver from every pit-crew and pit-stop analysis - the exact table the operator says is missing
+races. The rows were present the whole time; they just could not join.
+SCOPE: 1,962 rows over 72 races, 2022-2026.
+REPAIR (executed 2026-08-30, additive - only NULL -> value, nothing overwritten): filled from
+`pit_stops`, which carries both driver_name and car_number from NASCAR's weekend feed and is
+therefore a better source than the entry list. Matching restricted to EXACT or one-name-is-a-prefix
+-of-the-other on an accent-folded key, and only where the race had exactly ONE candidate car number:
+649 rows filled, 0 ambiguous. Plus one hand-verified single row (Mike Christopher, Jr. -> #72,
+trucks NH R18, confirmed against the pit feed). 2026 went 21 NULLs -> 5.
+REMAINING 1,312, and they are not fixable this way: 1,301 are 2022 races (39 of them) and the rest
+are races with no NASCAR pit feed at all - there is no second source to fill from. Only 4 races
+outside 2022 still carry any NULL.
+STILL OPEN, NOT GUESSED AT: trucks NH R18 joins 34 of 36 cars even after the repair because the two
+sources DISAGREE on car numbers for two drivers - loop data has Dawson Sutton #27 and Luke Baldwin
+#2, the NASCAR pit feed has Sutton #26 and Baldwin #33. One of the sources is wrong about which
+truck they drove; that is an eyeball call, not a merge rule, so nothing was changed.
+FIX AT THE SOURCE (queued, not built): give Admin.js's stamp the same resolution ladder now used in
+DfsReplay - exact, then suffix/punctuation-stripped, then prefix, then unique first-initial+surname -
+and fall back to `pit_stops` when the entry list has no match. That kills the whole class.
