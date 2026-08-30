@@ -3598,3 +3598,49 @@ calibration, or make both halves use the old rule as a stopgap). Item 4 is a PRE
 residual that has become measurable — NOT a hypothesis mined from tonight's residuals — and any
 change to victim selection still needs its own pre-registration and holdout, judged like the
 2026-08-29 placement-tail calibration.
+
+## 2026-08-30 — PRE-REGISTRATION: do wrecks cluster after restarts?
+WRITTEN AND PUSHED BEFORE LOOKING. The caution data landed less than an hour ago and has not been
+queried against DNFs.
+
+WHY. SimulationCenter spends the accident share of the DNF budget through multi-car events
+bootstrapped as [size, lapFraction] from real races. The bootstrap stores whole races, so it inherits
+whatever within-race clustering exists — but nothing conditions WHEN an event fires on where the
+restarts are, and until tonight nothing in the database recorded a restart lap. The stage inputs on
+the sim panel are labelled "captured for the future caution/pit layer, do not affect results yet".
+This is the measurement that layer would rest on.
+
+HYPOTHESIS. Accident DNFs are disproportionately concentrated in the laps immediately following a
+restart, relative to a uniform baseline over green-flag laps.
+
+DESIGN, frozen now.
+  * Unit: one accident DNF. `finish_status` in ('accident','dvp','damage','fire'), which is the same
+    set WRECK_ACC_SHARE uses. Mechanical DNFs are the CONTROL, not the subject.
+  * Wreck lap := `laps_completed` for that driver. It is a proxy — the car stopped there — and it is
+    the same proxy the existing wreck work used.
+  * Restart laps come from `caution_segments.restart_lap` (= end_lap + 1). A caution whose restart
+    falls beyond `total_laps` (race ended under caution) contributes no restart.
+  * GREEN-FLAG LAPS ONLY. Laps inside a caution window are excluded from both numerator and
+    denominator — cars do not wreck under yellow, and leaving them in would manufacture the result.
+  * `k` := laps since the most recent restart, for each green lap and each wreck.
+  * Statistic: P(wreck | k <= 5) vs P(wreck | k > 5), as a rate per car-lap-at-risk. Reported as a
+    RATIO. The 5-lap window is chosen now, not after looking.
+  * Reported for all four track types separately, all named in advance, plus pooled.
+  * CONTROL: the same statistic for MECHANICAL DNFs. Engine failures should NOT cluster at restarts.
+    If they do, the finding is an artifact of how laps_completed relates to caution timing and the
+    whole thing is void. This control is the single most important part of the design.
+
+PASS BAR. Accident wrecks in the first 5 green laps after a restart occur at >= 1.5x the rate of
+later green laps, pooled AND in at least 3 of the 4 track types, AND the mechanical control shows a
+ratio < 1.2. All three required.
+
+WHAT A PASS BUYS. Nothing shipped. It earns a pre-registered attempt at conditioning wreck-event
+lap fractions on restart proximity in the sim, judged on a 2025-26 holdout by the same chi-square
+gate the 2026-08-29 placement-tail calibration used.
+
+WHAT A FAIL CLOSES. Restart proximity as a driver of accident timing. The bootstrap keeps drawing
+lap fractions as it does, and the "future caution/pit layer" loses its main motivation.
+
+DECLARED IN ADVANCE: `laps_completed` as the wreck lap is imprecise for a car that limps several
+laps after contact — this biases k UPWARD and therefore works AGAINST the hypothesis. Any deviation
+gets appended here before the numbers are read.
