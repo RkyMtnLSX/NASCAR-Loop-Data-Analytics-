@@ -199,19 +199,16 @@ export default function DFSPage() {
   const [locks, setLocks] = useState(() => new Set())
   const [excludes, setExcludes] = useState(() => new Set())
   const [numLineups, setNumLineups] = useState(20)
-  // DEFAULT MAX EXPOSURE 100% -> 50% (2026-08-30). Measured, not assumed: the 20-lineup portfolio
-  // was rebuilt through this same exposure machinery across all 8 replayable races at caps of
-  // 100/60/50/40/30/25/20 pct and scored on the real finishes. BEST-OF-20 mean field percentile:
-  //   no cap 79.8 | 60% 86.3 | 50% 87.0 | 40% 89.0 | 30% 87.3 | 25% 85.4 | 20% 86.1
-  // Uncapped is the WORST setting at every level of the sweep, and it was shipping as the default.
-  // The mechanism is portfolio floor, not ceiling: uncapped builds reuse one core (12-21 unique
-  // drivers across 20 lineups vs 33 at a 20% cap), so when that core busts the whole portfolio
-  // busts - cup R25 62.4 -> 89.8 and trucks R18 51.9 -> 79.2 are the rescues that move the mean.
-  // 50% is the conservative middle of the plateau; 40% scored highest and is one control away.
-  // IN-SAMPLE across 8 races - this is a UI default, not a model constant, and the replay ledger
-  // tracks it forward. Operator's own method (exclusions + per-driver caps + wide spread) is what
-  // prompted the measurement: "the variance is extreme at superspeedways".
-  const [maxExp, setMaxExp] = useState(0.5)
+  // MAX EXPOSURE default: back to 100% (2026-08-30, same night it was set to 50%). The 50% default
+  // was measured against the OLD per-lineup GPP objective, where capping was the only thing forcing
+  // spread (best-of-20 field percentile 79.8 uncapped -> 87.0 at a 50% cap). GPP now maximises
+  // E[best lineup] over the sim draws, which diversifies on its own: uncapped it already uses 22.4
+  // unique drivers across 20 lineups (the old capped build used 18.5), and re-measuring the new
+  // objective across all 8 replayable races gives percentile 90.0 uncapped, 90.0 at a 50% cap and
+  // 87.4 at 30% - the cap now buys NOTHING and costs delivery (20 of 20 uncapped, 18.1 at 50%,
+  // 12.0 at 30% before top-up). The control stays for manual use; it is no longer a crutch the
+  // default needs to lean on.
+  const [maxExp, setMaxExp] = useState(1)
   const [expo, setExpo] = useState({}) // { name: { min, max } } whole percents; see __capFor/enforceMinExposure
   const [lineups, setLineups] = useState([])
   const [optPct, setOptPct] = useState({})
@@ -334,6 +331,20 @@ export default function DFSPage() {
   // plus the top mean lineups for coverage. Receipts that motivated it: Iowa replay -
   // mean-optimal cup lineup finished 1289/1417 while PD-ceiling builds won; top-heavy
   // GPP payouts pay ceiling, not average. Cash mode keeps the mean objective.
+  // GPP = a SET objective, not a per-lineup one (2026-08-30, operator: "Most GPP players play
+  // multiple lineups. Some players even max 150 entries"). A tournament pays your BEST entry, so
+  // the right thing to maximise across N lineups is E[max score] over the stored sim draws, not
+  // each lineup's own p90. Greedy on E[max] is near-optimal (the objective is submodular) and it
+  // needs NO tuning parameter: at N=1 it returns the highest-mean lineup, and as N grows it
+  // diversifies only where the draws say diversifying pays.
+  // MEASURED, all 8 replayable races, best-of-20 field percentile: uncapped p90 79.8, p90 + 50%
+  // exposure cap 87.0, E[max] greedy 90.0. At 150 entries E[max] reaches the 96.5th percentile.
+  // Exposure caps are now a CONSTRAINT inside the selection instead of a filter applied after
+  // ranking - a capped driver's lineups are skipped as the set is built, so the request never
+  // under-delivers and there is nothing to top up.
+  // LAZY GREEDY: gains only ever shrink as the set grows (submodularity), so a stale gain is an
+  // upper bound - refresh the leader, accept it if it still leads. 150 entries takes ~47k gain
+  // evaluations instead of 600k.
   const buildGpp = () => {
     const nmIdx = {}
     samples.drivers.forEach((nm, ix) => { nmIdx[nm] = ix })
@@ -349,61 +360,107 @@ export default function DFSPage() {
     const addCand = names => { const k2 = names.slice().sort().join('|'); if (!candMap2.has(k2) && feasible(names)) candMap2.set(k2, names) }
     ;(simCands || []).forEach(addCand)
     const pool2 = rows.map(r2 => ({ name: r2.name, car: r2.car, sal: r2.sal, projDK: r2.projDK }))
-    const meanRes = optimize(pool2, locks, excludes, 300)
+    const meanRes = optimize(pool2, locks, excludes, Math.max(300, numLineups * 4))
     if (!meanRes.error) meanRes.lineups.forEach(lu => addCand(lu.drivers.map(d2 => d2.name)))
-    const cands = Array.from(candMap2.values())
-    if (!cands.length) { setNote('No cap-legal candidate lineups under current locks/excludes.'); setBuilding(false); return }
-    // perf (2026-08-14): cap candidates at 2000 (by projected mean) and score on a
-    // ~2500-draw stride sample - p90 SE is fine there; full 10k sorts froze the tab.
-    let cands2 = cands
-    if (cands2.length > 2000) {
+    let cands2 = Array.from(candMap2.values())
+    if (!cands2.length) { setNote('No cap-legal candidate lineups under current locks/excludes.'); setBuilding(false); return }
+    // candidate pool scales with the request - 150 entries needs more to choose from than 20
+    const CAND_MAX = Math.min(6000, Math.max(2000, numLineups * 25))
+    if (cands2.length > CAND_MAX) {
       cands2 = cands2.map(n3 => [n3, n3.reduce((a3, nm) => a3 + (projByN[nm] || 0), 0)])
-        .sort((x3, y3) => y3[1] - x3[1]).slice(0, 2000).map(x3 => x3[0])
+        .sort((x3, y3) => y3[1] - x3[1]).slice(0, CAND_MAX).map(x3 => x3[0])
     }
-    const strideS = Math.max(1, Math.floor(samples.rows.length / 2500))
+    const DRAW_TARGET = cands2.length > 4000 ? 1500 : 2000
+    const strideS = Math.max(1, Math.floor(samples.rows.length / DRAW_TARGET))
     const drawRows = []
     for (let di = 0; di < samples.rows.length; di += strideS) drawRows.push(samples.rows[di])
-    const nS2 = drawRows.length
+    const nD = drawRows.length, nC = cands2.length
     const idxCands = cands2.map(names => names.map(nm => nmIdx[nm]))
-    const scored = []
-    let ci = 0
-    const CH = 100
+    const Smat = new Float32Array(nC * nD)
+    const cMean = new Float64Array(nC), cCeil = new Float64Array(nC), cFloor = new Float64Array(nC)
+    const tmp = new Float64Array(nD)
+    for (let c = 0; c < nC; c++) {
+      const ids = idxCands[c], off = c * nD
+      let mu = 0
+      for (let d = 0; d < nD; d++) {
+        const rw = drawRows[d]
+        const v = rw[ids[0]] + rw[ids[1]] + rw[ids[2]] + rw[ids[3]] + rw[ids[4]] + rw[ids[5]]
+        Smat[off + d] = v; tmp[d] = v; mu += v
+      }
+      cMean[c] = mu / nD
+      tmp.sort()
+      cCeil[c] = tmp[Math.min(nD - 1, Math.floor(0.9 * (nD - 1)))]
+      cFloor[c] = tmp[Math.min(nD - 1, Math.floor(0.25 * (nD - 1)))]
+    }
+    const want = numLineups
+    const best = new Float32Array(nD)
+    const taken = new Uint8Array(nC)
+    const bound = new Float64Array(nC).fill(Infinity)
+    const stale = new Uint8Array(nC).fill(1)
+    const used = {}
+    const ok = new Uint8Array(nC).fill(1)
+    const capOf = nm => (locks.has(nm) ? Infinity : __capFor(nm, want, maxExp, expo))
+    // PERF (found in testing before shipping): the cap test must run ONCE PER PICK, not inside
+    // every lazy scan - it only changes when `used` changes. Calling it per scan turned a 2-second
+    // 150-lineup build into one that never finished.
+    const refreshOk = () => {
+      for (let c = 0; c < nC; c++) {
+        if (taken[c]) { ok[c] = 0; continue }
+        const ns = cands2[c]
+        let good = 1
+        for (let i = 0; i < ROSTER; i++) { const nm = ns[i]; if ((used[nm] || 0) >= capOf(nm)) { good = 0; break } }
+        ok[c] = good
+      }
+    }
+    const gainOf = c => { let g = 0; const off = c * nD
+      for (let d = 0; d < nD; d++) { const v = Smat[off + d] - best[d]; if (v > 0) g += v }
+      return g }
+    const chosen = []
+    refreshOk()
+    const pickOne = () => {
+      let pick = -1
+      for (;;) {
+        let top = -1, tb = -1
+        for (let c = 0; c < nC; c++) { if (!ok[c]) continue; if (bound[c] > tb) { tb = bound[c]; top = c } }
+        if (top < 0) break
+        if (!stale[top]) { pick = top; break }
+        const g = gainOf(top); bound[top] = g; stale[top] = 0
+        let sec = -1
+        for (let c = 0; c < nC; c++) { if (!ok[c] || c === top) continue; if (bound[c] > sec) sec = bound[c] }
+        if (g >= sec) { pick = top; break }
+      }
+      if (pick < 0 || bound[pick] <= 0) return false
+      taken[pick] = 1; chosen.push(pick)
+      const off = pick * nD
+      for (let d = 0; d < nD; d++) { const v = Smat[off + d]; if (v > best[d]) best[d] = v }
+      cands2[pick].forEach(nm => { used[nm] = (used[nm] || 0) + 1 })
+      for (let i = 0; i < nC; i++) stale[i] = 1
+      refreshOk()
+      return true
+    }
     const step2 = () => {
-      const end2 = Math.min(cands2.length, ci + CH)
-      for (; ci < end2; ci++) {
-        const idxs = idxCands[ci]
-        const tots = new Float64Array(nS2)
-        for (let si2 = 0; si2 < nS2; si2++) {
-          const rw = drawRows[si2]
-          tots[si2] = rw[idxs[0]] + rw[idxs[1]] + rw[idxs[2]] + rw[idxs[3]] + rw[idxs[4]] + rw[idxs[5]]
-        }
-        tots.sort()
-        const pk = f3 => tots[Math.min(nS2 - 1, Math.floor(f3 * (nS2 - 1)))]
-        let mn2 = 0; for (let x2 = 0; x2 < nS2; x2++) mn2 += tots[x2]
-        mn2 /= nS2
-        scored.push({
-          drivers: cands2[ci].map(nm => ({ name: nm, car: carByN[nm], sal: salByN[nm], projDK: projByN[nm] || 0 })),
-          salary: cands2[ci].reduce((a2, nm) => a2 + (salByN[nm] || 0), 0),
-          proj: mn2, ceil: pk(0.9), floor: pk(0.25),
-        })
-      }
-      if (ci < cands2.length) setTimeout(step2, 0)
-      else {
-        scored.sort((a2, b2) => b2.ceil - a2.ceil)
-        let picked = applyExposure(scored, numLineups, maxExp, locks, expo)
-        const nFiltered = picked.length
-        picked = topUpLineups(picked, numLineups, maxExp, locks, pool2, excludes, expo)
-        picked = enforceMinExposure(picked, numLineups, maxExp, locks, pool2, excludes, expo)
-        setLineups(picked)
-        // UNDER-DELIVERY WARNING (2026-08-23): the cash path has always reported this; GPP did not,
-        // so a narrowed set could ship silently. Both real-money incidents were degenerate sets
-        // uploaded before the problem was visible - see BACKTEST_LOG 2026-08-23.
-        const gppShort = picked.length < numLineups
-          ? 'ONLY ' + picked.length + ' of ' + numLineups + ' lineups possible at ' + Math.round(maxExp * 100) + '% max exposure even after constructing fresh lineups - lock/exclude settings leave too few drivers. '
-          : (picked.length > nFiltered ? (picked.length - nFiltered) + ' of ' + picked.length + ' lineups were constructed under the exposure cap and ranked by projection (not sim ceiling). ' : '')
-        setNote(gppShort + 'GPP mode: ' + cands2.length + ' candidates scored across ' + nS2 + ' sampled sim draws, ranked by p90 total.')
-        setBuilding(false)
-      }
+      const t0 = Date.now()
+      while (chosen.length < want && Date.now() - t0 < 60) { if (!pickOne()) break }
+      setNote('Building set... ' + chosen.length + ' of ' + want + ' lineups')
+      if (chosen.length < want && chosen.length && Date.now() - t0 >= 60) { setTimeout(step2, 0); return }
+      let picked = chosen.map(c => ({
+        drivers: cands2[c].map(nm => ({ name: nm, car: carByN[nm], sal: salByN[nm], projDK: projByN[nm] || 0 })),
+        salary: cands2[c].reduce((a2, nm) => a2 + (salByN[nm] || 0), 0),
+        proj: cMean[c], ceil: cCeil[c], floor: cFloor[c],
+      }))
+      // A tight cap can starve the candidate set before `want` is reached (measured: 20 requested,
+      // 18.1 delivered at a 50% cap). Construct the remainder the same way the cash path does.
+      picked = topUpLineups(picked, want, maxExp, locks, pool2, excludes, expo)
+      picked = enforceMinExposure(picked, want, maxExp, locks, pool2, excludes, expo)
+      setLineups(picked)
+      let em = 0; for (let d = 0; d < nD; d++) em += best[d]
+      const short = picked.length < want
+        ? 'ONLY ' + picked.length + ' of ' + want + ' lineups possible at ' + Math.round(maxExp * 100) + '% max exposure - lock/exclude settings leave too few drivers. '
+        : ''
+      setNote(short + 'GPP: set of ' + picked.length + ' chosen from ' + nC.toLocaleString() +
+        ' candidates to maximise E[best lineup] across ' + nD.toLocaleString() + ' sim draws (E[max] ' +
+        (em / nD).toFixed(1) + ').')
+      setBuilding(false)
     }
     step2()
   }

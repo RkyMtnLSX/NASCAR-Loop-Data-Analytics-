@@ -2979,3 +2979,40 @@ STATUS: not shipped. Registration owed before this replaces anything: freeze q, 
 rule, and judge on forward races through the replay ledger. The defensible interim step is a third
 selectable mode (Cash / GPP / Portfolio) that ships OFF by default so the ledger can measure it
 without betting the launch default on 8 in-sample races.
+
+## 2026-08-30 — GPP REBUILT AS A SET OBJECTIVE (E[max]), and the 50% exposure default REVERTED the same night
+OPERATOR: "can't you still just call it GPP as is? Most GPP players play multiple lineups. Some
+players even max 150 entries in some contests so we also need to be prepared for that." Correct on
+both counts - a tournament pays your BEST entry, so multi-entry IS what GPP means. No third mode.
+GPP now maximises E[max]: the expected score of the best lineup in the delivered SET, across the
+stored sim draws. Greedy is near-optimal (submodular objective) and there is NO tuning parameter -
+which is the whole reason to prefer it over the coverage variant I tested first, where the target
+percentile q was un-calibratable at n=8. At N=1 the objective returns the highest-mean lineup (i.e.
+it degenerates to the cash build, correctly); as N grows it diversifies only where the draws pay.
+MEASURED (best-of-20 field percentile, all 8 replayable races):
+    old GPP, uncapped p90            79.8
+    old GPP + 50% exposure cap       87.0
+    coverage objective, q50 / q70    90.9 / 91.6
+    E[max] greedy                    90.0      <- shipped, and it has no q to pick
+E[max] ties the best coverage setting without the parameter I would have had to choose after seeing
+results. At 150 entries it reaches the 96.5th percentile (mean across the 8 races).
+THE 50% EXPOSURE DEFAULT IS REVERTED TO 100%. It was measured against the OLD objective, where the
+cap was the only thing forcing spread. Under E[max] the spread is endogenous - 22.4 unique drivers
+across 20 lineups uncapped, versus 18.5 for the old capped build - and re-measuring the NEW objective
+gives 90.0 uncapped, 90.0 at a 50% cap, 87.4 at 30%, with delivery falling from 20/20 to 18.1 to
+12.0 before top-up. The cap now buys nothing and costs lineups. The control stays for manual use
+(the operator's own method); the default no longer leans on it.
+TWO THINGS CAUGHT IN TESTING BEFORE SHIPPING, both would have been live bugs:
+ 1. PERFORMANCE. The cap test was inside every lazy scan instead of once per pick. With a cap set,
+    a 150-lineup build went from ~2 seconds to not finishing at all (killed at 9m40s). The allowed
+    mask only changes when a lineup is committed, so it is rebuilt once per pick. Production-scale
+    worst case now: 6,000 candidates x 1,500 draws x 150 picks = ~5s on random data, ~2s on real.
+ 2. UNDER-DELIVERY. A tight cap starves the candidate set before N is reached (20 requested, 18.1
+    delivered at 50%). topUpLineups - the cash path's existing constructor - now backstops the GPP
+    path too, so a capped request still delivers.
+SCALE: candidate pool now scales with the request (min 2,000, up to 6,000 at 150 entries) and the
+draw sample drops to 1,500 above 4,000 candidates to hold the memory down. Selection yields every
+60ms so the tab stays alive.
+HONEST LIMIT, unchanged: 8 races, in-sample, and I chose E[max] after seeing the comparison. What is
+NOT chosen after the fact is that it has no free parameter - there was nothing to tune toward the
+answer. The replay ledger judges it forward from here.
