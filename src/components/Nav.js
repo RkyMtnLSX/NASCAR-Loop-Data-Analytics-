@@ -145,6 +145,10 @@ export default function Nav({ isAdmin }) {
             DFS Center
           </Link>
 
+          <Link to="/optimal-lineups" style={linkStyle(location.pathname === '/optimal-lineups')}>
+            Optimal Lineups
+          </Link>
+
         </div>
 
         {/* Right side */}

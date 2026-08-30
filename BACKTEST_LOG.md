@@ -2514,3 +2514,41 @@ series-conditional question goes to the registered refit after ~10 fresh SS race
 Two lessons banked: (a) always verify the series filter in an empirical comparison query - a
 contaminated reference curve manufactured tonight's "defect"; (b) when ordered to fix on a felt
 defect, run the registered fit and let it say no - it did.
+
+## 2026-08-29 - OPTIMAL LINEUP ARCHIVE: 40 races ingested, verified, shipped as a PUBLIC page
+SOURCE: operator shared Phil Bennetzen's 2026 workbooks (Drive). Parsed the cup + trucks
+"Loop Data / Optimal Lineups" rollups: 35 cup + 25 truck race tabs -> 36 tabs fingerprinted to
+our races by exact finish-order match against loop_data (match frac 0.91-1.00; nothing below
+0.85 accepted).
+THREE INDEPENDENT VERIFICATIONS (all clean):
+1. Their per-driver DK points vs OUR formula recomputed from loop_data: 0 mismatches across all
+   36 races / ~1,300 driver rows (tolerance 0.75 pt).
+2. OUR knapsack optimal vs THEIR stated DK optimal total: 36/36 agree (3 apparent misses were a
+   1dp rounding, a transposed pair of total cells, and one sheet with no stated total).
+3. An independently written SQL optimizer (pb_perfect_optimal) reproduced cup R25 (409.25 /
+   $49,600) and trucks R18 (330.85 / $49,400) exactly - same six drivers.
+LOADED: dfs_optimal_history, 40 'perfect' rows (36 from sheets + 4 computed here for oreilly
+22/23/24 and trucks 16) and 10 internal 'model' rows (projection-max lineup reconstructed from
+the stored post board x DK salaries, scored on actuals).
+SALARY BACKFILL: NOT DONE, deliberately. The 6 races carrying DK salaries are EXACTLY the 6 with
+stored post boards, so backfilling third-party salaries for the other 30 would enable no model
+reconstruction (no board to reconstruct from), and the perfect rows already carry their salaries
+inline. Writing non-DK-sourced salaries into the table the live builder reads was judged all
+risk, no benefit.
+NAME-JOIN DEFECT FOUND (real, affects more than this page): loop_data stores "Daniel Suarez"
+while sim boards and DK salary files store "Daniel Suárez" - pb_norm does not fold accents, so
+the join silently dropped him. Same class: "Andres Perez De Lara" (board) vs "Andres Perez"
+(loop_data trucks). Cost before the fix: model scores understated on 4 of 10 races (cup R24
+148.9->183.5, cup R25 127.3->171.3, trucks R18 124.4->141.4). FIX: new pb_norm_ai() (accent
+folding + prefix fallback); pb_norm left untouched so prior analyses stay reproducible.
+QUEUED, NOT DONE: audit GradeCenter and every other loop_data name join for the same accent
+defect - if grading joins on pb_norm, accented drivers may be silently unscored there too.
+MODEL vs PERFECT (internal only, NOT displayed): the reconstructed projection-max lineup scores
+40-82 pct of perfect (cup 40-52, oreilly 70-82, trucks 43-76). Operator decision: do not show it
+- a single cash-style lineup is not the GPP product actually played (R24's real best GPP build
+finished 33/925), so publishing it would understate the product. Revisit only if GPP-style
+builds become reconstructable.
+PAGE: /optimal-lineups, PUBLIC by operator decision (added to the PaywallGate allowlist; table
+carries an anon select policy). Rationale: a past optimal is worthless to a freeloader - the race
+already ran - and the archive is the strongest conversion asset we have, letting a prospect audit
+the record before paying. This is a deliberate, logged departure from the #64 lockdown default.

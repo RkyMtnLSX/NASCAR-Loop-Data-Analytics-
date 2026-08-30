@@ -19,6 +19,7 @@ import SimulationCenter   from './pages/SimulationCenter'
 import GradeCenter        from './pages/GradeCenter'
 import SimResults         from './pages/SimResults'
 import DFSPage            from './pages/DFSPage'
+import OptimalLineups     from './pages/OptimalLineups'
 import Admin              from './pages/Admin'
 import Subscribe          from './pages/Subscribe'
 import Account            from './pages/Account'
@@ -36,7 +37,7 @@ function PaywallGate({ ok, loading }) {
   // PUBLIC FUNNEL PAGE (2026-08-23, operator decision): Lap By Lap is free to everyone.
   // It is served entirely by the get_public_* RPCs, which join featured_weekend and so
   // can only ever return the CURRENT configured weekend — no archive, no bulk pull.
-  if (loc.pathname === '/' || loc.pathname === '/subscribe' || loc.pathname === '/account' || loc.pathname === '/practice-lap-table') return null
+  if (loc.pathname === '/' || loc.pathname === '/subscribe' || loc.pathname === '/account' || loc.pathname === '/practice-lap-table' || loc.pathname === '/optimal-lineups') return null
   return <Navigate to="/subscribe" replace state={{ gated: true }} />
 }
 
@@ -86,6 +87,7 @@ export default function App() {
         <Route path="/account"           element={<Account />} />
         <Route path="/admin"              element={isAdmin ? <Admin /> : <AdminGate />} />
         <Route path="/dfs"             element={<DFSPage />} />
+        <Route path="/optimal-lineups" element={<OptimalLineups />} />
       </Routes>
     </BrowserRouter>
   )
