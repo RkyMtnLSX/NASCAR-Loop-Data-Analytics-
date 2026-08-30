@@ -254,6 +254,35 @@ export function bestLineup(pool) {
   return best ? best.map(i => cand[i].name) : null
 }
 
+// PROJECTED OWNERSHIP (2026-08-30). Measured, not guessed: across 8 races with banked DK ownership
+// (292 driver-rows), our own proj_dk predicts the field's ownership at Spearman 0.762 leave-one-
+// race-out - better than salary (0.592), value (0.540) or optimal% (0.697), and adding any of them
+// to a fitted model made it WORSE (0.755 / 0.750 / 0.754). So the ownership projection is a monotone
+// map off our projection ranking, with the level pinned by the fact that ownership must sum to
+// roster spots x 100% (measured 578-600 across the 8 races).
+//   own% = TOTAL * exp(k * projPercentile) / sum(exp(k * projPercentile)),  k = 2.2 fitted LORO
+// Accuracy: mean absolute error 6.1 ownership points, against actual ownership with mean 16.3 and
+// sd 12.6 - i.e. roughly half a standard deviation, and about 40% better than assuming everyone is
+// equally owned. Per-race MAE 5.0-7.1, worst single-driver miss 32 points (a 72%-owned chalk play).
+// WHAT IT IS NOT: an edge. It is derived FROM our projection, so "leverage = optimal% - ownership"
+// would only restate our own projection error as a market inefficiency. Display it, do not bet on
+// the difference. See BACKTEST_LOG 2026-08-30.
+const OWN_K = 2.2
+function projectOwnership(list) {
+  const usable = list.filter(d => d.sal > 0 && d.projDK > 0)
+  const n = usable.length
+  const out = {}
+  if (n < 2) return out
+  const order = usable.slice().sort((a, b) => a.projDK - b.projDK)
+  const pct = {}
+  order.forEach((d, i) => { pct[d.name] = i / (n - 1) })
+  const total = ROSTER * 100
+  let sum = 0
+  usable.forEach(d => { sum += Math.exp(OWN_K * pct[d.name]) })
+  usable.forEach(d => { out[d.name] = total * Math.exp(OWN_K * pct[d.name]) / sum })
+  return out
+}
+
 export default function DFSPage() {
   const [series, setSeries] = useState('cup')
   const [race, setRace] = useState(null)
@@ -375,11 +404,14 @@ export default function DFSPage() {
     return { ...d, sal, value, out: isOut, opt: optPct[d.name] || 0, ceil: ceilMap[d.name] || 0 }
   }), [drivers, salaries, optPct, ceilMap])
 
+  const ownMap = useMemo(() => projectOwnership(rows), [rows])
+  const rowsOwn = useMemo(() => rows.map(d => ({ ...d, pOwn: ownMap[d.name] || 0 })), [rows, ownMap])
+
   const sorted = useMemo(() => {
-    const arr = rows.slice()
+    const arr = rowsOwn.slice()
     arr.sort((a, b) => { const x = a[sortKey], y = b[sortKey]; const c = (x < y ? -1 : x > y ? 1 : 0); return sortDir === 'asc' ? c : -c })
     return arr
-  }, [rows, sortKey, sortDir])
+  }, [rowsOwn, sortKey, sortDir])
 
   const exposure = useMemo(() => {
     const c = {}; lineups.forEach(lu => lu.drivers.forEach(d => { c[d.name] = (c[d.name] || 0) + 1 }))
@@ -702,7 +734,7 @@ export default function DFSPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead><tr style={{ color: 'var(--text-secondary,#9aa0aa)' }}>
                 <th style={{ padding: '7px 8px', textAlign: 'left' }}>Lock/Excl · Min/Max %</th>
-                {th('name', 'Driver', 'left')}{th('startPos', 'Start')}{th('sal', 'Salary')}{th('projDK', 'Proj DK')}{th('ceil', 'Ceiling')}{th('value', 'Value')}{th('opt', 'Optimal%')}
+                {th('name', 'Driver', 'left')}{th('startPos', 'Start')}{th('sal', 'Salary')}{th('projDK', 'Proj DK')}{th('ceil', 'Ceiling')}{th('value', 'Value')}{th('opt', 'Optimal%')}{th('pOwn', 'Proj Own%')}
                 {th('winPct', 'Win%')}{th('lapsLed', 'Laps Led')}{th('avgFast', 'Fast Laps')}{th('projFinish', 'Proj Fin')}
                 <th style={{ padding: '7px 8px', textAlign: 'right' }}>Exposure</th>
               </tr></thead>
@@ -732,6 +764,7 @@ export default function DFSPage() {
                       <td style={{ padding: '4px 8px', textAlign: 'right', color: 'var(--text-secondary,#9aa0aa)' }}>{d.ceil ? d.ceil.toFixed(0) : '\u2014'}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right', background: vBg, fontWeight: 600 }}>{d.value ? d.value.toFixed(2) : '\u2014'}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right', background: oBg }}>{d.opt ? d.opt.toFixed(1) + '%' : '\u2014'}</td>
+                      <td style={{ padding: '4px 8px', textAlign: 'right', color: 'var(--text-secondary,#9aa0aa)' }} title="Projected field ownership - a monotone map off our own projection ranking, normalised so the board sums to 600%. Measured accuracy: 6.1 ownership points MAE across 8 races. It is derived from our projection, so the gap to Optimal% is not a leverage edge.">{d.pOwn ? d.pOwn.toFixed(1) + '%' : '\u2014'}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right' }}>{d.winPct.toFixed(1)}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right' }}>{d.lapsLed.toFixed(0)}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right' }}>{d.avgFast.toFixed(0)}</td>

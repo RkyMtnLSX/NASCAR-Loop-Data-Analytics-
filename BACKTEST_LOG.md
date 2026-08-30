@@ -3075,3 +3075,25 @@ Gilliland +0.168, Cindric +0.152, Suárez +0.139. Consistently under-owned - Byr
 -0.152, Chastain -0.134, Allmendinger -0.133, Ware -0.118. If a real name-level crowd bias exists,
 this is where it will show up first; it costs nothing to keep accumulating because the operator
 uploads contests anyway. Revisit at ~20 races, not before.
+
+### 2026-08-30 — CLARIFICATION + SHIP: we CAN produce projected ownership, and it is decent. What we cannot produce is an EDGE from it.
+I led the previous entry with "no" and that was the wrong headline. Separating the two claims:
+CAN WE PROJECT OWNERSHIP? YES, and it is good enough to put on the board.
+  Model: own% = 600 * exp(k * projection_percentile) / sum(...), k = 2.2 fitted leave-one-race-out.
+  The 600 is not an assumption - measured ownership sums per race are 577.9 / 598.1 / 595.8 / 594.8 /
+  598.0 / 593.9 / 599.8 / 597.3, i.e. six roster spots x 100%, so the level is pinned by arithmetic
+  and only the SHAPE has to be fitted.
+  ACCURACY, leave-one-race-out: MAE 6.11 ownership points; per-race 5.00-7.08; worst single miss
+  32.2 (a 72%-owned chalk play). Actual ownership has mean 16.3, sd 12.6 - so the error is about half
+  a standard deviation, and roughly 40 pct better than assuming every driver is equally owned.
+  Rank accuracy 0.65-0.84 per race, 0.762 mean.
+CAN WE GET AN EDGE FROM IT? NO - and that is a statement about independence, not accuracy. The
+projection is derived from proj_dk, so optimal% minus projected ownership is a function of our own
+board. It cannot tell us where the CROWD is wrong; it can only tell us where WE are, which is not
+the same trade. Anything sold as "leverage" on this basis would be our projection error wearing a
+market-inefficiency costume.
+SHIPPED: Proj Own% column in the DFS Center pool table, sortable, with the accuracy and the caveat
+in the column tooltip so it cannot be quietly oversold to a subscriber.
+WHAT WOULD MAKE IT AN EDGE: an ownership signal INDEPENDENT of our projection - actual DK ownership
+history at the driver level (the residual watch, 8 races so far, revisit at ~20), or a public
+consensus projection to difference against ours. Neither exists yet.
