@@ -3790,3 +3790,81 @@ event timing, which is a different question and remains open from the 2026-08-30
 FIFTH REGISTERED STUDY IN TWO DAYS, FIFTH NON-PASS. Three nulls, one real-but-immaterial, one large
 effect that could not be cleanly attributed. Nothing shipped from any of them. The constants refresh
 and the caution capture stand on measurement, not on any of these tests.
+
+## 2026-08-30 — VALIDATING THE DNF CONSTANT REFRESH I HAD ALREADY SHIPPED
+Operator asked whether the DNF change actually improved prediction. I had argued it was more CORRECT
+and never showed it PREDICTS better. Those are different claims and only the first was supported.
+
+Test: refit both definitions on TRAIN 2022-2024, predict retirement count on HOLDOUT 2025-2026
+(161 races), against three candidate ground truths. Errors in cars per race.
+
+    target                          old MAE  new MAE   old bias   new bias
+    NASCAR status only                 2.62     2.85      -0.47      +0.64
+    laps < 90% only                    2.40     2.81      +0.13      +1.25
+    OR (what the live code computes)   2.72     2.82      -0.93      +0.18
+
+**The old constants have LOWER MAE against every target.** The new constants are far better on BIAS
+against the target the live code actually computes: +0.18 cars per race versus -0.93.
+
+Which matters more is not a matter of taste here. MAE at ~2.7-2.8 cars is dominated by race-to-race
+randomness that no constant can predict; the 0.10 gap is noise. Bias is systematic and one-directional:
+under-predicting attrition by roughly one car EVERY race inflates every contender's win and top-5
+probability in the same direction forever, which is precisely the failure mode a betting model cannot
+tolerate. The refresh is justified on that and on removing the self-contradiction. It is NOT justified
+by lower error, and I am not going to claim it is.
+
+I ALSO UNDERSTATED THE SCOPE. I described these as "fallbacks only - a track with 8+ races of its own
+history ignores them." True, but **84 of 100 series-track cells have fewer than 8 races, and 48 of the
+68 2026 races are at such tracks.** The constants drive roughly 71% of the schedule, not a minority.
+That materially raises the stakes on this change and I should have checked before saying it.
+
+STILL NOT ESTABLISHED, and worth being blunt about: none of this tests the SIM'S OUTPUT. It tests the
+DNF count. Whether the new rates make finishing distributions, win probabilities or DFS floors better
+calibrated requires running sims against a holdout, which is the placement-tail protocol and has not
+been done. The change stands on bias and consistency. It is reversible - prior values are in git.
+
+## 2026-08-30 — PRE-REGISTRATION: leader-wreck calibration (framed as calibration, NOT a hypothesis test)
+WRITTEN BEFORE ANY FITTING.
+
+WHY THIS IS NOT SHAPED LIKE THE LAST TWO. The tempting version — "do leaders get collected more in late
+wrecks?" — is confounded by EXPOSURE: a car that survives to 90% distance has had nine times the
+opportunity to lead as one that wrecked at 10%. Two studies have now died on controls I could not make
+valid (closing_ps, organisation, restart proximity twice). Rather than write a third control I do not
+trust, this targets a quantity that is already measured, already has a target value, and does not need
+a causal claim at all.
+
+THE MISS, already documented in the code and re-measured on 436 races today. Share of laps led by
+eventual DNFers, sim vs reality:
+
+    group        measured (436 races)   coded value   sim currently lands
+    SHORT               2.8%               2.0%              ~2%
+    INT                 8.6%               8.2%              ~8%
+    ROAD                4.5%               4.1%              ~4%
+    SS                 17.5%              17.3%             ~14%     <- the gap
+
+The WRECK_LL_B comment names it: "Saturated fit lands SS ~14% vs 17.3 measured - residual is unmodeled
+leader-wreck correlation." B >= 6 saturates, so the credit curve cannot close the gap; the shortfall is
+in WHICH cars the wreck selects, not how they are credited.
+
+OBJECTIVE. Make the sim's simulated share of laps led by DNFers match the measured share per group,
+without degrading finishing-position calibration.
+
+PROCEDURE, frozen now.
+  1. Instrument the existing sim to report, per group, the realized share of laps led by DNFers over
+     30k sims on frozen 2022-2024 boards. Confirm it reproduces the ~14% SS shortfall. If it does not,
+     the premise is wrong and this stops here.
+  2. Introduce ONE parameter: a front-bias weight on wreck-victim selection, applied only to events
+     whose lap fraction exceeds a threshold. Both the weight and the threshold fitted on 2022-2024.
+  3. HOLDOUT 2025-2026, judged on TWO criteria, both required:
+     a. simulated laps-led-by-DNFer share within 1.5 points of measured in >= 3 of 4 groups, AND
+     b. finishing-position chi-square NO WORSE than the current model - same 24-cell win/t5/t10/fin25
+        band test the 2026-08-29 placement-tail calibration used. A laps-led improvement bought with
+        degraded finishing calibration is a REJECT, not a trade.
+  4. Ships only on operator approval, as the placement-tail change did.
+
+WHAT A FAIL CLOSES: leader-wreck as a modelling target. The 17.5% measurement stands as documentation
+of a known, accepted residual and the sim keeps its current victim selection.
+
+DECLARED IN ADVANCE: step 1 is a real gate. If the instrumented sim already matches the measured share,
+there is nothing to fix and the "gap" was an artifact of the older 370-race measurement rather than a
+model defect. I would rather find that in step 1 than build a parameter to close a gap that is not there.
