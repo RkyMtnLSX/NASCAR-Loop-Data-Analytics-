@@ -1,6 +1,21 @@
 # PITBOARD STATE
 Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2026-08-30. DFS was rebuilt this session: GPP is now a SET objective (E[max] across the sim draws, no tuning parameter, scales 1-150 entries), a DFS Replay admin tool grades the delivered SET against the real contest and banks it in dfs_replays, projected ownership ships on the board, and the whole replay ledger was recomputed through the product's own solvers (4-1-1 -> 3-2-3). Superspeedway finish-quality CLOSED on a registered holdout. BLOCKER: four races have no pit data - the local scrapers need SUPABASE_KEY set (see PITBOARD_SCRIPTS.md).
 
+## 2026-08-30 (final) — BACKFILL COMPLETE; ONE REAL DEFECT FOUND
+
+**16,094 of 16,130 loop_data rows enriched.** `total_laps` short on 1 race (down from 142).
+`car_number` NULLs 8 (down from 120). 436 of 437 races carry `nascar_race_id`.
+
+**The last holdout was a genuine defect, not a tooling problem.** trucks 2022 R5 Martinsville had
+`race_date` 2022-03-26 — COTA's date. The pit loader matches by date +/-1, so it had loaded **COTA's
+117 pit stops under Martinsville** (all 117 identical to COTA's, laps 0-42 under a 200-lap race).
+Fixed: date -> 2022-04-07, `nascar_race_id` -> 5222, the 117 wrong stops deleted.
+**Martinsville's real 2022 pit data has never been loaded — re-run PIT_BACKFILL_ALL_YEARS.bat.**
+Swept the whole database after: no other duplicate `nascar_race_id`, no other same-date pair.
+
+**Remaining, both benign:** cup 2026 "R0" Dover is a stub row (no date, no loop_data) that should
+probably be deleted. `drivers.nascar_driver_id` is still NULL for pre-existing driver rows.
+
 ## 2026-08-30 (backfill run) — RESULT AND THE TWO RESIDUES
 
 **First write:** 432 races, 15,977 rows. `total_laps` corrected on **143** races. `finish_status`

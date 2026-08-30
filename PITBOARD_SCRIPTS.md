@@ -307,6 +307,31 @@ Alignment is still verified in that case — the resolver's first rung maps a NA
 name we already hold for it, so rows are checked against ids learned from other races. A race where
 fewer than half the drivers have a known id is skipped. The check degrades; it does not disappear.
 
+### A defect the feed backfill exposed: one wrong race_date, three consequences
+
+**trucks 2022 R5 Martinsville carried `race_date` 2022-03-26 — which is COTA's date.** Everything
+below followed from that single wrong field:
+
+1. `pitboard_pit_backfill.py` matches a registry race to a NASCAR race by `race_date` +/-1 day, so
+   it bound Martinsville to NASCAR race **5221 (XPEL 225, Circuit of The Americas)** and loaded
+   **COTA's 117 pit stops under Martinsville**. Verified duplicates: 117 rows on each race, all 117
+   identical, none unique to Martinsville. Laps 0-42, under a race scored at 200 laps.
+2. Seeding `races.nascar_race_id` from `pit_stops` then propagated 5221 onto the race row.
+3. The feed backfill's name cross-check refused to write the race — **which is how this surfaced.**
+
+Corrected to NASCAR's own schedule: **5222, "Blue-Emu Maximum Pain Relief 200", 2022-04-07.** The
+117 wrong stops were deleted; they already exist correctly under COTA, and Martinsville's real pit
+data was never loaded at all. **Re-run `PIT_BACKFILL_ALL_YEARS.bat` to fetch it now that the date is
+right.**
+
+Checked across the whole database afterwards: **no other race shares a `nascar_race_id`, and no two
+races in the same series and season share a date.** This was the only instance.
+
+The lesson for the loaders: date matching is only as good as the date. A same-day, same-series pair
+is the exact condition under which +/-1 day matching silently binds the wrong race, and nothing in
+the pit loader could have noticed — the stops it wrote were internally consistent. It took a second
+independent source disagreeing about *who finished where* to expose it.
+
 ### Egress
 
 `cf.nascar.com` is reachable from **Vercel** (measured 107ms from iad1) and from the operator's
