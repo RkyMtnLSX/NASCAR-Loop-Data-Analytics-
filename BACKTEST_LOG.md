@@ -3097,3 +3097,34 @@ in the column tooltip so it cannot be quietly oversold to a subscriber.
 WHAT WOULD MAKE IT AN EDGE: an ownership signal INDEPENDENT of our projection - actual DK ownership
 history at the driver level (the residual watch, 8 races so far, revisit at ~20), or a public
 consensus projection to difference against ours. Neither exists yet.
+
+### 2026-08-30 — DRIVE SWEEP FOR OWNERSHIP HISTORY: none in Phil's sheets. An INDEPENDENT ownership signal does exist elsewhere in the Drive.
+OPERATOR: "check the google drive on phils files to see if he has ownership history in any of those
+sheets." Checked two ways, because a word search alone is how I got the 2026-08-29 optimals wrong.
+ 1. WORD SEARCH across all of Phil's shared files (owner phillbennetzen@gmail.com - note the DOUBLE
+    L, my first query used one and returned nothing): fullText own / ownership / drafted / rostered
+    -> ZERO files.
+ 2. STRUCTURE SEARCH, which is the one that counts: pulled Daytona - Cup 2026 and the 2026 Cup Loop
+    Data / Optimal Lineups rollup and enumerated every distinct header row. The schema is
+    Driver | DK $ | FD $ | DR | START | FINISH | HALF WAY | T15% | SB1 | SB2 | PD | AVG RUN | QP |
+    FAST | LED | DK PTS | DK Rank | FD PTS | FD Rank | Laps | Status, plus the DK/FD optimal-lineup
+    blocks and a season grid of tracks. No ownership column in any of the 20+ header variants. The
+    only '%' in the sheets is T15% (share of laps in the top 15), not ownership.
+VERDICT: Phil's sheets carry loop data, salaries and optimals. No ownership, historical or projected.
+WHAT THE SWEEP DID TURN UP, and it matters more: the FCFM sheets in the same Drive (owner
+andrew.mucha@gmail.com, "Fast Cars Fast Money") carry a per-driver INTEREST rating - None / Low /
+Medium / High - alongside notes that talk about ownership directly ("will be slightly under in
+GPPs", "the ownership jump from Blaney to Reddick will be significant", "he should be very low
+owned"). That is a human analyst's read on how the field will roster, produced with no knowledge of
+our board - i.e. exactly the INDEPENDENT ownership signal whose absence is what stops leverage from
+being an edge (see the entry above).
+WHY IT IS NOT USABLE YET: there are only 7 FCFM sheets in the Drive (Daytona Duels Cup 2024,
+Kansas Cup 2024, Darlington 2 Cup 2024, Charlotte Trucks 2024, Kansas Truck 2025, Iowa Xfinity 2025,
+Bristol Cup 2026) and NOT ONE of them overlaps the 8 races where we hold actual DK ownership. Zero
+overlap means zero rows to test on.
+THE TEST IT UNLOCKS, if the sheets can be collected weekly (they are published publicly on X
+@FastCarsFM and YouTube @FastCarsFastMoney): map Interest to an ordinal and ask whether it improves
+leave-one-race-out ownership prediction over proj_dk alone (0.762 today). If it does, the residual
+it explains is a real crowd signal we do not currently hold, and leverage becomes an edge rather
+than a restatement of our own board. Needs roughly 10 overlapping races before it can be judged.
+COST TO COLLECT: one sheet per weekend, alongside the contest upload that already happens.
