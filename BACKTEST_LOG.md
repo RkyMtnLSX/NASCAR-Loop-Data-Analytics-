@@ -2631,3 +2631,67 @@ spellings in BOTH tables, not just eyeballed. Suárez and Andres Pérez De Lara 
 names; `pb_norm_ai` (Supabase, added 2026-08-30) is the SQL-side equivalent.
 ACTION FOR OPERATOR: re-grade Daytona cup R26 after this deploy - the six Suárez hits only enter
 the ledger on a re-grade.
+
+## 2026-08-30 — RETRACTION of correction #18: the accent join was NOT dropping bets. My diagnosis was wrong.
+OPERATOR GROUND TRUTH: "did the hard refresh and regraded, didnt look like anything changed grade wise."
+He is right, and the reason is that nothing was ever broken in the graded output.
+PROOF (pulled this session): the cup R26 PRE grade row was written 2026-08-30 03:37:44Z. My fix
+deployed 03:45:18Z. That row - produced by the OLD code - already contains all four Suárez flags
+with t10 +350 hit, t3 +1600 hit, t5 +750 hit, win +4500 miss, and the board's roi.all is +65.2 pct
+on 23 bets. The pre-fix code graded him correctly.
+WHY THE BUG WAS INERT: I asserted the join was board-name vs loop-data-name. It is not. `__actBy`
+is keyed from `rows`, which is built from the BOARD (`board.map(d => d.driver_name)`), and
+`takenFlags.driver_name` comes from flagged_bets, which the publisher also writes from the BOARD.
+Both sides carry the identical accented spelling, so stripping the accent wrongly on both sides
+still matched. The board-to-loop-data join happens elsewhere (`gradeFromDB`, via `nrm`) and is
+keyed by CAR NUMBER, not by name, after a correctly-folding name match. There was no live defect.
+WHAT THE COMMIT ACTUALLY IS: defensive hardening, not a fix. Shared `__nmName` now backs the
+taken-flag join, group-market members and both sides of the pre-owned key (that key had been raw
+names on both sides). Keep it - it removes a real latent inconsistency - but it changed no number,
+and the +25.0u I attributed to it was ALREADY in the ledger.
+LESSON (the actual one): I diagnosed from reading the code and never checked the output the code
+had already produced. One query against sim_grades.ev_flags would have falsified the whole story in
+seconds, before the commit, the log entry and the operator's wasted re-grade. RULE: when claiming a
+bug is suppressing records, first go find a record it should have suppressed and confirm it is
+missing. A code path that "looks broken" is a hypothesis; the stored output is the evidence.
+STANDING: correction #18 is RETRACTED. The A.J. Allmendinger bug (2026-08-09) was real - that one
+WAS a board-vs-loop-data join. This one is not the same failure and should not be cited as a repeat.
+
+## 2026-08-30 — DFS REPLAY RACE 7 (cup Daytona R26, 14,268-entry GPP): GPP AND CASH BUILD THE SAME LINEUP — tie
+LEAK CHECK: samples published 2026-08-29 22:30:31Z, green flag ~23:30Z, results loaded 08-30 03:0xZ.
+Pre-lock, clean.
+METHOD: one build per mode straight from the 10,000 pre-lock draws (same protocol as replays 1-6).
+Pool = the 40-driver board intersected with the DK salary file = 39 (Harrison Burton drove the 35
+but DK never priced him, so he is correctly unrosterable; Herbst and Gaulding priced but did not
+race). Cash = exact 6-of-39 knapsack on mean draw points, $50k cap. GPP = 1,992 unique per-draw
+exact optimals as candidates, each scored across 2,500 stride-sampled draws, ranked by p90.
+RESULT — the p90-ceiling ranking returned the CASH LINEUP AS ITS #1. Identical six.
+  build (both):  Bell $10.2k, Gilliland $6.4k, Gragson $5.4k, Wallace $9.0k, Allmendinger $5.5k,
+                 Zane Smith $5.9k | $42,400 used | proj 221.7 | ceiling p90 293.0
+  ACTUAL 189.85 -> ~7,085/14,268 (contest median 189.35 - we finished on the median, +0.5 pts)
+  GPP #2 217.30 (~4,482) | contest winner 350.60 | perfect hindsight 364.35 ($47.0k)
+LEDGER: 7 replays - GPP 4 wins, 2 ties, 1 loss.
+FINDING 1 (new, structural): at a superspeedway ceiling-mode has nothing to differentiate ON. Every
+lineup's variance is enormous and similar, so p90 ranks almost the same as the mean and GPP mode
+collapses into cash. This is the mirror image of the standing rule "GPP edge is proportional to
+board uncertainty" - too MUCH uncertainty is as useless as too little, because the ceiling ordering
+stops separating. DECISION IMPACT: do not expect the GPP/cash toggle to do anything at Daytona or
+Talladega. If differentiation is wanted there it has to be imposed (ownership fade, or a lineup
+diversity constraint), not discovered by p90.
+FINDING 2 (kills a generalisation): DK SALARY CARRIES ALMOST NO SIGNAL AT A SUPERSPEEDWAY.
+  Spearman vs actual DK fpts, n=39: our projection 0.339 | DK salary 0.045 | field ownership 0.369
+  Prior two slates had salary 0.426 (cup NH) and 0.384 (trucks NH) beating us. It does not
+  generalise - salary prices SPEED, and at Daytona finish is place-differential noise. The open
+  "market beats us" investigation should be scoped to non-SS tracks only; pooling SS into it would
+  hand us a false pass.
+FINDING 3 (ownership, now 3 for 3): field ownership again edged our ranking (0.369 vs 0.339). The
+crowd has now out-predicted our DK-points ordering on three consecutive slates in three settings.
+Small margins, but consistently the same sign.
+WHY WE LANDED ON THE MEDIAN: our six were the field's chalk (mean ownership ~32.8 pct: Bell 47.0,
+Wallace 37.0, Zane 32.4, Gragson 28.9, Allmendinger 26.1, Gilliland 25.4). Model and crowd read the
+same slate the same way - stack the rear-starters for place differential - and the payoff came down
+to which of them survived. Ours mostly did not (Zane P32 after leading 15, Allmendinger P30). The
+perfect lineup was Stenhouse P32->P5, Suárez P23->P2, A.Dillon P29->P7, Reddick P17->P3, McDowell
+P18->P4, Hamlin P30->P11 - our model projected that six at 175.7 total, 46 pts BELOW the lineup it
+actually chose, so this is an outcome-tail miss, not a ranking collapse. Stenhouse was our 7th
+projection (34.6) and missed the knapsack by one slot.
