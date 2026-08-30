@@ -1,6 +1,52 @@
 # PITBOARD STATE
 Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2026-08-30. DFS was rebuilt this session: GPP is now a SET objective (E[max] across the sim draws, no tuning parameter, scales 1-150 entries), a DFS Replay admin tool grades the delivered SET against the real contest and banks it in dfs_replays, projected ownership ships on the board, and the whole replay ledger was recomputed through the product's own solvers (4-1-1 -> 3-2-3). Superspeedway finish-quality CLOSED on a registered holdout. BLOCKER: four races have no pit data - the local scrapers need SUPABASE_KEY set (see PITBOARD_SCRIPTS.md).
 
+## 2026-08-30 (later) — RACE INGESTION MOVED OFF RACING REFERENCE
+
+**Shipped.** Admin -> Load Data has two new panels: **Load Race from NASCAR Feed** (replaces the
+Ctrl+A/Ctrl+C paste) and **Feed Backfill** (repairs races already stored). Full detail in
+PITBOARD_SCRIPTS.md §5.
+
+**Blocking operator action, one click:** open Admin -> Load Data -> Feed Backfill, leave it on
+*all series / all seasons*, run it **dry first**, read the log, then switch Mode to Write and run it
+again. Until that runs, `nascar_driver_id`, `closing_ps`, `team_name` and the stage finishes are all
+still empty and `total_laps` is still wrong on 142 races.
+
+**What is now FALSE in older sections of this file:**
+
+- "We cannot join loop_data to pit_stops without name matching." False after the backfill runs -
+  `pit_stops.nascar_driver_id` already exists on 80,978 rows and `loop_data.nascar_driver_id` now
+  exists to meet it.
+- "No team/organization column on loop_data" - the deviation the superspeedway study declared. False
+  after the backfill; `team_name` covers all 436 races.
+- "`races.total_laps` is the race distance." False today, for 142 of 436 races: it holds SCHEDULED
+  laps, so any race that went to overtime is short. One race holds 0. The backfill corrects it.
+- "`finish_status` marks DNFs." Only roughly - it was `laps < 90% of total_laps`, computed against
+  the wrong total. Hocevar and Erik Jones both wrecked out of Daytona R26 and are stored "running".
+
+**New, open:** `closing_ps` is pre-registered in BACKTEST_LOG.md (train 2022-24, holdout 2025-26,
+bars +0.05 mean per-race Spearman delta AND positive in >=60% of holdout races; superspeedways the
+only named subgroup). **Nothing has been fitted and no model uses it.** The study cannot run until
+the backfill lands.
+
+**Corrected before it caused damage:** `loop_data.driver_id` is a FK to `drivers(id)` (37 rows, ids
+1..37), not a NASCAR id. My original plan was to put NASCAR ids there. It would have failed the FK
+on nearly every row and silently mis-linked the one id that collides. NASCAR ids live in
+`nascar_driver_id`.
+
+**Loose ends this created:**
+- `drivers.nascar_driver_id` exists but stays NULL for drivers already in the table, because the
+  loader upserts with `ignoreDuplicates`. Cosmetic - `loop_data` carries the id - but worth a
+  one-line SQL backfill after the main one runs.
+- `api/probe-nascar.js` is a live public diagnostic endpoint. Read-only and not an open proxy, but
+  it should be deleted now that the questions it answered are answered.
+- `api/load-race.js` (the old serverless Racing Reference scraper) and the `LoadNewRace` paste panel
+  are both still present. Deliberate - the feed path should have a few weekends behind it first.
+- `package-lock.json` is untracked. Committing it switches Vercel from `npm install` to `npm ci`;
+  not done in passing.
+- Still manual: the Jayski pill-draw PDF (the feed's `qualifying_order` is the qualifying RUN order,
+  not the draw - verified different) and the Lap Raptor fastest-lap paste.
+
 ## 2026-08-30 SESSION HANDOFF — WHAT CHANGED, AND WHAT BELOW IS NOW FALSE
 Long session, heavy shipping, and FIVE corrections of my own work - read this before trusting any
 pre-08-30 line in this file.

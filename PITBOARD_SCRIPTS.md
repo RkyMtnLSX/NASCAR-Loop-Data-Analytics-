@@ -1,7 +1,8 @@
 # PITBOARD DATA-PULL SCRIPTS
 
 Operations doc for the Python scrapers that feed PitBoard from NASCAR's public JSON feeds.
-Created 2026-08-30 (operator: *"for all our Python scripts for data pulling for pit board needs
+Created 2026-08-30. Section 6 (race loading from NASCAR's feeds) added the same day.
+(operator: *"for all our Python scripts for data pulling for pit board needs
 their own MD file"*). **Model evidence goes in BACKTEST_LOG.md; how the pipes work goes here.**
 
 **Where they live:** `C:\Users\atmms\NascarDataScrapperV3\` on the operator's machine.
@@ -63,7 +64,8 @@ echo %SUPABASE_KEY:~0,6%...      (should print the first 6 chars, not "%SUPABASE
 | Once, ever | **SET_KEY.bat** — paste the service role key. Without it every loader silently writes nothing (see §0). |
 | Before practice starts | double-click **CAPTURE_PRACTICE.bat** and leave it running. Laps that happen while it is not running are gone forever — NASCAR only archives best-lap for practice/qualifying. |
 | After practice ends | **MAKE_PRACTICE_SHEET.bat** (optionally `cup` / `oreilly` / `trucks`), then upload the .xlsx in PitBoard Admin. |
-| After the race, once the loop-data PDF is loaded in Admin | **POST_RACE_UPDATE.bat** — pit stops, then penalties, then race lap archives. ~5-10 min. Leave it open until all three summaries print. |
+| After the race | **Admin -> Load Data -> Load Race from NASCAR Feed** (see §5). No paste, no PDF. |
+| Then | **POST_RACE_UPDATE.bat** — pit stops, then penalties, then race lap archives. ~5-10 min. Leave it open until all three summaries print. |
 
 **Rule: the `.bat` files are the buttons. Never double-click a `.py`** — it runs with default args
 and closes on completion, so you never see the summary.
@@ -194,7 +196,97 @@ rather than a permissions failure. Check them once, after the four above are in.
 
 ---
 
-## 5. STANDING RULES
+---
+
+## 5. RACE LOADING MOVED TO NASCAR'S FEEDS (2026-08-30)
+
+**The Racing Reference Ctrl+A/Ctrl+C paste is no longer the source for race loading.**
+Admin -> Load Data now has **Load Race from NASCAR Feed** and **Feed Backfill**.
+
+### Why
+
+The paste parser broke three times in seven weeks (2026-07-12, 2026-07-26, 2026-08-14) as Lap
+Raptor changed the table layout, and the 08-14 redesign **dropped mid-race position, laps completed
+and driver rating site-wide** - the fallback regex writes them as NULL. NASCAR's own JSON has no
+layout to change.
+
+Verified against cup 2026 R26 Daytona before anything was written: all 15 loopstats fields reproduce
+`loop_data` exactly for 40/40 drivers, car numbers 40/40, qualifying position 40/40, qualifying speed
+exact, and the race-level cautions / caution laps / lead changes / average speed all equal what the
+paste had stored. A full sweep found **100% coverage of every points race in all three series back
+to 2022**, so history is reachable, not just new races.
+
+### What it fixes that the paste got wrong
+
+| | |
+|---|---|
+| `total_laps` | held **scheduled** laps. **142 of 436 races** have a driver who completed more laps than the race supposedly had (R26: 160 stored, 166 run; one race stored 0). `finish_status` is derived from that number, so DNF flags were wrong wherever a race went to overtime. Now actual laps, with the scheduled figure kept in `scheduled_laps`. |
+| `finish_status` | was a `laps < 90% of total` guess. The feed states it - Hocevar and Erik Jones both wrecked out at Daytona and were stored as "running". Stored lowercased, so SimulationCenter's existing `fs && fs !== 'running'` DNF test keeps working. |
+| precision | `avg_position` and `driver_rating` were rounded (9.59 -> 10.00). |
+| `margin_of_victory` | numeric column, so a caution finish parsed to NULL. The verbatim string now goes to `margin_of_victory_text`. |
+
+### What it adds
+
+- **`nascar_driver_id`** on `loop_data` - the same identifier `pit_stops` already carries on 80,978
+  rows. This is the join that removes name matching from the pipeline.
+- **`closing_ps`** - average running position over the closing laps. The only feed field not
+  derivable from something we already store. Pre-registered as a study in BACKTEST_LOG.md before the
+  column existed; **no model uses it until that holdout is read.**
+- **`team_name`** on `loop_data` for all 436 races (pit_stops has it for the 414 with a pit feed).
+- **`stage1_finish` / `stage2_finish`** - null on all 16,130 rows until now. The feed publishes the
+  points-paying top ten only, so drivers outside it stay null. That is the feed's shape, not a
+  failure.
+- **`races.nascar_race_id`** - the pit loader currently re-derives this every run by date matching
+  with a positional fallback. Stored once, that guesswork can go.
+
+### A trap worth recording
+
+`loop_data.driver_id` is a **FOREIGN KEY to `drivers(id)`** - our own 37-row surrogate table with ids
+1..37. It is NOT a NASCAR id. NASCAR's driver ids run 34..4554, so writing them there would have
+failed the FK on nearly every row and, for the one NASCAR id that falls inside 1..37, **silently
+pointed the row at the wrong driver instead of erroring.** The NASCAR id has its own column.
+
+### How the two panels work
+
+**Load Race from NASCAR Feed** - pick series/year/race number/date, *Find race* (resolves the NASCAR
+race id from the schedule, +/-1 day, and refuses to guess if the match is not unique), *Fetch &
+preview* (full table, with any name it could not match to an existing spelling flagged), *Load*.
+
+**Feed Backfill** - repairs races already stored. Defaults to all three series, all seasons, dry run.
+**Run it dry first and read the log.** Rows are matched on **finish position**, which is unique
+within a race, so the join is exact and self-checking: a race whose positions do not correspond
+exactly on both sides is skipped and reported, never partially written. Existing rows are read in
+full and merged, so no column can be nulled by omission.
+
+### Where the writes happen
+
+`api/nascar-feed.js` only fetches and shapes, because the browser cannot reach `cf.nascar.com`
+(no CORS). **Every write is done by the browser through the operator's own authenticated Supabase
+session**, exactly as the paste path did. That endpoint holds no service-role key, performs no
+writes and touches no table, so RLS enforces what it always has and no privileged write surface
+appears on the public internet. It is not an open proxy either - every URL comes from a fixed
+template with range-checked integer parameters.
+
+### Still manual
+
+- **Jayski pill-draw PDF.** The feed's `qualifying_order` is the order cars went out to qualify, NOT
+  the draw. Checked: Chastain is 1 in the feed and 9 in our `draw_order`, Buescher 13 vs 29. Different
+  quantities. `qualifying_order` does fill a column we only have on 1,980 of 6,093 rows.
+- **Lap Raptor fastest-lap paste.** Different source. `lap-times.json` may cover it; unverified.
+
+### Egress
+
+`cf.nascar.com` is reachable from **Vercel** (measured 107ms from iad1) and from the operator's
+native Windows shell. It is **blocked** from the cloud container and from the desktop bridge's Linux
+VM. So: race loading runs in the browser/Vercel, and the Python loaders run natively.
+
+### Verifying a change
+
+`node scripts/verify-feed-mapping.js` runs the real mapping in `src/lib/nascarFeedMap.js` against a
+fixture of real R26 rows and compares every derived value to what the database holds. No network, no
+database. Run it after touching that file.
+
+## 6. STANDING RULES
 
 - **No secrets in any file, repo, or chat.** Keys live in the operator's environment only. Every
   script reads `SUPABASE_KEY` from `os.environ`; the in-file fallback is the public publishable key
