@@ -65,7 +65,7 @@ function __capFor(name, want, maxExp, expo) {
 function __hasMaxOverride(expo) {
   return !!(expo && Object.keys(expo).some(n => expo[n] && expo[n].max != null && expo[n].max < 100))
 }
-function applyExposure(ranked, want, maxExp, locks, expo) {
+export function applyExposure(ranked, want, maxExp, locks, expo) {
   const lk = locks || new Set()
   if (maxExp >= 1 && !__hasMaxOverride(expo)) return ranked.slice(0, want)
   // Cap = appearances vs the REQUESTED count (floor(want x maxExp)), greedy down the
@@ -89,7 +89,7 @@ function applyExposure(ranked, want, maxExp, locks, expo) {
 // lineups: re-run the optimizer with capped drivers excluded, take the best new unique lineup,
 // update counts, repeat. Top-ups are ranked by projected mean (not sim ceiling) - they are the
 // depth of the portfolio, and re-scoring them on samples is not worth freezing the tab for.
-function topUpLineups(picked, want, maxExp, locks, pool, excludes, expo) {
+export function topUpLineups(picked, want, maxExp, locks, pool, excludes, expo) {
   if ((maxExp >= 1 && !__hasMaxOverride(expo)) || picked.length >= want) return picked
   const lk = locks || new Set()
   const keyOf = lu => lu.drivers.map(d => d.name).sort().join('|')
@@ -122,7 +122,7 @@ function topUpLineups(picked, want, maxExp, locks, pool, excludes, expo) {
 // contain them and whose removal strands no other driver below their own met quota. If the
 // set is under-delivered it just adds. Quotas are best-effort: salary/cap conflicts stop the
 // loop rather than spiraling (guard = 4x want), and the Exposure column shows the truth.
-function enforceMinExposure(picked, want, maxExp, locks, pool, excludes, expo) {
+export function enforceMinExposure(picked, want, maxExp, locks, pool, excludes, expo) {
   const lk = locks || new Set()
   const mins = Object.keys(expo || {}).filter(n => expo[n] && expo[n].min > 0 && !lk.has(n))
   if (!mins.length || !picked.length) return picked
@@ -199,7 +199,19 @@ export default function DFSPage() {
   const [locks, setLocks] = useState(() => new Set())
   const [excludes, setExcludes] = useState(() => new Set())
   const [numLineups, setNumLineups] = useState(20)
-  const [maxExp, setMaxExp] = useState(1)
+  // DEFAULT MAX EXPOSURE 100% -> 50% (2026-08-30). Measured, not assumed: the 20-lineup portfolio
+  // was rebuilt through this same exposure machinery across all 8 replayable races at caps of
+  // 100/60/50/40/30/25/20 pct and scored on the real finishes. BEST-OF-20 mean field percentile:
+  //   no cap 79.8 | 60% 86.3 | 50% 87.0 | 40% 89.0 | 30% 87.3 | 25% 85.4 | 20% 86.1
+  // Uncapped is the WORST setting at every level of the sweep, and it was shipping as the default.
+  // The mechanism is portfolio floor, not ceiling: uncapped builds reuse one core (12-21 unique
+  // drivers across 20 lineups vs 33 at a 20% cap), so when that core busts the whole portfolio
+  // busts - cup R25 62.4 -> 89.8 and trucks R18 51.9 -> 79.2 are the rescues that move the mean.
+  // 50% is the conservative middle of the plateau; 40% scored highest and is one control away.
+  // IN-SAMPLE across 8 races - this is a UI default, not a model constant, and the replay ledger
+  // tracks it forward. Operator's own method (exclusions + per-driver caps + wide spread) is what
+  // prompted the measurement: "the variance is extreme at superspeedways".
+  const [maxExp, setMaxExp] = useState(0.5)
   const [expo, setExpo] = useState({}) // { name: { min, max } } whole percents; see __capFor/enforceMinExposure
   const [lineups, setLineups] = useState([])
   const [optPct, setOptPct] = useState({})

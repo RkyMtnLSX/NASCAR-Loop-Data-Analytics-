@@ -2909,3 +2909,45 @@ WHAT THIS DOES NOT CLOSE: the remaining SS levers are not finish-RANKING levers 
 recognising SS as a low-edge slate and sizing accordingly. Each is its own study and none is started.
 NO PARAMETER MOVED. GROUP_NOISE_MULT SS 1.75 stands, untouched, and is now supported by a registered
 holdout rather than only by the win-curve certification.
+
+## 2026-08-30 — PORTFOLIO SPREAD: the optimizer was measuring the wrong thing, and uncapped exposure was the worst default we ship
+OPERATOR: "The 301 lineup was produced by me locking out certain drivers and limiting ownership
+percentages and making sure we have a wide spread of drivers because the variance is extreme at
+superspeedways." That is a portfolio method, not a projection method - and it is the lever the SS
+study left open. Measured it.
+WHAT WAS WRONG WITH THE MEASUREMENT SO FAR: every replay grades ONE lineup per mode. He enters 20.
+A 20-entry GPP is not scored on the mean of its lineups, it is scored on the BEST one. The optimizer
+maximises each lineup independently, which is the correct objective for one entry and the wrong
+objective for twenty.
+METHOD: 20-lineup portfolios rebuilt through DFSPage's OWN exposure machinery (applyExposure +
+topUpLineups, imported not reimplemented) at max-exposure caps of 100/60/50/40/30/25/20 pct, across
+all 8 replayable races, scored on real finishes and placed in the real contest ladders.
+    cap        no cap   60%    50%    40%    30%    25%    20%
+    best-of-20 mean     280.82 292.27 295.84 300.38 302.11 297.66 293.79
+    field percentile     79.8   86.3   87.0   89.0   87.3   85.4   86.1
+    unique drivers/20    17.1   18.4   18.5   20.2   24.0   27.6   32.6
+UNCAPPED IS THE WORST SETTING IN THE SWEEP, and it is what DFS Center shipped as the default
+(maxExp useState(1)). The exact cap level is inside the noise - 60 through 20 pct are all within
+~3 percentile points of each other - so the finding is "cap it", not "cap it at X".
+MECHANISM (this is a floor effect, not a ceiling effect): uncapped, the 20 lineups reuse one core -
+12 to 21 unique drivers across the whole portfolio, vs 33 at a 20 pct cap. When that core busts, the
+entire portfolio busts together. The mean is moved by the rescues, not by new highs: cup R25 62.4 ->
+89.8 percentile, trucks R18 51.9 -> 79.2. In races where the uncapped core happened to hit, capping
+costs a little (trucks R17 92.4 -> 87.7, ore R23 91.9 -> 89.6). For a 20-entry GPP that trade is
+correct: you are buying protection against correlated failure, which is exactly the operator's
+stated reason - extreme superspeedway variance.
+SHIPPED: default max exposure 100 pct -> 50 pct. 50 is the conservative middle of the plateau; 40
+scored highest and is one control away. This is a UI DEFAULT, not a model constant - reversible in
+one click, and the replay ledger tracks it forward.
+HONEST LIMIT: 8 races, in-sample. I am not claiming the cap level is calibrated. What is not
+in-sample is the direction - uncapped loses at every cap tested, on the largest margin in the two
+races where concentration failed, and the mechanism (correlated failure of a shared core) is
+structural rather than fitted.
+ONE CLAIM I ALMOST MADE AND CHECKED: at a 30 pct cap the cup R26 portfolio's best lineup scores
+301.45 - identical to the operator's best entry. It is NOT his lineup (ours: Bowman, Keselowski,
+Suárez, JHN, Berry, Reddick; his: Elliott, Hamlin, Stenhouse, A.Dillon, Berry, JHN). Same score,
+different six. Two lineups tying is not the machinery reproducing his method.
+STILL OPEN, and now the highest-value DFS work: the optimizer has no portfolio objective at all -
+exposure caps are a blunt proxy for it. Ranking a SET of 20 lineups on the probability that at
+least one of them clears a target score is a different and better objective than ranking each
+lineup by its own p90. That needs pre-registration before anything is built.
