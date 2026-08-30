@@ -20,6 +20,7 @@ import GradeCenter        from './pages/GradeCenter'
 import SimResults         from './pages/SimResults'
 import DFSPage            from './pages/DFSPage'
 import OptimalLineups     from './pages/OptimalLineups'
+import DfsOptimals        from './pages/DfsOptimals'
 import Admin              from './pages/Admin'
 import Subscribe          from './pages/Subscribe'
 import Account            from './pages/Account'
@@ -88,6 +89,7 @@ export default function App() {
         <Route path="/admin"              element={isAdmin ? <Admin /> : <AdminGate />} />
         <Route path="/dfs"             element={<DFSPage />} />
         <Route path="/optimal-lineups" element={<OptimalLineups />} />
+        <Route path="/dfs-optimals"    element={<DfsOptimals />} />
       </Routes>
     </BrowserRouter>
   )

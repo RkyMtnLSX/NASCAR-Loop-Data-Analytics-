@@ -2570,3 +2570,39 @@ PAGE: /optimal-lineups now shows, per race, the optimal lineup AND the full fiel
 salary / DK points / points-per-$1K, with the six optimal drivers starred inline. This is the
 pricing-study view; it is also the honest one - a user can see exactly which cheap drivers paid
 and which chalk did not.
+
+## 2026-08-30 - MULTI-YEAR OPTIMAL INGEST (2022-2026) + /dfs-optimals page
+CORRECTION #17 (mine, caught by the operator with a screenshot): each per-track Google doc carries
+a MULTI-YEAR optimal history with salaries (blocks labelled "Winter 26 / Summer 25 / ..."), DK and
+FD. I had ingested only the two season rollups and concluded "we only have 2026". Worse, when I did
+open a per-track doc I searched it for the word "optimal" - which never appears - and concluded
+there was nothing there. LESSON: grep for the DATA SHAPE (here: "DraftKings" totals rows), never
+for a word you expect the author to have used.
+INGEST: 74 docs fetched and parsed (subagent, mechanical), 383 DK optimal blocks found.
+IDENTIFICATION: labels were NOT trusted (they are seasonal, inconsistent, and a few years parsed as
+garbage - 2010, 2034). Each block was instead FINGERPRINTED against loop_data by its six drivers'
+finishing positions: 365/383 matched a real race with >=5/6 exact finishes, 0 ambiguous, 18
+unmatched (races older than our results coverage - dropped).
+VALIDATION GATES: 6 drivers, each salary 2,000-20,000, salary sum 25,000-50,000. A stated total
+outside 100-900 was treated as a mis-captured cell (the Talladega docs carry a second table my
+parser first read as an optimal) rather than as a data conflict. Points are NOT taken from the
+docs at all - every driver's DK score is recomputed from loop_data, which removes 14 sheet
+arithmetic disagreements as a class.
+DRIVER RESOLUTION: name-first (exact -> prefix -> last-name+initial -> initials for "SVG"/"JHN"),
+falling back to finishing position; 1,956 by exact name, 18 by fallback, 0 failures. Name-first
+matters: in 6 cases the doc's transcribed FINISH was wrong for one driver, and resolving by
+position would have put the wrong driver in the lineup.
+CROSS-SOURCE CHECK (the important one): 39 races were present from BOTH the season rollups and the
+per-track docs. 36 agree exactly on score AND salary. 3 differ - cup R21 NWB and cup R25 NH by
+salary only (same lineup, same score; Phil's two sheet sets transcribe one driver's salary
+differently) and trucks R16 Lucas Oil, where the doc's optimal includes a driver our DK salary file
+has no price for. Existing rows were KEPT (insert ... on conflict do nothing); the three are logged
+rather than silently overwritten.
+LOADED: dfs_optimal_history now 330 'perfect' lineups, 2022-2026 (cup 149 / oreilly 123 / trucks 57
+sources combined). race_seq/race_cnt added = ordinal of the race at that track within its year, so
+two-visit tracks label as "Daytona 1 / Daytona 2" per operator instruction (never Winter/Summer).
+NOTE: race_seq/race_cnt are stored, so they need re-running when new races load (tonight's Daytona
+will flip 2026 cup Daytona from 1/1 to 1/2 and 2/2 once its results are in).
+PAGE: /dfs-optimals under a new DFS nav dropdown (DFS Center / Optimals / Optimal Archive). Shows,
+per series, the last 5 optimal lineups at THAT series' configured weekend track. Coverage this
+weekend: cup Daytona 9 races, oreilly Daytona 9, trucks New Hampshire 1.

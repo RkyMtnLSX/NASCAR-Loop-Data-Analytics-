@@ -17,6 +17,12 @@ const LOOP_LINKS = [
   { path: '/pit-crew-rankings', label: 'Pit Crew Rankings' },
 ]
 
+const DFS_LINKS = [
+  { path: '/dfs',              label: 'DFS Center' },
+  { path: '/dfs-optimals',     label: 'Optimals' },
+  { path: '/optimal-lineups',  label: 'Optimal Archive' },
+]
+
 const SIM_LINKS = [
   { path: '/sim-results?series=cup',     label: 'Cup Sim Results' },
   { path: '/sim-results?series=oreilly', label: "O'Reilly Sim Results" },
@@ -65,9 +71,11 @@ export default function Nav({ isAdmin }) {
   const [practiceOpen, setPracticeOpen] = useState(false)
   const [loopOpen, setLoopOpen]         = useState(false)
   const [simOpen, setSimOpen]           = useState(false)
+  const [dfsOpen, setDfsOpen]           = useState(false)
   const practiceTimer = useRef(null)
   const loopTimer     = useRef(null)
   const simTimer      = useRef(null)
+  const dfsTimer      = useRef(null)
 
   function makeHover(setter, timer) {
     return {
@@ -79,6 +87,7 @@ export default function Nav({ isAdmin }) {
   const isPracticePage = PRACTICE_LINKS.some(l => location.pathname === l.path)
   const isLoopPage     = LOOP_LINKS.some(l => location.pathname === l.path)
   const isSimPage      = SIM_LINKS.some(l => location.pathname === l.path.split('?')[0])
+  const isDfsPage      = DFS_LINKS.some(l => location.pathname === l.path.split('?')[0])
 
   const linkStyle = (active) => ({
     padding: '6px 12px', borderRadius: 'var(--radius-md)',
@@ -141,13 +150,13 @@ export default function Nav({ isAdmin }) {
             <Dropdown links={SIM_LINKS} open={simOpen} />
           </div>
 
-          <Link to="/dfs" style={linkStyle(location.pathname === '/dfs')}>
-            DFS Center
-          </Link>
-
-          <Link to="/optimal-lineups" style={linkStyle(location.pathname === '/optimal-lineups')}>
-            Optimal Lineups
-          </Link>
+          <div style={{ position: 'relative' }} {...makeHover(setDfsOpen, dfsTimer)}>
+            <button style={dropBtn(isDfsPage)}>
+              DFS
+              <span style={{ fontSize: '0.55rem', opacity: 0.7, marginTop: 1 }}>▾</span>
+            </button>
+            <Dropdown links={DFS_LINKS} open={dfsOpen} />
+          </div>
 
         </div>
 
