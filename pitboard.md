@@ -2903,3 +2903,24 @@ first write can still be null until the pit loader runs - harmless now, but wort
 same ladder.
 APPLIED to the four already-loaded races by hand this session (the loader had run before the code
 existed): trucks NH R18 now joins 36 of 36 cars, up from 34.
+
+## 2026-08-30 — reconciliation verified across 2026; 2022 pit coverage is the real remaining gap
+PIT_BACKFILL_2026 re-run with the reconciler live: 63 races, 15,042 stops, and the per-race warning
+line is gone - "all loaded races join loop_data at 90%+ by car_number". The under-90% flag that
+started this (trucks NH R18 at 89%) does not recur anywhere in the season.
+loop_data.car_number NULLs after the sweep: 1,311 total - 1,301 of them 2022, 7 across 2023-25, and
+3 in 2026. The three 2026 stragglers are all in races with NO pit feed (Lime Rock, IRP x2), so there
+is nothing to reconcile from.
+TWO RESIDUAL NON-JOINS INSPECTED, and the ladder was RIGHT to refuse both:
+ * trucks R1 Daytona - pit feed "Cleetus Mitchell" #4 vs loop_data "Cleetus McFarland". Same person
+   (Garrett Mitchell races as Cleetus McFarland) but the surnames genuinely differ, so no automated
+   rule should have joined them. Fixed by hand after confirming identity.
+ * oreilly R13 Watkins Glen - pit feed has "Matt Wilson" #35 with NO loop_data row at all. Not a
+   join failure: he pitted but does not appear in the results feed. Left alone.
+THE ACTUAL REMAINING GAP IS 2022 PIT DATA, not car numbers. Races with pit_stops by season:
+2022 55/90 (35 missing) | 2023 84/92 | 2024 88/92 | 2025 88/94 | 2026 63/68. Every other season sits
+at 4-8 missing, which is the normal no-feed rate (street courses, some short fields). 2022's 35 is
+an outlier and most of it should be recoverable - the all-years backfill has not been run since the
+RLS lockdown, so it would have silently done nothing. ONE run of PIT_BACKFILL_ALL_YEARS.bat both
+loads those races and reconciles car numbers for every prior season (the 7 rows in 2023-25 included).
+Idempotent per race, so it is safe to run any time.
