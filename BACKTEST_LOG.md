@@ -3146,3 +3146,41 @@ own contests - 8 races. Projected ownership ships as built (derived from proj_dk
 leverage stays closed, and the sole path to an independent signal is accumulating real DK ownership
 race by race, which already happens for free with the post-race contest upload. The per-driver
 residual watch is the instrument; revisit at ~20 races.
+
+## 2026-08-30 — POST_RACE_UPDATE HAS BEEN SILENTLY DOING NOTHING SINCE THE RLS LOCKDOWN
+OPERATOR: "the post race update python script doesnt seem to be working or pulling in new pit stop
+data. our pit crew data is missing two races now from this season."
+ROOT CAUSE (confirmed, not inferred): pitboard_pit_backfill.py and pitboard_penalties_backfill.py
+read the races registry over PostgREST. Their key resolution is
+    SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "sb_publishable_...")
+and SUPABASE_KEY is NOT set in the operator's environment, so both fall back to the PUBLISHABLE
+(anon) key. races, pit_stops, pit_penalties and loop_data all have RLS ON, and every policy on them
+is granted to the `authenticated` role only (admin_all via is_admin(), subscriber_read via
+has_access()). There is no anon policy. PostgREST therefore answers 200 with an EMPTY ARRAY - a
+SUCCESS - so the script printed "0 points races in registry scope ... Nothing to do." and exited 0.
+It never reached a write, so nothing errored anywhere.
+WHEN IT BROKE: the last race with pit stops is cup Richmond R24, 2026-08-15. The lockdown migration
+harden_rpc_finish_64_lockdown is dated 2026-08-23. The New Hampshire weekend's post-race run was the
+first one after it.
+WHAT IS ACTUALLY MISSING - four races, not two (the operator was counting cup only):
+    trucks R18 New Hampshire   2026-08-22   loop 36, stops 0, penalties 0
+    cup    R25 New Hampshire   2026-08-23   loop 36, stops 0, penalties 0
+    ore    R24 Daytona         2026-08-28   loop 38, stops 0, penalties 0
+    cup    R26 Daytona         2026-08-29   loop 40, stops 0, penalties 0
+SEPARATE AND PROBABLY NOT THIS BUG - five older 2026 races also have zero pit stops but DO have
+penalties or predate the lockdown: trucks R3 St. Petersburg (street course), trucks R5 and oreilly
+R8 Rockingham, trucks R14 Lime Rock, trucks R16 IRP. Those look like races NASCAR's pit feed does
+not cover rather than a permissions failure; worth one check after the fix, not before.
+FIX, OPERATOR SIDE (the key never touches a file): set SUPABASE_KEY to the project's SERVICE ROLE
+key in the Windows environment - `setx SUPABASE_KEY "<service role key>"`, then open a NEW terminal
+- and re-run POST_RACE_UPDATE.bat. The anon key cannot be made to work here: even with a read policy
+added, the script DELETEs and INSERTs into pit_stops, which anon has no policy for either.
+FIX, SHIPPED TO HIS MACHINE NOW: both scripts get a registry-readability guard that runs BEFORE the
+year filter. It probes races for a single row; on an empty result it exits with a message naming the
+cause (RLS + anon), stating whether SUPABASE_KEY was present in the environment, and giving the setx
+command. It deliberately does NOT infer anon from the key prefix - a legacy service-role key is also
+a JWT beginning "eyJ" - it checks whether SUPABASE_KEY was in os.environ at all.
+THE GENERAL LESSON, and it is the same shape as the GradeCenter retraction this morning: an empty
+result that is indistinguishable from a legitimate zero is the most dangerous failure mode a
+pipeline has. "0 races in scope" read as a status line for eight days. Any query whose emptiness
+could mean "not permitted" must assert its own preconditions rather than report a count.
