@@ -3378,3 +3378,30 @@ in a group, that group is called uninformative BEFORE scoring, not after.
 
 A fail closes organization-as-equipment-strength in the failing groups. No re-cutting the split, no
 changing the metric, no new subgroups afterwards.
+
+## 2026-08-30 — ORGANIZATION STUDY STAGE 1: fit frozen. HOLDOUT NOT YET READ.
+TRAIN 2022-2024 n=9,981. HOLDOUT 2025-2026 n=5,962. 78 rows dropped for missing team_name (the two
+races NASCAR published with no weekend feed), as declared.
+
+MANDATORY COLLINEARITY CHECK ON THE CONSTRUCTED FEATURE — the check that would have predicted the
+closing_ps null, run here before anything else. corr(priorFin, priorOrg):
+
+    Superspeedway 0.1300 · Road Course 0.3433 · Short & Flat 0.4617 · Intermediate 0.5468 · ALL 0.4523
+
+Every group is far below the 0.95 kill line, and nowhere near priorClose's 0.967. **priorOrg is a
+genuinely independent feature; priorClose never was.** Organisation neutral-filled on 13.4% of rows.
+
+THE FROZEN FITS:
+
+    BASELINE  fin_hat = 5.268835 + 0.325185*start + 0.410289*priorFin
+    TEST      fin_hat = 2.960405 + 0.295836*start + 0.352612*priorFin + 0.211077*priorOrg
+
+**The signature is the opposite of the closing_ps study.** There, priorClose took weight AWAY from
+priorFin (0.411 -> 0.162) and total prior weight was flat at ~0.41 — credit being split between
+interchangeable variables. Here priorOrg ADDS 0.211 while priorFin only eases 0.410 -> 0.353; total
+prior weight rises 0.410 -> 0.564. That is more information entering the model rather than the same
+information relabelled.
+
+Encouraging and not yet worth anything. The superspeedway study's in-sample gain was +0.0244 and its
+holdout was -0.0041. Bars unchanged: >= +0.05 mean per-race Spearman delta AND positive in >= 60% of
+races, judged separately for each of the four registered track types and pooled.
