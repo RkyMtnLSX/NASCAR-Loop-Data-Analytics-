@@ -3158,3 +3158,55 @@ ONE THING WORTH KEEPING HERE, because it is a measurement lesson and not a pipel
 result that cannot be distinguished from a legitimate zero is the most dangerous failure a pipeline
 has. "0 races in scope" read as a status line for eight days. Same shape as the GradeCenter
 retraction this morning - a code path that looks fine while producing nothing.
+
+## 2026-08-30 — PRE-REGISTRATION: does `closing_ps` predict finish beyond what we already hold?
+WRITTEN AND PUSHED BEFORE ANY FIT. Nothing below has been looked at. The column does not yet exist
+in the database — the feed backfill has not been run — so there is no way for this to be a story
+told after seeing an answer.
+
+WHAT IT IS. NASCAR's loopstats feed carries `closing_ps`: the driver's average running position over
+the closing laps. It is the ONLY field in that feed not derivable from something we already store.
+(`closing_laps_diff` is exactly `closing_ps - finish_position` — checked on all 40 drivers at cup
+2026 R26 — so it carries no independent information and is not tested.) Coverage is 100% of every
+points race in all three series back to 2022, verified by a full sweep on 2026-08-30, so this is
+testable on the whole history rather than forward-only.
+
+WHY IT IS WORTH A TEST. The superspeedway finish-quality study closed on 2026-08-30 with a holdout
+failure: prior SS record carries no out-of-sample information beyond starting position, and the
+baseline Spearman there is only +0.186. Finish at those tracks is close to unpredictable from
+anything we hold. `closing_ps` is the first candidate that is not a function of season-long record
+or grid — it measures where a car actually was at the end of a specific race, which survives a wreck
+that ruins the finishing position. Hocevar closed 2nd and finished 38th at Daytona; Preece closed
+5th and won. If car quality at the end of a race is real and persistent, this is where it would show.
+
+HYPOTHESIS. A driver's PRIOR closing position at a track type predicts their NEXT finish there,
+beyond what starting position and prior finish position already predict.
+
+DESIGN, frozen now.
+  * Unit: one driver-race. Feature computed from races STRICTLY BEFORE the race being predicted.
+  * Feature: `priorClose` = mean `closing_ps` over that driver's previous races in the same
+    correlation group (`tracks.correlation_group_label`), minimum 3 prior races. Drivers under the
+    minimum get a neutral fill (the group mean), which is conservative — it cannot help the model.
+  * Baseline model:  fin_hat = a + b*start + c*priorFin
+  * Test model:      fin_hat = a + b*start + c*priorFin + d*priorClose
+    `priorFin` is in the baseline deliberately, so a pass cannot be "prior record predicts finish"
+    wearing a new name. The only question is whether CLOSING position adds anything over FINISHING
+    position.
+  * Both fitted by OLS on TRAIN, scored on HOLDOUT. Train = 2022-2024. Holdout = 2025-2026.
+    All three series, points races only, exhibitions excluded.
+  * Metric: per-race Spearman correlation between predicted and actual finish. Report the mean
+    delta (test minus baseline) across holdout races.
+
+PASS BAR, both required, same bars the SS study used so the two are comparable:
+  1. mean per-race Spearman delta >= +0.05 on the holdout, AND
+  2. delta positive in >= 60% of holdout races.
+A pass ships NOTHING on its own. It earns a second registered holdout on races run after this date.
+
+FAIL CLOSES IT. If either bar is missed, closing position is recorded as carrying no usable signal
+beyond start and prior finish, and `closing_ps` stays a stored column with no model role. No
+re-cutting of the train/holdout split, no switching the metric, no "but it worked at superspeedways"
+subgroup hunt afterwards. If I want a subgroup, it has to be named HERE: the only pre-registered
+subgroup is superspeedways, reported separately and judged on the same two bars.
+
+DECLARED DEVIATIONS, none yet. Any deviation forced by the data gets appended before the holdout is
+read, in the same way the SS study declared its organization-fallback deviation.
