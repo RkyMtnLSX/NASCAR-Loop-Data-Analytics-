@@ -2606,3 +2606,26 @@ will flip 2026 cup Daytona from 1/1 to 1/2 and 2/2 once its results are in).
 PAGE: /dfs-optimals under a new DFS nav dropdown (DFS Center / Optimals / Optimal Archive). Shows,
 per series, the last 5 optimal lineups at THAT series' configured weekend track. Coverage this
 weekend: cup Daytona 9 races, oreilly Daytona 9, trucks New Hampshire 1.
+
+## 2026-08-30 — CORRECTION #18: GradeCenter silently dropped every accented driver's bets
+DEFECT: `__gradeRace`'s taken-flag path built its name key with `.replace(/[^a-z0-9]/g,'')` WITHOUT
+an NFD accent fold first, so the accented letter was deleted outright: board "Daniel Suárez" ->
+'danielsurez', loop_data "Daniel Suarez" -> 'danielsuarez'. `__actBy[key]` missed, the `if (a ==
+null) return` guard fired, and the flag left the graded ledger with NO error and NO count anywhere
+in the UI. Same failure class as the A.J. Allmendinger punctuation bug (2026-08-09) - punctuation
+was fixed then, accents were not.
+SCOPE: 15 logged flagged_bets on Suárez. Races 23/24/25 all lost (fin 23/16/17), so the bug had
+only ever hidden LOSSES - which is exactly why nine graded races never looked wrong. Tonight it
+would have hidden WINS: Suárez P2 at Daytona R26 with t10 +350/+340, t3 +1600/+1700 and t5
++750/+850 all hitting.
+FIX: module-level `__nmName` (NFD fold -> strip combining marks -> strip non-alphanumerics), used
+by the taken-flag join, the group-market members, and BOTH sides of the pre-owned key (which had
+been raw-name on both sides - consistent today, but only because pre and post boards happen to
+share a spelling; now normalized so it cannot drift). Two other normalizers in the file (`norm` in
+`__parseFinish`, `nrm` in the loop-data path) already folded correctly and were left alone.
+LESSON: a name join that DROPS unmatched rows is not observable from the output - it looks like the
+bet was never placed. Any join whose miss-path is `return` needs its key tested against the actual
+spellings in BOTH tables, not just eyeballed. Suárez and Andres Pérez De Lara are the live accented
+names; `pb_norm_ai` (Supabase, added 2026-08-30) is the SQL-side equivalent.
+ACTION FOR OPERATOR: re-grade Daytona cup R26 after this deploy - the six Suárez hits only enter
+the ledger on a re-grade.

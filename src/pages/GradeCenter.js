@@ -2,6 +2,10 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { __marketValue } from './SimulationCenter'
 
+// Shared driver-name key (2026-08-30). NFD-folds accents BEFORE stripping non-alphanumerics.
+// Every name join in this file goes through this - see the accent-bug note in __gradeRace.
+const __nmName = x => (x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '')
+
 function __parseFinish(txt, board) {
   const norm = s => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\b(jr|sr|iii|ii|iv)\b/g, '').replace(/\s+/g, ' ').trim()
   const byFull = {}, byCar = {}, lastCount = {}, byLast = {}
@@ -60,7 +64,13 @@ function __gradeRace(board, actualMap, preOwned, dkActMap, takenFlags) {
   // re-published as odds arrive, so recomputing edges graded bets never taken and missed
   // real winners (Iowa oreilly pre showed -100% vs actual +5u across 25 flags).
   if (takenFlags && takenFlags.length) {
-    const __nm = x => (x || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+    // 2026-08-30: NFD accent-fold BEFORE stripping non-alphanumerics. Without it an accented
+    // name loses the letter entirely - board "Daniel Suárez" -> 'danielsurez' vs loop data
+    // "Daniel Suarez" -> 'danielsuarez' - so __actBy misses and the flag is silently DROPPED
+    // from grading (same failure mode as the A.J. Allmendinger punctuation bug fixed 2026-08-09).
+    // Cost when found: all 15 logged Suárez flags ungraded, including his P2 at Daytona R26
+    // where t10 +350, t3 +1600 and t5 +750 all HIT.
+    const __nm = __nmName
     const __actBy = {}
     rows.forEach(r => { __actBy[__nm(r.name)] = r.act })
     // 2026-08-09 double-count guards (operator caught Larson graded on BOTH boards):
@@ -71,7 +81,7 @@ function __gradeRace(board, actualMap, preOwned, dkActMap, takenFlags) {
       const __key = __nm(f.driver_name) + '|' + f.market
       if (__seen.has(__key)) return
       __seen.add(__key)
-      if (preOwned && preOwned.has(f.driver_name + '|' + f.market)) return
+      if (preOwned && preOwned.has(__nmName(f.driver_name) + '|' + f.market)) return
       const a = __actBy[__nm(f.driver_name)]
       if (a == null) return
       let __hit
@@ -86,7 +96,7 @@ function __gradeRace(board, actualMap, preOwned, dkActMap, takenFlags) {
       evFlags.push({ driver: f.driver_name, market: f.market, price: f.best_price, book: (f.book || '').toUpperCase(), ev: f.ev, mev: f.mev, medge: (f.medge == null ? null : f.medge), hit: __hit })
     })
   } else {
-  rows.forEach(r => { if (!r.mv) return; ['win', 't3', 't5', 't10'].forEach(mk => { const m = r.mv[mk]; if (!m || m.ev == null || m.ev < MIN_EDGE_BET) return; if (m.best != null && m.best < 0 && m.best < MAX_FAV_BET) return; if (preOwned && preOwned.has(r.name + '|' + mk)) return; evFlags.push({ driver: r.name, market: mk, price: m.best, book: (m.bb || '').toUpperCase(), ev: m.ev, mev: m.mev, medge: (m.medge == null ? null : m.medge), hit: r.act <= Ncut[mk] }) }) })
+  rows.forEach(r => { if (!r.mv) return; ['win', 't3', 't5', 't10'].forEach(mk => { const m = r.mv[mk]; if (!m || m.ev == null || m.ev < MIN_EDGE_BET) return; if (m.best != null && m.best < 0 && m.best < MAX_FAV_BET) return; if (preOwned && preOwned.has(__nmName(r.name) + '|' + mk)) return; evFlags.push({ driver: r.name, market: mk, price: m.best, book: (m.bb || '').toUpperCase(), ev: m.ev, mev: m.mev, medge: (m.medge == null ? null : m.medge), hit: r.act <= Ncut[mk] }) }) })
   }
   const roiOf = fl => { if (!fl.length) return { bets: 0, profit: 0, roi: 0 }; const ret = fl.reduce((s, f) => s + (f.hit ? dec(f.price) : 0), 0); return { bets: fl.length, profit: +(ret - fl.length).toFixed(2), roi: +(((ret - fl.length) / fl.length) * 100).toFixed(1) } }
   // PARALLEL LEDGERS (2026-08-29 tail fix, STATE item 4): floor NOT picked - ladder non-monotonic
@@ -114,7 +124,7 @@ async function __preOwnedFlags(series, postRow) {
       if (!d.mv) return
       ;['win', 't3', 't5', 't10'].forEach(mk => {
         const m = d.mv[mk]
-        if (m && m.ev != null && m.ev >= 10 && !(m.best != null && m.best < 0 && m.best < -250)) owned.add(d.driver_name + '|' + mk)
+        if (m && m.ev != null && m.ev >= 10 && !(m.best != null && m.best < 0 && m.best < -250)) owned.add(__nmName(d.driver_name) + '|' + mk)
       })
     })
     return owned.size ? owned : null
