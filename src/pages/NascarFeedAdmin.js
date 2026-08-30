@@ -87,8 +87,8 @@ export function LoadRaceFromFeed() {
     setBusy(true); setStatus(null); setPreview(null)
     try {
       const payload = await feed({ type: 'race', year, series: SERIES_ID[series], race: nascarId })
-      if (payload.join.weekendOnly || payload.join.loopOnly) {
-        setStatus({ err: `Feeds disagree on the field: ${payload.join.weekendOnly} in results but not loop data, ${payload.join.loopOnly} the other way. Not loading — look at this first.` })
+      if (payload.join.weekendOnly) {
+        setStatus({ err: `Feeds disagree on the field: ${payload.join.weekendOnly} driver(s) scored in the weekend results but absent from loop data. Not loading — look at this first.` })
         return
       }
       const { data: existing } = await supabase.from('loop_data')
@@ -398,7 +398,23 @@ export function FeedBackfill() {
         //
         // Our stored driver_name is never changed. Only the id and the new columns
         // are attached, and the id is the more trustworthy identifier of the two.
-        const nameMismatch = ours.filter(row =>
+        // Without a weekend feed there are no names to compare, so alignment is
+        // checked against the ids already stored from other races instead: the
+        // resolver's first rung maps a NASCAR id to the name we hold for it.
+        // Rows whose id we have never seen are simply not evidence either way.
+        const wkOk = mapped.race.weekendAvailable !== false
+        if (!wkOk) {
+          say(`    ${label}: NASCAR published no weekend feed for this race — enriching from loopstats only (ids, closing_ps, precision, laps); car numbers, teams, finish status and stage results left as they are`)
+        }
+        const comparable = ours.filter(row => {
+          const f = feedByPos.get(row.finish_position)
+          return f.__how === 'id' || (wkOk && f.driver_name)
+        })
+        if (!wkOk && comparable.length < ours.length * 0.5) {
+          say(`  SKIP ${label}: no weekend feed and only ${comparable.length}/${ours.length} drivers have a known id — cannot confirm the rows line up`)
+          tally.skipped++; continue
+        }
+        const nameMismatch = comparable.filter(row =>
           fold(row.driver_name) !== fold(feedByPos.get(row.finish_position).driver_name))
         if (nameMismatch.length > Math.max(2, ours.length * 0.2)) {
           say(`  SKIP ${label}: ${nameMismatch.length}/${ours.length} names disagree at the same finish position — positions are not comparable`)
@@ -420,15 +436,19 @@ export function FeedBackfill() {
             say(`    car# ${row.driver_name}: stored #${row.car_number}, feed #${f.car_number} — feed wins`)
           }
           if ((row.finish_status || '') !== (f.finish_status || '')) tally.statusFixed++
+          // `?? row.x` on every weekend-sourced field. mapRace leaves those
+          // UNDEFINED when NASCAR published no weekend feed, so a race missing
+          // one can never blank a value we already hold. The loopstats-sourced
+          // fields below it are always present and always win.
           return {
             ...row,                       // every existing column preserved
             nascar_driver_id: f.nascar_driver_id,
             closing_ps: f.closing_ps,
-            team_name: f.team_name,
+            team_name: f.team_name ?? row.team_name,
             car_number: f.car_number ?? row.car_number,
-            stage1_finish: f.stage1_finish,
-            stage2_finish: f.stage2_finish,
-            finish_status: f.finish_status,
+            stage1_finish: f.stage1_finish ?? row.stage1_finish,
+            stage2_finish: f.stage2_finish ?? row.stage2_finish,
+            finish_status: f.finish_status ?? row.finish_status,
             // Precision the paste threw away.
             avg_position: f.avg_position,
             driver_rating: f.driver_rating,
@@ -446,18 +466,26 @@ export function FeedBackfill() {
         if (!dryRun) {
           const { error: e1 } = await supabase.from('loop_data').upsert(merged, { onConflict: 'id' })
           if (e1) { say(`  FAIL ${label}: loop_data ${e1.message}`); tally.skipped++; continue }
-          const { error: e2 } = await supabase.from('races').update({
+          // Same rule at race level: send only the keys that are actually known.
+          // Laps and green-flag passes survive a missing weekend feed (loopstats
+          // carries sch_laps/act_laps, and the passes total is the sum of the
+          // driver rows), so the scheduled-vs-actual fix still lands.
+          const raceUpdate = {
             nascar_race_id: mapped.race.nascar_race_id,
             total_laps: mapped.race.total_laps,
             scheduled_laps: mapped.race.scheduled_laps,
+            green_flag_passes: mapped.race.green_flag_passes,
             total_cautions: mapped.race.total_cautions,
             total_caution_laps: mapped.race.total_caution_laps,
             lead_changes: mapped.race.lead_changes,
             avg_speed: mapped.race.avg_speed,
-            green_flag_passes: mapped.race.green_flag_passes,
             margin_of_victory: mapped.race.margin_of_victory,
             margin_of_victory_text: mapped.race.margin_of_victory_text,
-          }).eq('id', race.id)
+          }
+          Object.keys(raceUpdate).forEach(k => {
+            if (raceUpdate[k] === undefined) delete raceUpdate[k]
+          })
+          const { error: e2 } = await supabase.from('races').update(raceUpdate).eq('id', race.id)
           if (e2) { say(`  FAIL ${label}: races ${e2.message}`); tally.skipped++; continue }
         }
 

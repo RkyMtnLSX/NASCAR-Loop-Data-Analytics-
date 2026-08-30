@@ -140,50 +140,71 @@ async function race(res, year, series, raceId) {
 
   const loopRec = Array.isArray(loopRaw) ? loopRaw[0] : loopRaw
   const loopDrivers = loopRec?.drivers || []
-  const wkRace = weekRaw?.weekend_race?.[0]
-  if (!wkRace) return res.status(502).json({ error: 'weekend feed had no weekend_race[0]' })
   if (!loopDrivers.length) {
     return res.status(502).json({ error: 'loopstats had no drivers — the race may not be scored yet' })
   }
 
-  const loopById = new Map(loopDrivers.map(d => [d.driver_id, d]))
-  const results = wkRace.results || []
+  // LOOPSTATS IS THE SPINE; THE WEEKEND FEED IS AN ENRICHMENT.
+  //
+  // NASCAR publishes some races with complete loopstats and an EMPTY weekend
+  // feed - the file exists but weekend_race and weekend_runs are both null.
+  // Confirmed on cup 2025 R34 Talladega (loopstats: 40 drivers; weekend feed:
+  // nulls), oreilly 2024 R7 Martinsville and trucks 2022 R5 Martinsville.
+  //
+  // Refusing those races would forfeit everything loopstats carries - the 15
+  // loop columns, closing_ps, the driver id, full-precision average position
+  // and rating - to gain nothing. So build from loopstats first and merge the
+  // weekend results in only if they exist. weekendAvailable tells the caller
+  // which fields it may trust; the backfill uses it to avoid nulling stored
+  // values it cannot re-source.
+  const wkRace = weekRaw?.weekend_race?.[0] || null
+  const results = (wkRace && wkRace.results) || []
+  const weekendAvailable = results.length > 0
 
-  const drivers = []
+  const resultByDriver = new Map()
   const dnq = []
-  const weekendOnly = []
   for (const r of results) {
     // A DNQ carries a qualifying position but starts and finishes at 0. It has
     // no loop row and must not become one — this is the Sutton/Baldwin case
     // made visible: entered, failed to qualify, sometimes raced another car.
     if (!r.finishing_position) { dnq.push(pick(r, RESULT_FIELDS)); continue }
-    const loop = loopById.get(r.driver_id)
-    if (!loop) { weekendOnly.push(pick(r, RESULT_FIELDS)); continue }
-    loopById.delete(r.driver_id)
-    drivers.push({ ...pick(r, RESULT_FIELDS), loop: pick(loop, LOOP_FIELDS) })
+    resultByDriver.set(r.driver_id, r)
   }
-  const loopOnly = [...loopById.values()].map(d => pick(d, LOOP_FIELDS))
 
-  drivers.sort((a, b) => a.finishing_position - b.finishing_position)
+  const drivers = loopDrivers.map(l => {
+    const r = resultByDriver.get(l.driver_id)
+    if (r) resultByDriver.delete(l.driver_id)
+    return { ...pick(r || {}, RESULT_FIELDS), driver_id: l.driver_id, loop: pick(l, LOOP_FIELDS) }
+  }).sort((a, b) => a.loop.ps - b.loop.ps)
+
+  // Anyone the weekend feed scored but loopstats did not. Non-empty means the
+  // two feeds disagree about who was in the race — worth stopping for.
+  const weekendOnly = [...resultByDriver.values()].map(r => pick(r, RESULT_FIELDS))
+
+  // Laps come from loopstats when the weekend feed is absent, so the
+  // scheduled-vs-actual correction still lands for these races.
+  const race = wkRace ? pick(wkRace, RACE_FIELDS) : pick({}, RACE_FIELDS)
+  race.race_id = raceId
+  if (race.race_name == null) race.race_name = loopRec.race_name ?? null
+  if (race.series_id == null) race.series_id = loopRec.series_id ?? series
+  if (race.scheduled_laps == null) race.scheduled_laps = loopRec.sch_laps ?? null
+  if (race.actual_laps == null) race.actual_laps = loopRec.act_laps ?? null
 
   return res.status(200).json({
     type: 'race',
     year, series_id: series, series: SERIES_NAME[series], nascar_race_id: raceId,
-    race: pick(wkRace, RACE_FIELDS),
-    stageResults: wkRace.stage_results || [],
-    cautionSegments: wkRace.caution_segments || [],
-    raceLeaders: wkRace.race_leaders || [],
+    weekendAvailable,
+    race,
+    stageResults: (wkRace && wkRace.stage_results) || [],
+    cautionSegments: (wkRace && wkRace.caution_segments) || [],
+    raceLeaders: (wkRace && wkRace.race_leaders) || [],
     drivers,
     dnq,
-    // Both of these must be empty for a clean load. Non-empty means the two
-    // feeds disagree about who was in the race, which is a stop-and-look, not
-    // something to paper over.
     join: {
       matched: drivers.length,
+      withWeekendRow: drivers.filter(d => d.finishing_position != null).length,
       weekendOnly: weekendOnly.length,
-      loopOnly: loopOnly.length,
       weekendOnlySample: weekendOnly.slice(0, 5),
-      loopOnlySample: loopOnly.slice(0, 5),
     },
   })
 }

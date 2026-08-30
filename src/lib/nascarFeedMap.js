@@ -78,6 +78,12 @@ export async function feed(params) {
 export function mapRace(payload, ctx) {
   const { series, year, raceNumber, trackName, resolve } = ctx
   const R = payload.race
+  // Some races have complete loopstats and an empty weekend feed. Everything
+  // sourced from the weekend feed is then unknown - NOT known-to-be-null - and
+  // callers must not write it over a stored value. See api/nascar-feed.js.
+  // undefined means UNKNOWN (no weekend feed, do not overwrite what is stored);
+  // null means KNOWN ABSENT (the feed answered and had nothing there).
+  const wk = payload.weekendAvailable !== false
 
   // Stage results only publish the points-paying top ten, so most drivers get
   // null here. That is the feed's shape, not a load failure.
@@ -101,8 +107,8 @@ export function mapRace(payload, ctx) {
       year,
       race_number: raceNumber,
       track_name: trackName,
-      car_number: d.car_number != null ? String(d.car_number).trim() : null,
-      team_name: d.team_name || null,
+      car_number: !wk ? undefined : (d.car_number != null ? String(d.car_number).trim() : null),
+      team_name: wk ? (d.team_name || null) : undefined,
       start_position: L.start_ps,
       mid_race_position: L.mid_ps,
       finish_position: L.ps,
@@ -124,9 +130,9 @@ export function mapRace(payload, ctx) {
       closing_ps: L.closing_ps,
       // Lowercased so it matches both vocabularies already in the column, and
       // so SimulationCenter's `fs && fs !== 'running'` DNF test keeps working.
-      finish_status: (d.finishing_status || '').trim().toLowerCase() || null,
-      stage1_finish: (stagePos[d.driver_id] || {})[1] ?? null,
-      stage2_finish: (stagePos[d.driver_id] || {})[2] ?? null,
+      finish_status: wk ? ((d.finishing_status || '').trim().toLowerCase() || null) : undefined,
+      stage1_finish: wk ? ((stagePos[d.driver_id] || {})[1] ?? null) : undefined,
+      stage2_finish: wk ? ((stagePos[d.driver_id] || {})[2] ?? null) : undefined,
     }
   })
 
@@ -142,19 +148,20 @@ export function mapRace(payload, ctx) {
     race_date: (R.race_date || R.date_scheduled || '').slice(0, 10) || null,
     nascar_race_id: R.race_id,
     winning_driver: winner ? winner.driver_name : null,
-    winning_car_number: winner ? winner.car_number : null,
+    winning_car_number: !wk ? undefined : (winner ? (winner.car_number ?? null) : null),
     // ACTUAL laps, not scheduled. This is the 142-race correction.
     total_laps: R.actual_laps || null,
     scheduled_laps: R.scheduled_laps || null,
-    total_cautions: R.number_of_cautions,
-    total_caution_laps: R.number_of_caution_laps,
-    lead_changes: R.number_of_lead_changes,
-    avg_speed: R.average_speed,
+    total_cautions: wk ? R.number_of_cautions : undefined,
+    total_caution_laps: wk ? R.number_of_caution_laps : undefined,
+    lead_changes: wk ? R.number_of_lead_changes : undefined,
+    avg_speed: wk ? R.average_speed : undefined,
     // Not published as a race total; it is the sum of the driver rows, verified
     // against races.green_flag_passes for cup 2026 R25 and R26.
     green_flag_passes: rows.reduce((s, r) => s + (r.green_flag_passes || 0), 0),
-    margin_of_victory: Number.isFinite(mov) ? mov : null,
-    margin_of_victory_text: R.margin_of_victory != null ? String(R.margin_of_victory) : null,
+    margin_of_victory: !wk ? undefined : (Number.isFinite(mov) ? mov : null),
+    margin_of_victory_text: !wk ? undefined : (R.margin_of_victory != null ? String(R.margin_of_victory) : null),
+    weekendAvailable: wk,
   }
 
   return { race, rows }

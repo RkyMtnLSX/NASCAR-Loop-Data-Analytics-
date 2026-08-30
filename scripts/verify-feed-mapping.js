@@ -133,5 +133,52 @@ for (const r of out.rows) {
   console.log(`   ${r.driver_name.padEnd(22)} ${String(r.finish_status).padEnd(9)} -> ${dnf ? 'DNF' : 'running'}`)
 }
 
+
+// ---------------------------------------------------------------------------
+// WEEKEND FEED ABSENT
+// NASCAR publishes some races with complete loopstats and an empty weekend feed
+// (weekend_race and weekend_runs both null) - confirmed on cup 2025 R34
+// Talladega, oreilly 2024 R7 Martinsville, trucks 2022 R5 Martinsville. Those
+// races must still be enriched from loopstats, and must NOT blank the fields
+// only the weekend feed can supply.
+console.log('\nweekend feed absent: loopstats-only enrichment')
+const noWk = {
+  weekendAvailable: false,
+  race: { race_id: 5580, race_name: 'YellaWood 500', scheduled_laps: 188, actual_laps: 193 },
+  stageResults: [], dnq: [],
+  drivers: payload.drivers.map(d => ({
+    driver_id: d.driver_id, driver_fullname: null, car_number: null,
+    team_name: null, finishing_status: null, loop: d.loop,
+  })),
+}
+// Ids are known from earlier races, which is how alignment stays checkable.
+const withIds = existing.map((e, i) => ({ ...e, nascar_driver_id: payload.drivers[i].driver_id }))
+const out2 = mapRace(noWk, { series:'cup', year:2025, raceNumber:34,
+  trackName:'Talladega Superspeedway', resolve: makeResolver(withIds) })
+
+let bad2 = 0
+const mustBeUndefined = ['car_number','team_name','finish_status','stage1_finish','stage2_finish']
+const mustBePresent = ['nascar_driver_id','closing_ps','avg_position','driver_rating','mid_race_position','laps_completed','finish_position']
+for (const r of out2.rows) {
+  for (const k of mustBeUndefined) {
+    if (r[k] !== undefined) { console.log(`   ${r.driver_name} ${k} should be undefined (unknown), got ${JSON.stringify(r[k])}`); bad2++ }
+  }
+  for (const k of mustBePresent) {
+    if (r[k] === undefined || r[k] === null) { console.log(`   ${r.driver_name} ${k} should be set, got ${JSON.stringify(r[k])}`); bad2++ }
+  }
+}
+console.log(`   ${out2.rows.length} rows: loop fields set, weekend fields undefined`)
+console.log('   resolved by id ->', out2.rows.map(r => r.driver_name).slice(0,3).join(', '), '...')
+
+for (const k of ['total_cautions','total_caution_laps','lead_changes','avg_speed','margin_of_victory','margin_of_victory_text','winning_car_number']) {
+  if (out2.race[k] !== undefined) { console.log(`   race.${k} should be undefined (unknown), got ${JSON.stringify(out2.race[k])}`); bad2++ }
+}
+// Laps still land, because loopstats carries them. This is the whole point.
+if (out2.race.total_laps !== 193) { console.log(`   race.total_laps expected 193, got ${out2.race.total_laps}`); bad2++ }
+if (out2.race.scheduled_laps !== 188) { console.log(`   race.scheduled_laps expected 188, got ${out2.race.scheduled_laps}`); bad2++ }
+if (!out2.race.green_flag_passes) { console.log('   race.green_flag_passes should still be summed'); bad2++ }
+console.log(`   race: total_laps ${out2.race.total_laps} (scheduled ${out2.race.scheduled_laps}), weekend-only fields undefined`)
+bad += bad2
+
 console.log(bad === 0 ? '\nALL CHECKS PASSED' : `\n${bad} FAILURES`)
 process.exit(bad === 0 ? 0 : 1)
