@@ -2858,3 +2858,22 @@ mid-pack quality cars did (Stenhouse P32->5, A.Dillon P29->7, Suárez P23->2). B
 every overfit starts, which is why the rule above is written before the query is run.
 NOT PART OF THIS STUDY, deliberately: the GPP-vs-cash default (n=1 on the current engine - frozen),
 any blend weight, any top-k protection, and the ownership model.
+
+### 2026-08-30 — SS study, STAGE 1: training fit FROZEN (holdout not yet touched)
+POPULATION AS REGISTERED: 71 SS races, 2,684 driver-rows, zero missing start positions, no
+exhibition races in the set. TRAIN 2022-2024 = 44 races / 1,653 rows. HOLDOUT 2025-2026 = 27 races.
+DEVIATION FROM THE REGISTRATION, declared before results: predictor C (organization SS mean for
+drivers under the 3-start minimum) is NOT IMPLEMENTABLE - loop_data carries no team/organization
+column and entry_list only holds the current weekend. Those drivers instead receive the train-set
+mean of B (18.943), i.e. the term contributes nothing for them. 1,057 of 1,653 train rows (63.9 pct)
+have a real B; the remaining 36.1 pct are the neutral fill. This WEAKENS the test - it cannot help
+the test model - so it is a conservative deviation, not a favourable one.
+FROZEN COEFFICIENTS (fitted on train rows only, plain OLS, no tuning):
+    fin_hat = 11.9080 + 0.1466*start + 0.2413*priorSSmean
+    baseline: fin_hat = 15.9870 + 0.1721*start
+Note the prior-SS-record coefficient (0.2413) is LARGER than the start coefficient (0.1466) - in
+sample, a driver's superspeedway history matters more for his finish than where he starts.
+TRAIN-SIDE SANITY, explicitly not the judge: mean per-race Spearman 0.1694 baseline -> 0.1938 test,
+delta +0.0244. That is already BELOW the +0.05 pass bar in sample, which is a bad omen for the
+holdout and is being recorded now rather than after the fact.
+The holdout has not been queried, summarised or plotted. Next entry reports it whatever it says.
