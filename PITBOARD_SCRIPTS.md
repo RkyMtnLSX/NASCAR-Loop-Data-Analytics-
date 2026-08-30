@@ -35,14 +35,18 @@ is granted to the `authenticated` role only (`admin_all` via `is_admin()`, `subs
 That is exactly what happened between 2026-08-23 and 2026-08-30: four race weekends of pit data
 went missing with no error anywhere. See **Failure modes** below.
 
-**Setting it (operator only — the key never goes in a file, a repo, or a chat):**
+**Setting it — double-click `SET_KEY.bat`.** It prompts, hides your typing, and writes the key to
+your Windows user environment with `setx`. The key never goes into a file, a repo, or a chat, and
+this is a ONE-TIME step — after it, `POST_RACE_UPDATE.bat` works on its own every week forever.
+
+Equivalent by hand if you prefer:
 
 ```
 setx SUPABASE_KEY "<service role key>"
 ```
 
-`setx` writes the user environment permanently but does **not** affect terminals that are already
-open. Close the terminal and open a new one, then run the `.bat`.
+Either way: `setx` writes the user environment permanently but does **not** affect terminals that
+are already open. **Close the window and open a fresh one**, then run the `.bat`.
 
 Verify without printing the key:
 
@@ -56,6 +60,7 @@ echo %SUPABASE_KEY:~0,6%...      (should print the first 6 chars, not "%SUPABASE
 
 | When | Action |
 |---|---|
+| Once, ever | **SET_KEY.bat** — paste the service role key. Without it every loader silently writes nothing (see §0). |
 | Before practice starts | double-click **CAPTURE_PRACTICE.bat** and leave it running. Laps that happen while it is not running are gone forever — NASCAR only archives best-lap for practice/qualifying. |
 | After practice ends | **MAKE_PRACTICE_SHEET.bat** (optionally `cup` / `oreilly` / `trucks`), then upload the .xlsx in PitBoard Admin. |
 | After the race, once the loop-data PDF is loaded in Admin | **POST_RACE_UPDATE.bat** — pit stops, then penalties, then race lap archives. ~5-10 min. Leave it open until all three summaries print. |
