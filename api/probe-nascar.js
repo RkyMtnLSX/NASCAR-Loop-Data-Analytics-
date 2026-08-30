@@ -284,6 +284,60 @@ async function weekend(res, year, series, race) {
   })
 }
 
+// Key skeleton of the weekend feed plus the archived lap notes.
+//
+// Why: Admin's LoadNewRace parses SIX race-level fields out of the Racing
+// Reference paste that loopstats does not carry — total_cautions,
+// total_caution_laps, lead_changes, avg_speed, green_flag_passes,
+// margin_of_victory. Whether those exist in a feed decides whether the paste
+// can go away entirely or only shrink. Names and scalar types only, no values
+// beyond a short sample, and depth-limited.
+async function skeleton(res, year, series, race) {
+  const shape = (node, depth = 0) => {
+    if (node === null) return 'null'
+    if (Array.isArray(node)) {
+      return depth >= 3 || !node.length
+        ? `array[${node.length}]`
+        : { [`array[${node.length}] of`]: shape(node[0], depth + 1) }
+    }
+    if (typeof node === 'object') {
+      if (depth >= 3) return `object{${Object.keys(node).length} keys}`
+      return Object.fromEntries(
+        Object.keys(node).sort().map(k => [k, shape(node[k], depth + 1)]))
+    }
+    const s = String(node)
+    return `${typeof node}: ${s.length > 40 ? s.slice(0, 40) + '…' : s}`
+  }
+
+  const [wk, notes] = await Promise.all([
+    getJson(`https://cf.nascar.com/cacher/${year}/${series}/${race}/weekend-feed.json`),
+    getJson(`https://cf.nascar.com/cacher/${year}/${series}/${race}/lap-notes.json`),
+  ])
+
+  // The lap notes are the only per-race ARCHIVED source of flag state — the
+  // live flag feed is not addressable by race, so cautions for past seasons
+  // can only come from here.
+  let flagSummary = null
+  if (notes.data) {
+    const arr = Array.isArray(notes.data) ? notes.data
+      : (notes.data.laps || notes.data.notes || [])
+    if (Array.isArray(arr)) {
+      const counts = {}
+      for (const n of arr) {
+        const f = n.FlagState ?? n.flag_state
+        if (f !== undefined) counts[f] = (counts[f] || 0) + 1
+      }
+      flagSummary = { n: arr.length, flagStateCounts: counts, sample: arr[0] }
+    }
+  }
+
+  return res.status(200).json({
+    mode: 'skeleton', year, series, race,
+    weekendFeed: wk.data ? shape(wk.data) : `unavailable [${wk.status}]`,
+    lapNotes: notes.data ? { shape: shape(notes.data), flagSummary } : `unavailable [${notes.status}]`,
+  })
+}
+
 async function single(res, year, series, race) {
   const url = `https://cf.nascar.com/loopstats/prod/${year}/${series}/${race}.json`
   const started = Date.now()
@@ -363,5 +417,6 @@ module.exports = async function handler(req, res) {
   const deadline = Date.now() + BUDGET_MS
   if (q.mode === 'sweep') return sweep(res, year, deadline)
   if (q.mode === 'weekend') return weekend(res, year, series, race)
+  if (q.mode === 'skeleton') return skeleton(res, year, series, race)
   return single(res, year, series, race)
 }
