@@ -3738,3 +3738,55 @@ DECLARED IN ADVANCE:
     upward and works AGAINST the hypothesis.
   * Removing compromised cars shrinks the sample. If the accident numerator in any track type falls
     below 30 events, that group is reported as UNDERPOWERED rather than judged.
+
+## 2026-08-30 — RESTART PROXIMITY v2: bar 3 fails again. CLOSED, as pre-registered.
+Compromised-car rule applied exactly as written: a car is dropped from both numerator and denominator,
+both buckets, from the start_lap of the first caution naming it. 3,346 (race, car) exclusions parsed
+from leading '#' lists. No group underpowered.
+
+    track type       car-laps k<=5  acc k<=5  car-laps k>5  acc k>5   ACC RATIO   MECH CONTROL
+    Intermediate           181,080       202       583,436      126      5.165       1.492
+    Short & Flat           133,067        86       595,220       88      4.371       1.307
+    Road Course             51,312        70        62,212       28      3.031       1.023
+    Superspeedway           65,120       164       146,112      182      2.022       1.026
+    POOLED                 430,579       522     1,386,980      424      3.966       1.589
+
+Bar 1 (>= 1.5x pooled): PASS, 3.966.  Bar 2 (>= 3 of 4 groups): PASS, 4 of 4.
+Bar 3 (mechanical control < 1.2): **FAIL, 1.589.**  **CLOSED per the registration.**
+
+WHAT THE FIX DID AND DID NOT DO, v1 -> v2:
+
+    Superspeedway   mech 1.228 -> 1.026   (fixed)
+    Road Course     mech 1.029 -> 1.023   (was already clean)
+    Short & Flat    mech 1.419 -> 1.307   (improved, still over)
+    Intermediate    mech 1.401 -> 1.492   (WORSE)
+    POOLED          mech 1.590 -> 1.589   (unmoved)
+
+The compromised-car rule worked exactly where the theorised mechanism applies — superspeedways, where
+damaged cars limping to a restart is most common, went to 1.03. It did nothing at intermediates,
+which got worse and which dominate the pooled denominator.
+
+THE ASSUMPTION THAT MAY BE WRONG, stated but NOT used to rescue anything. Both designs treat
+mechanical DNFs as restart-independent. That may simply be false: a restart is the most mechanically
+violent moment in a race — hard acceleration, peak revs, driveline shock — so engines and gearboxes
+plausibly DO fail there at elevated rates. If so the control was never valid and both studies were
+mis-specified from the start. I am recording that because it is the most likely explanation of an
+intermediate-track control of 1.49, NOT as grounds to reopen. Declaring a control invalid after it
+has failed twice is the same goalpost move as swapping in a statistic that rescues the result, and
+the registration exists to stop exactly that.
+
+WHAT IS SAFELY KNOWN, and it is not nothing: 23.8% of green car-laps fall within 5 laps of a restart,
+and roughly 55% of accident DNFs occur there, in every track type, at 2.0x to 5.2x the later-lap rate,
+and it survives removing every car known to be damaged. Accident clustering after restarts is real
+and large. What two designs could not do is prove it is a RESTART effect rather than a
+retirement-timing effect.
+
+WHAT CLOSING COSTS, honestly: very little. WRECK_SETS bootstraps whole races as [size, lapFraction]
+sequences, so it already inherits whatever within-race clustering exists in the source data —
+including restart clustering, implicitly. The unmodelled part is conditioning victim SELECTION on
+event timing, which is a different question and remains open from the 2026-08-30 leader-wreck entry
+(leaders wreck at 0.71-0.78 of distance vs 0.55-0.60 for non-leaders).
+
+FIFTH REGISTERED STUDY IN TWO DAYS, FIFTH NON-PASS. Three nulls, one real-but-immaterial, one large
+effect that could not be cleanly attributed. Nothing shipped from any of them. The constants refresh
+and the caution capture stand on measurement, not on any of these tests.
