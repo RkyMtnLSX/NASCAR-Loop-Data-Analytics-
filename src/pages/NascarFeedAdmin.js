@@ -289,7 +289,7 @@ export function FeedBackfill() {
 
   async function run() {
     setRunning(true); setLog([]); setSummary(null); stop.current = false
-    const tally = { races: 0, skipped: 0, rows: 0, lapsFixed: 0, statusFixed: 0, carMismatch: 0, newNames: 0, nameConflict: 0 }
+    const tally = { races: 0, skipped: 0, rows: 0, lapsFixed: 0, statusFixed: 0, carMismatch: 0, newNames: 0, nameConflict: 0, exhibitions: 0 }
     const seriesList = series === 'all' ? Object.keys(SERIES_ID) : [series]
     const yearList = year === 'all' ? ALL_YEARS : [parseInt(year, 10)]
     say(`${dryRun ? 'DRY RUN — nothing will be written.' : 'WRITING.'} `
@@ -328,6 +328,18 @@ export function FeedBackfill() {
       for (const race of races) {
         if (stop.current) { say('Stopped.'); break }
         const label = `R${race.race_number} ${race.track_name}`
+
+        // Exhibitions (the Clash, the Duels, the All-Star race) are excluded from
+        // the registry by the era rules, so they carry no loop_data and never
+        // will. Counting them as skips made the 2026 Dover All-Star stub look
+        // like a failure on every run. Note the practice laps from those weekends
+        // ARE kept - practice_laps keys on series/year/track/race_number, not on
+        // race_id - so excluding the race does not discard the pace data.
+        if (race.exhibition) {
+          say(`  --   ${label}: exhibition, excluded by design`)
+          tally.exhibitions++
+          continue
+        }
 
         let nid = race.nascar_race_id
         if (!nid) {
@@ -539,7 +551,7 @@ export function FeedBackfill() {
         <div style={{ ...mono, padding: '8px 10px', borderRadius: 6, marginBottom: 10, background: 'rgba(34,197,94,0.12)', color: '#86efac' }}>
           {summary.races} races, {summary.rows} rows · total_laps corrected on {summary.lapsFixed} ·
           finish_status changed on {summary.statusFixed} · car# disagreements {summary.carMismatch} ·
-          unmatched names {summary.newNames} · name variants kept {summary.nameConflict} · skipped {summary.skipped}
+          unmatched names {summary.newNames} · name variants kept {summary.nameConflict} · exhibitions excluded {summary.exhibitions} · skipped {summary.skipped}
         </div>
       )}
 
