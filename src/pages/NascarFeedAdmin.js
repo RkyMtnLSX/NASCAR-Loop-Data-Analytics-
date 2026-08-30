@@ -379,21 +379,40 @@ export function FeedBackfill() {
           say(`    note ${label}: feed has ${feedByPos.size} drivers, loop_data has ${ourPos.size} — enriching the ${ourPos.size} we hold`)
         }
 
-        const nameMismatch = ours.filter(row => {
-          const f = feedByPos.get(row.finish_position)
-          return fold(row.driver_name) !== fold(f.driver_name)
-        })
+        // The name check is a test of ALIGNMENT, not of spelling.
+        //
+        // First pass over the real data settled what these disagreements are: all
+        // 51 were five drivers whose names we simply store differently - "Andres
+        // Perez" for NASCAR's "Andres Perez De Lara" (40 rows), "Garrett Mitchell"
+        // and "Cleetus McFarland" for the same person NASCAR itself files under
+        // both "Cleetus McFarland" and "Cleetus Mitchell", and so on. NASCAR's own
+        // feed is inconsistent here too; pit_stops holds "Andes Perez De Lara #",
+        // a NASCAR typo, against the same driver id.
+        //
+        // Refusing those rows was the wrong response. When 38 of 39 rows agree,
+        // the positions are DEMONSTRABLY aligned, and a lone disagreement is a
+        // spelling variant rather than a misalignment. So above the threshold the
+        // race is skipped (a renumbering would misalign most rows, which is the
+        // thing actually worth catching); below it, every row is enriched and each
+        // variant is printed.
+        //
+        // Our stored driver_name is never changed. Only the id and the new columns
+        // are attached, and the id is the more trustworthy identifier of the two.
+        const nameMismatch = ours.filter(row =>
+          fold(row.driver_name) !== fold(feedByPos.get(row.finish_position).driver_name))
         if (nameMismatch.length > Math.max(2, ours.length * 0.2)) {
           say(`  SKIP ${label}: ${nameMismatch.length}/${ours.length} names disagree at the same finish position — positions are not comparable`)
           tally.skipped++; continue
+        }
+        if (nameMismatch.length) {
+          say(`    ${label}: ${ours.length - nameMismatch.length}/${ours.length} names agree, so positions are aligned; enriching the ${nameMismatch.length} variant(s) too`)
         }
 
         const merged = ours.map(row => {
           const f = feedByPos.get(row.finish_position)
           if (fold(row.driver_name) !== fold(f.driver_name)) {
-            say(`    LEFT ALONE P${row.finish_position}: stored "${row.driver_name}", feed "${f.driver_name}"`)
+            say(`    variant P${row.finish_position}: keeping "${row.driver_name}", NASCAR calls id ${f.nascar_driver_id} "${f.driver_name}"`)
             tally.nameConflict++
-            return row
           }
           if (f.__how === 'new') tally.newNames++
           if (row.car_number && f.car_number && String(row.car_number) !== String(f.car_number)) {
@@ -455,8 +474,10 @@ export function FeedBackfill() {
         Adds <code>nascar_driver_id</code>, <code>closing_ps</code>, <code>team_name</code> and
         stage finishes to races already loaded, and repairs <code>total_laps</code> (which has
         been holding scheduled laps) and <code>finish_status</code> (which was a laps&lt;90% guess).
-        Rows are matched on finish position — a race whose positions do not correspond exactly is
-        skipped, never partially written. Run it dry first.
+        Rows are matched on finish position, cross-checked by name. A race where names disagree at
+        more than 20% of positions is skipped entirely — that is what a renumbering looks like.
+        Below that the positions are demonstrably aligned, so spelling variants are enriched too and
+        printed; your stored driver names are never changed. Run it dry first.
       </p>
 
       <div style={grid}>
@@ -490,7 +511,7 @@ export function FeedBackfill() {
         <div style={{ ...mono, padding: '8px 10px', borderRadius: 6, marginBottom: 10, background: 'rgba(34,197,94,0.12)', color: '#86efac' }}>
           {summary.races} races, {summary.rows} rows · total_laps corrected on {summary.lapsFixed} ·
           finish_status changed on {summary.statusFixed} · car# disagreements {summary.carMismatch} ·
-          unmatched names {summary.newNames} · left alone on name conflict {summary.nameConflict} · skipped {summary.skipped}
+          unmatched names {summary.newNames} · name variants kept {summary.nameConflict} · skipped {summary.skipped}
         </div>
       )}
 
