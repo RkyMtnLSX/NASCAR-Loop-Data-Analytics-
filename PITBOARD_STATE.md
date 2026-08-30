@@ -1,6 +1,26 @@
 # PITBOARD STATE
 Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2026-08-30. DFS was rebuilt this session: GPP is now a SET objective (E[max] across the sim draws, no tuning parameter, scales 1-150 entries), a DFS Replay admin tool grades the delivered SET against the real contest and banks it in dfs_replays, projected ownership ships on the board, and the whole replay ledger was recomputed through the product's own solvers (4-1-1 -> 3-2-3). Superspeedway finish-quality CLOSED on a registered holdout. BLOCKER: four races have no pit data - the local scrapers need SUPABASE_KEY set (see PITBOARD_SCRIPTS.md).
 
+## 2026-08-30 — closing_ps STUDY CLOSED (registered, failed)
+
+`closing_ps` is populated on all 16,130 rows and **no model uses it.** Registered study ran the same
+day: train 2022-24 (n=10,019), holdout 2025-26 (162 races). Mean per-race Spearman delta **-0.0001**
+against a +0.05 bar; positive in **48.8%** of races against a 60% bar. Superspeedway subgroup
+identical (-0.0003, 48.1%). Both bars missed, effect is zero.
+
+Cause: averaged over a driver's prior races, `priorClose` and `priorFin` correlate **0.9668** — the
+race-to-race gap between running position at the end and classified finish is noise, and averaging
+cancels it. The in-sample coefficient shift (priorFin 0.411 -> 0.162) was OLS splitting credit
+between interchangeable variables, not closing position being better.
+
+**Do not re-open on the back of this.** A contemporaneous (within-race) use of closing_ps was not
+tested and would need its own pre-registration written before looking.
+
+Second convergent result: baseline per-race Spearman is 0.44 overall but **0.17 at superspeedways**,
+matching the separately-registered SS finish-quality study. Two independent studies now say
+superspeedway finish is near-unpredictable from what we hold — which supports the SS variance
+multiplier rather than indicting it.
+
 ## 2026-08-30 (final) — BACKFILL COMPLETE; ONE REAL DEFECT FOUND
 
 **16,094 of 16,130 loop_data rows enriched.** `total_laps` short on 1 race (down from 142).

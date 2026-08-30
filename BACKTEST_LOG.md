@@ -3252,3 +3252,45 @@ bars and reported separately. A miss on either bar closes closing_ps as a predic
 stored column with no model role.
 
 Holdout scored in the next entry.
+
+## 2026-08-30 — closing_ps STAGE 2: HOLDOUT FAILS BOTH BARS. CLOSED.
+Scored with the coefficients frozen in the entry above. Nothing was refit, no parameter moved.
+
+    scope                    races   baseline rho   test rho   mean delta   positive in
+    ALL HOLDOUT (2025-26)      162        0.4398      0.4397     -0.0001        48.8%
+    Superspeedway (registered)  27        0.1723      0.1721     -0.0003        48.1%
+
+Bar 1 needed mean delta >= +0.05: got **-0.0001**. Bar 2 needed positive in >= 60% of races: got
+**48.8%**. Not a near miss, not a wrong sign on a small effect — the effect is zero to four decimal
+places, and race-by-race it is a coin flip. The registered superspeedway subgroup fails identically.
+**CLOSED.**
+
+WHY, and this is the part worth keeping. On the holdout, **corr(priorFin, priorClose) = 0.9668.**
+Per RACE the two quantities are meaningfully different — corr 0.856, mean gap 3.28 positions, only
+30% identical, and Hocevar closing 2nd while finishing 38th at Daytona is a real thing that happened.
+But AVERAGED over a driver's prior races in a track group, they collapse into the same number. The
+race-to-race gap between where a driver was running at the end and where they were classified is
+NOISE, and averaging is exactly the operation that cancels it.
+
+That is why the in-sample coefficient shift was a mirage. priorClose took weight from priorFin
+(0.411 -> 0.162) not because it was better but because at rho 0.967 the two are interchangeable and
+OLS split the credit arbitrarily. The models rank identically for 57.4% of holdout driver-rows, and
+where they differ the mean rank shift is 0.63 positions — movement without improvement.
+
+WHAT IS AND IS NOT CLOSED. Closed: **prior-average closing position as a driver-level trait.** It
+carries no information beyond start position and prior finishing position, and `closing_ps` stays a
+stored column with no model role. NOT tested here, and therefore neither open nor closed: any
+contemporaneous use of closing_ps (a within-race measure rather than a prior average). Testing that
+would need its own pre-registration written before looking — and I am not proposing one on the back
+of a failed result, which is precisely the fishing the protocol exists to prevent.
+
+CONTEXT. Baseline per-race Spearman is 0.4398 overall but **0.1723 at superspeedways**, consistent
+with the 2026-08-30 superspeedway study (which measured 0.186 on its own baseline and also failed).
+Two independent registered studies now agree that superspeedway finish is close to unpredictable
+from anything we hold. That is a converging result, not a coincidence, and it is the strongest
+argument yet that the SS variance multiplier is doing real work rather than papering over a
+missing feature.
+
+METHOD NOTE. This is the second study in two days where the in-sample signal pointed one way and the
+holdout said zero (SS finish-quality: in-sample +0.0244, holdout -0.0041). The pattern is worth
+naming: an in-sample gain under +0.05 has now twice predicted a holdout of exactly nothing.
