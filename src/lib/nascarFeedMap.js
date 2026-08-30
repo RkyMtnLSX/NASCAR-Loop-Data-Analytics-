@@ -166,10 +166,31 @@ export function mapRace(payload, ctx) {
     // Not published as a race total; it is the sum of the driver rows, verified
     // against races.green_flag_passes for cup 2026 R25 and R26.
     green_flag_passes: rows.reduce((s, r) => s + (r.green_flag_passes || 0), 0),
+    stage_1_laps: wk ? (R.stage_1_laps ?? null) : undefined,
+    stage_2_laps: wk ? (R.stage_2_laps ?? null) : undefined,
+    stage_3_laps: wk ? (R.stage_3_laps ?? null) : undefined,
+    stage_4_laps: wk ? (R.stage_4_laps ?? null) : undefined,
     margin_of_victory: !wk ? undefined : (Number.isFinite(mov) ? mov : null),
     margin_of_victory_text: !wk ? undefined : (R.margin_of_victory != null ? String(R.margin_of_victory) : null),
     weekendAvailable: wk,
   }
 
-  return { race, rows }
+  // Caution segments -> table rows. Ordered by start_lap and numbered from 1, so
+  // segment_number is stable across re-runs and the unique key holds.
+  const cautions = (payload.cautionSegments || [])
+    .filter(c => c && c.start_lap != null)
+    .slice()
+    .sort((a, b) => a.start_lap - b.start_lap)
+    .map((c, i) => ({
+      segment_number: i + 1,
+      start_lap: c.start_lap,
+      end_lap: c.end_lap ?? null,
+      reason: c.reason ?? null,
+      comment: c.comment ?? null,
+      beneficiary_car_number: c.beneficiary_car_number != null ? String(c.beneficiary_car_number) : null,
+      flag_state: c.flag_state ?? null,
+      series, year, race_number: raceNumber, track_name: trackName,
+    }))
+
+  return { race, rows, cautions }
 }

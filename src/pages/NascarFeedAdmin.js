@@ -142,6 +142,16 @@ export function LoadRaceFromFeed() {
       const { error: ldErr } = await supabase.from('loop_data').insert(insertRows)
       if (ldErr) { setStatus({ err: `loop_data write failed: ${ldErr.message}` }); return }
 
+      // Caution timing. Delete-then-insert so a re-load cannot leave stale segments,
+      // and a failure here is reported but does not fail the race load - the loop
+      // data is the deliverable, cautions are an enrichment.
+      const cautions = (preview.cautions || []).map(c => ({ ...c, race_id: raceRow.id, nascar_race_id: race.nascar_race_id }))
+      await supabase.from('caution_segments').delete().eq('race_id', raceRow.id)
+      if (cautions.length) {
+        const { error: cErr } = await supabase.from('caution_segments').insert(cautions)
+        if (cErr) setStatus({ err: `loop_data loaded, but caution segments failed: ${cErr.message}` })
+      }
+
       setStatus({ ok: `Loaded ${insertRows.length} drivers for ${race.track_name} ${year} — ${race.total_laps} actual laps (${race.scheduled_laps} scheduled), ${race.total_cautions} cautions.` })
       setPreview(null)
     } catch (e) { setStatus({ err: e.message }) } finally { setBusy(false) }
@@ -289,7 +299,7 @@ export function FeedBackfill() {
 
   async function run() {
     setRunning(true); setLog([]); setSummary(null); stop.current = false
-    const tally = { races: 0, skipped: 0, rows: 0, lapsFixed: 0, statusFixed: 0, carMismatch: 0, newNames: 0, nameConflict: 0, exhibitions: 0 }
+    const tally = { races: 0, skipped: 0, rows: 0, lapsFixed: 0, statusFixed: 0, carMismatch: 0, newNames: 0, nameConflict: 0, exhibitions: 0, cautions: 0 }
     const seriesList = series === 'all' ? Object.keys(SERIES_ID) : [series]
     const yearList = year === 'all' ? ALL_YEARS : [parseInt(year, 10)]
     say(`${dryRun ? 'DRY RUN — nothing will be written.' : 'WRITING.'} `
@@ -503,6 +513,16 @@ export function FeedBackfill() {
           })
           const { error: e2 } = await supabase.from('races').update(raceUpdate).eq('id', race.id)
           if (e2) { say(`  FAIL ${label}: races ${e2.message}`); tally.skipped++; continue }
+
+          // Caution timing: the restart lap is what the wreck model has never had.
+          const cautions = (mapped.cautions || []).map(c =>
+            ({ ...c, race_id: race.id, nascar_race_id: mapped.race.nascar_race_id }))
+          await supabase.from('caution_segments').delete().eq('race_id', race.id)
+          if (cautions.length) {
+            const { error: e3 } = await supabase.from('caution_segments').insert(cautions)
+            if (e3) say(`    caution segments failed for ${label}: ${e3.message}`)
+            else tally.cautions += cautions.length
+          }
         }
 
         tally.races++; tally.rows += merged.length
@@ -516,8 +536,10 @@ export function FeedBackfill() {
       <h3 style={{ margin: '0 0 4px', fontSize: '1rem' }}>Feed Backfill (existing races)</h3>
       <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0 0 14px' }}>
         Adds <code>nascar_driver_id</code>, <code>closing_ps</code>, <code>team_name</code> and
-        stage finishes to races already loaded, and repairs <code>total_laps</code> (which has
-        been holding scheduled laps) and <code>finish_status</code> (which was a laps&lt;90% guess).
+        stage finishes to races already loaded, repairs <code>total_laps</code> (which has been
+        holding scheduled laps) and <code>finish_status</code> (which was a laps&lt;90% guess), and
+        captures <strong>caution timing</strong> — every caution's start and end lap, so the restart
+        lap exists in the database for the first time.
         Rows are matched on finish position, cross-checked by name. A race where names disagree at
         more than 20% of positions is skipped entirely — that is what a renumbering looks like.
         Below that the positions are demonstrably aligned, so spelling variants are enriched too and
@@ -555,7 +577,7 @@ export function FeedBackfill() {
         <div style={{ ...mono, padding: '8px 10px', borderRadius: 6, marginBottom: 10, background: 'rgba(34,197,94,0.12)', color: '#86efac' }}>
           {summary.races} races, {summary.rows} rows · total_laps corrected on {summary.lapsFixed} ·
           finish_status changed on {summary.statusFixed} · car# disagreements {summary.carMismatch} ·
-          unmatched names {summary.newNames} · name variants kept {summary.nameConflict} · exhibitions excluded {summary.exhibitions} · skipped {summary.skipped}
+          unmatched names {summary.newNames} · name variants kept {summary.nameConflict} · exhibitions excluded {summary.exhibitions} · caution segments {summary.cautions} · skipped {summary.skipped}
         </div>
       )}
 
