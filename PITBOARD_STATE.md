@@ -1,6 +1,41 @@
 # PITBOARD STATE
 Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2026-08-30. DFS was rebuilt this session: GPP is now a SET objective (E[max] across the sim draws, no tuning parameter, scales 1-150 entries), a DFS Replay admin tool grades the delivered SET against the real contest and banks it in dfs_replays, projected ownership ships on the board, and the whole replay ledger was recomputed through the product's own solvers (4-1-1 -> 3-2-3). Superspeedway finish-quality CLOSED on a registered holdout. BLOCKER: four races have no pit data - the local scrapers need SUPABASE_KEY set (see PITBOARD_SCRIPTS.md).
 
+## 2026-08-30 (late) — SIM DNF CONSTANTS CHANGED; TWO MORE STUDIES CLOSED
+
+**SHIPPED AND LIVE — the only model change of the session.** `resolveDnfRate` was blending a new-rule
+live measurement against old-rule constants. Resolved toward the measurement:
+
+    DNF_BY_GROUP  cup     SHORT .081->.091  ROAD .085->.095  INT .127->.155  SS .184->.255
+                  oreilly SHORT .134->.163  ROAD .159->.187  INT .108->.135  SS .220->.284
+                  trucks  SHORT .133->.147  ROAD .176->.214  INT .140->.149  SS .187->.240
+    DNF_SERIES_MEAN  cup .118->.145 · oreilly .141->.178 · trucks .149->.168
+    DNF_CAP          0.30 -> 0.40
+
+**DNF_CAP had become binding on real cells** — oreilly Daytona .329, cup Daytona .319, trucks
+Talladega .306 — so raising the rates without the rail would have silently truncated the plate races
+where attrition matters most. These are FALLBACKS: a track with 8+ races of its own history ignores
+them. `WRECK_ACC_SHARE`, `WRECK_SETS`, `WRECK_SURV_COST`, `WRECK_LL_B` all UNTOUCHED and all
+independently re-validated tonight.
+
+**THE OPEN QUESTION IS ANSWERED: yes, the DNF budget should equal the observed retirement rate.**
+96.1% of real retirements finish inside the band the sim assigns them (the last D positions) — by
+group 97.4 / 97.3 / 96.6 / 92.9. The weakest cell is superspeedways, which is the Zane Smith case,
+and it is still 93%. The refresh above is therefore correct, not just consistent.
+
+**Restart proximity: CLOSED.** Two registered designs, both failed bar 3 (mechanical control < 1.2):
+v1 pooled 1.590, v2 1.589. The compromised-car rule fixed superspeedways (1.23 -> 1.03) and did
+nothing at intermediates (1.40 -> 1.49). Accident clustering is real and large (2.0-5.2x, all four
+track types, ~55% of accident DNFs in 23.8% of green car-laps) but could not be shown to be a
+RESTART effect rather than a retirement-timing one. **Do not reopen** - the likely reason (mechanical
+failures may genuinely cluster at restarts, so the control was never valid) is recorded in
+BACKTEST_LOG and is NOT grounds to retry.
+
+**STILL OPEN, and now the best remaining lead:** leader-wreck correlation. DNFers who led wreck at
+0.71-0.78 of distance, those who did not at 0.55-0.60, consistent in all four groups. The sim picks
+victims by running-order adjacency without conditioning on event timing. That is victim SELECTION,
+a different question from event timing, and it was a documented residual before tonight.
+
 ## 2026-08-30 — CAUTION TIMING CAPTURED (restart lap now exists)
 
 New `caution_segments` table: 3,036 segments across 434 races with start/end lap, reason, comment,
