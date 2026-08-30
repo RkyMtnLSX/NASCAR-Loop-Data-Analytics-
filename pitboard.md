@@ -2876,3 +2876,30 @@ truck they drove; that is an eyeball call, not a merge rule, so nothing was chan
 FIX AT THE SOURCE (queued, not built): give Admin.js's stamp the same resolution ladder now used in
 DfsReplay - exact, then suffix/punctuation-stripped, then prefix, then unique first-initial+surname -
 and fall back to `pit_stops` when the entry list has no match. That kills the whole class.
+
+## 2026-08-30 — car_number reconciliation shipped into the pit loader; the NH R18 "mismatch" was a real driver swap
+OPERATOR SUPPLIED THE MISSING FACT, and it changes the diagnosis: at trucks New Hampshire R18 2026
+Dawson Sutton was entered in the 27, FAILED TO QUALIFY, and then raced the 26 after Toni Breidinger
+was pulled out of it; Luke Baldwin was entered in the 2, failed to qualify, and raced the 33 after
+Frankie Muniz stepped out. So loop_data (#27 / #2, stamped from the entry list) and the NASCAR pit
+feed (#26 / #33) were BOTH right - about different moments. It is rare but it recurs.
+DOCTRINE, now explicit: ENTRY LIST = PRE-RACE INTENTION. WEEKEND/PIT FEED = RACE-DAY TRUTH. For
+anything keyed to what actually happened on track - and the crew key is car+organization+season -
+the feed wins. An entry-list number on a swapped driver files his stops under a crew that never
+touched the car, silently, on exactly the weekends that are most interesting.
+SHIPPED in pitboard_pit_backfill.py: `reconcile_car_numbers()` runs immediately after the stops for
+a race are inserted and pushes the feed's car numbers onto loop_data. Conservative by construction -
+a loop row is touched only when its driver resolves to exactly ONE car number in that race's feed.
+Resolution ladder is the same one now used in DfsReplay: exact -> suffix/punctuation-stripped ->
+prefix -> unique first-initial+surname. Fills print; SWAPS print loudly and are worth reading as
+race information, not just as a repair. Unit-tested offline against the real NH R18 case plus two
+negative controls (a correct row and an unknown driver): 2 swaps, 2 fills, 0 false positives.
+ANSWER TO "did you prevent it from happening again" - the 650-row repair alone did NOT; it was data
+cleanup with the source untouched, and I had queued the source fix rather than doing it. This is the
+prevention: every future pit load self-heals the join for that race. Two gaps remain, both stated
+rather than papered over: (1) races with NO pit feed keep the entry-list number, because no second
+source exists; (2) Admin.js's initial stamp still uses the weaker entry-list-only normalizer, so the
+first write can still be null until the pit loader runs - harmless now, but worth upgrading to the
+same ladder.
+APPLIED to the four already-loaded races by hand this session (the loader had run before the code
+existed): trucks NH R18 now joins 36 of 36 cars, up from 34.

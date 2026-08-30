@@ -89,6 +89,32 @@ python pitboard_pit_backfill.py --year 2026 --dry-run    # no writes
 Wrappers: `PIT_BACKFILL_2026.bat`, `PIT_BACKFILL_ALL_YEARS.bat`, `PIT_BACKFILL_DRYRUN.bat`.
 One-time setup: run `pit_stops_schema.sql` in the Supabase SQL editor.
 
+**It also reconciles `loop_data.car_number` (added 2026-08-30).** After the stops for a race are
+inserted, the pit feed's car numbers are pushed back onto `loop_data`. This exists because
+`loop_data.car_number` is stamped at load time from the **entry list**, which is a *pre-race
+intention*, while the pit feed is *race-day truth* — and they legitimately disagree when a driver
+swaps cars after failing to qualify. Real case, trucks New Hampshire R18 2026: **Dawson Sutton was
+entered in the 27, DNQ'd, and raced the 26** after Toni Breidinger was pulled from it; **Luke Baldwin
+was entered in the 2, DNQ'd, and raced the 33** after Frankie Muniz stepped out. The crew key is
+car + organization + season, so the entry-list number files those stops under a crew that never
+touched the truck.
+
+Rules it follows: the pit feed wins; a loop row is only touched when its driver resolves to exactly
+**one** car number in that race's feed; resolution is exact → suffix/punctuation-stripped → prefix →
+unique first-initial+surname (so "Mike Christopher, Jr." finds "Michael Christopher Jr.", and
+"Andres Perez" finds "Andres Perez De Lara"). Every change prints, and a swap prints loudly:
+
+```
+  car_number reconciled: 2 filled, 2 SWAPPED  (trucks 2026 R18 New Hampshire Motor Speedway)
+      SWAP Dawson Sutton: entry #27 -> raced #26
+      SWAP Luke Baldwin: entry #2 -> raced #33
+      fill Mike Christopher, Jr.: #72
+```
+
+**Read those SWAP lines when they appear.** They are rare and they mean a driver changed cars —
+worth knowing for its own sake, not just as a data repair. Races with no pit feed keep the entry-list
+number; there is no second source for them.
+
 ### `pitboard_penalties_backfill.py` — pit-road penalties → `pit_penalties`
 Parses penalty calls out of race-control lap notes (`cacher/{year}/{series}/{race}/lap-notes.json`).
 v2 classifies on each car's FULL text segment and trims only for storage — v1 trimmed to 8 words
