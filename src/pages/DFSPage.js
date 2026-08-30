@@ -15,8 +15,12 @@ function CarNum({ car, series }) {
 }
 const CAP = 50000
 const ROSTER = 6
+// 2026-08-30: CAP/ROSTER and the two solvers below are EXPORTED so DfsReplay runs the replay
+// through the SAME code the product builds with. Do not fork copies into the replay page - a
+// forked solver would silently stop replaying what DFS Center actually does.
+export { CAP as DFS_CAP, ROSTER as DFS_ROSTER }
 
-function optimize(pool, locks, excludes, K) {
+export function optimize(pool, locks, excludes, K) {
   const usable = pool.filter(d => d.sal > 0 && d.projDK > 0 && !excludes.has(d.name))
   const locked = usable.filter(d => locks.has(d.name))
   if (locked.length > ROSTER) return { error: 'More than ' + ROSTER + ' drivers locked.' }
@@ -163,7 +167,7 @@ function enforceMinExposure(picked, want, maxExp, locks, pool, excludes, expo) {
   return picked
 }
 
-function bestLineup(pool) {
+export function bestLineup(pool) {
   const usable = pool.filter(d => d.sal > 0 && d.val > 0)
   if (usable.length < ROSTER) return null
   const cand = usable.sort((a, b) => b.val - a.val)

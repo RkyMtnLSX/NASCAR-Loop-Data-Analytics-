@@ -2695,3 +2695,39 @@ perfect lineup was Stenhouse P32->P5, Suárez P23->P2, A.Dillon P29->P7, Reddick
 P18->P4, Hamlin P30->P11 - our model projected that six at 175.7 total, 46 pts BELOW the lineup it
 actually chose, so this is an outcome-tail miss, not a ranking collapse. Stenhouse was our 7th
 projection (34.6) and missed the knapsack by one slot.
+
+## 2026-08-30 — CORRECTION to DFS replay race 7 (same day): my ad-hoc harness was not the product. CASH WINS, not a tie.
+FOUND BY: building the DFS Replay admin tool. It imports DFSPage's own `optimize` and `bestLineup`
+instead of reimplementing them, and immediately disagreed with the numbers I had logged an hour
+earlier from a python harness. The tool is right; the harness was not the product.
+TWO DIVERGENCES, both mine:
+ 1. OBJECTIVE. DFS Center's cash build optimises on the BOARD's `proj_dk`. My harness optimised on
+    the mean of the stored draws. They are nearly identical (Stenhouse proj_dk 34.60 vs draw-mean
+    34.6; Wallace 34.48 vs 34.7) - but that hair flipped ONE roster slot, Wallace in for Stenhouse,
+    and Stenhouse was the slate's top scorer at 70.30. A 0.2-point projection difference cost 40
+    points of measured result.
+ 2. CANDIDATE COVERAGE. I generated per-draw optimals on a stride of 5 (2,000 draws). The product
+    solves ALL 10,000, which found 10,182 unique candidates vs my 1,992 - a different GPP #1.
+CORRECTED RESULT (product path, all 10,000 draws):
+  cash  Bell $10.2k, Gragson $5.4k, Gilliland $6.4k, Allmendinger $5.5k, Zane $5.9k,
+        STENHOUSE $8.1k | $41,500 | proj 220.9 | ACTUAL 230.25 -> ~3,345/14,268 (76.6th pct)
+  GPP#1 Bell, Gragson, Gilliland, Zane, WALLACE, TY DILLON | p90 294.0 | ACTUAL 202.40 -> ~5,859
+  GPP#2 189.85 (~7,085) | perfect 364.35 | contest median 189.35, winner 350.60
+  VERDICT: CASH BEATS GPP BY 27.85. Both above the contest median; cash comfortably so.
+LEDGER (corrected): 7 replays - GPP 4 wins, 1 tie, 2 LOSSES.
+THE REAL FINDING (replaces "GPP collapses into cash at a superspeedway", which was an artifact of my
+thin candidate set): GPP FADED THE SLATE'S TOP SCORER AGAIN. It dropped Stenhouse (31.2 pct owned,
+P32->P5, 70.30 pts) for Ty Dillon (14.7 pct, P31->P21, 21.0) and Wallace. That is the identical
+failure mode as cup NH R25, where it faded Blaney (37.3 pct owned, the slate's top score). Both
+losses in this ledger are the same mistake: on slates where the chalk delivers, ranking by p90
+systematically walks away from the highly-owned driver who was simply the best play. Mean ownership
+of the two builds was almost equal (cash 31.8 pct, GPP 30.9 pct), so this is NOT generic
+contrarianism - it is p90 specifically preferring the wider distribution over the higher mean at
+the same ownership. WORTH TESTING: a rule that keeps any driver in the top-k by mean projection out
+of the fade set, or ranking on a p75/mean blend instead of raw p90.
+CALIBRATION (unchanged in substance): our projection 0.343 | DK salary 0.045 | field ownership 0.369.
+Salary carrying no signal at a superspeedway stands, and so does ownership edging us (3 for 3).
+LESSON: an analysis harness that reimplements product logic is a DIFFERENT MODEL, and it will
+disagree in exactly the places where a slot is close - which is where the result lives. From now on
+the replay runs through the tool. This is the second time today the same failure shape got me: a
+claim built from re-derived logic rather than from what the product itself produced.
