@@ -2552,3 +2552,21 @@ PAGE: /optimal-lineups, PUBLIC by operator decision (added to the PaywallGate al
 carries an anon select policy). Rationale: a past optimal is worthless to a freeloader - the race
 already ran - and the archive is the strongest conversion asset we have, letting a prospect audit
 the record before paying. This is a deliberate, logged departure from the #64 lockdown default.
+
+## 2026-08-29 - FULL-FIELD SALARY ARCHIVE ADDED (operator: "users want to see ... what each
+drivers salaries were") - the salary backfill I had declined, done right
+CORRECTION to my earlier call: I skipped the salary backfill because it enabled no model
+reconstruction. That reasoning was about OUR use, not the USER'S - the per-race salary board is
+itself the content subscribers want (pricing study: who was cheap, who paid off, what value
+looked like). Operator caught it; backfill executed.
+NEW TABLE dfs_race_field (public read, same rationale as the archive): 41 races x every priced
+driver = ~1,500 rows, each carrying salary + start + finish + laps led + fastest laps + DK points
+computed from loop_data. 36 races' salaries from the Bennetzen sheets, 5 from our own DK salary
+files (oreilly 22/23/24, trucks 16, cup 26). Deliberately a SEPARATE table from dfs_salaries:
+third-party salary data never touches the table the live builder reads.
+Coverage check: every race fully scored except drivers who were priced but never took the green
+(shown as DNP) and cup 26 (tonight, no results yet).
+PAGE: /optimal-lineups now shows, per race, the optimal lineup AND the full field sorted by
+salary / DK points / points-per-$1K, with the six optimal drivers starred inline. This is the
+pricing-study view; it is also the honest one - a user can see exactly which cheap drivers paid
+and which chalk did not.
