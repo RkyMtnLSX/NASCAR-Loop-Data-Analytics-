@@ -2815,3 +2815,46 @@ record of what the OLD engine produced; as evidence about today's engine the sam
 the old 4-1-1 nor my corrected 3-2-3 justifies changing the default mode. Ledger rebuilds from here.
 LEDGER SEEDED: the eight recomputed rows are in dfs_replays (source stamped), so the operator does
 not have to re-run them by hand; clicking Run replay on any race regenerates that row in place.
+
+## 2026-08-30 — PRE-REGISTRATION: does superspeedway finish respond to car quality, or is our flat SS model right?
+WRITTEN BEFORE ANY FITTING. This is the gate on the SS projection fix diagnosed above. Nothing in
+the model moves until this runs and passes; a fail closes SS finish-quality the way personal
+attrition was closed on 2026-07-11.
+THE QUESTION, stated so it can lose: at superspeedways, does a driver's prior SS record predict his
+finish BEYOND what starting position already tells us? Our engine currently says no in effect - the
+SS finish distribution is near-flat (GROUP_NOISE_MULT SS 1.75), which is what makes proj_dk collapse
+into the reverse grid (rho +0.934 vs start at cup R26, +0.045 vs actual finish).
+POPULATION: every superspeedway race in loop_data, 2022-2026, all three series - 71 races
+(cup 29, oreilly 28, trucks 14), counted this session from races joined to tracks where
+correlation_group_label is superspeedway. Unit of analysis = driver-race.
+PREDICTORS, FROZEN NOW:
+  A. start_position (the baseline, alone).
+  B. prior SS finish quality = the driver's mean finish across his PREVIOUS SS starts in that
+     series, career-to-date, strictly before the race being predicted, minimum 3 prior SS starts.
+     CAREER MEAN, not recency-weighted - recency weighting was tested and REJECTED 2026-07-23
+     (n=5,316); re-litigating it here would be a new study, not this one.
+  C. for drivers under the 3-start minimum, the organization's SS mean finish over the same window.
+OUTCOME: actual finish position. Secondary outcome: actual DK points.
+MODELS: baseline = finish predicted from A alone. Test = A + B (with C as the fallback fill).
+Simple rank regression; no interactions, no per-track terms, no tuning knobs - if a plain version
+of this cannot show the effect, a tuned version showing it is almost certainly fitting noise.
+SPLIT: TRAIN 2022-2024 (all series). HOLDOUT 2025-2026. The holdout is not looked at, summarised or
+plotted until the training fit is frozen and written here.
+PRIMARY JUDGE: mean per-race Spearman(predicted finish, actual finish) on the HOLDOUT, test minus
+baseline. PASS requires BOTH: delta >= +0.05, AND the delta positive in >= 60 pct of holdout races.
+Anything less is a FAIL, including a delta that is positive but small - a 0.02 edge is not worth
+disturbing a calibrated engine two weekends from launch.
+SECONDARY (reported, never decisive): the same delta measured on DK-points rank.
+DECISION RULE:
+  PASS -> do NOT ship. Propose one specific change to the SS finish distribution, register a SECOND
+          holdout on races unseen by both stages, and only then ship.
+  FAIL -> SS finish-quality is CLOSED. The flat SS model stands as correct, our SS projection is
+          genuinely low-information by nature, and the product answer is transparency (below) plus
+          leverage-versus-ownership, not a model change.
+WHY THIS IS WORTH RUNNING AT ALL: the diagnosis is structural (a +0.934 correlation with the
+starting grid does not depend on one race's outcome), and the same race carries visible counter-
+evidence - the deepest starters did not convert (Mears P38->37, Gase P40->36, Dye P39->29) while
+mid-pack quality cars did (Stenhouse P32->5, A.Dillon P29->7, Suárez P23->2). But "visible" is how
+every overfit starts, which is why the rule above is written before the query is run.
+NOT PART OF THIS STUDY, deliberately: the GPP-vs-cash default (n=1 on the current engine - frozen),
+any blend weight, any top-k protection, and the ownership model.
