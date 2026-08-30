@@ -129,6 +129,10 @@ function findDriverMap(node, path = '', hits = {}, depth = 0) {
       hits[path || '/'] = {
         idKey,
         nameKeys,
+        // Every key on the matched object. We need to know whether the feed
+        // carries a name at all (for cross-checking the driver_id backfill)
+        // and whether it carries team/manufacturer, which loop_data lacks.
+        allKeys: k.sort(),
         sample: Object.fromEntries(
           [idKey, 'car_number', ...nameKeys].map(x => [x, node[x]])),
       }
