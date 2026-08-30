@@ -332,6 +332,32 @@ is the exact condition under which +/-1 day matching silently binds the wrong ra
 the pit loader could have noticed — the stops it wrote were internally consistent. It took a second
 independent source disagreeing about *who finished where* to expose it.
 
+### Caution timing and stage boundaries (added 2026-08-30)
+
+`caution_segments` holds every caution's `start_lap`, `end_lap`, `reason`, `comment` and
+`beneficiary_car_number`, with **`restart_lap`** and `caution_laps` as generated columns. 3,036
+segments across 434 races. Cross-checked on capture: the per-race segment count agrees with
+`races.total_cautions` — a different field from the same feed — **434 of 434, zero disagreements.**
+
+This existed nowhere before. `pit_stops` cannot substitute: tested on cup 2026 R26 (true cautions
+36-43, 97-101, 156-164, 166), yellow-flag pit stops recover roughly when a caution STARTED and never
+when it ENDED, and the race-ending caution has no stops at all. The restart lap is the whole point.
+
+**TRAP — stage laps are LENGTHS, not end laps.** NASCAR publishes `stage_N_laps` as the length of
+stage N. They sum exactly to `total_laps` including overtime — verified 434/434 (R26 Daytona
+35+60+71 = 166 against 160 scheduled). **SimulationCenter uses the opposite convention**; its own
+hint reads *"published stage END laps (e.g. Stages 70/210/350 -> enter 70 and 210)"*. Stage 1 is the
+same number either way, so a mismatch looks correct at a glance and is wrong from stage 2 on: R26
+stage 2 ends on lap 95, not 60.
+
+Both readings are stored and neither can drift: **`stage_N_laps` = length as published,
+`stage_N_end` = the lap the stage ends on (generated, and what the sim means).** Using the right one
+took identified stage-end cautions from 64 to 778.
+
+Why it was captured: SimulationCenter's stage inputs are labelled *"captured with the sim for the
+future caution/pit layer, do not affect results yet"* — that layer had no training data. It does now.
+**No model uses any of this yet.**
+
 ### Egress
 
 `cf.nascar.com` is reachable from **Vercel** (measured 107ms from iad1) and from the operator's

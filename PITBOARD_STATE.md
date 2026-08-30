@@ -1,6 +1,25 @@
 # PITBOARD STATE
 Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2026-08-30. DFS was rebuilt this session: GPP is now a SET objective (E[max] across the sim draws, no tuning parameter, scales 1-150 entries), a DFS Replay admin tool grades the delivered SET against the real contest and banks it in dfs_replays, projected ownership ships on the board, and the whole replay ledger was recomputed through the product's own solvers (4-1-1 -> 3-2-3). Superspeedway finish-quality CLOSED on a registered holdout. BLOCKER: four races have no pit data - the local scrapers need SUPABASE_KEY set (see PITBOARD_SCRIPTS.md).
 
+## 2026-08-30 — CAUTION TIMING CAPTURED (restart lap now exists)
+
+New `caution_segments` table: 3,036 segments across 434 races with start/end lap, reason, comment,
+beneficiary, and **`restart_lap`** generated. Validated against `races.total_cautions` (independent
+field, same feed): **434/434 agree, 0 disagree.** `races` also gains stage lengths plus generated
+`stage_N_end` cumulative columns.
+
+**Read the stage-lap trap in PITBOARD_SCRIPTS.md before using them.** The feed publishes LENGTHS;
+SimulationCenter's convention is cumulative ENDS. Stage 1 matches under both, stage 2+ does not.
+Use `stage_N_end`.
+
+**Nothing in the model reads any of this.** It exists because SimulationCenter's stage inputs are
+labelled "for the future caution/pit layer, do not affect results yet" and that layer had no
+training data. Whether wrecks cluster after restarts is now MEASURABLE and has NOT been measured —
+that wants a pre-registration written first.
+
+Operator decision on record: NASCAR feed requests keep the current browser User-Agent and referer.
+Weighed and chosen; do not change it without asking.
+
 ## 2026-08-30 — ORGANIZATION STUDY CLOSED (registered, failed on materiality not existence)
 
 `team_name` (100 organisations, 16,052 rows) tested as recent-org-strength at a track type, all four
