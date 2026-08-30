@@ -2731,3 +2731,45 @@ LESSON: an analysis harness that reimplements product logic is a DIFFERENT MODEL
 disagree in exactly the places where a slot is close - which is where the result lives. From now on
 the replay runs through the tool. This is the second time today the same failure shape got me: a
 claim built from re-derived logic rather than from what the product itself produced.
+
+## 2026-08-30 — THE WHOLE DFS REPLAY LEDGER RECOMPUTED THROUGH THE PRODUCT SOLVERS: 4-1-1 becomes 3-2-3
+OPERATOR QUESTION: "are our previous dfs replays incorrect since you got this one wrong?" Answer:
+yes, several of them. All eight replayable races were re-run through DFSPage's own `optimize` and
+`bestLineup` (the same path the new admin tool uses), on all 10,000 stored draws each.
+CONTROL: cup Daytona R26 reproduced the tool's numbers exactly (cash 230.25, GPP 202.40, perfect
+364.35), so the pipeline is the product's, not another harness.
+  race          cash     GPP   median  perfect   verdict   rho mdl / sal / own
+  cup R23 Iowa  175.30  295.85  279.70  441.85   GPP +120.55   .334 / .336 / .431
+  cup R24 Rich  183.50  183.50  261.40  453.00   TIE           .636 / .593 / .660
+  cup R25 NH    171.30  171.30  225.90  409.25   TIE           .336 / .415 / .452
+  cup R26 Dtna  230.25  202.40  189.35  364.35   CASH -27.85   .343 / .045 / .369
+  ore R23 Iowa  201.15  142.55  202.00  336.30   CASH -58.60   .398 / .399 / .420
+  ore R24 Dtna  235.00  178.45  201.30  334.00   CASH -56.55   .189 / -.039 / .258
+  trk R17 Rich  288.60  294.00  234.15  379.65   GPP +5.40     .645 / .754 / .652
+  trk R18 NH    141.40  177.70  196.25  330.85   GPP +36.30    .269 / .387 / .371
+LEDGER (reproducible): GPP 3 wins, 2 ties, 3 losses. Not 4-1-1, and not the 4-1-2 I logged tonight.
+MEAN FIELD PERCENTILE across the eight: cash 40.6, GPP 39.0. Indistinguishable.
+BIGGEST SINGLE CORRECTION - cup NH R25. Logged as "FIRST GPP LOSS, mean 207.80 (~9,080) vs GPP
+150.70 (~11,674), GPP faded Blaney." On the product path both modes build the SAME LINEUP and score
+171.30 (~11,489). It is a tie, neither number matches, and the "GPP faded the winner" story - which
+I repeated tonight as a 2-for-2 pattern - is not in the data at all. The Daytona fade of Stenhouse
+is real; it is a single instance, not a pattern.
+CONSEQUENCE FOR THE PRODUCT: GPP is the DEFAULT mode in DFS Center, and that default was chosen on a
+4-1 ledger that does not reproduce. The honest position at n=8 is that neither mode is demonstrably
+better. This is an operator decision, not a model finding - flagging it rather than changing it.
+TOP-K-BY-MEAN PROTECTION: NOT TESTED, deliberately. It was proposed to patch the fade-the-top-scorer
+pattern, and that pattern evaporated when the ledger was recomputed. Fitting a rule to a defect that
+does not exist is how a model acquires permanent scar tissue.
+BLEND SWEEP (exploratory, in-sample, NOT a registered test): candidates ranked by (1-w)*draw-mean +
+w*p90 for w in 0, .25, .5, .75, 1 gave mean field percentiles 45.6, 38.4, 44.6, 42.1, 39.0 - not
+monotone, no separation beyond noise at n=8. No weight is indicated. If this is ever revisited it
+needs pre-registration and forward races, not this table.
+TOOL FIX SHIPPED WITH THIS: DfsReplay's cross-source name resolver. Exact normalized matching would
+have silently dropped "Nicholas Sanchez" (loop data: "Nick Sanchez") on both O'Reilly races,
+"Andres Perez De Lara" ("Andres Perez") on both truck races and "Michael Christopher Jr" ("Mike
+Christopher, Jr.") at NH. Resolution is now exact -> suffix/punctuation-stripped -> prefix ->
+first-initial+surname, and the last step only when unique, so ambiguity fails into the on-screen
+unmatched list instead of guessing. Christopher Bell at trucks R17 is priced with no result row and
+correctly stays unmatched.
+STANDING: these eight numbers are reproducible by clicking Run replay in Admin > DFS Replay. Any
+future ledger claim comes from that tool, saved to dfs_replays. No more side harnesses.

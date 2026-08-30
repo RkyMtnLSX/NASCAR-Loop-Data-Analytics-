@@ -25,7 +25,39 @@ import { optimize, bestLineup, DFS_ROSTER } from './DFSPage'
 const SERIES = [{ v: 'cup', label: 'Cup' }, { v: 'oreilly', label: "O'Reilly" }, { v: 'trucks', label: 'Trucks' }]
 const DKTBL = [0, 45, 42, 41, 40, 39, 38, 37, 36, 35, 34, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
 
-const nrm = (x) => (x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '')
+const __fold = (x) => (x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+const nrm = (x) => __fold(x).replace(/[^a-z0-9]/g, '')
+const __basenm = (x) => __fold(x).replace(/[^a-z0-9 ]/g, ' ').replace(/\b(jr|sr|ii|iii|iv)\b/g, '').replace(/\s+/g, ' ').trim()
+const __initLast = (x) => { const p = __basenm(x).split(' ').filter(Boolean); return p.length ? p[0][0] + '|' + p[p.length - 1] : '' }
+// Cross-source name resolver (2026-08-30). The boards, the DK salary file, loop_data and the
+// ownership file all spell names differently, and an exact key silently DROPS the ones that
+// disagree - measured on the eight replayable races: "Nicholas Sanchez" vs loop data's "Nick
+// Sanchez", "Andres Perez De Lara" vs "Andres Perez", "Michael Christopher Jr" vs "Mike
+// Christopher, Jr.". Resolution order: exact -> suffix/punctuation-stripped -> one name being a
+// prefix of the other -> first-initial + surname, and that last step only when it is UNIQUE in
+// the source, so a genuine ambiguity fails loudly into the unmatched list instead of guessing.
+function __resolver(sourceNames) {
+  const byKey = {}, byBase = {}, byIL = {}
+  sourceNames.forEach(n => {
+    byKey[nrm(n)] = n
+    byBase[__basenm(n)] = n
+    const il = __initLast(n)
+    byIL[il] = (il in byIL) ? '\u0000AMBIG' : n
+  })
+  const bases = Object.keys(byBase)
+  return (n) => {
+    if (byKey[nrm(n)]) return byKey[nrm(n)]
+    const b = __basenm(n)
+    if (byBase[b]) return byBase[b]
+    for (let i = 0; i < bases.length; i++) {
+      const k = bases[i]
+      if (k.indexOf(b + ' ') === 0 || b.indexOf(k + ' ') === 0) return byBase[k]
+    }
+    const il = __initLast(n)
+    if (byIL[il] && byIL[il] !== '\u0000AMBIG') return byIL[il]
+    return null
+  }
+}
 const one = (n) => (n == null || isNaN(n) ? '—' : Number(n).toFixed(1))
 const two = (n) => (n == null || isNaN(n) ? '—' : Number(n).toFixed(2))
 const money = (n) => (n == null ? '—' : '$' + Number(n).toLocaleString())
@@ -187,7 +219,7 @@ export default function DfsReplay() {
       if (!laps || !laps.length) { setMsg('No loop data for that race yet — load the finish first.'); setBusy(false); return }
       const actByN = {}
       laps.forEach(l => {
-        actByN[nrm(l.driver_name)] = {
+        actByN[l.driver_name] = {
           pts: dkPoints(l.finish_position, l.start_position, l.laps_led, l.fastest_laps),
           fin: l.finish_position == null ? null : Math.round(+l.finish_position),
           start: l.start_position == null ? null : Math.round(+l.start_position),
@@ -200,7 +232,9 @@ export default function DfsReplay() {
       const contest = conRows && conRows[0]
       const { data: ownRows } = await eqRace(supabase.from('dfs_ownership').select('driver_name,own_pct').eq('series', sr).eq('race_year', year))
       const ownByN = {}
-      ;(ownRows || []).forEach(o => { ownByN[nrm(o.driver_name)] = +o.own_pct })
+      ;(ownRows || []).forEach(o => { ownByN[o.driver_name] = +o.own_pct })
+      const __actFor = __resolver(Object.keys(actByN))
+      const __ownFor = __resolver(Object.keys(ownByN))
 
       // ---- pool: board drivers that DK actually priced
       const outSet = new Set(salaries.__out || [])
@@ -214,9 +248,11 @@ export default function DfsReplay() {
       names.forEach((n, i) => {
         const sal = outSet.has(n) ? 0 : (salaries[n] || 0)
         if (!(sal > 0)) return
-        const a = actByN[nrm(n)]
+        const ak = __actFor(n)
+        const a = ak == null ? null : actByN[ak]
         if (!a || a.pts == null) { unmatched.push(n); return }
-        pool.push({ name: n, idx: i, sal, projDK: projByName[n] != null ? projByName[n] : meanOf(i), actual: a.pts, fin: a.fin, start: a.start, own: ownByN[nrm(n)] != null ? ownByN[nrm(n)] : null })
+        const ok = __ownFor(n)
+        pool.push({ name: n, idx: i, sal, projDK: projByName[n] != null ? projByName[n] : meanOf(i), actual: a.pts, fin: a.fin, start: a.start, own: ok != null && ownByN[ok] != null ? ownByN[ok] : null })
       })
       if (pool.length < DFS_ROSTER) { setMsg('Only ' + pool.length + ' drivers have both a salary and a result — cannot build a lineup.'); setBusy(false); return }
 
