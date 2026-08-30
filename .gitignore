@@ -1,0 +1,12 @@
+# Added 2026-08-30. The repo had no .gitignore, so a local `npm install` leaves
+# ~900 packages sitting untracked and one `git add -A` away from being committed.
+node_modules/
+/build
+.env.local
+.env.*.local
+npm-debug.log*
+.DS_Store
+
+# package-lock.json is deliberately NOT ignored here. It is simply not tracked
+# yet — adding it would switch Vercel's install from `npm install` to `npm ci`,
+# which is a build-behaviour change and not one to make in passing.

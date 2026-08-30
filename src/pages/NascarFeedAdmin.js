@@ -413,37 +413,68 @@ export function LoadRaceFromFeed() {
 // It reads each existing row in full and merges the new fields in before
 // upserting, so nothing that is not listed here can be nulled by omission.
 
+const ALL_YEARS = [2022, 2023, 2024, 2025, 2026]
+
 export function FeedBackfill() {
-  const [series, setSeries] = useState('cup')
-  const [year, setYear] = useState('2026')
+  const [series, setSeries] = useState('all')
+  const [year, setYear] = useState('all')
   const [dryRun, setDryRun] = useState(true)
   const [running, setRunning] = useState(false)
   const [log, setLog] = useState([])
   const [summary, setSummary] = useState(null)
   const stop = React.useRef(false)
 
-  const say = useCallback(line => setLog(l => [...l.slice(-400), line]), [])
+  const say = useCallback(line => setLog(l => [...l.slice(-800), line]), [])
+
+  // One pass over one season of one series. Returns its own tally so the
+  // all-seasons run can add them up without the inner loop knowing about it.
+  async function runOne(sr, yr, tally) {
+    const { data: races, error } = await supabase.from('races')
+      .select('id, race_number, track_name, race_date, total_laps, nascar_race_id, exhibition')
+      .eq('series', sr).eq('year', yr)
+      .order('race_number')
+    if (error) throw new Error(error.message)
+    if (!races || !races.length) { say(`${sr} ${yr}: no races in the registry.`); return }
+    await runRaces(races, sr, String(yr), tally)
+  }
 
   async function run() {
     setRunning(true); setLog([]); setSummary(null); stop.current = false
     const tally = { races: 0, skipped: 0, rows: 0, lapsFixed: 0, statusFixed: 0, carMismatch: 0, newNames: 0 }
+    const seriesList = series === 'all' ? Object.keys(SERIES_ID) : [series]
+    const yearList = year === 'all' ? ALL_YEARS : [parseInt(year, 10)]
+    say(`${dryRun ? 'DRY RUN — nothing will be written.' : 'WRITING.'} `
+      + `${seriesList.length} series x ${yearList.length} season(s).`)
     try {
-      const { data: races, error } = await supabase.from('races')
-        .select('id, race_number, track_name, race_date, total_laps, nascar_race_id, exhibition')
-        .eq('series', series).eq('year', parseInt(year, 10))
-        .order('race_number')
-      if (error) throw new Error(error.message)
-      if (!races || !races.length) { say(`No races for ${series} ${year}.`); return }
+      for (const yr of yearList) {
+        for (const sr of seriesList) {
+          if (stop.current) break
+          say(`--- ${sr} ${yr} ---`)
+          await runOne(sr, yr, tally)
+        }
+        if (stop.current) break
+      }
+      setSummary(tally)
+    } catch (e) {
+      say(`ERROR: ${e.message}`)
+      setSummary(tally)
+    } finally { setRunning(false) }
+  }
 
+  async function runRaces(races, series, year, tally) {
+    {
       const sched = await feed({ type: 'schedule', year, series: SERIES_ID[series] })
       const byDate = new Map()
       for (const r of sched.races) if (r.race_date) byDate.set(r.race_date, r)
 
+      // Re-read the name index for every season pass: once a season is written,
+      // its NASCAR ids are in the table, so later seasons resolve by id rather
+      // than by name folding.
       const { data: existingNames } = await supabase.from('loop_data')
         .select('driver_name, nascar_driver_id').eq('series', series).limit(20000)
       const resolve = makeResolver(existingNames || [])
 
-      say(`${races.length} races in the registry for ${series} ${year}. ${dryRun ? 'DRY RUN — nothing will be written.' : 'WRITING.'}`)
+      say(`  ${races.length} races in the registry.`)
 
       for (const race of races) {
         if (stop.current) { say('Stopped.'); break }
@@ -535,10 +566,7 @@ export function FeedBackfill() {
         tally.races++; tally.rows += merged.length
         say(`  ok   ${label}: ${merged.length} rows`)
       }
-      setSummary(tally)
-    } catch (e) {
-      say(`ERROR: ${e.message}`)
-    } finally { setRunning(false) }
+    }
   }
 
   return (
@@ -555,11 +583,13 @@ export function FeedBackfill() {
       <div style={grid}>
         <div><label style={labelStyle}>Series</label>
           <select value={series} onChange={e => setSeries(e.target.value)} style={inputStyle} disabled={running}>
+            <option value="all">All three</option>
             {SERIES_OPTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select></div>
         <div><label style={labelStyle}>Year</label>
           <select value={year} onChange={e => setYear(e.target.value)} style={inputStyle} disabled={running}>
-            {[2022, 2023, 2024, 2025, 2026].map(y => <option key={y} value={y}>{y}</option>)}
+            <option value="all">All seasons (2022-26)</option>
+            {ALL_YEARS.map(y => <option key={y} value={y}>{y}</option>)}
           </select></div>
         <div><label style={labelStyle}>Mode</label>
           <select value={dryRun ? 'dry' : 'write'} onChange={e => setDryRun(e.target.value === 'dry')} style={inputStyle} disabled={running}>
@@ -570,7 +600,9 @@ export function FeedBackfill() {
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
         <button className={dryRun ? 'btn btn-secondary' : 'btn'} disabled={running} onClick={run}>
-          {running ? 'Running…' : dryRun ? 'Dry run' : `Write ${series} ${year}`}
+          {running ? 'Running…' : dryRun
+            ? `Dry run ${series === 'all' ? 'all series' : series} ${year === 'all' ? '2022-26' : year}`
+            : `Write ${series === 'all' ? 'all series' : series} ${year === 'all' ? '2022-26' : year}`}
         </button>
         {running && <button className="btn btn-secondary" onClick={() => { stop.current = true }}>Stop</button>}
       </div>
