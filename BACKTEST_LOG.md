@@ -3128,3 +3128,21 @@ leave-one-race-out ownership prediction over proj_dk alone (0.762 today). If it 
 it explains is a real crowd signal we do not currently hold, and leverage becomes an edge rather
 than a restatement of our own board. Needs roughly 10 overlapping races before it can be judged.
 COST TO COLLECT: one sheet per weekend, alongside the contest upload that already happens.
+
+### 2026-08-30 — CORRECTION (operator, same hour): the FCFM "Interest" column is NOT an ownership signal.
+"I just looked at his sheets and none of them contain ownership either its just his analysis of
+plays he likes." Correct, and I overstated it. Interest is None/Low/Medium/High on the drivers the
+ANALYST likes. I described it as "a human analyst's read on how the field will roster" - that is a
+different quantity, and I inferred it from a handful of notes that happen to mention ownership in
+prose ("should be very low owned") rather than from what the column actually measures.
+IT WOULD ALSO FAIL THE ONLY TEST THAT MATTERS even if collected: a play-preference rating is built
+from the same public inputs as everyone else's - salary, track history, practice speed, grid - which
+is exactly what our proj_dk is built from. The requirement was a signal INDEPENDENT of our
+projection; a second projection dressed as preferences is not one. (For scale, the sheet's own
+footer puts them at 764 YouTube subscribers, so they are not moving a 14,268-entry field either.)
+STANDING POSITION, unchanged and now with the Drive actually swept: there is NO ownership data in
+the Drive, Phil's or anyone else's. The only ownership we hold is what the operator uploads from his
+own contests - 8 races. Projected ownership ships as built (derived from proj_dk, MAE 6.1 points),
+leverage stays closed, and the sole path to an independent signal is accumulating real DK ownership
+race by race, which already happens for free with the post-race contest upload. The per-driver
+residual watch is the instrument; revisit at ~20 races.
