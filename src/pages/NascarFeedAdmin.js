@@ -447,7 +447,11 @@ export function FeedBackfill() {
             tally.carMismatch++
             say(`    car# ${row.driver_name}: stored #${row.car_number}, feed #${f.car_number} — feed wins`)
           }
-          if ((row.finish_status || '') !== (f.finish_status || '')) tally.statusFixed++
+          // Only count a change that will actually happen. Where there is no
+          // weekend feed f.finish_status is undefined and the merge preserves
+          // the stored value, so counting it made every re-run report dozens of
+          // status changes it was not making.
+          if (f.finish_status !== undefined && (row.finish_status || '') !== f.finish_status) tally.statusFixed++
           // `?? row.x` on every weekend-sourced field. mapRace leaves those
           // UNDEFINED when NASCAR published no weekend feed, so a race missing
           // one can never blank a value we already hold. The loopstats-sourced

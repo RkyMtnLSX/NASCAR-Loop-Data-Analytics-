@@ -150,7 +150,14 @@ export function mapRace(payload, ctx) {
     winning_driver: winner ? winner.driver_name : null,
     winning_car_number: !wk ? undefined : (winner ? (winner.car_number ?? null) : null),
     // ACTUAL laps, not scheduled. This is the 142-race correction.
-    total_laps: R.actual_laps || null,
+    //
+    // Floored at the most laps any driver completed, because NASCAR's two feeds
+    // can disagree with each other: the 2024 Daytona 500 reports actual_laps 199
+    // in the weekend feed while loopstats has the winner on 200. A race is at
+    // least as long as its longest runner, and finish_status is derived from
+    // this number, so taking the smaller value reintroduces the exact defect
+    // this migration existed to fix.
+    total_laps: Math.max(R.actual_laps || 0, ...rows.map(r => r.laps_completed || 0)) || null,
     scheduled_laps: R.scheduled_laps || null,
     total_cautions: wk ? R.number_of_cautions : undefined,
     total_caution_laps: wk ? R.number_of_caution_laps : undefined,
