@@ -163,7 +163,7 @@ export default function DfsReplay() {
   const [saved, setSaved] = useState(false)
 
   const loadLedger = () => supabase.from('dfs_replays')
-    .select('series,race_year,race_number,track_name,cash_actual,cash_rank,gpp_actual,gpp_rank,perfect_actual,contest_entries,contest_median,rho_model,rho_salary,rho_own,verdict,created_at')
+    .select('series,race_year,race_number,track_name,cash_actual,cash_rank,gpp_actual,gpp_rank,perfect_actual,contest_entries,contest_median,rho_model,rho_salary,rho_own,verdict,engine_era,created_at')
     .order('race_year', { ascending: false }).order('race_number', { ascending: false, nullsFirst: false })
     .limit(50).then(({ data }) => setLedger(data || []))
 
@@ -372,6 +372,11 @@ export default function DfsReplay() {
       contest_entries: res.contest ? res.contest.entries : null, contest_winner: res.contest ? res.contest.winner_score : null, contest_median: res.contest ? res.contest.median_score : null,
       rho_model: res.cal.model, rho_salary: res.cal.salary, rho_own: res.cal.own,
       verdict: res.verdict, n_candidates: res.nCands, n_draws: res.nDraws, n_pool: res.nPool,
+      // Engine era (2026-08-30, operator: "we just adopted a new dominator fastest lap spread ect
+      // so those old runs were built on older DFS modeling"). Draws stored before the 2026-08-29
+      // ships (SS dominator tilt v2 + SHORT/INT wreck-survival recalibration) came out of a
+      // different model and must not be pooled with later rows as evidence about this one.
+      engine_era: (res.samplesAt && new Date(res.samplesAt) >= new Date('2026-08-29T00:00:00Z')) ? 'post-0829' : 'pre-0829',
       unmatched: res.unmatched.length ? res.unmatched : null,
       notes: res.same ? 'GPP #1 == cash lineup' : null,
     }
@@ -452,6 +457,13 @@ export default function DfsReplay() {
       <h3 style={{ color: 'var(--text-primary, #e8eaed)', fontSize: 15, marginBottom: 6 }}>
         Replay ledger {ledger.length ? <span style={{ ...lbl, fontWeight: 400 }}>— GPP {tally.gpp || 0} · cash {tally.cash || 0} · tie {tally.tie || 0}</span> : null}
       </h3>
+      {!!ledger.length && (
+        <div style={{ ...lbl, marginBottom: 6, textTransform: 'none', letterSpacing: 0 }}>
+          Rows marked <strong>old</strong> were built from draws stored before the 2026-08-29 calibration
+          (SS dominator tilt, SHORT/INT wreck survival) — they are a record, not evidence about the
+          engine running today. Only <strong>current</strong> rows test what ships now.
+        </div>
+      )}
       {!ledger.length && <div style={{ color: 'var(--text-muted, #6b7078)', fontSize: 13 }}>No saved replays yet.</div>}
       {!!ledger.length && (
         <div style={{ overflowX: 'auto' }}>
@@ -462,6 +474,7 @@ export default function DfsReplay() {
                 <th style={{ padding: '5px 6px' }}>Cash</th><th style={{ padding: '5px 6px' }}>GPP</th>
                 <th style={{ padding: '5px 6px' }}>Median</th><th style={{ padding: '5px 6px' }}>Perfect</th>
                 <th style={{ padding: '5px 6px' }}>ρ model</th><th style={{ padding: '5px 6px' }}>ρ sal</th><th style={{ padding: '5px 6px' }}>ρ own</th>
+                <th style={{ padding: '5px 6px' }}>Engine</th>
                 <th style={{ padding: '5px 6px' }}>Verdict</th>
               </tr>
             </thead>
@@ -478,6 +491,7 @@ export default function DfsReplay() {
                   <td style={{ padding: '5px 6px' }}>{r.rho_model == null ? '—' : (+r.rho_model).toFixed(3)}</td>
                   <td style={{ padding: '5px 6px' }}>{r.rho_salary == null ? '—' : (+r.rho_salary).toFixed(3)}</td>
                   <td style={{ padding: '5px 6px' }}>{r.rho_own == null ? '—' : (+r.rho_own).toFixed(3)}</td>
+                  <td style={{ padding: '5px 6px', color: r.engine_era === 'post-0829' ? 'var(--text-primary, #e8eaed)' : 'var(--text-muted, #6b7078)' }}>{r.engine_era === 'post-0829' ? 'current' : r.engine_era ? 'old' : '—'}</td>
                   <td style={{ padding: '5px 6px', fontWeight: 700, color: r.verdict === 'gpp' ? '#4ade80' : r.verdict === 'cash' ? '#f5a623' : 'var(--text-secondary, #9aa0aa)' }}>{(r.verdict || '').toUpperCase()}</td>
                 </tr>
               ))}

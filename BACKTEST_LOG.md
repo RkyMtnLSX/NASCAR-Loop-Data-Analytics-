@@ -2773,3 +2773,45 @@ unmatched list instead of guessing. Christopher Bell at trucks R17 is priced wit
 correctly stays unmatched.
 STANDING: these eight numbers are reproducible by clicking Run replay in Admin > DFS Replay. Any
 future ledger claim comes from that tool, saved to dfs_replays. No more side harnesses.
+
+## 2026-08-30 — WHY THE DFS PROJECTION HAS NO EDGE AT A SUPERSPEEDWAY: it is the reverse starting grid
+OPERATOR CONTEXT: he entered 20 lineups in the 14,268-entry Daytona GPP and his best scored 301.45
+(rank 179, top 1.3 pct) - 71 points above our best model build. Two of his entries are OUR builds
+verbatim: entry 1/20 = 202.40 = the replay's GPP #1, entry 2/20 = 189.85 = the draw-mean optimal.
+That independently confirms the replay reproduces what the optimizer actually gave him.
+THE DIAGNOSIS (structural, does not depend on this race's outcome). Spearman of our proj_dk against
+STARTING POSITION, per race:
+    cup R23 Iowa   -0.393     cup R26 DAYTONA  +0.934
+    cup R24 Rich   -0.640     ore R24 DAYTONA  +0.491
+    cup R25 NH     -0.389
+    ore R23 Iowa   -0.717     trk R17 Rich -0.695     trk R18 NH -0.600
+At every short track we project front-runners higher (correct - they are the fast cars). At Daytona
+the sign FLIPS and cup R26 hits +0.934: our DFS projection is very nearly the reverse grid. Worse,
+Spearman(proj_dk, actual FINISH position) at cup R26 is +0.045 - our SS projection contains
+essentially NO expectation about who will finish well. Joey Gase (started P40) projected 33.0 and
+Casey Mears (P38) 32.8, both ABOVE Reddick (25.3, finished P3) and McDowell (22.6, finished P4).
+MECHANISM: E[DK] = finish points + place differential + laps led + fastest laps. At SS our finish
+distribution is deliberately near-flat (GROUP_NOISE_MULT SS 1.75), so E[finish] barely separates
+drivers, and the PD term - which is (start - E[finish]) - becomes monotone in start position. The
+projection is then a public input everyone can see, which is exactly why field ownership
+(rho 0.369) out-ranked us (0.343) and why DK salary was uninformative (0.045).
+THE COUNTER-EVIDENCE IN THE SAME RACE: the very deepest starters did NOT convert - Mears P38->37,
+Gase P40->36, Dye P39->29, Gragson P37->26, AJ P36->30 - while the mid-pack quality cars did:
+Stenhouse P32->5, A.Dillon P29->7, Suárez P23->2, Reddick P17->3, McDowell P18->4. Car quality
+survives and finishes at Daytona; our SS model prices survival as nearly uniform. His 301.45 build
+(Elliott/Hamlin/Stenhouse/A.Dillon/Berry/JHN, avg start P27.3) is exactly that structure, and our
+model projected those six at 189.6 - 31 points BELOW the build it chose (avg start P34.5).
+THIS IS THE HIGHEST-VALUE DFS FIX ON THE BOARD and it is a projection fix, not an optimizer fix:
+the optimizer faithfully maximised a projection that was ranking the grid backwards. Proposed test
+(TO BE PRE-REGISTERED before any tuning): does adding SS-specific finish quality - a driver's
+superspeedway finish history conditional on surviving, and/or reducing group noise for known
+backmarker equipment - raise rho(proj, actual finish) at SS above ~0 on HELD-OUT races? Judge on
+finish-rank correlation first, DK points second. No parameter moves until that is registered.
+ENGINE ERA (operator: "we just adopted a new dominator fastest lap spread ect so those old runs
+were built on older DFS modeling"). Correct, and it bounds everything above. dfs_replays now carries
+engine_era. Of the eight ledger rows, SEVEN are pre-2026-08-29 draws (old SS dominator allocator,
+old SHORT/INT wreck survival) and only cup R26 is current. So the 3-2-3 GPP-vs-cash tally is a
+record of what the OLD engine produced; as evidence about today's engine the sample is n=1. Neither
+the old 4-1-1 nor my corrected 3-2-3 justifies changing the default mode. Ledger rebuilds from here.
+LEDGER SEEDED: the eight recomputed rows are in dfs_replays (source stamped), so the operator does
+not have to re-run them by hand; clicking Run replay on any race regenerates that row in place.
