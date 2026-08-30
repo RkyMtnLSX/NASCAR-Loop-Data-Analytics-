@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { optimize, bestLineup, DFS_ROSTER } from './DFSPage'
+import { optimize, bestLineup, makeEmaxSelector, DFS_ROSTER } from './DFSPage'
 
 // DFS REPLAY (2026-08-30, operator: "should this be an admin tool that I can run instead of having
 // you do it everytime? ... I always upload the contest after the race").
@@ -161,6 +161,9 @@ export default function DfsReplay() {
   const [res, setRes] = useState(null)
   const [ledger, setLedger] = useState([])
   const [saved, setSaved] = useState(false)
+  // GPP is a SET objective as of 2026-08-30, so the replay has to grade a SET. Grading one lineup
+  // against a product that delivers 20-150 was measuring the wrong thing.
+  const [entries, setEntries] = useState(20)
 
   const loadLedger = () => supabase.from('dfs_replays')
     .select('series,race_year,race_number,track_name,cash_actual,cash_rank,gpp_actual,gpp_rank,perfect_actual,contest_entries,contest_median,rho_model,rho_salary,rho_own,verdict,engine_era,created_at')
@@ -329,8 +332,29 @@ export default function DfsReplay() {
         step2()
       })
       scored.sort((a, b) => b.ceil - a.ceil)
-      const gpp = decorate(scored[0].names.map(n => byName[n]), scored[0].ceil)
-      const alt = scored.slice(1, 3).map(s => ({ names: s.names, ceil: s.ceil, actual: sumA(s.names.map(n => byName[n])) }))
+      // GPP SET: the product's own E[max] selector over the same candidates, N = the entry count.
+      // Reported result is BEST-OF-N, which is what a tournament actually pays.
+      const nD2 = drawRows.length, nC2 = cands.length
+      const Smat = new Float32Array(nC2 * nD2)
+      for (let c2 = 0; c2 < nC2; c2++) {
+        const ids = cands[c2].map(n => idxOf[n]), off = c2 * nD2
+        for (let d2 = 0; d2 < nD2; d2++) {
+          const rw = drawRows[d2]
+          Smat[off + d2] = rw[ids[0]] + rw[ids[1]] + rw[ids[2]] + rw[ids[3]] + rw[ids[4]] + rw[ids[5]]
+        }
+      }
+      const selN = Math.max(1, Math.min(150, +entries || 20))
+      const sel = makeEmaxSelector(nC2, nD2, Smat, selN, cands, () => Infinity, DFS_ROSTER)
+      setProg('Selecting the ' + selN + '-lineup set...')
+      sel.step(0)
+      const setIdx = sel.chosen
+      const setLus = setIdx.map(c2 => ({ names: cands[c2], actual: sumA(cands[c2].map(n => byName[n])) }))
+      setLus.sort((x, y) => y.actual - x.actual)
+      const setUniq = new Set(); setIdx.forEach(c2 => cands[c2].forEach(n => setUniq.add(n)))
+      const bestOfN = setLus[0]
+      const ceilOf = {}; scored.forEach(s2 => { ceilOf[s2.names.join('|')] = s2.ceil })
+      const gpp = decorate(bestOfN.names.map(n => byName[n]), ceilOf[bestOfN.names.join('|')])
+      const alt = setLus.slice(1, 3).map(s2 => ({ names: s2.names, ceil: ceilOf[s2.names.join('|')], actual: s2.actual }))
 
       // ---- calibration
       const withOwn = pool.filter(d => d.own != null)
@@ -347,11 +371,12 @@ export default function DfsReplay() {
         series: sr, year, race, track: trk, samplesAt: samp.created_at, boardAt: board && board.published_at, stage: board && board.stage,
         nDraws: nD, nPool: pool.length, nCands: cands.length, nScoreDraws: nS,
         cash, gpp, alt, perfect, contest, cal, verdict, unmatched, same,
+        setN: setIdx.length, setUniq: setUniq.size, setEmax: sel.emax(), wantN: selN,
       })
       setProg('')
-      setMsg(same
-        ? 'GPP ranking returned the cash lineup as its #1 — the two modes are identical on this slate.'
-        : 'Done. ' + cands.length.toLocaleString() + ' candidates scored across ' + nS.toLocaleString() + ' draws.')
+      setMsg('Done. ' + cands.length.toLocaleString() + ' candidates, ' + nS.toLocaleString() +
+        ' draws; GPP set of ' + setIdx.length + ' using ' + setUniq.size + ' unique drivers.' +
+        (same ? ' Its best lineup is the cash lineup.' : ''))
     } catch (e) {
       setMsg('Replay failed: ' + (e.message || e))
       setProg('')
@@ -372,6 +397,7 @@ export default function DfsReplay() {
       contest_entries: res.contest ? res.contest.entries : null, contest_winner: res.contest ? res.contest.winner_score : null, contest_median: res.contest ? res.contest.median_score : null,
       rho_model: res.cal.model, rho_salary: res.cal.salary, rho_own: res.cal.own,
       verdict: res.verdict, n_candidates: res.nCands, n_draws: res.nDraws, n_pool: res.nPool,
+      gpp_entries: res.setN, gpp_uniq: res.setUniq,
       // Engine era (2026-08-30, operator: "we just adopted a new dominator fastest lap spread ect
       // so those old runs were built on older DFS modeling"). Draws stored before the 2026-08-29
       // ships (SS dominator tilt v2 + SHORT/INT wreck-survival recalibration) came out of a
@@ -405,6 +431,12 @@ export default function DfsReplay() {
             return <option key={v + r.created_at} value={v}>{(s ? s.label : r.series) + ' ' + r.race_year + (r.race_number != null ? ' R' + r.race_number : '') + ' — ' + (r.track_name || '?')}</option>
           })}
         </select>
+        <label style={{ fontSize: 13, color: 'var(--text-secondary, #9aa0aa)' }}>
+          Entries{' '}
+          <input type="number" min={1} max={150} value={entries}
+            onChange={e => setEntries(Math.max(1, Math.min(150, +e.target.value || 1)))}
+            style={{ width: 64, padding: '6px 7px', borderRadius: 6, background: 'var(--bg, #0e0f13)', color: 'var(--text-primary, #e8eaed)', border: '1px solid var(--border, #22252b)' }} />
+        </label>
         <button onClick={run} disabled={busy || !pick}
           style={{ padding: '8px 16px', borderRadius: 6, border: 'none', fontWeight: 700, cursor: busy ? 'default' : 'pointer', background: busy ? '#444' : 'var(--accent, #e11d2a)', color: '#fff' }}>
           {busy ? 'Running…' : 'Run replay'}
@@ -421,6 +453,7 @@ export default function DfsReplay() {
             <span><span style={lbl}>pool </span>{res.nPool} priced &amp; finished</span>
             <span><span style={lbl}>draws </span>{res.nDraws.toLocaleString()}</span>
             <span><span style={lbl}>candidates </span>{res.nCands.toLocaleString()} @ {res.nScoreDraws.toLocaleString()} draws</span>
+            <span><span style={lbl}>gpp set </span>{res.setN} lineups · {res.setUniq} unique drivers · E[max] {one(res.setEmax)}</span>
           </div>
           {!!res.unmatched.length && (
             <div style={{ background: 'rgba(245,166,35,0.10)', border: '1px solid rgba(245,166,35,0.35)', borderRadius: 7, padding: '8px 10px', fontSize: 12.5, color: '#f5a623', marginBottom: 12 }}>
@@ -431,7 +464,7 @@ export default function DfsReplay() {
 
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
             <LineupCard title="Cash (mean-optimal)" lu={res.cash} />
-            <LineupCard title={'GPP #1 (p90 ceiling)' + (res.same ? ' — same lineup' : '')} lu={res.gpp} tone={res.same ? undefined : 'var(--series-oreilly, #f5a623)'} />
+            <LineupCard title={'GPP best of ' + res.setN + (res.same ? ' — the cash lineup' : '')} lu={res.gpp} tone={res.same ? undefined : 'var(--series-oreilly, #f5a623)'} />
             <LineupCard title="Perfect (hindsight)" lu={res.perfect} tone="#4ade80" />
           </div>
 

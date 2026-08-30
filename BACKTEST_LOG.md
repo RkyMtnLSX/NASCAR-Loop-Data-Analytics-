@@ -3016,3 +3016,32 @@ draw sample drops to 1,500 above 4,000 candidates to hold the memory down. Selec
 HONEST LIMIT, unchanged: 8 races, in-sample, and I chose E[max] after seeing the comparison. What is
 NOT chosen after the fact is that it has no free parameter - there was nothing to tune toward the
 answer. The replay ledger judges it forward from here.
+
+## 2026-08-30 — DOES E[max] HOLD AT EVERY ENTRY COUNT? Swept 1 to 150. Yes, and 20 now beats what 150 used to.
+OPERATOR: "will this be effective no matter how many lineups the user is trying to build? 20, 50,
+100, 150 ect?" Measured rather than asserted. One greedy run to 150 per race; prefixes are the
+N-lineup answers (the selection is nested when uncapped), against the OLD objective's top-N by p90.
+Best-of-N field percentile, mean over the 8 replayable races:
+    N            1      5     10     20     50    100    150
+    OLD       37.6   64.2   75.5   78.2   82.8   86.4   89.7
+    NEW       41.4   79.3   83.9   91.7   93.4   95.5   95.8
+    gain      +3.8  +15.1   +8.4  +13.5  +10.6   +9.2   +6.1
+    W/T/L    2/4/2  5/1/2  7/0/1  7/0/1  6/0/2  6/1/1  7/0/1
+It holds everywhere from 5 up, winning 5-7 of 8 races at every count. At N=1 it is a wash by
+construction - the objective degenerates to the highest-mean lineup, which is the cash build.
+THE HEADLINE NUMBER: the new objective at 20 entries (91.7) beats the old objective at 150 (89.7).
+A player entering 20 now gets more than 150 used to buy him.
+THE EDGE NARROWS AS N GROWS (+15.1 at 5, +6.1 at 150) because brute force eventually diversifies by
+accident - at 150 the old top-p90 list is forced into 28.8 unique drivers whether it wants them or
+not. The new objective gets there at 20 (23.5 unique) and keeps going (33.1 at 150).
+DIMINISHING RETURNS, worth telling a subscriber: 1 -> 20 is worth ~50 percentile points; 20 -> 50
+buys 1.7; 50 -> 150 buys 2.4. Beyond ~50 entries the portfolio is close to saturated against this
+candidate pool.
+SHIPPED WITH IT: the replay now grades the SET, not one lineup. Grading a single build against a
+product that delivers 20-150 was measuring the wrong object - the same error that made the old
+ledger meaningless. DFS Replay has an Entries control (default 20), runs the product's own exported
+E[max] selector, and reports BEST-OF-N with the set's unique-driver count and E[max]. New columns
+gpp_entries / gpp_uniq; the eight seeded rows predate this and carry nulls.
+NO SECOND IMPLEMENTATION: the selector is now exported from DFSPage (makeEmaxSelector) and is
+resumable - the page yields to the browser between picks, the admin tool loops to completion. One
+piece of code, two callers, which is the standing rule after tonight.

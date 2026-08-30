@@ -167,6 +167,71 @@ export function enforceMinExposure(picked, want, maxExp, locks, pool, excludes, 
   return picked
 }
 
+// E[max] SET SELECTOR (2026-08-30) - the GPP objective, exported so DfsReplay measures THIS code
+// and not a copy of it. A tournament pays your best entry, so across N lineups the quantity to
+// maximise is the expected score of the best one over the stored sim draws. Greedy is near-optimal
+// (submodular) and has no tuning parameter: at N=1 it returns the highest-mean lineup.
+// Resumable by design - step(budgetMs) returns false while there is more to do, so the page can
+// yield to the browser between picks and the admin replay can just loop until done.
+export function makeEmaxSelector(nC, nD, Smat, want, cands, capOf, roster) {
+  const R = roster || ROSTER
+  const best = new Float32Array(nD)
+  const taken = new Uint8Array(nC)
+  const bound = new Float64Array(nC).fill(Infinity)
+  const stale = new Uint8Array(nC).fill(1)
+  const ok = new Uint8Array(nC).fill(1)
+  const used = {}
+  const chosen = []
+  // PERF: the cap test changes only when a lineup is committed, so it is refreshed once per pick.
+  // Running it inside every lazy scan turned a ~2s 150-lineup build into one that never finished.
+  const refreshOk = () => {
+    for (let c = 0; c < nC; c++) {
+      if (taken[c]) { ok[c] = 0; continue }
+      const ns = cands[c]
+      let good = 1
+      for (let i = 0; i < R; i++) { const nm = ns[i]; if ((used[nm] || 0) >= capOf(nm)) { good = 0; break } }
+      ok[c] = good
+    }
+  }
+  const gainOf = c => { let g = 0; const off = c * nD
+    for (let d = 0; d < nD; d++) { const v = Smat[off + d] - best[d]; if (v > 0) g += v }
+    return g }
+  refreshOk()
+  const pickOne = () => {
+    let pick = -1
+    for (;;) {
+      let top = -1, tb = -1
+      for (let c = 0; c < nC; c++) { if (!ok[c]) continue; if (bound[c] > tb) { tb = bound[c]; top = c } }
+      if (top < 0) break
+      if (!stale[top]) { pick = top; break }
+      const g = gainOf(top); bound[top] = g; stale[top] = 0
+      let sec = -1
+      for (let c = 0; c < nC; c++) { if (!ok[c] || c === top) continue; if (bound[c] > sec) sec = bound[c] }
+      if (g >= sec) { pick = top; break }
+    }
+    if (pick < 0 || bound[pick] <= 0) return false
+    taken[pick] = 1; chosen.push(pick)
+    const off = pick * nD
+    for (let d = 0; d < nD; d++) { const v = Smat[off + d]; if (v > best[d]) best[d] = v }
+    cands[pick].forEach(nm => { used[nm] = (used[nm] || 0) + 1 })
+    for (let i = 0; i < nC; i++) stale[i] = 1
+    refreshOk()
+    return true
+  }
+  return {
+    chosen,
+    step(budgetMs) {
+      const t0 = Date.now()
+      while (chosen.length < want) {
+        if (!pickOne()) return true
+        if (budgetMs && Date.now() - t0 >= budgetMs) return chosen.length >= want
+      }
+      return true
+    },
+    emax() { let e = 0; for (let d = 0; d < nD; d++) e += best[d]; return e / nD },
+  }
+}
+
 export function bestLineup(pool) {
   const usable = pool.filter(d => d.sal > 0 && d.val > 0)
   if (usable.length < ROSTER) return null
@@ -393,56 +458,13 @@ export default function DFSPage() {
       cFloor[c] = tmp[Math.min(nD - 1, Math.floor(0.25 * (nD - 1)))]
     }
     const want = numLineups
-    const best = new Float32Array(nD)
-    const taken = new Uint8Array(nC)
-    const bound = new Float64Array(nC).fill(Infinity)
-    const stale = new Uint8Array(nC).fill(1)
-    const used = {}
-    const ok = new Uint8Array(nC).fill(1)
     const capOf = nm => (locks.has(nm) ? Infinity : __capFor(nm, want, maxExp, expo))
-    // PERF (found in testing before shipping): the cap test must run ONCE PER PICK, not inside
-    // every lazy scan - it only changes when `used` changes. Calling it per scan turned a 2-second
-    // 150-lineup build into one that never finished.
-    const refreshOk = () => {
-      for (let c = 0; c < nC; c++) {
-        if (taken[c]) { ok[c] = 0; continue }
-        const ns = cands2[c]
-        let good = 1
-        for (let i = 0; i < ROSTER; i++) { const nm = ns[i]; if ((used[nm] || 0) >= capOf(nm)) { good = 0; break } }
-        ok[c] = good
-      }
-    }
-    const gainOf = c => { let g = 0; const off = c * nD
-      for (let d = 0; d < nD; d++) { const v = Smat[off + d] - best[d]; if (v > 0) g += v }
-      return g }
-    const chosen = []
-    refreshOk()
-    const pickOne = () => {
-      let pick = -1
-      for (;;) {
-        let top = -1, tb = -1
-        for (let c = 0; c < nC; c++) { if (!ok[c]) continue; if (bound[c] > tb) { tb = bound[c]; top = c } }
-        if (top < 0) break
-        if (!stale[top]) { pick = top; break }
-        const g = gainOf(top); bound[top] = g; stale[top] = 0
-        let sec = -1
-        for (let c = 0; c < nC; c++) { if (!ok[c] || c === top) continue; if (bound[c] > sec) sec = bound[c] }
-        if (g >= sec) { pick = top; break }
-      }
-      if (pick < 0 || bound[pick] <= 0) return false
-      taken[pick] = 1; chosen.push(pick)
-      const off = pick * nD
-      for (let d = 0; d < nD; d++) { const v = Smat[off + d]; if (v > best[d]) best[d] = v }
-      cands2[pick].forEach(nm => { used[nm] = (used[nm] || 0) + 1 })
-      for (let i = 0; i < nC; i++) stale[i] = 1
-      refreshOk()
-      return true
-    }
+    const sel = makeEmaxSelector(nC, nD, Smat, want, cands2, capOf)
+    const chosen = sel.chosen
     const step2 = () => {
-      const t0 = Date.now()
-      while (chosen.length < want && Date.now() - t0 < 60) { if (!pickOne()) break }
+      const done = sel.step(60)
       setNote('Building set... ' + chosen.length + ' of ' + want + ' lineups')
-      if (chosen.length < want && chosen.length && Date.now() - t0 >= 60) { setTimeout(step2, 0); return }
+      if (!done) { setTimeout(step2, 0); return }
       let picked = chosen.map(c => ({
         drivers: cands2[c].map(nm => ({ name: nm, car: carByN[nm], sal: salByN[nm], projDK: projByN[nm] || 0 })),
         salary: cands2[c].reduce((a2, nm) => a2 + (salByN[nm] || 0), 0),
@@ -453,13 +475,13 @@ export default function DFSPage() {
       picked = topUpLineups(picked, want, maxExp, locks, pool2, excludes, expo)
       picked = enforceMinExposure(picked, want, maxExp, locks, pool2, excludes, expo)
       setLineups(picked)
-      let em = 0; for (let d = 0; d < nD; d++) em += best[d]
+      const em = sel.emax()
       const short = picked.length < want
         ? 'ONLY ' + picked.length + ' of ' + want + ' lineups possible at ' + Math.round(maxExp * 100) + '% max exposure - lock/exclude settings leave too few drivers. '
         : ''
       setNote(short + 'GPP: set of ' + picked.length + ' chosen from ' + nC.toLocaleString() +
         ' candidates to maximise E[best lineup] across ' + nD.toLocaleString() + ' sim draws (E[max] ' +
-        (em / nD).toFixed(1) + ').')
+        em.toFixed(1) + ').')
       setBuilding(false)
     }
     step2()
