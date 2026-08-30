@@ -2877,3 +2877,35 @@ TRAIN-SIDE SANITY, explicitly not the judge: mean per-race Spearman 0.1694 basel
 delta +0.0244. That is already BELOW the +0.05 pass bar in sample, which is a bad omen for the
 holdout and is being recorded now rather than after the fact.
 The holdout has not been queried, summarised or plotted. Next entry reports it whatever it says.
+
+### 2026-08-30 — SS study, STAGE 2: HOLDOUT VERDICT = FAIL. Superspeedway finish-quality is CLOSED.
+27 holdout races (2025-2026, all three series), scored against the coefficients frozen and pushed
+before the holdout was touched.
+    MEAN baseline (start alone)     rho +0.1859
+    MEAN test (start + SS history)  rho +0.1818
+    MEAN DELTA                          -0.0041      registered bar was >= +0.05  -> FAIL
+    delta positive in 13 of 27 races (48.1 pct)      registered bar was >= 60 pct -> FAIL
+Fails both criteria, and fails in the worst possible direction for the hypothesis: the test model is
+very slightly WORSE than start position alone, and its sign is a coin flip across races. By series:
+cup n=11 delta -0.0132 (4/11 positive), oreilly n=11 delta -0.0020 (5/11), trucks n=5 +0.0113 (4/5).
+SECONDARY (reported, non-decisive): DK-points rank, baseline +0.1881 -> test +0.1911, delta +0.0030,
+positive in 14/27. Nil.
+VERDICT PER THE REGISTERED DECISION RULE: superspeedway finish-quality is CLOSED. A driver's prior
+superspeedway record carries no out-of-sample information about his next superspeedway finish beyond
+where he starts. The flat SS finish distribution is not a modelling shortcut - it is right.
+THE PART THAT MATTERS MORE THAN THE VERDICT: the BASELINE is only rho +0.186. Starting position
+itself barely predicts a superspeedway finish. So the ceiling on finish-rank skill at these tracks,
+from any feature we hold, is low - our proj_dk being ~0.93 correlated with the grid is a faithful
+picture of a race type where finish is close to a lottery, not a defect to repair. That reframes
+last night's diagnosis: the projection IS low-information at SS, and now we know it is low-
+information because the RACE is, not because the model is lazy.
+I ALSO HAVE TO RETRACT MY OWN COUNTER-EVIDENCE. I argued from cup R26 that "car quality survives and
+finishes at Daytona" because the deepest starters did not convert (Mears P38->37, Gase P40->36) while
+mid-pack quality did (Stenhouse P32->5, Suárez P23->2). Across 27 held-out races that pattern does
+not exist. It was one race of noise, and I read a mechanism into it. The operator's 301.45 lineup
+was a good structure that got paid, not a structural insight the model was missing.
+WHAT THIS DOES NOT CLOSE: the remaining SS levers are not finish-RANKING levers - lineup correlation
+(who finishes well together: drafting partners, manufacturer packs), ownership leverage, and simply
+recognising SS as a low-edge slate and sizing accordingly. Each is its own study and none is started.
+NO PARAMETER MOVED. GROUP_NOISE_MULT SS 1.75 stands, untouched, and is now supported by a registered
+holdout rather than only by the win-curve certification.

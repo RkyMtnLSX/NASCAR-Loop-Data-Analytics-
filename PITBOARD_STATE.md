@@ -111,6 +111,15 @@ and neither was. Corollary, three incidents deep: count the races in EVERY table
 before stating n.
 
 ### PRE-REGISTERED — DO NOT RE-TUNE THESE ON EXISTING DATA
+
+- [CLOSED 2026-08-30 — FAIL, registered holdout] SUPERSPEEDWAY FINISH-QUALITY. Does a driver's prior
+  SS record predict his SS finish beyond starting position? 71 races, train 2022-24 / holdout 2025-26,
+  coefficients frozen and pushed before the holdout was read. Holdout delta -0.0041 mean per-race
+  Spearman (bar +0.05), positive in 13/27 races (bar 60%). Secondary on DK points +0.0030. CLOSED —
+  do not re-open without genuinely new features (not new weightings of these). Baseline rho(start,
+  finish) at SS is only +0.186, so the ceiling on SS finish-rank skill is low for structural reasons:
+  the race is near-unpredictable, and GROUP_NOISE_MULT SS 1.75 is correct rather than lazy.
+  Consequence: our SS proj_dk correlating ~0.93 with the starting grid is faithful, not a defect.
 - CLV lift ledger: race-level, re-run every weekend (zero marginal work, odds_snapshots already
   captures it). BAR = holds above zero through 15-20 races. Do not re-tune the window or the strata.
 - medge floor 5 is the PRINCIPLED value (below it, two independent measures say no model content).
