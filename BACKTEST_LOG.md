@@ -5890,3 +5890,69 @@ judged against a NULL arm (without one a gate is either unpassable or meaningles
 **The general lesson, which is worth more than the specific rule:** a practice that lives only in an
 append-only archive is not a practice, it is an accident that keeps happening. If a rule matters,
 it goes in the file the startup instructions actually name.
+
+---
+
+## 2026-08-31 — REGISTRATION: two-parameter one-sided tilt (Q1 and Q4 only)
+
+**Written and pushed BEFORE the fit.** Operator asked for it after the four-parameter form failed the
+Q2 rail. Follows the pre-registration rule written into PITBOARD_MANUAL.md earlier today (af151d5).
+
+### Disclosed leakage, stated up front rather than buried
+
+**I chose this form AFTER seeing which tier failed.** That is information leakage from the holdout
+into the model specification, and no amount of reasoning about it makes it not so. The previous run
+told me Q2 was the unstable tier; pinning Q2 is a response to that observation.
+
+The reasoning is principled — fit only the tiers whose signal replicates, the same shrinkage logic
+`resolveDnfRate` already applies to thin track history — but principled reasoning applied to a
+peeked-at result is still peeking. So this registration adds a gate that **tests the premise of the
+form choice using data I have not looked at in this way**, and the test stops there if it fails.
+
+### GATE 0 — does Q1/Q4 stability replicate INSIDE train? (new; runs first; decides whether to proceed)
+
+Split TRAIN 2022-2024 by year into 2022-2023 and 2024. Measure the flat fixed engine's per-tier
+gap (pred − actual) in each half independently.
+
+    PASS if: Q1 and Q4 gaps carry the SAME SIGN in both halves.
+    FAIL if: either flips sign, or |gap| in one half is under 0.5 points (no signal to fit).
+
+If GATE 0 fails, the form choice was holdout leakage and nothing else, and this line closes for good
+rather than getting a seventh parameterization. **Q2 and Q3 are measured in the same split and
+reported. If Q2 turns out to be just as stable as Q1/Q4 inside train, then pinning it was an artifact
+of one holdout sample and this whole registration is unjustified — I will say so and stop.**
+
+### Frozen form
+
+    curve[group] = [C_Q4, 1.0, 1.0, C_Q1]        order matches __TILT_ANCHOR [.875 .625 .375 .125]
+    C_t = obs_t / pred_t   for t in {Q1, Q4} ONLY, measured on TRAIN 2022-2024, flat fixed engine
+    shrunk toward 1.0 by min(1, events/200)
+    tiltRescale: false     (mean-1 normalization is what harmed the strong tier; see 2605629)
+    DNF_TILT_LEVEL is NOT applied.
+
+Q2 and Q3 receive exactly 1.0. Drivers between the anchors interpolate, so the correction fades
+smoothly to neutral across the middle of the field rather than stepping.
+
+### Gates (holdout 162 races, ≥3 runs, NULL = flat arm against itself)
+
+- **GATE 1** per-tier rail: no tier's |pred − actual| may grow. ALL FOUR TIERS, including the two
+  pinned ones — pinning them is not a licence to ignore them, and an interpolated curve can still
+  move a pinned tier's members.
+- **GATE 2** Q4 top10 Brier must not degrade beyond the null floor. The operator's actual ask.
+- **GATE 3** aggregate win/top5/top10 vs null. Reported, cannot justify a ship alone.
+- **GATE 4** overall DNF bias must not worsen beyond −0.20 cars/race.
+
+**DECISION RULE: ship only if GATE 0 passes AND GATE 1 passes for all four tiers AND GATE 2 passes.**
+
+### Predictions recorded before running
+
+1. GATE 0 passes for Q4 and Q1. Reasoning: the flat model gives every car the same retirement
+   probability, so it necessarily over-predicts the drivers who actually crash least and
+   under-predicts those who crash most. That is structural, not sampling, so it should replicate.
+2. GATE 0 shows Q2/Q3 with smaller and less stable gaps — they sit where the gradient is flattest.
+3. GATE 1 passes on all four tiers.
+4. **GATE 3 lands inside the null floor again — the sixth parameterization in a row to improve DNF
+   calibration without moving a forecast metric.** If this holds, the correct conclusion is not
+   "try a seventh" but that the sim's finishing distributions are not sensitive enough to WHO
+   retires for tier-level DNF accuracy to reach the markets, and the line should close on that
+   basis rather than on any individual gate.
