@@ -4187,3 +4187,96 @@ new needs to be fetched. Manual preset clicks must keep overriding, expressing "
 be calmer/wilder than this track normally is," which is what the buckets were built for.
 
 NOTHING HAS BEEN CHANGED IN THE ENGINE. Awaiting operator go/no-go.
+
+---
+
+## 2026-08-31 — HOLDOUT VERDICT on the caution mix (Fix C): FAILS BOTH GATES. CLOSED, NOT SHIPPED.
+
+Operator said a holdout was not needed, then asked "can't you just backtest it to get the answer?"
+So it was run, exactly as registered earlier today, before any of this was read.
+
+HOLDOUT: 2025-2026, all three series, 162 races. Script `scripts/backtest-caution-mix.js`.
+Every driver input reconstructed from races STRICTLY PRIOR (SQL windows, Next Gen floor 2022):
+correlated-group rating and finish, same-track rating and finish, prior track DNF rate, prior
+caution-bucket frequencies. Start position is the real grid. Practice long-run pace and pit-crew
+times are not reconstructable at this scale and are null in BOTH arms, so the arms differ only by
+`cautionMix`. 10,000 sims per arm per race.
+
+    market   arm      Brier        LogLoss      chi2 (cells)
+    win      A cur    0.022537     0.090212      7.9 (5)
+    win      B mix    0.022613     0.090598     10.0 (5)
+    top5     A cur    0.093715     0.303962      4.2 (6)
+    top5     B mix    0.094029     0.305724     13.3 (6)
+    top10    A cur    0.154372     0.467860     14.5 (5)
+    top10    B mix    0.154526     0.468199     24.7 (5)
+
+    DNF cars per race    A cur 5.33 vs 5.97 observed (bias -0.64)
+                         B mix 6.02 vs 5.97 observed (bias +0.05)
+
+GATE (a) chi-square no worse: FAIL, on all three markets, top5 and top10 by 3x and 1.7x.
+GATE (b) Brier non-degradation: FAIL on all three.
+The mechanism did exactly what it was built to do - retirement bias -0.64 -> +0.05 cars per race -
+and the forecasts got WORSE. Per the registration, that closes it. Fix C does not ship.
+
+IS THE DEGRADATION REAL OR MC NOISE? Checked rather than assumed. Five independent repeats of arm A
+on the identical config (`scripts/backtest-attrition-sweep.js`):
+
+    winBrier  sd 0.000007   t5Brier  sd 0.000049   winLogLoss  sd 0.000103
+
+The A-B gaps are +0.000076 on win Brier (11 sd), +0.000314 on top5 Brier (6.4 sd), +0.000386 on win
+log loss (3.7 sd). Real, not noise. My first instinct was that a gap in the fifth decimal had to be
+noise; averaging over ~5,800 driver-predictions at 10k sims each makes these metrics far tighter
+than that instinct assumed.
+
+### THE FINDING UNDERNEATH, which is worth more than the fix was
+
+Sweeping dnfRate on the CURRENT arm, holding everything else fixed:
+
+    mult   winBrier    winLogLoss   t5Brier     DNF cars   bias
+    0.6    0.022499    0.090053     0.093701      3.34    -2.63
+    0.8    0.022502    0.090228     0.093687      4.35    -1.62
+    1.0    0.022511    0.090037     0.093691      5.33    -0.64
+    1.2    0.022528    0.090043     0.093698      6.27    +0.30
+    1.4    0.022534    0.090248     0.093754      7.16    +1.19
+    1.8    0.022588    0.090414     0.093763      8.71    +2.74
+
+Monotonic, and against 0.000007 sd it is signal: **finishing-position forecasts get better the LESS
+the sim retires, across a 3x range, and the optimum is well below the attrition that actually
+happens.** Fix C failed not because the mix mechanism is broken but because it moved attrition
+TOWARD reality, and this metric prefers a sim that under-retires.
+
+WHY, most likely. The win reliability table shows the model under-rating favorites at the top:
+predicted 24.0% -> observed 32.1% (arm A) and 24.1% -> 33.3% (arm B). The board is not confident
+enough about the best car. Attrition and caution-scenario variance both add randomness, and adding
+randomness to a model that is already under-confident pushes it further the wrong way. Both arms
+show it; B shows it slightly worse because it adds a second source of spread on top of the first.
+
+THE LIMITATION, stated once and not as an appeal. This reconstruction has NO practice data, and
+longRunPace carries 0.15-0.25 weight in the live model precisely because it sharpens favorite
+identification. So the under-confidence that drives this result is larger here than on a real board.
+Whether the ordering survives with practice inputs is UNTESTED, and I am not going to claim it does
+or does not. The gate was written knowing this reconstruction was what would run against it, it
+failed, and the failure stands.
+
+### WHAT HAPPENS TO THE CODE
+
+The engine keeps `cautionMix`, OFF by default and unreachable unless a board passes it, marked in
+`simEngine.js`, `sim-smoke.js` and CLAUDE.md as TESTED AND REJECTED ON HOLDOUT 2026-08-31. Keeping a
+tested implementation costs nothing and removing it would guarantee the next session rediscovers the
+Talladega 0.51x symptom and rebuilds the same thing. Nobody may enable it without re-running this
+backtest, and re-running it against a reconstruction WITH practice data is the only route that would
+reopen the question.
+
+WHAT DOES NOT CHANGE: the shipped sim is untouched. Talladega still sims at roughly half its measured
+attrition and, on this evidence, forecasts slightly better for it. That is an unsatisfying sentence
+and it is what the holdout says.
+
+### THE OTHER THING THIS ESTABLISHES
+
+The 2026-08-30 DNF constant refresh raised attrition schedule-wide. Read against the sweep above, the
+refresh moved the sim UP the curve - from roughly 0.8x to 1.0x of measured - and that direction costs
+a little forecast accuracy while buying correct retirement counts. It was justified on bias and on
+removing a self-contradiction, both of which still hold, and today's earlier entry showed it also
+halves attrition-rate error through the sim. None of that is withdrawn. But it is now on record that
+the same axis trades against finishing-position calibration, and that nobody has yet found the
+handle that gives both.
