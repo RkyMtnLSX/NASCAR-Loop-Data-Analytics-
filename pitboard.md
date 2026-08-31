@@ -651,17 +651,28 @@ the graded board's config snapshot; the grader's save FAILS without this column)
 POST board excludes bets already flagged on the PRE board (bet attribution doctrine — see
 BACKTEST_LOG 2026-07-11).
 
-### `pit_crew_race` — per-car pit crew performance (added 2026-07-11, source pitcrewrank.com)
-`id`, `series` ('cup'), `year`, `race_date` (**THE join key to `races` — their race numbering
-counts exhibitions, so R#s are offset from ours; always join by date**), `race_name`,
-`pcr_race_id` (their id; unique with car_number → re-syncs upsert), `car_number`,
-`driver_name`, `trimmed_mean` (4-tire stop seconds), **`z_score`** (race-normalized — the
-signal), `stop_count`, `best_stop`, `created_at`. 633 rows / 17 points races backfilled
-2026-07-11; exhibitions excluded. WEEKLY SYNC: user clicks a bookmarklet while on
-pitcrewrank.com (their API is same-origin only) — diffs pcr_race_id, pulls only new races.
-Validated: persistence 0.671, residual partial +0.073 (11/13 races), improves t10 Brier only.
-NOT a sim input yet — re-test with proper split at ~25 points races (~late Aug); designed as
-a season-scoped rolling-window PLACEMENT input, gated off superspeedways (BACKTEST_LOG).
+### `pit_crew_race` — RETIRED AND DROPPED 2026-08-31. Do not reintroduce.
+
+Was a scrape of pitcrewrank.com (weekly bookmarklet, cup only, 17 races, 633 rows). **Abandoned
+once the raw NASCAR pit telemetry was in hand — we get the data ourselves now.** The replacement
+shipped 2026-07-18 as task #46 and is what the product actually runs on:
+
+- **Source of truth is `pit_stops`** — 81,647 raw stops, 413 races, 2022-2026, all three series,
+  loaded weekly by `pitboard_pit_backfill.py` via POST_RACE_UPDATE.bat (see PITBOARD_SCRIPTS.md).
+- **The sim uses it.** `pitCrew: 0.06` in every weight set. `SimulationCenter` computes
+  `__crewMap` = current-season median 4-tire `box_time` per car (>=5 stops, Tukey-fenced per
+  task #68) and passes it as `pitCrewTime`. Crew t~7.5 pooled, positive in all series and track
+  groups. This is live and current — do not confuse it with the retired table below.
+- **PitCrewRankings.js reads `pit_stops` + `pit_penalties`**, never the retired table.
+
+Table dropped 2026-08-31; 633-row CSV backup lives in the PitBoard Handoff folder. Nothing read
+it — no views, no FKs, no `src/` reference. History of the original evaluation is in
+BACKTEST_ARCHIVE 2026-07-11, and the switch away is BACKTEST_ARCHIVE "Six years of waiting on
+pitcrewranks ends here."
+
+**Why this entry is written this loudly:** a session on 2026-08-31 read the frozen table, concluded
+"the crew rankings stopped updating", and told the operator his pit data had a gap. Both wrong. Two
+different things share the word "crew" — the retired scrape, and the live `pit_stops` pipeline.
 
 ### `green_flag_speed` — per-driver green-flag avg speed + rank (added 2026-07-07)
 `id`, `series`, `year`, `track` (canonical, from PDF header — NOTE a few PDF spellings differ
@@ -1294,9 +1305,12 @@ the same market differently by series/section; keep header regexes loose + keep 
   metric (median green-flag 4-tire box_time per car per season + consistency) is SUPPORTED by the
   schema but NOT computed. Next: main session runs the pit-crew signal re-test (task #46) against
   this table + pit_crew_race (pitcrewrank.com, Cup-only) as the cross-check source.
-- Relationship to `pit_crew_race`: complementary, NOT a replacement. pcr = trimmed/z-scored 4-tire
-  summary per car per race (Cup only, their methodology); pit_stops = raw every-stop telemetry, all
-  three series, with flag state + tires + travel splits. Validate one against the other on Cup races.
+- ~~Relationship to `pit_crew_race`: complementary, NOT a replacement.~~ **SUPERSEDED 2026-08-31.**
+  It WAS a replacement. Task #46 shipped 2026-07-18 on `pit_stops` alone, the pitcrewrank scrape
+  stopped 2026-07-12, and the table was dropped 2026-08-31. `pit_stops` is the only pit-crew source;
+  see the retired-table note in the data map above. Two paragraphs up is the state of play in July
+  and is left as written — this bullet is the correction, because the "NOT a replacement" line
+  misled a session on 2026-08-31.
 
 
 ## 2026-07-18 — pit_stops FULL HISTORY loaded (2022-2026) + two wrong-event feeds purged
@@ -2320,6 +2334,8 @@ SIM_MATRICES FULL-RUN STORAGE (2026-08-15, commits 6e0e4619 + b2835780): operato
   cancel-revokes-access, Stripe Customer Portal settings SAVE (operator, test+live).
 - NEW RISK logged: pit_crew_race weekly bookmarklet - if it writes with bare publishable key,
   upsert now dies under RLS; re-test at next sync, fix = operator access_token in its headers.
+  **CLOSED MOOT 2026-08-31 — the bookmarklet was retired and the table dropped. There is no next
+  sync. Left in place because it is dated history; it is not an open item.**
 
 ## 2026-08-19 (later) - GATING FLIP TEST COMPLETE; SANDBOX PAYMENTS FULLY VERIFIED (commit 9a67572)
 - Test rig: operator Chrome = admin session; Edge = non-admin test account atmmstrs1@yahoo.com

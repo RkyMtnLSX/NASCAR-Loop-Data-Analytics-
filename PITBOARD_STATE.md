@@ -1,5 +1,5 @@
 # PITBOARD STATE
-Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2026-08-31. **LAUNCH IS PUSHED TO NEXT SEASON (operator, 2026-08-31) — the Chase starts Sunday and we are not ready.** The sim now runs OUTSIDE the browser: src/lib/simEngine.js + scripts/, see scripts/README.md. Nine model studies were registered and run this session; the DNF-tilt line is CLOSED. **TWO changes shipped: the SS caution pin, and the cliff fix — the caution buttons no longer move attrition, `dnfRate` is now the only attrition dial (operator-approved).** Both remaining blockers are the same blocker — one season of accumulated data. BLOCKER unchanged: four races have no pit data - the local scrapers need SUPABASE_KEY set (see PITBOARD_SCRIPTS.md).
+Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2026-08-31. **LAUNCH IS PUSHED TO NEXT SEASON (operator, 2026-08-31) — the Chase starts Sunday and we are not ready.** The sim now runs OUTSIDE the browser: src/lib/simEngine.js + scripts/, see scripts/README.md. Nine model studies were registered and run this session; the DNF-tilt line is CLOSED. **TWO changes shipped: the SS caution pin, and the cliff fix — the caution buttons no longer move attrition, `dnfRate` is now the only attrition dial (operator-approved).** Both remaining blockers are the same blocker — one season of accumulated data. PIT DATA BLOCKER IS CLOSED (verified against the database 2026-08-31, not against a doc): `pit_stops` holds 81,647 rows / 413 races / 2022-2026, last loaded 2026-08-30. The 24 races still without pit rows are tracks where NASCAR publishes no pit timing at all — Bristol dirt, Lime Rock, IRP, Portland, Road America, Rockingham; 17 of the 24 are trucks. Nothing to backfill. pitcrewrank.com is retired and its table dropped; pit crew is live via `pit_stops` (`pitCrew: 0.06` in every weight set).
 
 ## 2026-08-31 — THE SIM RUNS HEADLESSLY; LAUNCH PUSHED; NINE STUDIES, ZERO SHIPS
 
@@ -578,8 +578,10 @@ before stating n.
   mean 2.75 runs/driver, zero single-run drivers) - but page 1 is the tab eyeballed before upload,
   so it is the one view that hides dropped laps and over-long runs. Fix in pitboard_practice_sheet.py:
   write page 1 on original lap numbers with blanks at gaps. pitboard.md 2026-08-23.
-- pit_crew_race bookmarklet may write with bare publishable key → now blocked by RLS; re-test
-  at next weekly sync, fix = operator access_token in headers (2026-08-19).
+- ~~pit_crew_race bookmarklet RLS re-test~~ CLOSED MOOT 2026-08-31: pitcrewrank.com was abandoned
+  once we could pull the telemetry ourselves. Table dropped, bookmarklet retired, CSV backup in the
+  Handoff folder. PIT CREW IS LIVE AND CURRENT via `pit_stops` — weekly loader, `pitCrew: 0.06` in
+  every sim weight set, PitCrewRankings reads it. Do not read the retired scrape as a data gap.
 - Trucks Richmond practice never re-uploaded with timestamps — live truck card still uncorrected (cup wk2 check was run via harness instead).
 - sim_matrices exists only for boards published after 2026-08-15 evening; older boards fall back to 4k sample in Matchup Compare.
 - [SUPERSEDED 2026-08-30] The 'one thesis x7' failure is now handled by the objective, not by a cap: E[max] selects a SET, so it only duplicates a core where the draws say duplication pays. Default max exposure is back at 100% deliberately - see the handoff. The operator's own method (exclusions + per-driver caps + wide spread) still works on top and is what produced his 301.45 / rank 179 at Daytona.
