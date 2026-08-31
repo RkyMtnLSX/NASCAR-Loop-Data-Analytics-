@@ -45,10 +45,17 @@ function wf(se, tr) {
   if (se === 'trucks' && __trackGroup(tr) === 'SHORT') return TRUCK_SHORT_WEIGHTS
   return DEFAULT_WEIGHTS
 }
+// ARMS ARE PINNED EXPLICITLY. Both flags SHIPPED as defaults on 2026-08-31, so `{}` no longer
+// means "old behaviour" — it means the fix. Leaving CURRENT as `{}` would have made this script
+// compare the fix against itself and report a flat zero delta as a pass. Every arm now states
+// both flags outright, and this script keeps working as a historical reproduction either way.
 const ARMS = {
-  CURRENT:    {},
-  EV:         { perBucketEV: true },
-  'EV+CLAMP': { perBucketEV: true, wideClamp: true },
+  CURRENT:    { perBucketEV: false, wideClamp: false },
+  EV:         { perBucketEV: true,  wideClamp: false },
+  'EV+CLAMP': { perBucketEV: true,  wideClamp: true },
+  // Ship verification: passes NO flags, so it exercises whatever the engine defaults to. It must
+  // track EV+CLAMP. If it ever tracks CURRENT instead, the ship got reverted somewhere.
+  SHIPPED:    {},
 }
 const boards = []
 for (const line of fs.readFileSync(path.join(__dirname, 'backtest-data', 'holdout.txt'), 'utf8').split('\n').filter(l => l.trim())) {
@@ -133,6 +140,7 @@ for (let r = 0; r < RUNS; r++) {
   res.NULL.push(measure(ARMS.CURRENT))
   res.EV.push(measure(ARMS.EV))
   res['EV+CLAMP'].push(measure(ARMS['EV+CLAMP']))
+  res.SHIPPED.push(measure(ARMS.SHIPPED))
 }
 const mean = a => a.reduce((x, y) => x + y, 0) / a.length
 const delta = (arm, k, sub) => mean(res[arm].map((v, i) => (sub ? v.cal[k] : v[k]) - (sub ? res.CURRENT[i].cal[k] : res.CURRENT[i][k])))
@@ -152,8 +160,27 @@ for (const k of ['win', 't5', 't10']) {
     delta('EV+CLAMP', k, true).toFixed(3).padStart(15))
 }
 console.log('\nGATES D / E')
-for (const nm of ['CURRENT', 'EV', 'EV+CLAMP']) {
+for (const nm of ['CURRENT', 'EV', 'EV+CLAMP', 'SHIPPED']) {
   console.log('  ' + nm.padEnd(11) + 'DNF bias ' + mean(res[nm].map(v => v.bias)).toFixed(2).padStart(6) +
     '   cup Talladega ' + mean(res[nm].map(v => v.tal)).toFixed(1) + '% (measured ' +
     mean(res[nm].map(v => v.talObs)).toFixed(1) + '%)')
 }
+
+// ---------- SHIP VERIFICATION
+// SHIPPED passes no flags. It must be indistinguishable from EV+CLAMP and clearly separated
+// from CURRENT. If this ever flips, the engine default was reverted and every "we shipped the
+// fix" claim in BACKTEST_LOG is false for the current tree.
+console.log('\nSHIP VERIFICATION — default path (no flags) vs the gated arm')
+let shipOk = true
+for (const k of ['wb', 't5', 't10']) {
+  const nm = { wb: 'win', t5: 'top5', t10: 'top10' }[k]
+  const dShip = Math.abs(delta('SHIPPED', k) - delta('EV+CLAMP', k))
+  const pass = dShip <= absNull(k) * 1.5
+  if (!pass) shipOk = false
+  console.log('  ' + nm.padEnd(7) + '|SHIPPED - EV+CLAMP| ' + (dShip * 1e5).toFixed(2).padStart(7) +
+    'e-5   vs null floor ' + (absNull(k) * 1e5).toFixed(2) + 'e-5   ' + (pass ? 'PASS' : 'FAIL'))
+}
+const bShip = Math.abs(mean(res.SHIPPED.map(v => v.bias)) - mean(res['EV+CLAMP'].map(v => v.bias)))
+console.log('  DNF bias |SHIPPED - EV+CLAMP| ' + bShip.toFixed(3) + ' cars/race   ' + (bShip < 0.08 ? 'PASS' : 'FAIL'))
+if (bShip >= 0.08) shipOk = false
+console.log(shipOk ? '\n  => the default path IS the fix.' : '\n  => DEFAULT PATH DOES NOT MATCH THE GATED ARM — investigate before trusting this tree.')

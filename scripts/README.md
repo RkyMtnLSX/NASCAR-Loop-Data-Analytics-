@@ -28,9 +28,11 @@ with eight names at once. Thirty seconds here saves a broken deploy.
 
 `sim:smoke` runs 20,000 simulations per track group and checks that every sim produces a real
 finishing order, the probability columns close, projected laps led sums to the race distance,
-and the DNF resolver reproduces its constants. It prints the caution-bucket calibration row too
-— if those numbers have drifted from what the comments say, something changed the wreck layer
-and you should find out what before trusting any result.
+and the DNF resolver reproduces its constants. It also **asserts that the caution preset does
+not move attrition** — all three presets must deliver the `dnfRate` budget, spread ≤ 0.25. That
+assertion is new on 2026-08-31 and it replaced a row that used to print a 0.5x/0.9x/1.4x spread
+and call it correct. If it fails, the wreck normalizer changed; find out why before trusting any
+result.
 
 ---
 
@@ -65,9 +67,14 @@ site, or anything you'd have to undo.
 Most take a `SIMS=` environment variable, e.g. `SIMS=20000 node scripts/dnf-per-track.js`.
 Lower is faster and noisier. A full holdout run at 10,000 sims takes a couple of minutes.
 
-**Read `BACKTEST_LOG.md` before drawing a conclusion from any of these.** Several of them
-produce numbers that look like findings and are not — the caution-bucket row in `sim-smoke` is
-deliberate calibration, not a bug, and it has already been misreported once.
+**Read `BACKTEST_LOG.md` before drawing a conclusion from any of these.** Several of them produce
+numbers that look like findings and are not.
+
+`gate-cliff-final.js` is the pre-registered harness for the 2026-08-31 cliff fix. Its arms pin
+`perBucketEV` and `wideClamp` explicitly because both SHIPPED as engine defaults that day — an
+arm that passes no flags now gets the FIX, not the old behaviour. Its last section verifies
+exactly that: the default path must be indistinguishable from the gated `EV+CLAMP` arm. If that
+section ever fails, someone reverted the ship and the log entries no longer describe the tree.
 
 ---
 
@@ -87,6 +94,15 @@ Two things worth knowing about that snapshot:
 
 ---
 
+## Which caution dial does what (changed 2026-08-31)
+
+The **Caution Rate** buttons no longer change how many cars retire. They set the wreck pool
+(which wrecks happen, how big, when), the noise width, and the dominator curves. **`dnfRate` is
+the only dial that moves attrition.** Before this date the preset also swung attrition roughly
+0.5x/0.9x/1.4x around the budget, selected off a hard `<6 / <11.5` threshold on a noisy track
+average — 28% of track cells cross a threshold across seasons, and each crossing moved attrition
+~73%. Operator-approved ship; full evidence in `BACKTEST_LOG.md` under 2026-08-31.
+
 ## What is deliberately switched OFF in the engine
 
 Two experiments live in `simEngine.js` behind flags. Neither is reachable from the website —
@@ -94,6 +110,10 @@ nothing in `src/pages/` passes either flag, and that is on purpose.
 
 - **`cautionMix`** — TESTED AND REJECTED on holdout, 2026-08-31. Do not enable.
 - **`skillTilt`** — passed some gates, failed others, blocked on data. Do not enable.
+
+`perBucketEV` and `wideClamp` used to be listed here. They are no longer flags in the "off" sense
+— both default to ON as of 2026-08-31. They still accept an explicit `false` so a backtest can
+reconstruct the old arm; nothing in `src/pages/` passes either, and nothing should.
 
 Both are kept rather than deleted so a future session doesn't rediscover the same symptoms and
 rebuild the same thing. The full history for both is in `BACKTEST_LOG.md` under 2026-08-31.

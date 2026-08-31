@@ -1175,7 +1175,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
                   }}>{p.label}</button>
                 ))}
               </div>
-              <div style={hintStyle}>~{cautionPreset.value} cautions &middot; noise width &plusmn;{cautionPreset.noise}{cautionAutoNote ? ' \u00b7 ' + cautionAutoNote : ''}{cautionPreset.value <= 5 ? ' \u00b7 wrecks: calm pool (sims land under DNF budget)' : cautionPreset.value <= 8 ? ' \u00b7 wrecks: typical pool (~on DNF budget)' : ' \u00b7 wrecks: chaotic pool (sims land over DNF budget)'}</div>
+              <div style={hintStyle}>~{cautionPreset.value} cautions &middot; noise width &plusmn;{cautionPreset.noise}{cautionAutoNote ? ' \u00b7 ' + cautionAutoNote : ''}{cautionPreset.value <= 5 ? ' \u00b7 wrecks: calm pool' : cautionPreset.value <= 8 ? ' \u00b7 wrecks: typical pool' : ' \u00b7 wrecks: chaotic pool'} &middot; shapes wrecks, not DNF count</div>
             </div>
 
             <div style={{ padding: '12px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 8 }}>

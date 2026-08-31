@@ -244,18 +244,37 @@ build and a runtime crash. That is exactly what happened during the extraction: 
 `scripts/loadEngine.js` transforms `simEngine.js` ESM→CJS in memory so node can require it. It reads the
 same file the site ships, so a script and the site cannot disagree. No new dependency, no build step.
 
-CALIBRATION YOU MUST NOT MISREAD: the sim's realized DNF count is modulated by the caution preset —
-~0.5x the budget at Low, ~0.9x at Medium, ~1.4x at High. This is `wreck-v1.1-cb`, shipped 2026-07-28,
-BY DESIGN, and documented in BACKTEST_ARCHIVE. The Caution Rate card says so in the UI. `npm run
-sim:smoke` prints the current numbers so a future change to them is visible. Do NOT report this as a
-bug — a session did exactly that on 2026-08-31 and had to append a correction.
+THE CAUTION PRESET NO LONGER MOVES ATTRITION (changed 2026-08-31, operator-approved).
 
-The OPEN question, which is different: both `dnfRate` and the caution preset are auto-set from the same
-track's long-run history, so the modulation is applied to the track's baseline rather than to a race's
-deviation from it. Result: most cup tracks sim somewhat below their own measured attrition (schedule
-bias about -2.27 cars per race). Four parameterizations were tested against a pre-registered holdout
-and NONE shipped — see BACKTEST_LOG 2026-08-31, and do not reopen it on the strength of the tier
-tables there: DNF calibration improves and the forecasts do not.
+If you are reading an older doc, the archive, or a comment written before that date, you will find
+the claim that realized DNF count is modulated by the caution preset — ~0.5x the budget at Low, ~0.9x
+at Medium, ~1.4x at High, `wreck-v1.1-cb`, "by design." **That is history, not current behavior.**
+
+What happened: the wreck pools went per caution bucket on 2026-07-28, but the normalizer that scales
+them to the `dnfRate` budget stayed GLOBAL per track group. So it became a pooled average across three
+pools whose expected accident counts differ 3-5x, and the leftover ratio showed up as the 0.5/0.9/1.4
+spread. That spread was then selected by a hard `<6 / <11.5` threshold on a track's long-run caution
+average — a noisy quantity. 17 of 60 track cells (28%) cross a threshold at least once as that average
+updates across seasons (cup Martinsville ranges 4.00-7.00, cup Las Vegas 7.00-12.00), and each crossing
+swung simmed attrition by ~73% for no physical reason. That is what put cup Talladega on half its real
+attrition.
+
+`WRECK_EV_EXP_B` now normalizes each pool against its own expected accident count. Every preset lands
+on budget. The caution preset still selects the wreck pool (wreck SHAPE — who gets collected, when),
+the noise width, and the LL/FL dominator curves. **`dnfRate` is now the only dial that changes how many
+cars retire.** `npm run sim:smoke` ASSERTS this (spread <= 0.25 across presets) rather than printing it.
+
+Evidence, five repaired gates at 6 runs: boundary jump 73.2% -> 3.0%; DNF bias -0.53 -> -0.11 cars/race;
+top10 Brier -9.10e-5 against a null of 6.81e-5; win and top5 inside the null band in both directions;
+fin>=25 placement band moved less than the null's own movement. The case is STABILITY, not accuracy —
+one market improves measurably, two are unchanged, and the model stops caring where a noisy average
+happens to sit. Full entry in BACKTEST_LOG 2026-08-31.
+
+STILL OPEN, and different: `dnfRate` and the preset are both auto-set from the same track's long-run
+history, so attrition is anchored to the track's baseline rather than to a race's deviation from it.
+Four parameterizations of a skill-tilted allocation were tested against a pre-registered holdout and
+NONE shipped — see BACKTEST_LOG 2026-08-31, and do not reopen it on the strength of the tier tables
+there: DNF calibration improves and the forecasts do not.
 
 TALLADEGA IS FIXED (shipped). It was a separate defect, not part of the above. Superspeedways carry a
 "pinned (calibrated)" note, but the pin only ever set the note — the config loader bucketed SS from its

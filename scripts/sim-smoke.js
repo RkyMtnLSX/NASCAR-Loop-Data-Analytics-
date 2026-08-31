@@ -157,34 +157,45 @@ ok(__trackGroup('Watkins Glen International') === 'ROAD', '__trackGroup classifi
 // calm/typical/chaotic event pools, so a calm race retires fewer cars than the track's
 // mean and a chaotic one more. The Caution Rate card states this in the UI.
 //
-// These numbers are printed as a REGRESSION CHECK. The values shipped in 2026-07-28
-// (archive) were SHORT 0.58/0.87/1.48, INT 0.51/0.90/1.55, SS 0.51/1.01/1.38,
-// ROAD 0.67/0.98/1.31. If what prints below has drifted from those, something changed
-// the wreck layer and you should find out what before trusting any backtest.
+// THIS ROW CHANGED MEANING ON 2026-08-31. Read this before interpreting it.
 //
-// DO NOT report this row as a bug. A session did on 2026-08-31 and had to append a
-// correction to BACKTEST_LOG. The genuinely open question is a different one: both
-// dnfRate and the preset are auto-set from the SAME track's long-run history, so the
-// modulation gets applied to the track's baseline instead of to a race's deviation
-// from it — 24 of 30 cup tracks sim under their own measured attrition, Talladega at
-// 0.51x. That is written up in BACKTEST_LOG under 2026-08-31 and is unresolved.
-console.log('\n[DNF budget delivery by caution preset — cup; by design, see comment]')
+// It used to PRINT a spread and tell you the spread was correct. From 2026-07-28 to
+// 2026-08-31 the wreck normalizer was global per track group while the wreck pools were
+// per caution bucket, so realized attrition came out ~0.5x the dnfRate budget at Low,
+// ~0.9x at Medium and ~1.4x at High (archive shape: SHORT 0.58/0.87/1.48, INT
+// 0.51/0.90/1.55, SS 0.51/1.01/1.38, ROAD 0.67/0.98/1.31). That was declared by design.
+//
+// It is no longer the design. WRECK_EV_EXP_B normalizes each pool against its OWN
+// expected accident count, so every preset now delivers the budget and the caution
+// preset does not move attrition at all. The spread was a cliff generator: it was
+// selected by a hard <6 / <11.5 threshold on a noisy track average, and 17 of 60 track
+// cells (28%) cross a threshold at least once across seasons, which swung their
+// attrition ~73% for no physical reason.
+//
+// So this is now an ASSERTION, not a printout. All three presets must land on budget.
+// If one drifts outside the band, the wreck layer changed and no backtest should be
+// trusted until you know why.
+console.log('\n[DNF budget delivery by caution preset — must be FLAT after the 2026-08-31 fix]')
 for (const [grp, label] of GROUPS) {
   const rate = resolveDnfRate('cup', label, null, 0)
-  const line = []
+  const line = [], mults = []
   for (const p of presets) {
     const rows = runRaceSim(scored, {
       numSims: SIMS, cautionPreset: p, dnfRate: rate,
       totalRaceLaps: 300, trackGroup: grp, startSampling: null,
     })
     const cars = rows.reduce((s, r) => s + r.dnfPct, 0) / 100
-    line.push(`${p.label}(${p.value}) x${(cars / (N * rate)).toFixed(2)}`)
+    const mult = cars / (N * rate)
+    mults.push(mult)
+    line.push(`${p.label}(${p.value}) x${mult.toFixed(2)}`)
   }
   console.log(`  ${grp.padEnd(6)} budget ${(rate * 100).toFixed(1)}%   ` + line.join('   '))
+  const spread = Math.max(...mults) - Math.min(...mults)
+  ok(spread <= 0.25, `${grp} attrition is preset-independent`,
+    `spread ${spread.toFixed(2)} across Low/Med/High (was ~0.90 before the fix)`)
+  ok(mults.every(m => m > 0.80 && m < 1.20), `${grp} every preset lands on budget`,
+    `range ${Math.min(...mults).toFixed(2)}-${Math.max(...mults).toFixed(2)}`)
 }
-console.log('  ^ expected shape is roughly 0.5x / 0.9x / 1.4x (wreck-v1.1-cb, by design).')
-console.log('    If a row has drifted from the archive values in the comment above, the')
-console.log('    wreck layer changed — find out why before trusting a backtest.')
 
 
 // ---------------------------------------------------------------- caution mix (FIX C)
@@ -215,14 +226,22 @@ console.log('\n[caution mix — delivered should land ON budget for any distribu
     }
   }
   // A single-bucket mix must be a no-op, not a rescale.
-  const one = runRaceSim(scored, {
+  //
+  // This used to assert against a hardcoded 0.51 — the INT Low multiplier under the old global
+  // normalizer. That constant is exactly what the 2026-08-31 fix removes, so the test failed on
+  // ship for the right reason: it was encoding the bug as the expectation. Comparing the mix
+  // path to the NON-MIX path with the same preset tests the actual property ("adding a
+  // one-element mix changes nothing") and cannot go stale when the multipliers move again.
+  const mixCfg = {
     numSims: SIMS, cautionPreset: presets[0], dnfRate: 0.155,
     totalRaceLaps: 300, trackGroup: 'INT', startSampling: null,
-    cautionMix: { presets: [presets[0]], w: [1] },
-  })
+  }
+  const one = runRaceSim(scored, { ...mixCfg, cautionMix: { presets: [presets[0]], w: [1] } })
+  const plain = runRaceSim(scored, mixCfg)
   const oneGot = one.reduce((s, r) => s + r.dnfPct, 0) / 100 / N
-  ok(Math.abs(oneGot / 0.155 - 0.51) < 0.06, 'a single-bucket mix stays a no-op (no K rescale)',
-     `x${(oneGot / 0.155).toFixed(3)} — should match the Low multiplier, not 1.00`)
+  const plainGot = plain.reduce((s, r) => s + r.dnfPct, 0) / 100 / N
+  ok(Math.abs(oneGot - plainGot) / plainGot < 0.05, 'a single-bucket mix stays a no-op (no K rescale)',
+     `mix x${(oneGot / 0.155).toFixed(3)} vs plain x${(plainGot / 0.155).toFixed(3)}`)
 }
 
 console.log(failures === 0 ? '\nALL PASS' : `\n${failures} FAILURE(S)`)

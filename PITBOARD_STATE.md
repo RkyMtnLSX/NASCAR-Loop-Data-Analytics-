@@ -1,5 +1,5 @@
 # PITBOARD STATE
-Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2026-08-31. **LAUNCH IS PUSHED TO NEXT SEASON (operator, 2026-08-31) — the Chase starts Sunday and we are not ready.** The sim now runs OUTSIDE the browser: src/lib/simEngine.js + scripts/, see scripts/README.md. Nine model studies were registered and run this session and NOTHING shipped from any of them; the DNF-tilt line is CLOSED. Both remaining blockers are the same blocker — one season of accumulated data. BLOCKER unchanged: four races have no pit data - the local scrapers need SUPABASE_KEY set (see PITBOARD_SCRIPTS.md).
+Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2026-08-31. **LAUNCH IS PUSHED TO NEXT SEASON (operator, 2026-08-31) — the Chase starts Sunday and we are not ready.** The sim now runs OUTSIDE the browser: src/lib/simEngine.js + scripts/, see scripts/README.md. Nine model studies were registered and run this session; the DNF-tilt line is CLOSED. **TWO changes shipped: the SS caution pin, and the cliff fix — the caution buttons no longer move attrition, `dnfRate` is now the only attrition dial (operator-approved).** Both remaining blockers are the same blocker — one season of accumulated data. BLOCKER unchanged: four races have no pit data - the local scrapers need SUPABASE_KEY set (see PITBOARD_SCRIPTS.md).
 
 ## 2026-08-31 — THE SIM RUNS HEADLESSLY; LAUNCH PUSHED; NINE STUDIES, ZERO SHIPS
 
@@ -14,7 +14,7 @@ ESM→CJS in memory. **`scripts/README.md` is the operator-facing setup: git clo
 no DB credentials, no keys.** Two checks after ANY sim change:
 
     npm run lint:undef    # free-variable check — NOT optional, see below
-    npm run sim:smoke     # engine invariants + the caution calibration row
+    npm run sim:smoke     # engine invariants + ASSERTS attrition is preset-independent
 
 `lint:undef` exists because `npm run build` COMPILES a page that references a name which no longer
 exists — webpack does not flag free variables. That shipped-green-and-crashes case happened this
@@ -29,6 +29,25 @@ still override). Holdout, cup Talladega: DNF 10.4% -> 20.4% · win Brier .02607 
 -> .10932 · top10 .20981 -> .18996. It was the only SS cell affected — the other 26 holdout SS races
 were already on Medium. Shipped as a bug fix rather than through a registration because it restores
 behaviour the code and UI already claimed.
+
+**SECOND MODEL CHANGE SHIPPED — THE CLIFF FIX. THE CAUTION BUTTONS NO LONGER MOVE ATTRITION.**
+`perBucketEV` + `wideClamp` now DEFAULT TO ON (`simConfig.x !== false`). Each wreck pool is
+normalized against its own expected accident count, so every caution preset delivers the `dnfRate`
+budget. The preset still sets wreck SHAPE, noise width and dominator curves; **`dnfRate` is now the
+only dial that changes how many cars retire.** Operator-approved with that consequence disclosed
+("I almost never use the caution button").
+
+The case is STABILITY, not accuracy, and it came from the operator's own challenge that caution
+rates are a moving target. Measured: **17 of 60 track cells (28%) flip caution preset at least
+once** as their prior mean updates across seasons (cup Martinsville 4.00-7.00, cup Las Vegas
+7.00-12.00), and each flip swung attrition ~73% under the old pooled normalizer. Gate A boundary
+jump 73.7% → 3.3%; DNF bias −0.53 → −0.11 cars/race; top10 Brier −11.02e-5 against a 3.09e-5 null.
+**Win and top5 are INSIDE the null band and wobble sign between runs — do not quote them as gains.**
+
+Two bugs the ship itself surfaced, both from the same shape (*a default flip silently re-points
+everything that built a baseline from an empty config*): `__dnfFraction` held a duplicate copy of
+the wScale formula with the old 2.5 clamp hardcoded (caught by sim-smoke, now one `__wScaleOf`),
+and `gate-cliff-final.js` had `CURRENT: {}` which would have compared the fix to itself.
 
 **NO OTHER MODEL CHANGE SHIPPED.** Two experiments sit in the engine behind flags, unreachable from
 `src/pages/` (verified): `cautionMix` (TESTED AND REJECTED on holdout) and `skillTilt` (passed some
@@ -46,9 +65,11 @@ distributions are not sensitive enough to WHO retires for it to reach win/top5/t
 on the strength of the tier tables; calibration improves and forecasts do not.
 
 **TWO CORRECTIONS I HAD TO MAKE TO MYSELF, recorded because the pattern repeats.** (1) I called the
-caution/DNF coupling a defect; it is `wreck-v1.1-cb`, shipped 2026-07-28, by design, documented in
-BACKTEST_ARCHIVE — I searched BACKTEST_LOG and not the ARCHIVE. (2) I described a train/test split as
-temporal when the file was not ordered by date. Both are in the log as corrections.
+caution/DNF coupling a defect; it was `wreck-v1.1-cb`, shipped 2026-07-28, by design, documented in
+BACKTEST_ARCHIVE — I searched BACKTEST_LOG and not the ARCHIVE. *(Later the same day it was fixed on
+its merits, with a registered harness and operator approval — but "it turned out to be worth changing"
+does not retroactively justify calling it a bug before reading the archive.)* (2) I described a
+train/test split as temporal when the file was not ordered by date. Both are in the log as corrections.
 
 **THE INSTRUMENT'S LIMITS, which constrain all future backtesting.** The reconstruction was validated
 against the 11 stored live boards in `sim_results`: it names the same favourite on **5/5 cup, 0/3

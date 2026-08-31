@@ -5592,3 +5592,128 @@ REQUIRED ON SHIP, now three items:
   2. The Caution Rate card hint text in SimulationCenter — the "calm pool / chaotic pool ... under /
      over DNF budget" strings become false.
   3. CLAUDE.md's "CALIBRATION YOU MUST NOT MISREAD" paragraph, same reason.
+
+---
+
+## 2026-08-31 — SHIPPED: per-bucket wreck normalizer + wide clamp (the cliff fix)
+
+**Operator-approved.** Aaron: *"I almost never use the caution button so if you think this is a
+good idea ship it."* The caution-buttons-no-longer-move-attrition consequence was disclosed and
+accepted before ship, not discovered afterward.
+
+### What changed in the engine
+
+`perBucketEV` and `wideClamp` are no longer opt-in flags. Both DEFAULT TO ON:
+
+```js
+const __perBucketEV = simConfig.perBucketEV !== false
+const __wideClamp   = simConfig.wideClamp   !== false
+```
+
+A caller must opt OUT to get the old path. That exists only so `gate-cliff-final.js` can still
+build the CURRENT arm; nothing in `src/pages/` passes either flag.
+
+### The argument that actually carried it — stability, not accuracy
+
+I initially sold this on five gates. That was the wrong frame and the operator pushed back on it
+correctly: *"Not every year are we going to see the same amount of cautions at certain racetracks,
+it will change and we are trying to hit a moving target."*
+
+He is right that the target moves, and I measured how much. Across the 436 committed boards, on
+the 60 track cells carrying at least three races of history:
+
+- **17 of 60 cells (28%) flip caution preset at least once** as their prior mean updates. 28 flips
+  total.
+- 73% of boards have prior caution history that does NOT concentrate 75% into any single bucket —
+  a track's own races genuinely scatter across low/mid/high year to year.
+- Ranges on the flipping cells: oreilly Las Vegas 5.13-11.00, cup Las Vegas 7.00-12.00, cup Dover
+  8.33-13.00, trucks IRP 5.50-10.00, cup Martinsville 4.00-7.00, cup Talladega 5.14-6.67,
+  trucks Bristol 5.00-6.00.
+
+That INVERTS his conclusion rather than supporting it. Because the quantity is noisy and drifts,
+the hard `<6 / <11.5` threshold fires often — 28 measured times — and under the old pooled
+normalizer each firing swung simmed attrition by ~73% for no physical reason. The fix's value is
+not precision on the moving target. It is that the model stops caring where the target sits.
+
+Corollary worth keeping: **the annual sweep gets CHEAPER after this, not more expensive.** Under
+the old behaviour a sweep had to land every track's mean on the correct side of a hard line or
+attrition was wrong by ~45%. Now being off by half a caution barely moves anything.
+
+### Gates, re-run on the shipped tree (162 holdout races, 8000 sims, 3 runs)
+
+```
+GATE A — synthetic INT track swept across the 6.0 boundary, budget fixed 15.5%
+  arm         5.5(Low)  5.9(Low)  6.1(Med)  6.5(Med)   jump
+  CURRENT        7.9%      7.8%     13.6%     13.7%   73.7%  FAIL
+  EV            10.5%     10.6%     14.8%     14.7%   39.7%  FAIL
+  EV+CLAMP      14.3%     14.3%     14.9%     14.7%    3.9%  PASS
+  SHIPPED       14.3%     14.2%     14.7%     14.7%    3.3%  PASS
+
+GATE B — Brier delta vs CURRENT (negative = better)
+  metric      null |d|     EV delta      EV+CLAMP delta
+  win           2.16e-5       -0.40e-5         -0.30e-5
+  top5          9.02e-5       -0.11e-5         -6.47e-5
+  top10         3.09e-5       -3.64e-5        -11.02e-5
+
+GATES D / E
+  CURRENT    DNF bias  -0.53   cup Talladega 20.4% (measured 20.9%)
+  EV+CLAMP   DNF bias  -0.11   cup Talladega 20.7% (measured 20.9%)
+  SHIPPED    DNF bias  -0.11   cup Talladega 20.6% (measured 20.9%)
+```
+
+**Honest read of the forecast case, unchanged from the pre-ship assessment:** top10 improves
+beyond the null floor and does so consistently across runs. Win and top5 sit INSIDE the null band
+in both directions and wobble sign between runs — they are not evidence of improvement and should
+not be quoted as such. One market improves measurably, two are unchanged. Anyone reading this
+entry later should judge the change on Gate A and Gate D, not on Gate B win/top5.
+
+### TWO BUGS THE SHIP ITSELF SURFACED
+
+**1. Duplicated wScale formula (caught by sim-smoke).** `__dnfFraction` carried its own copy of
+the accident-scale expression with the old `Math.min(2.5, ...)` clamp hardcoded. Flipping the
+default updated only the other copy, so the K estimator measured a CLIPPED scale while the sim
+ran an unclipped one, and `cautionMix` delivered INT 24% over budget. This is the same
+duplicated-constant class of defect as the eight-name extraction crash. Fixed by extracting one
+`__wScaleOf(n, dnfRate, wm, wide)` used by both call sites. **Do not inline it again.**
+
+Note this did NOT invalidate any earlier gate result: `__dnfFraction` only runs when `cautionMix`
+or `levelNormalize` is on, and neither was on in any gated arm.
+
+**2. `gate-cliff-final.js` would have compared the fix to itself.** Its arms were
+`CURRENT: {}` — which, after the default flip, means the FIX. Left alone, the script would have
+reported a flat zero delta and read it as a pass. Arms are now pinned explicitly on both flags.
+
+Both bugs share one shape: **a default change silently re-points every construct that relied on
+the old default.** When flipping a flag to shipped, grep for every reader of that flag AND for
+every place that constructs an "old behaviour" baseline from an empty config.
+
+### New standing assertion
+
+`sim-smoke.js` no longer PRINTS the attrition spread and calls it correct. It ASSERTS flatness:
+
+```
+  SHORT  budget  9.1%   Low(4) x0.96   Medium(8) x0.98   High(15) x1.01   spread 0.05  PASS
+  INT    budget 15.5%   Low(4) x0.92   Medium(8) x0.95   High(15) x0.99   spread 0.07  PASS
+  SS     budget 25.5%   Low(4) x0.91   Medium(8) x0.97   High(15) x1.02   spread 0.11  PASS
+  ROAD   budget  9.5%   Low(4) x0.97   Medium(8) x0.99   High(15) x1.01   spread 0.04  PASS
+```
+
+Spread must stay ≤ 0.25 and every preset within 0.80-1.20 of budget. `gate-cliff-final.js` gained
+a SHIP VERIFICATION section asserting the flagless default is indistinguishable from the gated
+`EV+CLAMP` arm (win/top5/top10 deltas inside the null floor; DNF bias delta 0.001 cars/race).
+
+### Product consequence, accepted
+
+The Caution Rate buttons no longer change DNF count. They still set the wreck pool (shape, size,
+timing of wrecks), the noise width, and the LL/FL dominator curves. `dnfRate` is now the only
+attrition dial — which is where the 2026-07-14 entry left it before `wreck-v1.1-cb` re-coupled
+them. Manual DNF override path verified working. UI hint string updated to say "shapes wrecks,
+not DNF count".
+
+### Docs corrected in this commit
+
+`CLAUDE.md` ("CALIBRATION YOU MUST NOT MISREAD" — rewritten to say the modulation is HISTORY),
+`scripts/README.md` (new "Which caution dial does what" section), `sim-smoke.js` comment block,
+the `WRECK_SETS` budget note in `simEngine.js`, and the Caution Rate card hint. All five
+previously asserted the removed behaviour as correct. **The archive's `wreck-v1.1-cb` entry is
+left as written** — it is a historical record and should not be edited; this entry supersedes it.
