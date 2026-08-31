@@ -4436,3 +4436,79 @@ DECLARED IN ADVANCE:
 PREDICTION ON RECORD, so this is falsifiable rather than a fishing trip: win Brier improves, driven
 by the top reliability bin closing from 24.0->32.1 toward parity, and the improvement is largest at
 short tracks and road courses and absent or slightly negative at superspeedways.
+
+---
+
+## 2026-08-31 — HOLDOUT VERDICT, skill-tilted DNF: PASSES on Brier and log loss. NOT SHIPPED YET.
+
+Same 162 holdout races, same reconstruction, same two arms differing only by `skillTilt:true`.
+Run four times because a single run is not enough after the day this has been.
+
+    metric              A cur (mean of 4)   B tilt (mean of 4)   B better in
+    win   Brier             0.022519            0.022479            4 of 4
+    win   LogLoss           0.090184            0.089925            4 of 4
+    top5  Brier             0.093664            0.093612            4 of 4
+    top5  LogLoss           0.303770            0.303504            4 of 4
+    top10 Brier             0.154443            0.154333            4 of 4
+    top10 LogLoss           0.467979            0.467709            4 of 4
+
+    DNF cars per race       5.33                5.32
+    (the mean-preserving rail holds: allocation moved, total did not)
+
+TWELVE OF TWELVE comparisons favour the tilt. Win Brier improves by 0.000040 against a measured
+single-run sd of 0.000007 — roughly 5-6 sd, and the sign never flips across runs.
+
+GATE (b) Brier non-degradation: PASS, decisively.
+GATE (a) chi-square no worse: **CANNOT BE ADJUDICATED, and I am not going to score it as a pass.**
+Per-run values, A vs B: win 8.2/7.8/9.7/7.2 vs 8.0/9.3/7.6/10.5; top5 3.8/4.4/4.7/5.8 vs
+3.1/3.6/3.4/3.4; top10 15.8/15.0/13.7/14.3 vs 14.4/16.4/10.9/16.4. Top5 is consistently better.
+Win and top10 swing more BETWEEN REPEATS OF THE SAME ARM than they do between arms. The statistic is
+built from a handful of reliability bins and is too noisy at this sample size to resolve a
+0.2%-scale effect. That is a defect in the gate I wrote this morning, not evidence either way.
+
+MY PREDICTION WAS ONLY HALF RIGHT, recorded because it was made in advance. I predicted win Brier
+would improve — it did — "driven by the top reliability bin closing from 24.0->32.1 toward parity."
+That bin barely moved: 24.2->36.1 becomes 24.3->35.4. The gain came from the middle bins instead
+(6.9->5.3 becomes 6.9->6.0; 14.2->15.7 becomes 14.2->15.0). So the tilt is not mainly fixing
+favourite under-confidence, which was the story I told when the operator raised the idea. It is
+improving the mid-field, and the model remains badly under-confident about the best car. That
+remains unexplained and is now the standing open question.
+
+WHAT THE FIT ACTUALLY SAYS, which is simpler than the story I told this morning:
+
+    layer        SHORT    INT      SS       ROAD
+    accident     0.885    0        0        0
+    mechanical   1.851    2.412    2.144    1.731
+
+Mechanical attrition is strongly skill-dependent EVERYWHERE (t = 4.1 to 8.1); the strongest car
+breaks at 0.16-0.27x the weakest car's rate. Accident attrition is skill-dependent ONLY at short and
+flat tracks (t = 3.70). The superspeedway accident INVERSION I highlighted from the raw quartile
+table is NOT resolved (t = 0.35) and the |t|-shrinkage zeroes it. I over-read a quartile table; the
+fit corrected me. Road course and intermediate accident slopes likewise shrink to zero.
+
+So the shipped effect, if it ships, is mostly "good teams break less," plus "good drivers crash less
+at short tracks." That is a duller sentence than the one I wrote this morning and it is the one the
+data supports.
+
+### NOT SHIPPED, BY THE REGISTRATION'S OWN TERMS
+
+The registration said: "If it passes, it still does not ship on this evidence alone: it would need
+the practice-carrying reconstruction before touching the live board, because a change that reprices
+favorites is the most consequential kind this product makes." That still stands. Additionally:
+
+  * The effect is SMALL — win Brier 0.02252 -> 0.02248, about 0.2% relative. Consistent and free,
+    but not the kind of margin that justifies bypassing the remaining check.
+  * One of the two gates could not be adjudicated. A clean ship wants a gate that resolves.
+  * The reconstruction has no practice data, which the registration noted biases the test AGAINST
+    the tilt. That makes the pass more credible, not less — but it also means the fitted betas were
+    derived from boards whose speedScore percentile is noisier than a live board's. The betas should
+    be REFIT on a practice-carrying reconstruction before they are trusted as constants.
+
+`DNF_TILT_ACC` / `DNF_TILT_MECH` and the `skillTilt` flag are in `simEngine.js`, OFF by default and
+unreachable unless a board passes the flag, exactly like `cautionMix`. Difference: the caution mix is
+marked REJECTED, this one is marked PASSED HOLDOUT, NOT YET SHIPPED — do not enable either without
+reading this entry.
+
+NEXT, in order: build the practice-carrying reconstruction (practice_laps -> practiceGrader
+long-run pace, per historical board), refit the betas on it, re-run this holdout with a chi-square
+replacement that actually resolves, and only then put a ship decision in front of the operator.

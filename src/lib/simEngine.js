@@ -229,6 +229,38 @@ const WRECK_SETS = {"SHORT":{"low":[[],[],[],[],[],[],[],[[4,0.96]],[[5,0.52]],[
 // being rounded DOWN to the 15 pct Medium bucket; cup Short & Flat measures 8.1 pct and was
 // rounded DOWN to the 5 pct Low bucket). Buckets are kept only as manual overrides.
 // trackAvg is shrunk toward the group rate by conf = min(1, nTrackRaces / 8).
+// SKILL-TILTED DNF ALLOCATION (fitted 2026-08-31 on TRAIN 2022-2024, scripts/fit-dnf-tilt.js).
+// OFF unless a board passes skillTilt:true. Registered study — see BACKTEST_LOG 2026-08-31.
+//
+// The sim gives every car the same retirement probability. Reality does not: logistic fits of
+// the binary outcome on the driver's speedScore percentile, per group per layer, on train years
+// only, with the slope SHRUNK toward zero by |t| so an unresolved tilt is not applied.
+//
+//   MECHANICAL attrition is strongly skill-dependent in EVERY group (t = 4.1 to 8.1). The
+//   strongest car breaks at 0.16-0.27x the weakest car's rate. That is equipment and funding.
+//
+//   ACCIDENT attrition is skill-dependent ONLY at short & flat tracks (t = 3.70, 0.51x). At
+//   intermediates, road courses and superspeedways the slope is indistinguishable from zero
+//   (t = 0.33-0.36) and shrinks to exactly zero. Note for anyone reading the raw quartile
+//   table in the log and expecting a superspeedway INVERSION: the point estimate leans that
+//   way, it is not resolved, and it is deliberately not applied.
+const DNF_TILT_ACC  = { SHORT: 0.885, INT: 0, SS: 0, ROAD: 0 }
+const DNF_TILT_MECH = { SHORT: 1.851, INT: 2.412, SS: 2.144, ROAD: 1.731 }
+
+// exp(beta * (0.5 - pct)) rescaled to mean 1, so the FIELD-WIDE BUDGET IS UNCHANGED and only
+// its allocation moves. The 2026-08-31 attrition sweep showed forecast quality is sensitive to
+// the total, so the total is held fixed and is not what this study varies.
+function __tiltMults(pct, beta) {
+  const n = pct.length
+  const m = new Float64Array(n)
+  if (!beta) { m.fill(1); return m }
+  let sum = 0
+  for (let i = 0; i < n; i++) { m[i] = Math.exp(beta * (0.5 - pct[i])); sum += m[i] }
+  const k = n / sum
+  for (let i = 0; i < n; i++) m[i] *= k
+  return m
+}
+
 function resolveDnfRate(series, groupLabel, trackAvg, nTrackRaces) {
   const grp = (DNF_BY_GROUP[series] || DNF_BY_GROUP.cup)[groupLabel]
   const base = (grp != null) ? grp : (DNF_SERIES_MEAN[series] || 0.13)
@@ -450,7 +482,7 @@ function __dnfFraction(n, dnfRate, wm, iters) {
 }
 
 function runRaceSim(drivers, simConfig) {
-  const { numSims, cautionPreset, dnfRate, totalRaceLaps, trackGroup, startSampling, cautionMix } = simConfig
+  const { numSims, cautionPreset, dnfRate, totalRaceLaps, trackGroup, startSampling, cautionMix, skillTilt } = simConfig
   // SS dominator tilt keys off the sim's own speedScore percentile, NOT practice __spdPct:
   // SS races often have no practice (everyone defaulted to neutral 0.5, making any tilt a no-op),
   // and the empirical rank-share targets are strength-ranked anyway. Computed once per run.
@@ -460,6 +492,20 @@ function runRaceSim(drivers, simConfig) {
 
   const n = drivers.length
   if (!n) return []
+
+  // Per-driver DNF multipliers. Mean 1 by construction, so the budget is untouched.
+  const __pct = new Float64Array(n)
+  {
+    const ord = drivers.map((d, i) => ({ i, s: d.speedScore != null ? d.speedScore : 0 })).sort((a, b) => b.s - a.s)
+    ord.forEach((o, r) => { __pct[o.i] = n > 1 ? 1 - r / (n - 1) : 0.5 })
+  }
+  const __tAcc  = __tiltMults(__pct, skillTilt ? (DNF_TILT_ACC[trackGroup]  || 0) : 0)
+  const __tMech = __tiltMults(__pct, skillTilt ? (DNF_TILT_MECH[trackGroup] || 0) : 0)
+  // Groups with no wreck sets spend the whole budget in one draw, so blend the two tilts by
+  // the same accident share the wreck path would have used.
+  const __accShare = WRECK_ACC_SHARE[trackGroup] != null ? WRECK_ACC_SHARE[trackGroup] : 0.6
+  const __tFlat = new Float64Array(n)
+  for (let i = 0; i < n; i++) __tFlat[i] = __accShare * __tAcc[i] + (1 - __accShare) * __tMech[i]
 
   // CAUTION MIX (2026-08-31). Optional. Without it this runs exactly as before: ONE bucket,
   // no extra RNG draw, byte-for-byte the old behaviour.
@@ -578,7 +624,7 @@ function runRaceSim(drivers, simConfig) {
       return {
         i,
         score: d.speedScore + (__adj ? __adj[i] : 0) + gaussNoise() * S.noiseWidth,
-        dnf: S.wm ? false : (Math.random() < __effRate), dnfLap: 0,
+        dnf: S.wm ? false : (Math.random() < __effRate * __tFlat[i]), dnfLap: 0,
         effLap,
       }
     })
@@ -598,11 +644,11 @@ function runRaceSim(drivers, simConfig) {
         for (let j = 0; j < sz; j++) {
           const sv = scored[ord[Math.min(n - 1, seed + j)]]
           if (sv.dnf) continue
-          if (Math.random() < p) { sv.dnf = true; sv.dnfLap = frac }
+          if (Math.random() < p * __tAcc[sv.i]) { sv.dnf = true; sv.dnfLap = frac }
           else sv.score -= __pen
         }
       }
-      for (let x = 0; x < n; x++) { const sv = scored[x]; if (!sv.dnf && Math.random() < S.mechRate) { sv.dnf = true; sv.dnfLap = Math.random() } }
+      for (let x = 0; x < n; x++) { const sv = scored[x]; if (!sv.dnf && Math.random() < S.mechRate * __tMech[sv.i]) { sv.dnf = true; sv.dnfLap = Math.random() } }
     }
 
     scored.sort((a, b) => {
@@ -722,6 +768,8 @@ export {
   CAUTION_PRESETS,
   CAUTION_PRESETS_BY_SERIES,
   DNF_BY_GROUP,
+  DNF_TILT_ACC,
+  DNF_TILT_MECH,
   DNF_CAP,
   DNF_FLOOR,
   DNF_PRESETS,

@@ -137,10 +137,13 @@ for (const line of lines) {
   const wCounts = [Number(wl) || 0, Number(wm) || 0, Number(wh) || 0]
   const wTot = wCounts[0] + wCounts[1] + wCounts[2]
 
+  const MODE = process.env.MODE || 'mix'
   const rowsA = runRaceSim(scored, cfg)
-  const rowsB = wTot >= 2
-    ? runRaceSim(scored, { ...cfg, cautionMix: { presets, w: wCounts.map(x => x / wTot) } })
-    : runRaceSim(scored, cfg)
+  const rowsB = MODE === 'tilt'
+    ? runRaceSim(scored, { ...cfg, skillTilt: true })
+    : wTot >= 2
+      ? runRaceSim(scored, { ...cfg, cautionMix: { presets, w: wCounts.map(x => x / wTot) } })
+      : runRaceSim(scored, cfg)
 
   accumulate(A, rowsA, actualFinish, actualDnf, drivers.length)
   accumulate(B, rowsB, actualFinish, actualDnf, drivers.length)
@@ -148,11 +151,11 @@ for (const line of lines) {
 }
 
 // --------------------------------------------------------------------- report
-console.log(`holdout races used ${used}, skipped ${skipped}, ${SIMS} sims/arm/race\n`)
+console.log(`MODE=${process.env.MODE||'mix'}  holdout races used ${used}, skipped ${skipped}, ${SIMS} sims/arm/race\n`)
 console.log('market    arm      Brier        LogLoss      chi2 (cells)')
 for (const [key] of MARKETS) {
   if (key === 'fin25') continue
-  for (const [nm, acc] of [['A cur', A], ['B mix', B]]) {
+  for (const [nm, acc] of [['A cur', A], [(process.env.MODE==='tilt'?'B tilt':'B mix'), B]]) {
     const b = acc[key], c = chiSquare(b)
     console.log(`${key.padEnd(9)} ${nm}   ${(b.brier / b.n).toFixed(6)}   ${(b.ll / b.n).toFixed(6)}   ${c.x2.toFixed(1)} (${c.cells})`)
   }
