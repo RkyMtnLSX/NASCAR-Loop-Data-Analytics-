@@ -1,5 +1,5 @@
 # PITBOARD MANUAL
-Stable operating rules. Edit ONLY when a rule actually changes. Session start: read this + PITBOARD_STATE.md (~5k tokens total). The archives — pitboard.md (operational log, ~68k tok), BACKTEST_LOG.md (model evidence 2026-08-03 onward, ~48k tok), and BACKTEST_ARCHIVE.md (model evidence season-start through 2026-07-28, ~86k tok, CLOSED — never append) — are append-only history: SEARCH them for specific answers, never read in full. Topic docs (read when the topic is live, not at session start): STRIPE_CUTOVER.md (sandbox->live launch runbook + domain-change impact, 2026-08-29); PITBOARD_SCRIPTS.md (the local Python data-pull scripts — prerequisites incl. the SUPABASE_KEY service-role requirement, weekly ritual, per-script reference, failure modes; 2026-08-30). Pipeline operations belong in PITBOARD_SCRIPTS.md, NOT in BACKTEST_LOG.md.
+Stable operating rules. Edit ONLY when a rule actually changes. Session start: read this + PITBOARD_STATE.md (~5k tokens total). The archives — pitboard.md (operational log, ~68k tok), BACKTEST_LOG.md (model evidence 2026-08-03 onward, ~48k tok), and BACKTEST_ARCHIVE.md (model evidence season-start through 2026-07-28, ~86k tok, CLOSED — never append) — are append-only history: SEARCH them for specific answers, never read in full. Topic docs (read when the topic is live, not at session start): STRIPE_CUTOVER.md (sandbox->live launch runbook + domain-change impact, 2026-08-29); scripts/README.md (running the sim headlessly in node — setup, the two mandatory checks, what each backtest script answers, and the reconstruction's known weaknesses; 2026-08-31); PITBOARD_SCRIPTS.md (the local Python data-pull scripts — prerequisites incl. the SUPABASE_KEY service-role requirement, weekly ritual, per-script reference, failure modes; 2026-08-30). Pipeline operations belong in PITBOARD_SCRIPTS.md, NOT in BACKTEST_LOG.md.
 
 ## What this is
 PitBoard — NASCAR betting + DFS analytics product approaching subscriber launch. Operator: Aaron (atmmstrs2@gmail.com; master admin uid d7a9f822-1237-4660-9e17-0b8b526e3c44; DK username atmmstrs2). Stack: React CRA on Vercel (https://nascar-loop-data-analytics.vercel.app) + Supabase (https://dqexnylexbypjtiuctxd.supabase.co, publishable key sb_publishable_pVrtVEoQD1i9LiIvaXhS4g_ZDaUUccj). Repo: RkyMtnLSX/NASCAR-Loop-Data-Analytics- (main branch, Vercel auto-deploys). Local scraper cockpit: NascarDataScrapperV3 folder (practice watcher w/ per-lap timestamps, sheet builder w/ LAPS_RAW tab, penalties backfill).
@@ -14,6 +14,18 @@ Work from a Chrome tab on a PitBoard-origin page (Vercel-origin pages' fetch wra
 6. Verify the LIVE bundle with FUNCTIONAL string literals (comments are minifier-stripped; regexes can match display code ambiguously — verify at source when unsure)
 
 Quirks: the content filter blocks tool OUTPUTS containing = & ? : ; together — sanitize outputs with replace maps (inputs unaffected). Tabs die frequently — recreate, renavigate, never rely on window.* state across turns. Supabase REST from browser: publishable key as apikey + operator session access_token from the localStorage auth-token entry (JWT expires — renavigate to refresh).
+
+## Running the sim outside the browser (added 2026-08-31)
+`src/lib/simEngine.js` holds `runRaceSim` + `buildSpeedScores` and every constant they use. The website imports it and so do node scripts, so a backtest and the live site cannot disagree about what the model does. Setup is `git clone` + `npm install` — no DB credentials, no keys; backtest data is committed. Full guide: scripts/README.md.
+
+AFTER ANY CHANGE TO THE SIM OR ITS CALLERS, both of these, every time:
+```
+npm run lint:undef    # free-variable check across src/
+npm run sim:smoke     # engine invariants + caution calibration row
+```
+`lint:undef` is NOT optional politeness: `npm run build` compiles a page that references a name which no longer exists (webpack does not flag free variables), so a moved constant gives a green build and a page that crashes on load. That happened 2026-08-31 with eight names at once.
+
+Two engine flags are deliberately OFF and unreachable from `src/pages/`: `cautionMix` (tested and REJECTED on holdout) and `skillTilt` (blocked on data). Do not enable either without reading BACKTEST_LOG 2026-08-31.
 
 ## Standing rules (non-negotiable)
 - NO secrets/tokens/passwords in any file, repo doc, or web form — operator pastes secrets himself. Vercel gotcha: values pasted into the "Note (Optional)" field present as empty env vars.

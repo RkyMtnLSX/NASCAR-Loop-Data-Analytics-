@@ -2924,3 +2924,82 @@ an outlier and most of it should be recoverable - the all-years backfill has not
 RLS lockdown, so it would have silently done nothing. ONE run of PIT_BACKFILL_ALL_YEARS.bat both
 loads those races and reconciles car numbers for every prior season (the 7 rows in 2023-25 included).
 Idempotent per race, so it is safe to run any time.
+
+---
+
+## 2026-08-31 — THE SIM CAME OUT OF THE BROWSER. Nine studies, zero ships, launch pushed.
+
+**OPERATOR DECISION: launch pushed to NEXT SEASON.** The Chase starts Sunday and the product is not
+ready. The launch-runway checklist in PITBOARD_STATE is unchanged and still correct; only its timing
+is void.
+
+### What was built
+
+`src/lib/simEngine.js` — `runRaceSim`, `buildSpeedScores`, and every constant and curve they use,
+extracted VERBATIM out of `src/pages/SimulationCenter.js` (592 lines deleted there, 30 added; the DNF
+constants in that diff MOVED, they were not edited). The code was already pure — no React, no DOM, no
+Supabase — it was just trapped in a component, which meant the only way to run the model was to open
+the page and click. Now a node script can import the same file. There is exactly ONE copy, so a
+backtest and the live site cannot disagree.
+
+`scripts/loadEngine.js` transforms that file ESM→CJS in memory via @babel/core (already installed by
+react-scripts): no new dependency, no build step, no second copy to drift.
+
+**`scripts/README.md` is the operator-facing guide** — `git clone`, `npm install`, done. No database
+credentials, no API keys, no Vercel; the backtest data is committed. It documents the two mandatory
+checks, what each backtest script answers, how to refresh the data snapshot, and the reconstruction's
+known weaknesses.
+
+Also added: `npm run lint:undef` and `npm run sim:smoke`, `scripts/eslint-no-undef.json`, and nine
+backtest/calibration scripts with their frozen data (`scripts/backtest-data/`, 828 KB).
+
+**`lint:undef` earned its place immediately.** `npm run build` COMPILES a page that references a name
+which no longer exists — webpack does not flag a free variable. The extraction left eight such names
+in SimulationCenter (the five weight tables, TRUCK_SHORT_WEIGHTS, __teamCutoff, __marketValue). Green
+build, page crashes on load. The lint caught all eight; the build caught none.
+
+### What shipped to the model
+
+**Nothing.** Nine registered studies. Two experiments sit in the engine behind flags that nothing in
+`src/pages/` passes (verified): `cautionMix`, TESTED AND REJECTED on a pre-registered holdout, and
+`skillTilt`, which passed some gates, failed others, and is blocked on data. Both are kept rather than
+deleted so a future session does not rediscover the same symptoms and rebuild the same thing.
+
+### What was actually gained
+
+The 2026-08-30 DNF constant refresh had never been tested through the SIM — only against retirement
+counts, and its own log entry said so. It now has been: 29 cup tracks, real `runRaceSim`, each
+constant set fed its era-correct track history. MAE 4.41 → 3.10, bias −4.29 → −2.27, better at 26 of
+29 tracks. On 2026-08-30 I refused to claim the refresh lowered error. Against sim output it does.
+
+### Two corrections I had to make to myself
+
+1. I called the caution/DNF coupling a defect. It is `wreck-v1.1-cb`, shipped 2026-07-28, deliberate,
+   and documented in BACKTEST_ARCHIVE. I searched BACKTEST_LOG and not the ARCHIVE. My measurements
+   reproduced that two-month-old calibration to two decimals — which was the good news, and I
+   reported it as a bug.
+2. I described a train/test split as temporal when the underlying file was not ordered by date
+   (2025 occupied id-order rows 1-83, 2026 rows 33-94 — they interleave). Redone properly; the
+   conclusion survived, which was luck rather than credit.
+
+Both are logged as corrections in BACKTEST_LOG. The operator caught both.
+
+### The instrument's limits — this constrains all future backtesting
+
+The reconstruction was validated against the 11 stored live boards in `sim_results`. It names the same
+favourite on **5/5 cup, 0/3 O'Reilly, 2/3 trucks**, and runs 2.53 points LESS confident than the live
+board. It FAILED its registered gate (7/11, needed 8), which closed the win-market confidence study
+and voided that study's headline number. Any future work on this reconstruction should weight cup more
+heavily or validate per series first.
+
+### Where this goes
+
+Both remaining blockers are the same blocker: **one season of accumulated data.** `practice_sessions`
+only reaches all three series in 2025 (94 usable races, and the per-tier attrition profile swings 4+
+points between seasons — more than the effect being fitted). `sim_results` holds 11 boards from a
+five-week window; every published board is stored, and at ~3 a weekend a season is 100+, at which
+point favourite calibration is answerable on REAL boards with no reconstruction at all.
+
+So the between-now-and-launch job is not modelling. It is running the weekends and letting practice
+and published boards accumulate. Keep publishing boards through the Chase even with nobody watching —
+that is the dataset.

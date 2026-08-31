@@ -1,5 +1,63 @@
 # PITBOARD STATE
-Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2026-08-30. DFS was rebuilt this session: GPP is now a SET objective (E[max] across the sim draws, no tuning parameter, scales 1-150 entries), a DFS Replay admin tool grades the delivered SET against the real contest and banks it in dfs_replays, projected ownership ships on the board, and the whole replay ledger was recomputed through the product's own solvers (4-1-1 -> 3-2-3). Superspeedway finish-quality CLOSED on a registered holdout. BLOCKER: four races have no pit data - the local scrapers need SUPABASE_KEY set (see PITBOARD_SCRIPTS.md).
+Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2026-08-31. **LAUNCH IS PUSHED TO NEXT SEASON (operator, 2026-08-31) — the Chase starts Sunday and we are not ready.** The sim now runs OUTSIDE the browser: src/lib/simEngine.js + scripts/, see scripts/README.md. Nine model studies were registered and run this session and NOTHING shipped from any of them; the DNF-tilt line is CLOSED. Both remaining blockers are the same blocker — one season of accumulated data. BLOCKER unchanged: four races have no pit data - the local scrapers need SUPABASE_KEY set (see PITBOARD_SCRIPTS.md).
+
+## 2026-08-31 — THE SIM RUNS HEADLESSLY; LAUNCH PUSHED; NINE STUDIES, ZERO SHIPS
+
+**LAUNCH PUSHED TO NEXT SEASON.** Operator's call, 2026-08-31: the Chase starts Sunday and the product
+is not ready. Everything in "Launch runway" below is still correct as a checklist and WRONG as a
+schedule — read it as next-season work, not as ~2-3 weekends out. Nothing in it was invalidated.
+
+**THE ONE DURABLE THING BUILT.** `src/lib/simEngine.js` — `runRaceSim` and `buildSpeedScores` and every
+constant they use, extracted verbatim from SimulationCenter. The page imports it and so do node
+scripts, so a backtest and the live site cannot disagree. `scripts/loadEngine.js` transforms it
+ESM→CJS in memory. **`scripts/README.md` is the operator-facing setup: git clone, npm install, done —
+no DB credentials, no keys.** Two checks after ANY sim change:
+
+    npm run lint:undef    # free-variable check — NOT optional, see below
+    npm run sim:smoke     # engine invariants + the caution calibration row
+
+`lint:undef` exists because `npm run build` COMPILES a page that references a name which no longer
+exists — webpack does not flag free variables. That shipped-green-and-crashes case happened this
+session with eight names at once during the extraction.
+
+**NO MODEL CHANGE SHIPPED.** Two experiments sit in the engine behind flags, unreachable from
+`src/pages/` (verified): `cautionMix` (TESTED AND REJECTED on holdout) and `skillTilt` (passed some
+gates, failed others, blocked on data). Kept rather than deleted so the next session does not
+rediscover the symptoms and rebuild them. Full history in BACKTEST_LOG 2026-08-31.
+
+**WHAT WAS CONFIRMED (the session's real gain).** The 2026-08-30 DNF constant refresh had never been
+tested through the SIM — only on retirement counts. It now is, on 29 cup tracks: MAE 4.41→3.10, bias
+−4.29→−2.27, better at 26 of 29 tracks. It stands, and now on both error and bias rather than bias alone.
+
+**WHAT WAS CLOSED.** The DNF-tilt line, after four parameterizations against a pre-registered holdout.
+The skill gradient in the data is REAL (accident-vs-mechanical control passed decisively: mechanical
+attrition falls with rating everywhere, accident only at short tracks) — but the sim's finishing
+distributions are not sensitive enough to WHO retires for it to reach win/top5/top10. Do not reopen it
+on the strength of the tier tables; calibration improves and forecasts do not.
+
+**TWO CORRECTIONS I HAD TO MAKE TO MYSELF, recorded because the pattern repeats.** (1) I called the
+caution/DNF coupling a defect; it is `wreck-v1.1-cb`, shipped 2026-07-28, by design, documented in
+BACKTEST_ARCHIVE — I searched BACKTEST_LOG and not the ARCHIVE. (2) I described a train/test split as
+temporal when the file was not ordered by date. Both are in the log as corrections.
+
+**THE INSTRUMENT'S LIMITS, which constrain all future backtesting.** The reconstruction was validated
+against the 11 stored live boards in `sim_results`: it names the same favourite on **5/5 cup, 0/3
+O'Reilly, 2/3 trucks**, and runs 2.53 points LESS confident than the live board. Weight cup results
+more heavily or validate per series first. This failed its registered gate (7/11, needed 8), which
+CLOSED the win-market confidence study and VOIDED this session's "favourite predicted 23.6% → won
+34.0%" as evidence about the engine.
+
+**BOTH REMAINING BLOCKERS ARE ONE BLOCKER: a season of data.**
+  * `practice_sessions` only reaches all three series in 2025 — 94 usable races total, and the
+    per-tier attrition profile swings 4+ points between 2025 and 2026, more than the effect being
+    fitted. Another season makes the skill tilt testable.
+  * `sim_results` holds 11 boards from a five-week window. Every published board is stored; at ~3 per
+    weekend a season is 100+, at which point favourite calibration is answerable ON REAL BOARDS with
+    no reconstruction and no fidelity gap — the correct way to ask it.
+
+**THEREFORE THE BETWEEN-NOW-AND-LAUNCH JOB IS NOT MODELLING.** It is running the weekends and letting
+practice + published boards accumulate. Keep publishing boards through the Chase even with no
+subscribers watching — that IS the dataset.
 
 ## 2026-08-30 (late) — SIM DNF CONSTANTS CHANGED; TWO MORE STUDIES CLOSED
 
@@ -398,7 +456,7 @@ before stating n.
   cPOMS. Undefined publicly.
 - Product shape (see #4): few high-conviction plays, or a broader research-grade list?
 
-## Launch runway (target: The Chase, ~2-3 race weekends out)
+## Launch runway (target: NEXT SEASON — pushed 2026-08-31; list is current, the timing is not)
 - [x] #64 table-lockdown SQL — RUN + LIVE-VERIFIED 2026-08-19 (anon 0 rows everywhere; RPCs
       converted to security invoker; loop_data_dk view security_invoker; week-pass expiry
       predicate fixed both sides). The API paywall is UP.
