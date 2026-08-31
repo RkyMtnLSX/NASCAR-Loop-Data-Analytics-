@@ -4034,3 +4034,35 @@ I am not proposing a fix in the same breath as getting the diagnosis wrong. Stat
 Any of these moves shipped win probabilities and needs the registration discipline: freeze, holdout,
 operator approval. The leader-wreck protocol registered 2026-08-30 is unaffected by this correction, but
 its step-1 instrumentation should run at MEDIUM, where delivered attrition is closest to budget.
+
+### 2026-08-31 — Addendum to the correction: two SECONDARY claims from the same wrong frame, also retracted
+
+Operator asked whether everything measured before his challenge was wrong. Audited. The answer is that
+no MEASUREMENT was wrong — every number reproduces — but the wrong frame spawned two further claims
+beyond the headline one, and both are withdrawn here.
+
+RETRACTED (1): "the 2026-08-30 DNF constant refresh only lands at a mid preset; that validation is
+narrower than it read." False. Re-read the 2026-08-30 validation entry: it refits both constant sets on
+TRAIN 2022-24 and predicts RETIREMENT COUNT on 161 holdout races directly from the rates. It never runs
+the sim. Its own closing paragraph says so: "none of this tests the SIM'S OUTPUT." The caution
+modulation lives inside runRaceSim, so it cannot touch a validation that never called runRaceSim. That
+validation stands exactly as wide as it was written — new constants better on bias (+0.18 vs -0.93 cars
+per race), old marginally better on MAE, and no claim about sim output.
+
+RETRACTED (2): overstatement of the group-label vocabulary split. resolveDnfRate is keyed by
+`tracks.correlation_group_label` ('Superspeedway') while runRaceSim's trackGroup is the short code
+('SS'), and passing the short code silently returns the series mean rather than throwing. I wrote that
+this is "how a whole group of races can end up simulated at the wrong attrition without anything looking
+broken." Audited every caller: the only two in the app are SimulationCenter lines 299 and 302, both
+passing `cfg.correlation_label`, which line 338 independently proves is the long-label vocabulary
+(it is matched against `tracks.correlation_group_label` in a query). It is a latent API footgun worth
+pinning in sim-smoke, not something happening to any race. Corrected in the test's comment.
+
+WHAT IS UNAFFECTED, having checked each rather than assuming:
+  - The extraction itself. Verified by build + a standalone no-undef pass, and the eight moved names
+    that would have crashed the page are in the eslint output, not an inference.
+  - Every sim-smoke invariant: permutation of 1..n per sim, win% to 100, top10% to 1000, projected laps
+    led to race distance, DNF cap and n/8 shrinkage.
+  - The caution x attrition sweep NUMBERS. They match the 2026-07-28 archive values to two decimals.
+    Only the word "defect" attached to them was wrong.
+  - The per-track table, which was measured AFTER the challenge and is the one open question.

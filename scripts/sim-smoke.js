@@ -70,8 +70,9 @@ const ratios = []
 // because that is what the weekend row carries. runRaceSim's trackGroup is the
 // engine's own short code ('SS'), which __trackGroup derives from the track name.
 // Passing 'SS' to resolveDnfRate does not throw; it misses every key and quietly
-// falls back to the series mean, which is how a whole group of races can end up
-// simulated at the wrong attrition without anything looking broken.
+// falls back to the series mean. AUDITED 2026-08-31: the only two callers in the app
+// (SimulationCenter 299/302) both pass cfg.correlation_label, the long vocabulary, so
+// nothing is mis-rated today. This is a latent footgun, pinned so it stays that way.
 const GROUPS = [
   ['SHORT', 'Short & Flat Tracks'],
   ['INT',   'Intermediate'],
