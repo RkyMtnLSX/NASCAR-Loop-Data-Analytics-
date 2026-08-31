@@ -5149,3 +5149,82 @@ caution-preset interaction described earlier and is untouched. Talladega was the
 interaction had crossed into being flatly wrong rather than merely imprecise.
 
 Build green, lint:undef clean, sim:smoke passing.
+
+---
+
+## 2026-08-31 — THE CAUTION BUCKET IS A CLIFF, AND THE SCHEDULE IS STACKED ON IT
+
+Operator: "Does the dial for the caution rates clash with the DNF rate set by prior track history...
+it just seems like how DNFs work for the sim could still have some kind of bug in it." Audited. The
+data side is clean. The bug is in the selector, and Talladega was a symptom of it rather than the
+whole of it.
+
+### DATA-SIDE AUDIT — clean, recorded so nobody re-checks it
+
+  * `races.exhibition` has ZERO nulls, so the loader's `.eq('exhibition', false)` and the auto-preset
+    effect's `.not('exhibition','is',true)` — which treat nulls differently — agree today. They would
+    diverge the moment a null appears. Latent, not live.
+  * `loop_data` starts at 2022. The live per-track DNF query has no year filter, which would have
+    pulled pre-Next-Gen races into the average if any existed. None do.
+  * No series+track exceeds 700 `loop_data` rows, so PostgREST's 1000-row default is not silently
+    truncating the DNF measurement. Closest cell has room; worth re-checking around 2028.
+  * All 436 races have `laps_completed` AND `finish_status` on every row — no mixed-null races, so
+    the `mx = max(laps)` winner-lap reference is never computed from a partial field.
+
+### THE ACTUAL BUG: a continuous input hard-thresholded into three buckets that differ ~2.5x
+
+`__ci = avg < 6 ? Low : avg < 11.5 ? Medium : High`, where avg is the track's mean `total_cautions`.
+The chosen preset drives THREE things, not one: the wreck-event pool (`WRECK_SETS[group][cb]`), the
+score noise width (`cautionPreset.noise`), and the dominator curves (`LL_CURVES_G` / `FL_CURVES_G`).
+Delivered attrition differs by roughly 0.5x / 0.9x / 1.4x across the three.
+
+So a fraction of one caution, in one race, can move a track across a cliff that changes attrition by
+~80% and simultaneously swaps its noise width and dominator curves. **Cup Talladega was not a special
+case. It was the one cell that had already fallen off.**
+
+HOW EXPOSED THE SCHEDULE IS — cells within 0.5 cautions of a boundary:
+
+    trucks  Las Vegas          6.00   Medium   ON THE BOUNDARY EXACTLY
+    oreilly Talladega          6.13   Medium   0.13
+    trucks  Bristol            5.86   Low      0.14
+    oreilly Kansas             6.20   Medium   0.20
+    trucks  Charlotte          5.80   Low      0.20
+    cup     DAYTONA            6.20   Medium   0.20
+    oreilly Darlington         6.25   Medium   0.25
+    trucks  COTA               5.67   Low      0.33
+    oreilly Watkins Glen       6.40   Medium   0.40
+    trucks  Atlanta            6.40   Medium   0.40
+    oreilly Phoenix            6.44   Medium   0.44
+    oreilly Roval / Auto Club / Road America / Portland   0.50
+
+Fifteen cells within half a caution. **Cup Daytona — the biggest board of the year — sits 0.20 from
+the cliff.** Had Daytona averaged 5.9 rather than 6.20 it would draw the calm pool and sim roughly 15%
+attrition against 32% measured, exactly the Talladega failure on the race that matters most.
+
+### WHY THIS GETS WORSE, NOT BETTER
+
+These averages move as races accumulate. A cell at 6.13 needs one race with 5 cautions to drop below
+6.00. **A track can therefore sim at 0.5x one weekend and 0.9x the next because a single race added or
+removed two cautions**, with no code change, no data error, and nothing on the board to indicate it.
+oreilly Talladega at 6.13 and trucks Las Vegas at exactly 6.00 are one race away right now.
+
+That instability is the bug the operator was sensing. It is not the same thing as the
+by-design modulation (`wreck-v1.1-cb`) and it should not be filed under it: the modulation is a
+deliberate spread, the CLIFF is an artifact of hard-thresholding a continuous quantity.
+
+### WHAT A FIX LOOKS LIKE, and why none is being shipped on this entry
+
+Three candidates, cheapest first:
+  1. HYSTERESIS — require the average to clear a boundary by a margin before switching. Kills
+     week-to-week flapping. Does not fix a cell that is simply on the wrong side.
+  2. INTERPOLATE between adjacent presets by distance to the boundary, so 6.0 gets a 50/50 blend
+     rather than a coin flip. Removes the cliff entirely. The `cautionMix` machinery already in the
+     engine does exactly this kind of blending — but the version of it tested today FAILED its
+     registered holdout, so this needs its own registration and must not inherit that one's evidence.
+  3. Re-derive the boundaries. They were set when the preset values were chosen and have never been
+     checked against where tracks actually cluster — and tracks clustering ON a boundary is the
+     failure mode, so this is worth measuring before assuming 6.0 and 11.5 are the right places.
+
+NOT shipping any of these here. The Talladega fix shipped because it restored documented behaviour;
+these are new model opinions and go through registration. Logged so the exposure is on record: fifteen
+cells within half a caution, cup Daytona among them.
