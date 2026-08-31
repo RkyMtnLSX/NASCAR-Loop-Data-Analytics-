@@ -4066,3 +4066,49 @@ WHAT IS UNAFFECTED, having checked each rather than assuming:
   - The caution x attrition sweep NUMBERS. They match the 2026-07-28 archive values to two decimals.
     Only the word "defect" attached to them was wrong.
   - The per-track table, which was measured AFTER the challenge and is the one open question.
+
+---
+
+## 2026-08-31 — THE DNF REFRESH, FINALLY TESTED THROUGH THE SIM: better on BOTH error and bias
+
+Operator: "But the way DNFs work did change for the model tho?" Yes. My "no behaviour change" today
+was scoped to today's three commits (extraction, correction, addendum) and I did not say so. The model's
+DNF handling changed materially on 2026-08-30 in d0dfdc0, one day before: all twelve group cells raised
+(cup SS .184 -> .255, +39% relative; cup INT .127 -> .155), three series means raised, DNF_CAP 0.30 ->
+0.40 — driven upstream by the NASCAR feed backfill putting real `finish_status` on 2,598 rows, which
+changed the live per-track measurement itself, not only the constants.
+
+The 2026-08-30 validation of that change closed with: "none of this tests the SIM'S OUTPUT... requires
+running sims against a holdout." That was true when written. It is now cheap, so it is done.
+
+METHOD. Real `runRaceSim`, 30k sims, 29 cup tracks, reproducing SimulationCenter's own auto-config:
+dnfRate from resolveDnfRate on that track's history, caution preset from that track's mean
+`races.total_cautions`. Each constant set is fed its ERA-CORRECT trackAvg — old path the old-rule
+measurement (laps < 90% of winner), new path the current rule (status != running OR laps < 90%) — since
+the backfill is what changed the live measurement. Both scored against the current rule, the better
+ground truth. Script: `scripts/dnf-refresh-through-sim.js`.
+
+RESULT, delivered attrition vs measured, in DNF-rate points:
+
+    OLD constants    MAE 4.41    bias -4.29
+    NEW constants    MAE 3.10    bias -2.27
+    new closer at 26 of 29 tracks
+
+This is a STRONGER verdict than the count-level test got. There, old won MAE (2.72 vs 2.82) and new won
+bias (+0.18 vs -0.93), and the change was justified on bias alone. Through the sim the new constants win
+BOTH, and by a wide margin. Worth stating plainly because on 2026-08-30 I refused to claim the refresh
+lowered error. Against sim output it does, and that claim is now supported.
+
+Largest single repair: Daytona -13.5 -> -2.4 points. Talladega -12.4 -> -10.1, still the worst absolute
+miss on the schedule. Atlanta -4.5 -> -0.6. Nashville -6.2 -> -2.6.
+
+TWO TRACKS GOT WORSE, and it is the interaction from the correction entry above, in the other direction:
+Charlotte +1.1 -> +5.5 and Texas -0.5 -> +5.4. Both average 12+ cautions, so both sit on the High preset
+at ~1.4x. Raising their budget pushed a previously-cancelling pair of errors into a real overshoot. Both
+were accidentally right before, for the wrong reason.
+
+WHAT THIS DOES NOT SETTLE. Bias is still -2.27 points schedule-wide: the sim under-retires nearly
+everywhere, which is the auto-preset interaction, not the constants. And this measures ATTRITION RATE on
+a synthetic field. Whether finishing distributions, win probabilities or DFS floors are better
+calibrated is the placement-tail protocol and remains undone. The refresh is now validated on the thing
+it was supposed to fix; it is not validated on the thing we actually sell.
