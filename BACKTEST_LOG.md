@@ -4640,3 +4640,79 @@ Correct fix is MOMENT MATCHING against the observed tier profile, not a smooth f
 This is a bounded, well-specified job and it wants a fresh head, not the tail of a fourteen-hour
 session. Nothing has shipped, the flag is still off, and the engine currently carries the log-link
 betas plus an unused `tiltScale` defaulting to 1.
+
+---
+
+## 2026-08-31 — TILT v3 PASSES, including the per-tier rail. Shape AND level, and they only work together.
+
+Operator: "stop giving up until we figure out how to implement it without ruining the top of the
+board." Right to push. It is solved.
+
+### WHAT WAS ACTUALLY WRONG — the diagnosis changed twice more
+
+v3 replaced the exponential with a MULTIPLIER CURVE anchored at the four field quartiles, calibrated
+by iterative proportional fitting against what the sim DELIVERS on train boards (not against the raw
+data — the sim already back-loads ~1.22x through the wreck loop's field-edge clamp, and IPF absorbs
+that instead of stacking on it). After six iterations the SHAPE matched almost exactly, in ratio
+terms, in every group. But every tier still came in ~2 points LOW.
+
+That residual was not a tilt problem at all. It is THIS MORNING'S FINDING: the sim under-delivers its
+own DNF budget by ~13%, because the caution preset is auto-set from a track's MEAN cautions and the
+wreck pools modulate around the budget, so a point estimate lands under it. Because I had frozen the
+curve to mean 1 — deliberately, to hold the total fixed — IPF could correct the shape and could not
+touch the level. The flat model was hiding the same deficit by over-retiring the STRONG cars to make
+the total up, which is exactly why flat looked accidentally right at Q4 and badly wrong at Q1.
+
+So the fix is two halves: CURVE for the shape, LEVEL for the total. Calibrated together on TRAIN:
+
+    lambda   delivered Q4/Q3/Q2/Q1      observed             max err
+    1.00     10.4  13.1  16.1  17.9     12.0 15.1 18.7 20.4    2.61 pts
+    1.15     11.8  14.8  18.2  20.2     12.0 15.1 18.7 20.4    0.49 pts
+    1.30     13.2  16.6  20.3  22.4                            2.01 pts
+
+DNF_TILT_LEVEL = 1.15, chosen on train.
+
+**AND THIS IS WHY FIX C FAILED THIS MORNING.** Fix C corrected the same level deficit UNIFORMLY, and
+lost its holdout, because raising a flat rate retires the FAVOURITES more — the wrong direction. With
+the curve in place the extra attrition lands on the cars that actually retire, and the identical level
+correction now passes. Neither half works alone. That is the whole day in one sentence.
+
+### HOLDOUT, per-tier rail — the operator's actual question
+
+    tier            DNF%: cur   tilt   ACTUAL    |cur-act|  |tilt-act|   RAIL
+    Q4 strongest     12.8      11.7     12.3       0.46       0.67       PASS
+    Q3               14.1      15.0     15.2       1.11       0.24       PASS
+    Q2               14.9      18.4     16.8       1.90       1.66       PASS
+    Q1 weakest       15.8      20.6     20.4       4.55       0.19       PASS
+
+**DOES IT RUIN THE TOP OF THE BOARD? No.** Q4's DNF error moves 0.46 -> 0.67 points, and its Brier
+changes are pure noise: four repeats gave +7.60, -1.82, -9.76, +11.55 e-5 on win and -37.41, +4.88,
++3.68, +9.73 e-5 on top10. Swinging that hard across identical configurations means nothing is
+resolved there. Q1 by contrast improves in EVERY repeat — DNF error 4.55 -> 0.19, top10 Brier +7.05,
++9.44, +17.73, +13.97 e-5, never negative.
+
+The earlier "Q4 gets much worse" reading came from the BROKEN v1 exponential, which really did drag
+the strongest quartile to 9.5% against a 12.3% actual. v3 puts it at 11.7%. That defect is gone.
+
+### AGGREGATE HOLDOUT, three independent runs
+
+    win   Brier    A .022520 / .022536 / .022526    B .022509 / .022517 / .022509   B better 3/3
+    win   chi2     A   7.3   /   8.3   /   8.1      B   6.4   /   6.6   /   6.8     B better 3/3
+    top5  Brier    A .093778 / .093698 / .093695    B .093678 / .093601 / .093645   B better 3/3
+    top10 Brier    A .154497 / .154408 / .154419    B .154493 / .154377 / .154409   B better 3/3
+    DNF cars/race  A 5.33 vs 5.97 observed (-0.64)  B 6.06 vs 5.97 (+0.09)
+
+Every Brier better in every run; win chi-square better in every run. top10 chi-square is worse and
+remains the one metric that does not co-operate — it also swings 13.5-16.4 within arms, so I do not
+read it either way. The forecast gain is SMALL. The attrition calibration gain is LARGE and is the
+point: retirement is now right at every tier and in total, for the first time.
+
+### STATUS
+
+Engine carries DNF_TILT_CURVE + DNF_TILT_LEVEL, still behind `skillTilt` and still OFF. Gates:
+per-tier rail PASS, Brier PASS, win chi-square PASS, top10 chi-square unresolved.
+
+Remaining before it goes live, unchanged from the original registration: the practice-carrying
+reconstruction. The curve is anchored on speedScore PERCENTILE, and practice sharpens that ordering —
+so the anchors should be recalibrated on boards that have it before this prices a real weekend. That
+is now the only thing between this and shipping.

@@ -229,33 +229,67 @@ const WRECK_SETS = {"SHORT":{"low":[[],[],[],[],[],[],[],[[4,0.96]],[[5,0.52]],[
 // being rounded DOWN to the 15 pct Medium bucket; cup Short & Flat measures 8.1 pct and was
 // rounded DOWN to the 5 pct Low bucket). Buckets are kept only as manual overrides.
 // trackAvg is shrunk toward the group rate by conf = min(1, nTrackRaces / 8).
-// SKILL-TILTED DNF ALLOCATION (fitted 2026-08-31 on TRAIN 2022-2024, scripts/fit-dnf-tilt.js).
-// OFF unless a board passes skillTilt:true. Registered study — see BACKTEST_LOG 2026-08-31.
+// SKILL-TILTED DNF ALLOCATION (2026-08-31). OFF unless a board passes skillTilt:true.
+// Registered study — BACKTEST_LOG 2026-08-31. NOT SHIPPED without reading that.
 //
-// The sim gives every car the same retirement probability. Reality does not: logistic fits of
-// the binary outcome on the driver's speedScore percentile, per group per layer, on train years
-// only, with the slope SHRUNK toward zero by |t| so an unresolved tilt is not applied.
+// The sim gives every car the same retirement probability. Reality does not, and the shape of
+// the difference is the whole problem. Two earlier parameterizations failed:
 //
-//   MECHANICAL attrition is strongly skill-dependent in EVERY group (t = 4.1 to 8.1). The
-//   strongest car breaks at 0.16-0.27x the weakest car's rate. That is equipment and funding.
+//   v1  logistic slope on log-ODDS, applied as a multiplier on PROBABILITY. Wrong scale; the
+//       strong end over-extended and the best quartile's top10 Brier got WORSE.
+//   v2  same thing refit with a LOG link. Correct scale, still wrong SHAPE — the observed
+//       profile is STEEP THROUGH THE MIDDLE and FLAT AT BOTH ENDS, and an exponential in
+//       percentile is the opposite. No scale factor reconciles the two ends; turning it down
+//       to save the favourites collapses the tail, and vice versa.
 //
-//   ACCIDENT attrition is skill-dependent ONLY at short & flat tracks (t = 3.70, 0.51x). At
-//   intermediates, road courses and superspeedways the slope is indistinguishable from zero
-//   (t = 0.33-0.36) and shrinks to exactly zero. Note for anyone reading the raw quartile
-//   table in the log and expecting a superspeedway INVERSION: the point estimate leans that
-//   way, it is not resolved, and it is deliberately not applied.
-const DNF_TILT_ACC  = { SHORT: 0.808, INT: 0, SS: 0, ROAD: 0 }
-const DNF_TILT_MECH = { SHORT: 1.765, INT: 2.309, SS: 2.059, ROAD: 1.578 }
+// v3, this one, does not assume a shape. It is a MULTIPLIER CURVE anchored at the four field
+// quartiles and calibrated by iterative proportional fitting against what the sim DELIVERS on
+// train boards (scripts/calibrate-tilt-tiers.js). Calibrating on delivered rather than on the
+// raw data matters, because the sim ALREADY back-loads attrition by ~1.22x on its own: wreck
+// victims are ord[Math.min(n-1, seed+j)], so events seeded near the end of the running order
+// clamp repeatedly onto the last car. IPF absorbs that artifact instead of stacking on it.
+//
+// Anchors are at percentile 0.875 / 0.625 / 0.375 / 0.125 (quartile midpoints), linear between,
+// flat outside. Rescaled to mean 1 over the field, so THE BUDGET IS UNCHANGED and only its
+// allocation moves.
+const DNF_TILT_CURVE = {
+  SHORT: [0.5005, 0.9912, 1.0662, 1.4421],
+  INT: [0.9084, 0.8314, 1.0935, 1.1668],
+  SS: [0.8210, 1.0315, 1.1764, 0.9711],
+  ROAD: [0.7895, 0.7940, 1.1552, 1.2613],
+}
+const __TILT_ANCHOR = [0.875, 0.625, 0.375, 0.125]
 
-// exp(beta * (0.5 - pct)) rescaled to mean 1, so the FIELD-WIDE BUDGET IS UNCHANGED and only
-// its allocation moves. The 2026-08-31 attrition sweep showed forecast quality is sensitive to
-// the total, so the total is held fixed and is not what this study varies.
-function __tiltMults(pct, beta) {
+// LEVEL correction, calibrated on TRAIN with the curve in place (max tier error 0.49 pts).
+// This is the OTHER half of the fix and the two only work together. The sim under-delivers
+// its own budget by ~13% because of the caution-preset interaction found earlier the same day
+// (BACKTEST_LOG 2026-08-31): the preset is auto-set from a track's MEAN cautions and the
+// wreck pools modulate around the budget, so a point estimate lands under it.
+//
+// Fix C tried to correct that level UNIFORMLY and failed its holdout — raising a flat rate
+// retires the favourites more, which is the wrong direction. With the curve in place the extra
+// attrition lands on the cars that actually retire, so the same level correction now PASSES.
+// Do not apply one without the other.
+const DNF_TILT_LEVEL = 1.15
+
+function __tiltMults(pct, curve) {
   const n = pct.length
   const m = new Float64Array(n)
-  if (!beta) { m.fill(1); return m }
+  if (!curve) { m.fill(1); return m }
   let sum = 0
-  for (let i = 0; i < n; i++) { m[i] = Math.exp(beta * (0.5 - pct[i])); sum += m[i] }
+  for (let i = 0; i < n; i++) {
+    const p = pct[i]
+    let v
+    if (p >= __TILT_ANCHOR[0]) v = curve[0]
+    else if (p <= __TILT_ANCHOR[3]) v = curve[3]
+    else {
+      let k = 0
+      while (k < 2 && p < __TILT_ANCHOR[k + 1]) k++
+      const t = (__TILT_ANCHOR[k] - p) / (__TILT_ANCHOR[k] - __TILT_ANCHOR[k + 1])
+      v = curve[k] + t * (curve[k + 1] - curve[k])
+    }
+    m[i] = v; sum += v
+  }
   const k = n / sum
   for (let i = 0; i < n; i++) m[i] *= k
   return m
@@ -482,7 +516,8 @@ function __dnfFraction(n, dnfRate, wm, iters) {
 }
 
 function runRaceSim(drivers, simConfig) {
-  const { numSims, cautionPreset, dnfRate, totalRaceLaps, trackGroup, startSampling, cautionMix, skillTilt, tiltScale } = simConfig
+  const { numSims, cautionPreset, totalRaceLaps, trackGroup, startSampling, cautionMix, skillTilt } = simConfig
+  let dnfRate = simConfig.dnfRate
   // SS dominator tilt keys off the sim's own speedScore percentile, NOT practice __spdPct:
   // SS races often have no practice (everyone defaulted to neutral 0.5, making any tilt a no-op),
   // and the empirical rank-share targets are strength-ranked anyway. Computed once per run.
@@ -499,17 +534,10 @@ function runRaceSim(drivers, simConfig) {
     const ord = drivers.map((d, i) => ({ i, s: d.speedScore != null ? d.speedScore : 0 })).sort((a, b) => b.s - a.s)
     ord.forEach((o, r) => { __pct[o.i] = n > 1 ? 1 - r / (n - 1) : 0.5 })
   }
-  // tiltScale is the TRAIN-calibrated steepness correction (scripts/calibrate-tilt-tiers.js).
-  // The raw betas describe the DATA; what a board experiences is the two layers combined and
-  // put through the wreck machinery, which is not the same steepness. Defaults to 1.
-  const __tk = skillTilt ? (tiltScale == null ? 1 : tiltScale) : 0
-  const __tAcc  = __tiltMults(__pct, __tk * (DNF_TILT_ACC[trackGroup]  || 0))
-  const __tMech = __tiltMults(__pct, __tk * (DNF_TILT_MECH[trackGroup] || 0))
-  // Groups with no wreck sets spend the whole budget in one draw, so blend the two tilts by
-  // the same accident share the wreck path would have used.
-  const __accShare = WRECK_ACC_SHARE[trackGroup] != null ? WRECK_ACC_SHARE[trackGroup] : 0.6
-  const __tFlat = new Float64Array(n)
-  for (let i = 0; i < n; i++) __tFlat[i] = __accShare * __tAcc[i] + (1 - __accShare) * __tMech[i]
+  // tiltCurve overrides the table — the calibration script passes candidates through it.
+  const __curve = skillTilt ? (simConfig.tiltCurve || DNF_TILT_CURVE[trackGroup] || null) : null
+  const __tilt = __tiltMults(__pct, __curve)
+  if (skillTilt && simConfig.tiltCurve == null) dnfRate = Math.min(0.6, dnfRate * DNF_TILT_LEVEL)
 
   // CAUTION MIX (2026-08-31). Optional. Without it this runs exactly as before: ONE bucket,
   // no extra RNG draw, byte-for-byte the old behaviour.
@@ -628,7 +656,7 @@ function runRaceSim(drivers, simConfig) {
       return {
         i,
         score: d.speedScore + (__adj ? __adj[i] : 0) + gaussNoise() * S.noiseWidth,
-        dnf: S.wm ? false : (Math.random() < __effRate * __tFlat[i]), dnfLap: 0,
+        dnf: S.wm ? false : (Math.random() < __effRate * __tilt[i]), dnfLap: 0,
         effLap,
       }
     })
@@ -648,11 +676,11 @@ function runRaceSim(drivers, simConfig) {
         for (let j = 0; j < sz; j++) {
           const sv = scored[ord[Math.min(n - 1, seed + j)]]
           if (sv.dnf) continue
-          if (Math.random() < p * __tAcc[sv.i]) { sv.dnf = true; sv.dnfLap = frac }
+          if (Math.random() < p * __tilt[sv.i]) { sv.dnf = true; sv.dnfLap = frac }
           else sv.score -= __pen
         }
       }
-      for (let x = 0; x < n; x++) { const sv = scored[x]; if (!sv.dnf && Math.random() < S.mechRate * __tMech[sv.i]) { sv.dnf = true; sv.dnfLap = Math.random() } }
+      for (let x = 0; x < n; x++) { const sv = scored[x]; if (!sv.dnf && Math.random() < S.mechRate * __tilt[sv.i]) { sv.dnf = true; sv.dnfLap = Math.random() } }
     }
 
     scored.sort((a, b) => {
@@ -772,8 +800,8 @@ export {
   CAUTION_PRESETS,
   CAUTION_PRESETS_BY_SERIES,
   DNF_BY_GROUP,
-  DNF_TILT_ACC,
-  DNF_TILT_MECH,
+  DNF_TILT_CURVE,
+  DNF_TILT_LEVEL,
   DNF_CAP,
   DNF_FLOOR,
   DNF_PRESETS,

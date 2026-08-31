@@ -139,8 +139,9 @@ for (const line of lines) {
 
   const MODE = process.env.MODE || 'mix'
   const rowsA = runRaceSim(scored, cfg)
+  const TILT_LEVEL = Number(process.env.TILT_LEVEL || 1)
   const rowsB = MODE === 'tilt'
-    ? runRaceSim(scored, { ...cfg, skillTilt: true })
+    ? runRaceSim(scored, { ...cfg, dnfRate: Math.min(0.6, dnfRate * TILT_LEVEL), skillTilt: true })
     : wTot >= 2
       ? runRaceSim(scored, { ...cfg, cautionMix: { presets, w: wCounts.map(x => x / wTot) } })
       : runRaceSim(scored, cfg)
