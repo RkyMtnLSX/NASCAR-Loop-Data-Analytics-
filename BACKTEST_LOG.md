@@ -5016,3 +5016,61 @@ WHY THIS IS WORTH THE OPERATOR'S TIME WHEN THE DNF TILT WAS NOT: the DNF tilt ch
 Brier change. A favourite priced at 24% that wins 32-34% is a 8-10 POINT error on the most heavily
 bet number on the board. If it is real and in the engine, it is the largest single mispricing this
 model has, and it is in the direction of leaving money on the table rather than losing it.
+
+### 2026-08-31 — STEP 1 RESULT: FAIL, narrowly. Win-confidence study CLOSES as registered.
+
+    race  series   live favourite     live%   recon favourite    recon%   same    diff
+    436   trucks   Layne Riggs         29.6   Layne Riggs         19.9    YES     -9.7
+    438   cup      Denny Hamlin        22.1   Denny Hamlin        20.2    YES     -1.9
+    439   oreilly  Chase Elliott       15.1   Justin Allgaier     15.9    no      +0.8
+    474   oreilly  Ross Chastain       17.8   Justin Allgaier     15.4    no      -2.4
+    475   cup      Ryan Blaney         39.5   Ryan Blaney         36.1    YES     -3.4
+    476   trucks   Kaden Honeycutt     27.8   Ty Majeski          28.0    no      +0.2
+    477   cup      Ryan Blaney         39.6   Ryan Blaney         30.4    YES     -9.2
+    478   trucks   Layne Riggs         17.1   Layne Riggs         16.1    YES     -1.0
+    479   cup      Ryan Blaney         18.8   Ryan Blaney         21.2    YES     +2.4
+    480   oreilly  Austin Hill         26.6   Jesse Love          13.0    no     -13.6
+    481   cup      Joey Logano          5.8   Joey Logano         15.8    YES    +10.0
+
+    same favourite   7 / 11        gate was >= 8      FAIL
+    mean |diff|      4.96 pts      gate was < 5.0     pass
+    mean SIGNED      -2.53 pts     (reconstruction is LESS confident than the live board)
+
+**FAIL on identity, by one board. The study CLOSES.** That was declared in advance and it is honoured
+without reopening: today's "favourite predicted 23.6% -> won 34.0%" is VOID as evidence about the
+engine. The reconstruction does not reliably name the same favourite the product does, so its
+favourite is a different object and its calibration says nothing about the board's.
+
+Checked before accepting it, rather than after: cup alone is 5/5 on identity — but its mean |diff| is
+5.38, which fails the other half of the gate. There is no subset that passes both. Not carving one
+out after seeing the numbers anyway; that is what the gate exists to prevent.
+
+WHAT THIS DOES NOT SAY. It does not clear the engine. It says this instrument cannot measure the
+question. The only live-board evidence remains the n=11-12 cup picks in the earlier entries, pointing
+the OTHER way (over-confidence), and that is also too small to settle anything. The win-market
+confidence question is genuinely OPEN and currently unanswerable with what exists.
+
+### THE FINDING THAT MATTERS MORE, and it reaches back over the whole day
+
+The signed offset is -2.53 points: **the reconstruction is systematically less confident than the live
+board.** And the identity failures are not random — cup is 5/5, O'REILLY IS 0/3, trucks 2/3. The
+reconstruction is materially worse at O'Reilly, almost certainly because that series leans hardest on
+practice and lineup information the reconstruction does not carry.
+
+That is a caveat on EVERY backtest run today, and it was not known when they ran. The DNF tilt
+holdouts pooled all three series. Their cup component is trustworthy; their O'Reilly component is
+built on boards whose favourite is frequently the wrong driver. None of today's conclusions flip on
+this — the tilt findings were about mid-field and tail attrition, not favourite identity — but any
+future study using this reconstruction should either weight cup more heavily or validate per series
+first. Recorded here so the next session does not have to rediscover it.
+
+### THE PATH THAT WOULD REOPEN THIS PROPERLY
+
+`sim_results` holds 11 boards, all from a five-week window (2026-07-24 to 2026-08-29). The gate failed
+on a sample that thin partly because 11 boards cannot absorb one oddity. Every board the operator
+publishes is stored. At roughly three per weekend, a full season is 100+ boards — at which point the
+favourite question is answerable directly ON LIVE BOARDS, with no reconstruction and no fidelity gap,
+which is the correct way to ask it in the first place.
+
+That is the recommendation: stop trying to reconstruct the board, and let the real boards accumulate.
+The instrument for this question is the product's own published output, and it is already being saved.
