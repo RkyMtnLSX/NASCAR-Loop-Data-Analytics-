@@ -4842,3 +4842,57 @@ WHAT I SHOULD HAVE DONE, recorded as process: the year was available in `races` 
 cost one extra column to carry. I inferred an ordering from a query that had no ORDER BY on its outer
 select, which is not an ordering at all. `string_agg` over a `group by` guarantees nothing about row
 order. The data file now carries the year explicitly and the script filters on it.
+
+---
+
+## 2026-08-31 — ONE-PARAMETER TILT: safe, but does NOT improve forecasts. Line of inquiry CLOSED.
+
+Last attempt, on the reasoning that every richer version failed because a four-anchor curve chases a
+per-tier profile that swings 4+ points between seasons. One parameter, a straight line in percentile,
+mean 1 so the budget is untouched:  mult_i = 1 + 2s(0.5 - p_i).
+
+Swept s on three independent sets. s = 0.10 is the ONLY value that passes the per-tier rail on all
+three; every larger value lowers the WORST tier error while pushing some individual tier past where
+flat already was — the Q4/Q3 overshoot again, in miniature.
+
+    set                          s=0 tier err   s=0.10 tier err   rail
+    practice-free holdout (162)     4.56 pts        3.59 pts       PASS
+    practice 2025 (47)              9.08            8.22           PASS
+    practice 2026 (47)              4.56            3.75           PASS
+
+DNF calibration improves on all three. Then the forecast check, four independent runs of s=0 vs
+s=0.10 on the full 162-race holdout:
+
+    win Brier gain (x1e-5):   +2.50   +3.92   -1.28   -1.33
+    top5 Brier gain (x1e-5):  +0.28   +0.91   -1.98   -3.02
+
+**Two positive, two negative. The forecast gain is noise.** The first run looked like a 3.6-sigma
+win; it was not, and I would have reported it as one if I had stopped at one run. Measured MC noise
+on this metric is sd 0.000007 per run, and the s=0.10 effect sits inside the spread of repeated
+measurements of the SAME arm.
+
+### VERDICT
+
+The one-parameter tilt makes retirement rates measurably more correct, costs nothing, hurts no tier —
+and does not improve win, top5 or top10 forecasting by any amount this holdout can detect. By the
+standard this project has used all day, that is a NO. "More correct" is not "predicts better," and
+that distinction has now cost three separate attempts today. Not shipping it.
+
+CLOSING THE LINE. Four parameterizations tested against a pre-registered holdout: logit-link
+exponential (failed at the top), log-link exponential (wrong shape), IPF-calibrated four-anchor curve
+(passed practice-free, failed on practice boards), one-parameter linear (safe, no effect). The skill
+gradient in the DATA is real and the accident-vs-mechanical control passed decisively — but the sim's
+finishing distributions are not sensitive enough to who retires for it to show up in what the product
+sells. That is the finding. It is a negative result and it is worth as much as a positive one,
+because it stops anyone spending another day here.
+
+ONE THREAD LEFT DELIBERATELY UNCUT, stated without overclaiming: top10 Brier improved on the practice
+boards at EVERY value of s tested — 2025 0.150130 -> 0.150009 / 0.149896 / 0.150076 / 0.149920, and
+2026 0.144515 -> 0.144425 / 0.144447 / 0.144471 / 0.144374. Eight of eight in the same direction. Those
+are 47-race sets where noise is roughly three times the full holdout's, so this is suggestive and NOT
+established. If anyone returns to this, that is the thread — top10 on practice boards, which is also
+the market DFS floors are priced off — and it needs its own registration, not a re-reading of these
+numbers.
+
+DO NOT reopen the DNF tilt on the strength of the tier tables in this log. The tier calibration
+improves and the forecasts do not. That is the whole story.
