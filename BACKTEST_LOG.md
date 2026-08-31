@@ -4565,3 +4565,78 @@ its actual than the current model already is.
 
 STANDING FINDINGS UNCHANGED: the skill gradient is real, the control passed, and the mechanism helps
 the middle and the tail substantially. What is wrong is the shape of the curve, not the idea.
+
+---
+
+## 2026-08-31 — FIXING THE TILT, part 1: the link was wrong AND the shape is wrong. Two findings.
+
+Operator: "how do you suggest we fix it and implement the change." Diagnosis first, on TRAIN only.
+
+### FIX 1, done: the link function. Real, but small.
+
+The first fit used a LOGIT link — a slope on log-odds — and the runtime applies the result as a
+multiplier on PROBABILITY. Those agree while p is small and separate as p grows, which is why the
+strong end over-extended. Refit with a LOG link (a relative-risk model), which is the scale the sim
+actually multiplies on. `scripts/fit-dnf-tilt.js` now uses IRLS with mu = exp(eta).
+
+    layer        SHORT           INT             SS              ROAD
+    accident   0.885 -> 0.808   0 -> 0          0 -> 0          0 -> 0
+    mechanical 1.851 -> 1.765   2.412 -> 2.309  2.144 -> 2.059  1.731 -> 1.578
+
+Correct, and it is only a 4-9% reduction. Not enough on its own.
+
+### FIX 2, NOT done: the SHAPE is wrong, and no single scale factor rescues it.
+
+Added a `tiltScale` lambda to the engine and searched it on TRAIN against observed tier rates.
+
+    TRAIN observed DNF% by tier (Q4 strongest -> Q1 weakest):   12.0  15.1  18.7  20.4
+
+    lambda   delivered Q4/Q3/Q2/Q1          max tier error
+    0        12.8  14.0  14.7  15.6           4.81 pts
+    0.5      11.1  13.3  15.2  17.6           3.46 pts
+    0.75     10.4  12.8  15.3  18.7           3.36 pts
+    1.0       9.8  12.3  15.3  19.8           3.34 pts
+
+Lambda cannot win. At 1.0 the tail is right (19.8 vs 20.4) and the top is 2.2 points too low. Turn it
+down and the top recovers while the tail collapses. The reason is visible in the observed row: the
+real profile is 12.0 / 15.1 / 18.7 / 20.4 — STEEP THROUGH THE MIDDLE and FLAT AT BOTH ENDS. An
+exponential in percentile is the opposite shape: flattest in the middle, steepest at the extremes.
+One parameter cannot fit a curve of the wrong family, and scaling it just trades one end against the
+other. This is a parameterization error, and it is mine — the exponential was frozen this morning
+because it was convenient, not because anything said the effect had that shape.
+
+### THE THIRD FINDING, previously undocumented and worth its own line
+
+**The sim ALREADY tilts, by accident.** At lambda = 0 — tilt fully off, shipped behaviour — delivered
+rates are 12.8 / 14.0 / 14.7 / 15.6, not flat. That is a 1.22x back-loading that nobody put there on
+purpose. Cause: in the wreck loop victims are `ord[Math.min(n - 1, seed + j)]`, so events seeded near
+the end of the running order have their tail clamped onto the last car repeatedly, concentrating hits
+at the BACK of the field. The clamp is a field-edge guard; the gradient is a side effect of it.
+
+That reframes the whole target. The job is not 1.0x -> 1.70x. It is **1.22x -> 1.70x**, and roughly a
+third of the needed effect is already present as an artifact. It also means the 2026-07-28 wreck-v1
+budget-overlap correction (`WRECK_EV_EXP`) was compensating for the same clamp in the aggregate while
+leaving this distributional consequence in place.
+
+### THE PLAN, and why I am not doing it tonight
+
+Correct fix is MOMENT MATCHING against the observed tier profile, not a smooth functional form:
+
+  1. Replace the scalar beta with a per-tier multiplier curve, `DNF_TILT_CURVE[group] = [m_Q4 .. m_Q1]`,
+     renormalized to mean 1 so the budget stays preserved.
+  2. Calibrate it by iterative proportional fitting on TRAIN: start at obs_tier / obs_mean, run the
+     sim, measure DELIVERED per tier, multiply the curve by obs/delivered, repeat 3-4 times. This
+     converges onto the observed profile by construction and absorbs the accidental 1.22x with it,
+     because it calibrates what the sim DELIVERS rather than what the data says in isolation.
+  3. Re-run the tier table on TRAIN as the design check, then the registered holdout ONCE as the gate,
+     with the per-tier rail added: no tier's predicted rate may end further from actual than the
+     CURRENT model already is. Tonight's version fails that rail at Q4 and Q3, which is exactly why
+     it is not shipping.
+  4. Watch the parameter count. Four groups x four tiers is 12 free parameters against ~9,900 train
+     driver-races, and the superspeedway cells thin out to 60-80 events. If per-group is too thin,
+     fall back to one global curve times the existing per-group on/off structure, which is where the
+     real group physics already lives.
+
+This is a bounded, well-specified job and it wants a fresh head, not the tail of a fourteen-hour
+session. Nothing has shipped, the flag is still off, and the engine currently carries the log-link
+betas plus an unused `tiltScale` defaulting to 1.

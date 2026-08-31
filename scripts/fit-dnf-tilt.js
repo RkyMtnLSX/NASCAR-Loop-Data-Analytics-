@@ -33,37 +33,50 @@ function weightsFor(series, track) {
   return DEFAULT_WEIGHTS
 }
 
-// IRLS for logit(p) = a + b*x. Returns { a, b, se_b, n, events }.
-function logistic(xs, ys) {
-  let a = 0, b = 0
+// IRLS for a BINOMIAL GLM WITH A LOG LINK: log(p) = a + b*x, i.e. a RELATIVE-RISK model.
+//
+// THIS IS THE FIX (2026-08-31). The first cut used a LOGIT link — a slope on log-ODDS — and
+// then applied the result at runtime as a multiplier on PROBABILITY. Those two agree while p
+// is small and separate as p grows, so the strongest quartile got over-extended: fitted tilt
+// produced a 2.1x Q1/Q4 spread against a realized 1.66x, dragging the best drivers' DNF rate
+// to 9.5% against a 12.3% actual, and their top10 Brier got WORSE. See the tier table in
+// BACKTEST_LOG 2026-08-31.
+//
+// The sim's tilt is multiplicative on probability. So fit it on the log-PROBABILITY scale.
+// The parameterization, the runtime code and the frozen mean-1 rescaling are all unchanged —
+// only the scale the slope is estimated on. mu = exp(eta), var = mu(1-mu), dmu/deta = mu,
+// so the IRLS weight is mu/(1-mu) and the working response is eta + (y-mu)/mu.
+function logLink(xs, ys) {
   const n = xs.length
-  for (let iter = 0; iter < 60; iter++) {
-    let s00 = 0, s01 = 0, s11 = 0, g0 = 0, g1 = 0
+  const base = Math.max(1e-4, ys.reduce((s, y) => s + y, 0) / n)
+  let a = Math.log(base), b = 0
+  for (let iter = 0; iter < 200; iter++) {
+    let s00 = 0, s01 = 0, s11 = 0, t0 = 0, t1 = 0
     for (let i = 0; i < n; i++) {
-      const eta = a + b * xs[i]
-      const p = 1 / (1 + Math.exp(-eta))
-      const w = Math.max(1e-9, p * (1 - p))
-      const r = ys[i] - p
-      g0 += r; g1 += r * xs[i]
+      const eta = Math.min(-1e-6, a + b * xs[i])
+      const mu = Math.exp(eta)
+      const w = mu / (1 - mu)
+      const z = eta + (ys[i] - mu) / mu
       s00 += w; s01 += w * xs[i]; s11 += w * xs[i] * xs[i]
+      t0 += w * z; t1 += w * xs[i] * z
     }
     const det = s00 * s11 - s01 * s01
-    if (Math.abs(det) < 1e-14) break
-    const da = (s11 * g0 - s01 * g1) / det
-    const db = (s00 * g1 - s01 * g0) / det
-    a += da; b += db
-    if (Math.abs(da) < 1e-10 && Math.abs(db) < 1e-10) break
+    if (!isFinite(det) || Math.abs(det) < 1e-14) break
+    const na = (s11 * t0 - s01 * t1) / det
+    const nb = (s00 * t1 - s01 * t0) / det
+    const d = Math.abs(na - a) + Math.abs(nb - b)
+    // damped step: the log link has no upper guard, so a full Newton step can leave the space
+    a = a + 0.6 * (na - a); b = b + 0.6 * (nb - b)
+    if (d < 1e-10) break
   }
-  // variance of b from the inverse information matrix
   let s00 = 0, s01 = 0, s11 = 0
   for (let i = 0; i < n; i++) {
-    const p = 1 / (1 + Math.exp(-(a + b * xs[i])))
-    const w = Math.max(1e-9, p * (1 - p))
+    const mu = Math.exp(Math.min(-1e-6, a + b * xs[i]))
+    const w = mu / (1 - mu)
     s00 += w; s01 += w * xs[i]; s11 += w * xs[i] * xs[i]
   }
   const det = s00 * s11 - s01 * s01
-  const varB = det > 0 ? s00 / det : NaN
-  return { a, b, seB: Math.sqrt(varB), n, events: ys.reduce((s, y) => s + y, 0) }
+  return { a, b, seB: Math.sqrt(det > 0 ? s00 / det : NaN), n, events: ys.reduce((s, y) => s + y, 0) }
 }
 
 const lines = fs.readFileSync(path.join(__dirname, 'backtest-data', 'train.txt'), 'utf8')
@@ -104,12 +117,12 @@ for (const line of lines) {
   races++
 }
 
-console.log(`TRAIN fit — ${races} races, 2022-2024 only\n`)
+console.log(`TRAIN fit (LOG link — relative risk) — ${races} races, 2022-2024 only\n`)
 console.log('group  layer        beta      se     beta/se   n      events   Q1/Q4 implied mult')
 const out = { acc: {}, mech: {} }
 for (const g of ['SHORT', 'INT', 'SS', 'ROAD']) {
   for (const layer of ['acc', 'mech']) {
-    const f = logistic(data[g][layer].x, data[g][layer].y)
+    const f = logLink(data[g][layer].x, data[g][layer].y)
     // Shrink toward zero when the slope is not resolved. A tilt we cannot measure should
     // not be applied: this is the same shrinkage principle resolveDnfRate already uses on
     // thin track history, and it makes SS-accident fall back toward flat if its sign is noise.

@@ -244,8 +244,8 @@ const WRECK_SETS = {"SHORT":{"low":[[],[],[],[],[],[],[],[[4,0.96]],[[5,0.52]],[
 //   (t = 0.33-0.36) and shrinks to exactly zero. Note for anyone reading the raw quartile
 //   table in the log and expecting a superspeedway INVERSION: the point estimate leans that
 //   way, it is not resolved, and it is deliberately not applied.
-const DNF_TILT_ACC  = { SHORT: 0.885, INT: 0, SS: 0, ROAD: 0 }
-const DNF_TILT_MECH = { SHORT: 1.851, INT: 2.412, SS: 2.144, ROAD: 1.731 }
+const DNF_TILT_ACC  = { SHORT: 0.808, INT: 0, SS: 0, ROAD: 0 }
+const DNF_TILT_MECH = { SHORT: 1.765, INT: 2.309, SS: 2.059, ROAD: 1.578 }
 
 // exp(beta * (0.5 - pct)) rescaled to mean 1, so the FIELD-WIDE BUDGET IS UNCHANGED and only
 // its allocation moves. The 2026-08-31 attrition sweep showed forecast quality is sensitive to
@@ -482,7 +482,7 @@ function __dnfFraction(n, dnfRate, wm, iters) {
 }
 
 function runRaceSim(drivers, simConfig) {
-  const { numSims, cautionPreset, dnfRate, totalRaceLaps, trackGroup, startSampling, cautionMix, skillTilt } = simConfig
+  const { numSims, cautionPreset, dnfRate, totalRaceLaps, trackGroup, startSampling, cautionMix, skillTilt, tiltScale } = simConfig
   // SS dominator tilt keys off the sim's own speedScore percentile, NOT practice __spdPct:
   // SS races often have no practice (everyone defaulted to neutral 0.5, making any tilt a no-op),
   // and the empirical rank-share targets are strength-ranked anyway. Computed once per run.
@@ -499,8 +499,12 @@ function runRaceSim(drivers, simConfig) {
     const ord = drivers.map((d, i) => ({ i, s: d.speedScore != null ? d.speedScore : 0 })).sort((a, b) => b.s - a.s)
     ord.forEach((o, r) => { __pct[o.i] = n > 1 ? 1 - r / (n - 1) : 0.5 })
   }
-  const __tAcc  = __tiltMults(__pct, skillTilt ? (DNF_TILT_ACC[trackGroup]  || 0) : 0)
-  const __tMech = __tiltMults(__pct, skillTilt ? (DNF_TILT_MECH[trackGroup] || 0) : 0)
+  // tiltScale is the TRAIN-calibrated steepness correction (scripts/calibrate-tilt-tiers.js).
+  // The raw betas describe the DATA; what a board experiences is the two layers combined and
+  // put through the wreck machinery, which is not the same steepness. Defaults to 1.
+  const __tk = skillTilt ? (tiltScale == null ? 1 : tiltScale) : 0
+  const __tAcc  = __tiltMults(__pct, __tk * (DNF_TILT_ACC[trackGroup]  || 0))
+  const __tMech = __tiltMults(__pct, __tk * (DNF_TILT_MECH[trackGroup] || 0))
   // Groups with no wreck sets spend the whole budget in one draw, so blend the two tilts by
   // the same accident share the wreck path would have used.
   const __accShare = WRECK_ACC_SHARE[trackGroup] != null ? WRECK_ACC_SHARE[trackGroup] : 0.6
