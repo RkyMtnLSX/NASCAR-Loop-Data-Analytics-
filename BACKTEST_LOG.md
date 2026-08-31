@@ -3949,3 +3949,88 @@ NOTE ON THE OPEN LEADER-WRECK PROTOCOL (registered 2026-08-30). Its step 1 gate 
 confirm it reproduces the ~14% SS laps-led-by-DNFer share against 17.5% measured — is now runnable, and
 should be run at a MID preset, because at Low or High the sim is not even retiring the right NUMBER of
 cars and any laps-led share measured there would be confounded by this defect.
+
+---
+
+## 2026-08-31 — CORRECTION to today's earlier entry: the caution modulation is BY DESIGN, not a defect
+
+Operator challenged the framing ("I thought the sim set dnf rate to prior track history dnf?"). He is
+right, and the entry above is wrong on its central claim. Correcting it here rather than editing it,
+per the append-only protocol.
+
+WHAT I GOT WRONG. I wrote that the caution-preset coupling of realized attrition was an accident, on the
+reasoning that the no-wreck-sets fallback path honors the budget exactly while the wreck path does not.
+That reasoning was invented; I did not search BACKTEST_ARCHIVE, where it is documented as shipped,
+deliberate, and calibrated. Quoting the 2026-07-28 wreck-v1.1-cb entry:
+
+    "Normalizer stays GLOBAL per group, so the preset now modulates realized attrition around the
+     dnfRate budget BY DESIGN (MC, n=38): SHORT 1.8/2.7/4.6 vs budget 3.1; INT 2.5/4.4/7.6 vs 4.9;
+     SS 3.8/7.5/10.2 vs 7.4; ROAD 3.4/5.0/6.7 vs 5.1. Mid tercile sits slightly under budget
+     (wreck counts are right-skewed)."
+
+Those ratios are 0.58/0.87/1.48 SHORT, 0.51/0.90/1.55 INT, 0.51/1.01/1.38 SS, 0.67/0.98/1.31 ROAD.
+Mine today: 0.57/0.87/1.46, 0.51/0.88/1.46, 0.50/0.96/1.29, 0.66/0.97/1.29. They agree. The Caution Rate
+card has said so in the UI since 2026-07-28 ("calm pool (sims land under DNF budget)").
+
+So the correct reading of that measurement is the opposite of what I wrote: the extracted engine
+reproduces a two-month-old calibration to two decimal places, which is evidence the extraction is
+faithful and the headless harness is trustworthy. That was the thing worth reporting. I over-claimed a
+defect instead. Registered as a process failure: search the ARCHIVE, not just the LOG, before calling
+shipped behaviour a bug.
+
+### WHAT SURVIVES, AND IT IS NOT NOTHING
+
+The modulation is by design. Its INTERACTION with auto-preset selection is not addressed anywhere in the
+archive, and it is measurable now that the sim runs headlessly.
+
+Both inputs are set automatically from the SAME track's long-run history:
+  - `dnfRate`  = resolveDnfRate(series, group, trackAvgDnf, nRaces)  -- the track's mean attrition
+  - `preset`   = nearest calibrated preset to that track's mean `races.total_cautions`
+
+wreck-v1.1-cb calibrated the preset as a modulation around the budget -- a calm RACE lands under, a
+chaotic RACE lands over. But auto-selection sets the preset from the track's AVERAGE, so it is not
+expressing a race's deviation from the track's norm; it is re-expressing the track's norm, which
+`dnfRate` already carries. The spread collapses to a point estimate, and for a calm track that point
+estimate is ~0.6x, not 1.0x.
+
+MEASURED, 30k sims per track, cup, N=38, reproducing the app's own auto-selection. Delivered attrition
+vs that track's OWN measured attrition (2022+, non-exhibition):
+
+    Talladega Superspeedway     meas 20.5%   delivered 10.4%   0.51
+    Indianapolis GP Circuit     meas 10.5%   delivered  5.0%   0.48
+    Charlotte Roval             meas  8.6%   delivered  4.7%   0.54
+    Richmond Raceway            meas  3.7%   delivered  2.2%   0.59
+    Road America                meas 10.8%   delivered  6.3%   0.59
+    Mexico City                 meas  8.1%   delivered  4.8%   0.59
+    COTA                        meas 10.4%   delivered  6.6%   0.64
+    North Wilkesboro            meas  8.1%   delivered  5.2%   0.64
+    Indianapolis (oval)         meas 23.9%   delivered 16.2%   0.67
+    Homestead-Miami             meas  8.9%   delivered  6.3%   0.70
+    Chicago Street              meas 16.0%   delivered 11.4%   0.71
+    ... Charlotte / Texas       meas 23.1%   delivered 28.4%   1.23  (the only two above)
+
+24 of 30 cup tracks land BELOW their own measured attrition; 11 land 20%+ below. The Medium-preset
+tracks cluster at 0.85-0.90, which is the right-skew the archive already flagged. Schedule-wide the sim
+under-retires.
+
+THE SHARPEST CASE, and it is a boundary artifact rather than a calibration question. Superspeedways are
+"pinned" -- the auto-preset effect returns early for them -- but the config loader has ALREADY set the
+preset from a hard bucket, `avg < 6 ? Low : avg < 11.5 ? Medium : High`. Talladega averages 5.33
+cautions and Daytona 6.20. Two plate tracks, same correlation group, split across the 6.0 boundary:
+Talladega sits permanently on the calm pool (0.51x) and Daytona on the typical pool (0.93x). Talladega
+is therefore simmed at roughly half its true attrition, at a track where survival is the dominant term
+in win probability and DFS floors.
+
+### STATUS: OPEN QUESTION, NOT A REGISTERED STUDY, NOTHING CHANGED
+
+I am not proposing a fix in the same breath as getting the diagnosis wrong. Stating the options only:
+  (a) leave it -- argue the auto-preset is a deliberate "this track runs calm" statement and the
+      double-application is intended shrinkage;
+  (b) make the modulation mean-preserving so that auto-selection returns the budget while a MANUAL
+      preset click still expresses a race-specific deviation;
+  (c) treat the SS bucket boundary as a separate, smaller question -- Talladega vs Daytona on opposite
+      sides of 6.0 cautions looks unintended regardless of what is decided about (a)/(b).
+
+Any of these moves shipped win probabilities and needs the registration discipline: freeze, holdout,
+operator approval. The leader-wreck protocol registered 2026-08-30 is unaffected by this correction, but
+its step-1 instrumentation should run at MEDIUM, where delivered attrition is closest to budget.

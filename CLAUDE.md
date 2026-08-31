@@ -244,7 +244,15 @@ build and a runtime crash. That is exactly what happened during the extraction: 
 `scripts/loadEngine.js` transforms `simEngine.js` ESM→CJS in memory so node can require it. It reads the
 same file the site ships, so a script and the site cannot disagree. No new dependency, no build step.
 
-KNOWN, PINNED DEFECT: the sim's realized DNF count tracks the caution preset rather than the rate it was
-given (~0.5x budget at Low, ~0.9x at Medium, ~1.4x at High). `npm run sim:smoke` prints the current
-numbers. Full diagnosis and cause in BACKTEST_LOG under 2026-08-31. It is pinned, not fixed — a fix
-moves shipped win probabilities and goes through the registration discipline.
+CALIBRATION YOU MUST NOT MISREAD: the sim's realized DNF count is modulated by the caution preset —
+~0.5x the budget at Low, ~0.9x at Medium, ~1.4x at High. This is `wreck-v1.1-cb`, shipped 2026-07-28,
+BY DESIGN, and documented in BACKTEST_ARCHIVE. The Caution Rate card says so in the UI. `npm run
+sim:smoke` prints the current numbers so a future change to them is visible. Do NOT report this as a
+bug — a session did exactly that on 2026-08-31 and had to append a correction.
+
+The OPEN question, which is different: both `dnfRate` and the caution preset are auto-set from the same
+track's long-run history, so the modulation is applied to the track's baseline rather than to a race's
+deviation from it. Result: 24 of 30 cup tracks sim below their own measured attrition, Talladega at
+0.51x (it and Daytona straddle the hard 6.0-caution bucket boundary). Measured and written up in
+BACKTEST_LOG under 2026-08-31. Nothing has been changed; a fix moves shipped win probabilities and
+goes through the registration discipline.

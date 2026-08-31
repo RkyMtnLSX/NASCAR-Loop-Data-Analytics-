@@ -102,12 +102,11 @@ for (const [grp, label] of GROUPS) {
   ok(Math.abs(winSum - 100) < 0.6, 'win% sums to 100', winSum.toFixed(2))
   ok(Math.abs(t10Sum - 1000) < 3, 'top10% sums to 1000', t10Sum.toFixed(1))
 
-  // DNF BUDGET. The sim is handed a per-car retirement rate; over the whole field
-  // the realized count should land on n * rate. It does not, and the miss is a
-  // function of the caution preset - see the sweep at the bottom of this file and
-  // the 2026-08-31 entry in BACKTEST_LOG. This assertion is therefore only a rail
-  // against gross breakage (double-counting, a cap silently binding, the wreck
-  // layer not firing at all); the real number is measured and printed below.
+  // DNF BUDGET. The sim is handed a per-car retirement rate; the realized count sits
+  // near n * rate but is deliberately modulated by the caution preset (wreck-v1.1-cb -
+  // see the block at the bottom of this file). This assertion is therefore only a rail
+  // against gross breakage (double-counting, a cap silently binding, the wreck layer
+  // not firing at all); the calibrated values are measured and printed below.
   const expectCars = N * dnfRate
   const ratio = dnfCars / expectCars
   ratios.push([grp, ratio])
@@ -150,28 +149,25 @@ ok(Math.abs(half - wantHalf) < 1e-9, 'shrinkage toward the group rate is half we
 ok(__trackGroup('Talladega Superspeedway') === 'SS', '__trackGroup classifies Talladega as SS')
 ok(__trackGroup('Watkins Glen International') === 'ROAD', '__trackGroup classifies Watkins Glen as ROAD')
 
-// ---------------------------------------------------------------- known defect, pinned
-// The realized DNF count tracks the CAUTION PRESET, not the rate it was given.
-// __wScale normalizes the wreck layer by WRECK_EV_EXP[group] - ONE scalar per track
-// group - while WRECK_SETS[group][bucket] holds wildly different event counts per
-// caution bucket. So the normalizer is a pooled average: at a low preset the sim
-// draws far fewer wrecks than the pooled expectation and delivers roughly half the
-// budgeted retirements; at a high preset it overshoots by a third or more.
+// ------------------------------------------- calibration regression check (NOT a defect)
+// The realized DNF count is modulated by the CAUTION PRESET rather than landing on the
+// budget. That is wreck-v1.1-cb, shipped 2026-07-28, BY DESIGN: __wScale normalizes by
+// WRECK_EV_EXP[group] (one scalar per group) while WRECK_SETS[group][bucket] holds
+// calm/typical/chaotic event pools, so a calm race retires fewer cars than the track's
+// mean and a chaotic one more. The Caution Rate card states this in the UI.
 //
-// Measured 2026-08-31, 30k sims, cup/oreilly/trucks x 4 groups x 3 presets:
-//     low preset   0.50 - 0.66 x budget
-//     mid preset   0.84 - 0.96 x budget
-//     high preset  1.19 - 1.48 x budget
+// These numbers are printed as a REGRESSION CHECK. The values shipped in 2026-07-28
+// (archive) were SHORT 0.58/0.87/1.48, INT 0.51/0.90/1.55, SS 0.51/1.01/1.38,
+// ROAD 0.67/0.98/1.31. If what prints below has drifted from those, something changed
+// the wreck layer and you should find out what before trusting any backtest.
 //
-// This is pinned, not fixed. Fixing it changes shipped win probabilities and DFS
-// floors, so it goes through the registration discipline like any other model change.
-// It also means the 2026-08-30 DNF constant refresh only lands at a mid preset.
-//
-// The corroborating detail: when a track group has NO wreck sets, runRaceSim falls
-// through to `Math.random() < dnfRate` per car, which honors the budget exactly and
-// has no caution dependence at all. The two paths disagree, which is why this reads
-// as an accident rather than an intent.
-console.log('\n[DNF budget delivery by caution preset — cup, the pinned defect]')
+// DO NOT report this row as a bug. A session did on 2026-08-31 and had to append a
+// correction to BACKTEST_LOG. The genuinely open question is a different one: both
+// dnfRate and the preset are auto-set from the SAME track's long-run history, so the
+// modulation gets applied to the track's baseline instead of to a race's deviation
+// from it — 24 of 30 cup tracks sim under their own measured attrition, Talladega at
+// 0.51x. That is written up in BACKTEST_LOG under 2026-08-31 and is unresolved.
+console.log('\n[DNF budget delivery by caution preset — cup; by design, see comment]')
 for (const [grp, label] of GROUPS) {
   const rate = resolveDnfRate('cup', label, null, 0)
   const line = []
@@ -185,8 +181,9 @@ for (const [grp, label] of GROUPS) {
   }
   console.log(`  ${grp.padEnd(6)} budget ${(rate * 100).toFixed(1)}%   ` + line.join('   '))
 }
-console.log('  ^ if these have moved to ~1.00 across the row, the defect was fixed —')
-console.log('    update BACKTEST_LOG and this block rather than deleting them.')
+console.log('  ^ expected shape is roughly 0.5x / 0.9x / 1.4x (wreck-v1.1-cb, by design).')
+console.log('    If a row has drifted from the archive values in the comment above, the')
+console.log('    wreck layer changed — find out why before trusting a backtest.')
 
 
 console.log(failures === 0 ? '\nALL PASS' : `\n${failures} FAILURE(S)`)
