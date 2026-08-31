@@ -407,14 +407,50 @@ function buildSpeedScores(drivers, weights) {
 // DO NOT retune from in-sample results; the forward judge is SS board win-Brier + the CLV ledger.
 const GROUP_NOISE_MULT = { SS: 1.75 }
 
+// COUNT-ONLY DNF ESTIMATOR (2026-08-31). Replays exactly the wreck + mechanical
+// assignment runRaceSim performs, and counts retirements. Nothing else - no scores, no
+// sorting, no laps led.
+//
+// It is EXACT for the count, and that is not an approximation claim: victim identity
+// depends on the running order, but the NUMBER of victims does not. Each event takes sz
+// adjacent slots from a random seed, clamped at the field edge (which is where overlap
+// eats draws), each occupant retires with probability p, already-retired occupants are
+// skipped. None of that reads a driver's score. The survivor position penalty does not
+// retire anyone. So this loop and the real one draw the same distribution of counts.
+//
+// Exists so the caution mix can be normalized against the sim's ACTUAL delivered rate at
+// the ACTUAL budget, rather than against a hardcoded table. That matters: the per-bucket
+// multipliers are NOT constant in the budget. Measured 2026-08-31, SS mid runs 2.10x at a
+// 4% budget and 0.89x at 40% (the 0.3 lower clamp on __wScale binds hard at low budgets).
+// A constants table would have been wrong at both ends of the schedule.
+function __dnfFraction(n, dnfRate, wm, iters) {
+  if (!wm) return dnfRate
+  const scale = Math.max(0.3, Math.min(2.5, (n * dnfRate * wm.accShare) / wm.pre))
+  const mech = dnfRate * (1 - wm.accShare)
+  const dnf = new Uint8Array(n)
+  let total = 0
+  for (let it = 0; it < iters; it++) {
+    dnf.fill(0)
+    const evs = wm.sets[(Math.random() * wm.sets.length) | 0]
+    for (let e = 0; e < evs.length; e++) {
+      const sz = evs[e][0]
+      const bkt = sz <= 4 ? 'a' : (sz <= 9 ? 'b' : 'c')
+      const p = Math.min(0.95, wm.P[bkt] * scale)
+      const seed = (Math.random() * n) | 0
+      for (let j = 0; j < sz; j++) {
+        const k = Math.min(n - 1, seed + j)
+        if (dnf[k]) continue
+        if (Math.random() < p) dnf[k] = 1
+      }
+    }
+    for (let x = 0; x < n; x++) if (!dnf[x] && Math.random() < mech) dnf[x] = 1
+    for (let x = 0; x < n; x++) total += dnf[x]
+  }
+  return total / (iters * n)
+}
+
 function runRaceSim(drivers, simConfig) {
-  const { numSims, cautionPreset, dnfRate, totalRaceLaps, trackGroup, startSampling } = simConfig
-  const noiseWidth = cautionPreset.noise * (GROUP_NOISE_MULT[trackGroup] || 1)
-  const __cb = cautionPreset.value <= 5 ? 'low' : cautionPreset.value <= 8 ? 'mid' : 'high'
-  const __LLC = ((LL_CURVES_G[trackGroup] || {})[__cb]) || LL_CURVES[__cb]
-  const __FLC = ((FL_CURVES_G[trackGroup] || {})[__cb]) || FL_CURVES[__cb]
-  const __wsp = WRECK_SETS[trackGroup] ? WRECK_SETS[trackGroup][__cb] : null
-  const __wm = __wsp && __wsp.length ? { sets: __wsp, P: WRECK_P[trackGroup], surv: WRECK_SURV_COST[trackGroup], accShare: WRECK_ACC_SHARE[trackGroup], pre: WRECK_EV_EXP[trackGroup] } : null
+  const { numSims, cautionPreset, dnfRate, totalRaceLaps, trackGroup, startSampling, cautionMix } = simConfig
   // SS dominator tilt keys off the sim's own speedScore percentile, NOT practice __spdPct:
   // SS races often have no practice (everyone defaulted to neutral 0.5, making any tilt a no-op),
   // and the empirical rank-share targets are strength-ranked anyway. Computed once per run.
@@ -424,8 +460,76 @@ function runRaceSim(drivers, simConfig) {
 
   const n = drivers.length
   if (!n) return []
-  const __wScale = __wm ? Math.max(0.3, Math.min(2.5, (n * dnfRate * __wm.accShare) / __wm.pre)) : 0
-  const __mechRate = __wm ? dnfRate * (1 - __wm.accShare) : 0
+
+  // CAUTION MIX (2026-08-31). Optional. Without it this runs exactly as before: ONE bucket,
+  // no extra RNG draw, byte-for-byte the old behaviour.
+  //
+  // WHAT IT FIXES. wreck-v1.1-cb calibrated the caution bucket as a property of a RACE - a
+  // calm race retires fewer cars, a chaotic one more. The board hands the sim a track-level
+  // AVERAGE, so every one of the 30,000 draws was a copy of the average race, and a
+  // modulation meant to vary ACROSS races became a constant offset on a budget that already
+  // encoded the track's typical chaos. Talladega was simmed at 0.51x its own measured
+  // attrition on exactly that double-application.
+  //
+  // cautionMix = { presets: [low, mid, high], w: [wLow, wMid, wHigh] } where w is the
+  // track's OWN empirical frequency of each caution bucket. Each sim draws its bucket from
+  // w, so calm sims still retire fewer cars and chaotic ones more - the spread wreck-v1.1-cb
+  // bought is kept, and gains the per-race variance the sim never had.
+  //
+  // K makes the mix mean-preserving: the effective budget is dnfRate / K where
+  // K = SUM_b w_b r_b, so the track's own distribution averages to exactly the budget.
+  // r_b is MEASURED at this budget by __dnfFraction rather than looked up, because the
+  // multipliers are not constant in the budget (see that function). Solved by fixed point -
+  // r_b depends on the budget, which depends on K - which converges in 2-3 passes.
+  const __mixPresets = (cautionMix && cautionMix.presets && cautionMix.presets.length)
+    ? cautionMix.presets : [cautionPreset]
+  let __mixW = (cautionMix && cautionMix.w && cautionMix.w.length === __mixPresets.length)
+    ? cautionMix.w.slice() : [1]
+  const __wSum = __mixW.reduce((a, b) => a + (b > 0 ? b : 0), 0)
+  __mixW = __wSum > 0 ? __mixW.map(x => (x > 0 ? x : 0) / __wSum) : __mixPresets.map(() => 1 / __mixPresets.length)
+  const __mixOn = __mixPresets.length > 1
+
+  const __bucketOf = p => (p.value <= 5 ? 'low' : p.value <= 8 ? 'mid' : 'high')
+  const __wmFor = p => {
+    const cb = __bucketOf(p)
+    const sp = WRECK_SETS[trackGroup] ? WRECK_SETS[trackGroup][cb] : null
+    return sp && sp.length ? { sets: sp, P: WRECK_P[trackGroup], surv: WRECK_SURV_COST[trackGroup], accShare: WRECK_ACC_SHARE[trackGroup], pre: WRECK_EV_EXP[trackGroup] } : null
+  }
+
+  let __K = 1
+  if (__mixOn) {
+    const wms = __mixPresets.map(__wmFor)
+    for (let pass = 0; pass < 4; pass++) {
+      const eff = dnfRate / __K
+      let k = 0
+      for (let b = 0; b < wms.length; b++) {
+        if (__mixW[b] <= 0) continue
+        k += __mixW[b] * (__dnfFraction(n, eff, wms[b], 4000) / eff)
+      }
+      if (!(k > 0.05) || !isFinite(k)) { __K = 1; break }
+      __K = k
+    }
+  }
+  const __effRate = dnfRate / __K
+
+  // Per-bucket state. Everything the sim loop reads that depends on the caution level lives
+  // here, so the loop just indexes one of these instead of closing over a single value.
+  const __B = __mixPresets.map(p => {
+    const cb = __bucketOf(p)
+    const wm = __wmFor(p)
+    return {
+      cautionValue: p.value,
+      noiseWidth: p.noise * (GROUP_NOISE_MULT[trackGroup] || 1),
+      LLC: ((LL_CURVES_G[trackGroup] || {})[cb]) || LL_CURVES[cb],
+      FLC: ((FL_CURVES_G[trackGroup] || {})[cb]) || FL_CURVES[cb],
+      wm,
+      wScale: wm ? Math.max(0.3, Math.min(2.5, (n * __effRate * wm.accShare) / wm.pre)) : 0,
+      mechRate: wm ? __effRate * (1 - wm.accShare) : 0,
+    }
+  })
+  // Cumulative weights for the per-sim bucket draw.
+  const __cumW = []
+  { let acc = 0; for (const w of __mixW) { acc += w; __cumW.push(acc) } }
   // trail10-v3.1 (2026-07-28): per-sim sampled starts also feed DK place differential.
   // Eligible drivers' grid slots are permuted by the sim's sampled order (grid stays
   // collision-free); null/missing slots disable the override (falls back to fixed start).
@@ -443,6 +547,11 @@ function runRaceSim(drivers, simConfig) {
   const posMatrix      = new Int16Array(numSims * n)
 
   for (let sim = 0; sim < numSims; sim++) {
+    // This sim's caution bucket. Drawn ONLY when a mix was supplied, so a single-bucket run
+    // consumes exactly the RNG stream it always did and reproduces prior results.
+    let __bi = 0
+    if (__mixOn) { const __r = Math.random(); __bi = __cumW.length - 1; for (let b = 0; b < __cumW.length; b++) if (__r < __cumW[b]) { __bi = b; break } }
+    const S = __B[__bi]
     // task #73 (2026-07-28): DISTRIBUTIONAL START SAMPLING on projected-lineup boards.
     // Each sim draws every projected driver's start from his trailing-10 (hybrid) history,
     // ranks the draws into a coherent grid, and adjusts scores by w*(sampled - fixed).
@@ -463,28 +572,28 @@ function runRaceSim(drivers, simConfig) {
       const __ld = d.lapsDown || 0
       if (__ld > 0) {
         let __rec = 0
-        for (let __c = 0; __c < cautionPreset.value; __c++) if (Math.random() < 0.06) __rec++
+        for (let __c = 0; __c < S.cautionValue; __c++) if (Math.random() < 0.06) __rec++
         effLap = Math.max(0, __ld - __rec)
       }
       return {
         i,
-        score: d.speedScore + (__adj ? __adj[i] : 0) + gaussNoise() * noiseWidth,
-        dnf: __wm ? false : (Math.random() < dnfRate), dnfLap: 0,
+        score: d.speedScore + (__adj ? __adj[i] : 0) + gaussNoise() * S.noiseWidth,
+        dnf: S.wm ? false : (Math.random() < __effRate), dnfLap: 0,
         effLap,
       }
     })
 
     // #51 wreck-v1: event-based accident DNFs + independent mechanical layer
-    if (__wm) {
+    if (S.wm) {
       const ord = scored.map((s, x) => x).sort((a, b) => scored[b].score - scored[a].score)
       let __sMin = Infinity, __sMax = -Infinity
       for (let x = 0; x < n; x++) { const sc = scored[x].score; if (sc < __sMin) __sMin = sc; if (sc > __sMax) __sMax = sc }
-      const __pen = __wm.surv * ((__sMax - __sMin) / Math.max(1, n - 1))
-      const evs = __wm.sets[(Math.random() * __wm.sets.length) | 0]
+      const __pen = S.wm.surv * ((__sMax - __sMin) / Math.max(1, n - 1))
+      const evs = S.wm.sets[(Math.random() * S.wm.sets.length) | 0]
       for (let e = 0; e < evs.length; e++) {
         const sz = evs[e][0], frac = evs[e][1]
         const bkt = sz <= 4 ? 'a' : (sz <= 9 ? 'b' : 'c')
-        const p = Math.min(0.95, __wm.P[bkt] * __wScale)
+        const p = Math.min(0.95, S.wm.P[bkt] * S.wScale)
         const seed = (Math.random() * n) | 0
         for (let j = 0; j < sz; j++) {
           const sv = scored[ord[Math.min(n - 1, seed + j)]]
@@ -493,7 +602,7 @@ function runRaceSim(drivers, simConfig) {
           else sv.score -= __pen
         }
       }
-      for (let x = 0; x < n; x++) { const sv = scored[x]; if (!sv.dnf && Math.random() < __mechRate) { sv.dnf = true; sv.dnfLap = Math.random() } }
+      for (let x = 0; x < n; x++) { const sv = scored[x]; if (!sv.dnf && Math.random() < S.mechRate) { sv.dnf = true; sv.dnfLap = Math.random() } }
     }
 
     scored.sort((a, b) => {
@@ -533,13 +642,13 @@ function runRaceSim(drivers, simConfig) {
       const __flTilt = (sp) => (trackGroup === 'SS' ? Math.max(0.1, 1 - 0.45 * (sp - 0.5)) : Math.max(0.1, 1 + 1.0 * (sp - 0.5)))
       const __domSp = (i) => (trackGroup === 'SS' ? (__ssSpd.get(i) != null ? __ssSpd.get(i) : 0.5) : (drivers[i].__spdPct != null ? drivers[i].__spdPct : 0.5))
       let llW = 0
-      const llw = __pool.map((s, r) => { const c = r < __LLC.length ? __LLC[r] : __LLC[__LLC.length - 1] * Math.pow(0.75, r - __LLC.length + 1); const sp = __domSp(s.i); const w = c * __llTilt(sp) * __wLL(s); llW += w; return w })
+      const llw = __pool.map((s, r) => { const c = r < S.LLC.length ? S.LLC[r] : S.LLC[S.LLC.length - 1] * Math.pow(0.75, r - S.LLC.length + 1); const sp = __domSp(s.i); const w = c * __llTilt(sp) * __wLL(s); llW += w; return w })
       let remLL = totalRaceLaps
       for (let r = __pool.length - 1; r >= 0; r--) { if (r === __lead) continue; const ll = Math.max(0, Math.min(Math.round(llw[r] / llW * totalRaceLaps), remLL)); simLL[__pool[r].i] = ll; remLL -= ll }
       simLL[__pool[__lead].i] = remLL
       scored.forEach((s) => { sumLapsLed[s.i] += simLL[s.i] })
       let flWt = 0
-      const flw = __pool.map((s, r) => { const c = r < __FLC.length ? __FLC[r] : __FLC[__FLC.length - 1] * Math.pow(0.85, r - __FLC.length + 1); const sp = __domSp(s.i); const w = c * __flTilt(sp) * __wLL(s); flWt += w; return w })
+      const flw = __pool.map((s, r) => { const c = r < S.FLC.length ? S.FLC[r] : S.FLC[S.FLC.length - 1] * Math.pow(0.85, r - S.FLC.length + 1); const sp = __domSp(s.i); const w = c * __flTilt(sp) * __wLL(s); flWt += w; return w })
       let remFL = totalRaceLaps
       for (let r = __pool.length - 1; r >= 0; r--) { if (r === __lead) continue; const fl = Math.max(0, Math.min(Math.round(flw[r] / flWt * totalRaceLaps), remFL)); simFastLaps[__pool[r].i] = fl; remFL -= fl }
       simFastLaps[__pool[__lead].i] = remFL

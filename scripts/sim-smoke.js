@@ -187,5 +187,43 @@ console.log('    If a row has drifted from the archive values in the comment abo
 console.log('    wreck layer changed — find out why before trusting a backtest.')
 
 
+// ---------------------------------------------------------------- caution mix (FIX C)
+// The mix is OFF unless a board passes cautionMix, so the rows above are unchanged. With a
+// track's own caution-bucket frequencies supplied, delivered attrition must land on the
+// budget instead of on the bucket's multiplier - that is the whole point of the K
+// normalization, and it is the one property worth asserting rather than printing.
+console.log('\n[caution mix — delivered should land ON budget for any distribution]')
+{
+  const dists = [
+    ['calm-heavy   [7,1,0]', [7, 1, 0]],
+    ['Talladega    [4,5,0]', [4, 5, 0]],
+    ['even         [1,1,1]', [1, 1, 1]],
+    ['chaos-heavy  [0,1,4]', [0, 1, 4]],
+  ]
+  for (const [grp, label] of [['SS', 'Superspeedway'], ['INT', 'Intermediate'], ['SHORT', 'Short & Flat Tracks']]) {
+    const rate = resolveDnfRate('cup', label, null, 0)
+    for (const [name, cnt] of dists) {
+      const tot = cnt[0] + cnt[1] + cnt[2]
+      const rows = runRaceSim(scored, {
+        numSims: SIMS, cautionPreset: presets[1], dnfRate: rate,
+        totalRaceLaps: 300, trackGroup: grp, startSampling: null,
+        cautionMix: { presets, w: cnt.map(x => x / tot) },
+      })
+      const got = rows.reduce((s, r) => s + r.dnfPct, 0) / 100 / N
+      ok(Math.abs(got / rate - 1) < 0.06, `${grp} ${name} lands on budget`,
+         `${(got * 100).toFixed(1)}% vs ${(rate * 100).toFixed(1)}%  (x${(got / rate).toFixed(3)})`)
+    }
+  }
+  // A single-bucket mix must be a no-op, not a rescale.
+  const one = runRaceSim(scored, {
+    numSims: SIMS, cautionPreset: presets[0], dnfRate: 0.155,
+    totalRaceLaps: 300, trackGroup: 'INT', startSampling: null,
+    cautionMix: { presets: [presets[0]], w: [1] },
+  })
+  const oneGot = one.reduce((s, r) => s + r.dnfPct, 0) / 100 / N
+  ok(Math.abs(oneGot / 0.155 - 0.51) < 0.06, 'a single-bucket mix stays a no-op (no K rescale)',
+     `x${(oneGot / 0.155).toFixed(3)} — should match the Low multiplier, not 1.00`)
+}
+
 console.log(failures === 0 ? '\nALL PASS' : `\n${failures} FAILURE(S)`)
 process.exit(failures === 0 ? 0 : 1)
