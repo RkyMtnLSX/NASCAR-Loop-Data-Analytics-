@@ -4348,3 +4348,91 @@ WHAT A REGISTRATION WOULD NEED, sketched, not frozen:
 
 Handing this to the next session as the top lead. The DNF work today closed with nothing shipped;
 this is the thread that was actually worth pulling, and the operator found it, not me.
+
+---
+
+## 2026-08-31 — PRE-REGISTRATION: skill-tilted DNF allocation. CONTROL RUN FIRST AND IT PASSES.
+
+Operator: "Register it to properly run it I still think we are on to something here."
+
+Frozen before any fit is computed and before the holdout is touched. The control below is TRAIN-ERA
+DATA ONLY (2022-2024); no 2025-26 row has been read.
+
+### THE CONTROL, run first because it decides whether there is a study at all
+
+The confound to kill: prior rating predicts current DNF partly because prior rating predicts current
+PACE, and "did not finish" is entangled with pace. If that is all this is, accident DNFs and
+mechanical DNFs should show the SAME gradient, because the confound does not care which killed you.
+
+Train years 2022-2024, prior-window rating, quartiles Q1 (weakest) to Q4 (strongest):
+
+    group              ACCIDENT DNF Q1->Q4        MECHANICAL DNF Q1->Q4
+    Short & Flat       .0989 -> .0406  (2.4x)     .0484 -> .0226  (2.1x)
+    Road Course        .0986 -> .0609  (1.6x)     .0493 -> .0152  (3.2x)
+    Intermediate       .0954 -> .1101  (FLAT)     .0599 -> .0101  (5.9x)
+    Superspeedway      .1460 -> .1901  (INVERTED) .0511 -> .0083  (6.2x)
+
+**CONTROL PASSES, and it is not close.** The two layers have DIFFERENT group patterns, which a shared
+pace confound cannot produce. Mechanical attrition falls with rating EVERYWHERE, including the two
+groups where accidents do the opposite - that is equipment and funding, and a broken engine is not a
+pace artifact. Accident attrition falls with rating only at short tracks and road courses, is flat at
+intermediates, and INVERTS at superspeedways: the best cars crash MORE at plate tracks, which is
+exactly right, because they run at the front of the pack where the Big One starts while backmarkers
+ride the tail.
+
+Two mechanisms, two patterns, one of them pointing the opposite way from the confound's prediction.
+
+### WHY THIS SLOTS INTO THE EXISTING ARCHITECTURE
+
+`runRaceSim` ALREADY splits the budget into the two layers - `WRECK_ACC_SHARE` (SHORT .63, INT .70,
+SS .85, ROAD .50) sends part to correlated wreck events and the rest to independent mechanicals.
+Nothing new has to be invented; each layer gets its own tilt, and the measurement above says they
+must be tilted differently or not at all.
+
+### FROZEN PROTOCOL
+
+PARAMETERIZATION. For driver i with speedScore percentile p_i in [0,1] within the field (the sim
+already computes this; using it keeps fit and runtime identical):
+
+    mult_i = exp(beta * (0.5 - p_i)),  rescaled so mean(mult) = 1 over the field
+
+so the FIELD-WIDE BUDGET IS PRESERVED EXACTLY and only its allocation changes. This matters: the
+2026-08-31 attrition sweep showed forecast quality is sensitive to the total, so the total is held
+fixed and the total is not what is being tested.
+
+Applied as: mechanical probability `mechRate * mult_i(beta_mech[group])`, and wreck-victim
+probability `p * mult_i(beta_acc[group])`.
+
+FITTING. beta_mech[group] and beta_acc[group] by logistic regression of the binary outcome on
+(0.5 - p_i), fit on TRAIN 2022-2024 ONLY, per series-pooled group. Fitted to ATTRITION DATA, never to
+forecast scores - the holdout metric is not in the fit's objective at any point. Eight parameters
+(4 groups x 2 layers), each from 900-3,300 driver-races.
+
+HOLDOUT. 2025-2026, all three series, the same 162 races and the same reconstruction the caution mix
+was judged on, so the two studies are directly comparable. Both arms get byte-identical driver
+inputs; only the tilt differs.
+
+GATES, both required, identical to the ones Fix C failed:
+  a. Finishing-position chi-square NO WORSE than current on win / top5 / top10 reliability bins.
+  b. Brier non-degradation on win / top5 / top10.
+Plus a rail: total DNF cars per race must not move (the tilt is mean-preserving by construction, so
+a shift means the implementation is wrong, not that the model changed).
+
+MC NOISE IS ALREADY MEASURED, so "no worse" has a scale: winBrier sd 0.000007, t5Brier sd 0.000049
+over five repeats. A degradation under ~2 sd is not a fail; a degradation of the size Fix C produced
+(11 sd) is.
+
+DECLARED IN ADVANCE:
+  * A fail CLOSES this. The gradient would then stand as a documented property of the data that the
+    sim is right to ignore, and I will not go looking for a third framing of the same idea.
+  * The holdout reconstruction still has NO PRACTICE DATA. That weakens favorite identification,
+    which is the exact quantity this study is trying to improve - so this test is BIASED AGAINST the
+    tilt, not for it. Stating that now so a pass cannot later be waved away and a fail cannot be
+    blamed on it after the fact.
+  * If it passes, it still does not ship on this evidence alone: it would need the practice-carrying
+    reconstruction before touching the live board, because a change that reprices favorites is the
+    most consequential kind this product makes.
+
+PREDICTION ON RECORD, so this is falsifiable rather than a fishing trip: win Brier improves, driven
+by the top reliability bin closing from 24.0->32.1 toward parity, and the improvement is largest at
+short tracks and road courses and absent or slightly negative at superspeedways.
