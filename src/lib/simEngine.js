@@ -566,6 +566,13 @@ function runRaceSim(drivers, simConfig) {
   const __wSum = __mixW.reduce((a, b) => a + (b > 0 ? b : 0), 0)
   __mixW = __wSum > 0 ? __mixW.map(x => (x > 0 ? x : 0) / __wSum) : __mixPresets.map(() => 1 / __mixPresets.length)
   const __mixOn = __mixPresets.length > 1
+  // levelNormalize (2026-08-31): the CLIFF FIX. Applies the same K normalization to a SINGLE
+  // preset, so the chosen bucket sets the SHAPE (wreck pool, dominator curves, noise width) and
+  // stops setting the attrition LEVEL as a side effect. dnfRate already carries the level, measured
+  // from this same track, so the bucket setting it again is a double application — and it is what
+  // made a fraction of one caution swing attrition ~80% across the <6 / <11.5 boundaries.
+  // Registered in BACKTEST_LOG 2026-08-31. Off unless the caller asks.
+  const __lvlNorm = !!simConfig.levelNormalize
 
   const __bucketOf = p => (p.value <= 5 ? 'low' : p.value <= 8 ? 'mid' : 'high')
   const __wmFor = p => {
@@ -575,7 +582,7 @@ function runRaceSim(drivers, simConfig) {
   }
 
   let __K = 1
-  if (__mixOn) {
+  if (__mixOn || __lvlNorm) {
     const wms = __mixPresets.map(__wmFor)
     for (let pass = 0; pass < 4; pass++) {
       const eff = dnfRate / __K

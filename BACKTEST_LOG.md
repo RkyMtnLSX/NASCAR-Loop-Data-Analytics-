@@ -5299,3 +5299,64 @@ DECLARED IN ADVANCE:
     itself the finding.
   * PREDICTION: gates a, d and e pass mechanically; gate b lands neutral, within 2 sd either way.
     Recording that so a neutral result cannot later be narrated as a win.
+
+### 2026-08-31 — CLIFF FIX RESULT: gate C FAILS on repeat. Not shipped. The cliff stands.
+
+    GATE A  cliff eliminated                    PASS   74% jump across the boundary -> 0%
+    GATE B  Brier non-degradation, 4 runs       PASS   win neutral (2/2 sign split, t=1.1)
+                                                       top5 t=+1.3 ns · top10 t=+2.7 BETTER
+    GATE D  schedule DNF bias toward zero       PASS   -0.53 -> +0.18 cars/race
+    GATE E  cup Talladega no regression         PASS   20.6% vs 20.9% measured
+    GATE C  no reliability bin gets worse       **FAIL**
+
+Gate A, the point of the exercise, works exactly as designed. Synthetic INT track swept across the 6.0
+boundary at a fixed 15.5% budget:
+
+    avgCau   bucket    CURRENT    FIXED
+     5.5     Low         7.8%     15.5%
+     5.9     Low         7.8%     15.5%
+     6.1     Medium     13.6%     15.5%
+     6.5     Medium     13.7%     15.4%
+
+The 74% discontinuity becomes zero. The level stops depending on which side of a threshold a track's
+mean caution count happens to land, which is precisely what was broken.
+
+**AND IT STILL DOES NOT SHIP.** Gate C was measured ONCE and failed 6-2; I then repeated it three
+times, because running a gate once is the mistake I have made repeatedly today and gate B was given
+four runs for exactly this reason. The degradations are CONSISTENT, not noise:
+
+    top10  5-10% bin    0.48->1.29 · 0.56->1.66 · 0.66->1.27     worse ~0.9pt every run
+    top10  35%+ bin     1.07->1.62 · 1.14->1.84 · 1.09->1.63     worse ~0.6pt every run
+    top5   5-10% bin    0.97->1.41 · 1.20->1.30 · 1.23->1.25     worse, small, every run
+    win    2-5% bin     0.75->1.07 · 0.85->0.98 · 0.91->1.04     worse ~0.2pt every run
+    top10  20-35% bin   2.27->1.93 · 2.10->1.52 · 2.52->1.69     BETTER ~0.5pt every run
+
+The fix REDISTRIBUTES calibration error rather than removing it: the high-probability band improves,
+the 5-10% band gets worse by more. Aggregate Brier hides this because the low bins hold most of the
+mass. Registration said all gates required. Gate C fails. Not shipped.
+
+THIS IS THE THIRD TIME TODAY a mechanically correct attrition fix has failed on calibration, and the
+pattern is now unmistakable and worth stating as doctrine: **this sim's finishing distributions are
+not limited by how many cars retire.** Every intervention that moved attrition — the caution mix, the
+skill tilt in four forms, and now level normalization — bought correct retirement counts and paid for
+them somewhere in the probability bands. That is a property of the model, not four coincidences.
+
+### WHAT REMAINS TRUE, AND WHAT CAN ACTUALLY BE DONE
+
+The cliff is real, 15 cells sit within half a caution of one, and cup Daytona is 0.20 away. Nothing
+above changes that. What changed is that the obvious fix is now known to cost calibration.
+
+HYSTERESIS, the fallback named in the registration, turns out NOT to be a drop-in: the preset is
+recomputed from scratch on every board load, so there is no "previous bucket" to be sticky about.
+It would need per-track persisted state — a column or a small table — which is real machinery and its
+own decision, not a one-line change.
+
+THE ZERO-RISK OPTION, and the recommendation: make the fragility VISIBLE instead of silent. The
+Caution Rate card already shows the auto note ("auto: track avg 6.13 -> Medium"). Adding the distance
+to the nearest boundary — and flagging it when under ~0.5 — turns an invisible coin-flip into
+something the operator can see and manually override on the two or three boards a season where it
+matters. No model change, no calibration risk, no gate.
+
+Logged as the state of play: cliff documented, magnitude measured, the principled fix tested and
+rejected on its own registered gates, and the remaining options are persistence (real work) or
+visibility (cheap).
