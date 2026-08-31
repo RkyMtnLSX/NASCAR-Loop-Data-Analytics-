@@ -5717,3 +5717,69 @@ not DNF count".
 the `WRECK_SETS` budget note in `simEngine.js`, and the Caution Rate card hint. All five
 previously asserted the removed behaviour as correct. **The archive's `wreck-v1.1-cb` entry is
 left as written** — it is a historical record and should not be edited; this entry supersedes it.
+
+---
+
+## 2026-08-31 — REGISTRATION: one-sided DNF tilt, re-tested on the FIXED engine
+
+**Written and pushed BEFORE the fit or the holdout was run.** Operator asked for this directly:
+*"I just wish there was a way it could only effect mid field and tail rather than the front runners."*
+
+### Why this is not reopening a closed line on the same evidence
+
+The DNF-tilt line was closed after four parameterizations. Every one of them was fitted and judged on
+an engine that **systematically under-delivered its own DNF budget by ~13%** — the caution-preset
+coupling. `DNF_TILT_LEVEL = 1.15` exists in the engine specifically to compensate for it, and says so.
+
+That coupling was removed today. Gate D measured DNF bias moving from −0.53 to −0.11 cars per race.
+So `1.15` now corrects for a defect that no longer exists, and every tier number in the
+2026-08-31 tier-table entry was measured on a substrate that no longer matches the shipped engine.
+
+The substrate changed. That is the justification, and it is the only one. **If the re-measured flat
+tier table looks materially like the old one, that is evidence AGAINST this being worth pursuing and
+it should be recorded as such, not explained away.**
+
+### Frozen form
+
+Every previous version was a smooth monotone curve rescaled to mean 1 over the field. That rescaling
+is the mechanism that forced the strongest quartile down: under a fixed field budget you cannot raise
+the bottom without lowering the top. The one-sided variant the previous entry proposed
+(*"cap the tilt at the strong end"*) was never built. This is it.
+
+    mult_i = C[tier(i)]         tier = speedScore quartile within the driver's own field
+    C_t    = obs_t / pred_t     per tier, per track group, measured on TRAIN 2022-2024 ONLY
+
+`pred_t` is the FIXED engine run flat on train. No mean-1 rescaling and no separate LEVEL constant:
+setting `C_t = obs_t/pred_t` lands every tier on its own observed rate by construction, and therefore
+lands the field total on the observed total automatically. The "do not harm the top" property is a
+consequence of the form, not a patch bolted onto it — `C_Q4` makes Q4 exact by definition.
+
+`DNF_TILT_LEVEL` is NOT inherited. It is superseded by this form and must not be applied on top.
+
+Shrinkage: a tier with fewer than 200 observed DNF events in a group has `C_t` shrunk toward 1.0 by
+`min(1, events/200)`, the same principle `resolveDnfRate` uses on thin track history.
+
+### Step 1 — measurement, no decisions (this determines the shape; I do not know it yet)
+
+Re-run the flat FIXED engine on train and record predicted vs actual DNF% per quartile per group.
+The old table (stale substrate) was Q4 12.8→12.3 actual, Q3 14.1→15.2, Q2 14.9→16.8, Q1 15.8→20.4.
+**Prediction recorded before looking:** the cliff fix raises all four predictions ~1.4 points, so I
+expect Q4 to now OVER-predict (~14.1 vs 12.3 actual) and Q1 to still under-predict. If that holds,
+the correct move is a small reduction at Q4 and a large increase at Q1 — which is still one-sided in
+the sense that matters, but it is NOT "leave the top untouched", and I will say so plainly.
+
+### Gates, fixed now (holdout 2025-26, 162 races, ≥3 runs, null = CURRENT vs CURRENT)
+
+- **GATE 1 — the per-tier rail the previous entry specified and this run must not fail.** No tier's
+  holdout predicted DNF rate may end FURTHER from its actual than the flat model already is.
+- **GATE 2 — the top must not be harmed.** Q4 top10 Brier must not degrade by more than the null
+  floor. This is the gate the fitted tilt failed at −23.40e-5, and it is the operator's actual ask.
+- **GATE 3 — aggregate.** win / top5 / top10 Brier delta vs CURRENT, judged against the null.
+- **GATE 4 — budget.** Overall DNF bias must not worsen beyond −0.20 cars/race.
+
+**Decision rule: ship only if GATE 1 passes for ALL tiers AND GATE 2 passes.** Gates 3 and 4 are
+reported but do not by themselves justify shipping — the aggregate passing while the top degrades is
+the exact failure mode that produced the "DO NOT SHIP AS FITTED" reversal earlier today.
+
+**Instrument limit that applies to every number below:** the reconstruction names the same favourite
+on 5/5 cup, 0/3 O'Reilly, 2/3 trucks boards and runs 2.53 points less confident than live. Weight cup.
