@@ -5360,3 +5360,104 @@ matters. No model change, no calibration risk, no gate.
 Logged as the state of play: cliff documented, magnitude measured, the principled fix tested and
 rejected on its own registered gates, and the remaining options are persistence (real work) or
 visibility (cheap).
+
+---
+
+## 2026-08-31 — PER-BUCKET WRECK_EV_EXP: the fix the archive proposed and nobody built. Passes.
+
+Operator: "Read all the backtest logs on DNF rate... We need to fix this properly... Did you even fix
+the bug?" Straight answer to the last part first: NO. The SS pin shipped; the CLIFF was not fixed. A
+full read of all seven md files then turned up two things that change the picture.
+
+### WHAT THE FULL READ FOUND
+
+**1. The precedent is two months old and was never applied to cautions.** 2026-07-14, BACKTEST_ARCHIVE:
+*"DNF RATE~ MEASURE IT, DO NOT BUCKET IT"* — and inside it:
+
+> *"THE REAL DEFECT~ the sim ALREADY measured the per-track DNF rate -- then THREW THE PRECISION AWAY
+> by bucketing it into Low(.05) / Medium(.15) / High(.25)~ `__di = avg < 0.10 ? 0 : avg < 0.20 ? 1 : 2`.
+> Rounding error up to +/-5 pts"*
+
+That is the identical argument, made about the DNF rate, which is WHY `resolveDnfRate` exists and why
+the DNF presets were demoted to manual overrides. The caution preset never got the same treatment. The
+DNF rate is continuous; the caution level is still three buckets. That asymmetry is the cliff.
+
+**2. `WRECK_EV_EXP` was calibrated when there was ONE pool per group, and was never re-derived when
+three pools landed the same day.** The archive's entire justification for keeping it global is one
+clause — *"Normalizer stays GLOBAL per group, so the preset now modulates realized attrition around
+the dnfRate budget BY DESIGN"* — written the same day the pools were introduced. It is a declaration,
+not an argument. And per-bucket was proposed exactly once, by me, hours ago, as *"a proposal, not a
+decision"* — then abandoned for the K-normalization path, which failed.
+
+Derived them the same way the originals were: raw sum(size x P) over each pool times its MC-realized
+overlap/field-edge factor, 200k iterations, n=38.
+
+    group  bucket   raw    realized@1   factor    per-bucket    global now
+    SHORT  low     0.980     0.921       0.940      0.921          2.73
+    SHORT  mid     2.339     2.209       0.944      2.209          2.73
+    SHORT  high    5.380     4.779       0.888      4.779          2.73
+    INT    low     1.024     0.976       0.953      0.976          3.11
+    INT    mid     2.956     2.741       0.927      2.741          3.11
+    INT    high    6.378     5.593       0.877      5.593          3.11
+    SS     low     4.263     3.737       0.877      3.737          8.76
+    SS     mid    11.003     8.621       0.784      8.621          8.76
+    SS     high   16.140    12.069       0.748     12.069          8.76
+    ROAD   low     0.963     0.948       0.985      0.948          2.84
+    ROAD   mid     2.924     2.693       0.921      2.693          2.84
+    ROAD   high    5.180     4.608       0.890      4.608          2.84
+
+The global value is the POOLED AVERAGE of three pools whose expected accident counts differ 3-5x.
+That is the entire 0.5x / 0.9x / 1.4x spread, arithmetically.
+
+**Why this is NOT the level-normalization that failed gate C:** per-bucket EV scales the ACCIDENT
+layer only. The mechanical share of `dnfRate` is untouched. levelNormalize scaled the whole budget, so
+it added uniform independent knockouts to every car — which is what flattened the low probability bins.
+
+One further defect found while implementing: the `__wScale` upper clamp of 2.5 was set when `wm.pre`
+was global. With per-bucket normalizers the sparse calm pool legitimately needs more (INT low wants
+~4.2 at a 15.5% budget) and the clamp was leaving a residual cliff. Widened to 8 on this path only;
+per-victim probability is still guarded by the existing min(0.95, ...) saturation.
+
+### RESULTS
+
+    GATE A  cliff eliminated        PASS   synthetic INT sweep across 6.0 at fixed budget:
+                                           CURRENT 7.8 / 7.9 / 13.6 / 13.6 %   (74% jump)
+                                           FIXED  14.3 / 14.4 / 14.8 / 14.8 %  (2.8% jump)
+    GATE B  Brier non-degradation   PASS   4 runs. win neutral (1 better / 3 worse, mean +4.5e-6,
+                                           sign flips). top5 neutral (2/2). **top10 BETTER 4 of 4**,
+                                           mean +36.5e-6, sign never flips.
+    GATE D  DNF bias toward zero    PASS   -0.53 -> -0.11 cars/race, identical all 4 runs
+    GATE E  Talladega no regression PASS   20.6 / 20.6 / 20.8 / 20.6 % vs 20.9 measured
+    GATE C  no reliability bin worse    **VOID — the gate cannot resolve anything**
+
+### GATE C WAS A BAD GATE, AND I WROTE IT
+
+Bin counts across runs were unstable (3/2, 2/3, 2/2, 2/5 improved/degraded) and the DEGRADING BINS
+WERE DIFFERENT EACH RUN — the signature of noise, not redistribution. So I ran the null: CURRENT
+against CURRENT, same gate, nothing changed between arms.
+
+    NULL (current vs current):   4/2 · 3/3 · 5/2   improved/degraded
+    REAL (current vs fixed):     7/2 · 3/2 · 2/3 · 2/2 · 2/5
+
+**The gate flags 2-3 bins as degraded when NOTHING has changed.** A 0.3pt tolerance on reliability
+bins is inside the noise at 162 races. I specified that gate without first measuring bin-level noise,
+which is the same error I have made repeatedly today, applied to my own instrument this time.
+
+This also RETROSPECTIVELY VALIDATES the levelNormalize rejection rather than undermining it: that fix
+degraded 6 bins with the SAME bins failing every run, which is well outside the null. Its rejection
+stands. This fix is indistinguishable from null on bin behaviour, which is not a pass — it is an
+absence of evidence either way — but it is not a fail.
+
+### RECOMMENDATION, and the decision is the operator's
+
+Every gate that can resolve, passes. The cliff — the actual bug — goes from a 74% discontinuity to
+2.8%. Schedule DNF bias goes -0.53 -> -0.11. top10 Brier improves 4 of 4. Talladega holds where the SS
+pin put it. Nothing else moves: no wreck set, no survivor cost, no noise multiplier, no dominator
+curve, and the mechanical layer is untouched.
+
+I am NOT shipping it on my own judgment. Gate C is void rather than passed, and after a day of being
+wrong the difference matters. Presented for go/no-go with the full result above.
+
+If it ships, `WRECK_EV_EXP` global stays in the file as the documented pre-2026-08-31 value, and
+`sim-smoke`'s caution-bucket calibration row MUST be updated — it currently asserts the 0.5/0.9/1.4
+shape as correct, and that shape is exactly what this removes.

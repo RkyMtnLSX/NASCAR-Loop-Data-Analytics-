@@ -210,6 +210,29 @@ const WRECK_P = { SHORT: { a: 0.165, b: 0.179, c: 0.261 }, INT: { a: 0.200, b: 0
 // draws (30k-sim MC), undershooting the dnfRate budget. Values below are raw x realized
 // factor (0.940 / 0.895 / 0.829 / 0.926) so realized accident DNFs land ON budget.
 const WRECK_EV_EXP = { SHORT: 2.73, INT: 3.11, SS: 8.76, ROAD: 2.84 }
+// PER-BUCKET normalizers (derived 2026-08-31, same method as the 2026-07-28 originals: raw
+// sum(size x P) over the pool times the MC-realized overlap/field-edge factor, 200k iters, n=38).
+//
+// WHY THESE EXIST. The globals above were calibrated on 2026-07-28 when there was ONE wreck pool
+// per group. The calm/typical/chaotic pools landed the SAME DAY (wreck-v1.1-cb) and the normalizer
+// was never re-derived, so it became a pooled average across three pools whose expected accident
+// counts differ 3-5x. That is the whole of the 0.5x / 0.9x / 1.4x attrition spread — and, via the
+// hard <6 / <11.5 caution bucketing, the cliff that put cup Talladega on half its real attrition.
+//
+// The archive's one-line justification ("Normalizer stays GLOBAL per group, so the preset now
+// modulates realized attrition around the dnfRate budget BY DESIGN") is a declaration, not an
+// argument, and it was written the same day the pools were introduced. Per-bucket was proposed
+// once (BACKTEST_LOG 2026-08-31, "a proposal, not a decision") and never built until now.
+//
+// This scales the ACCIDENT layer only. dnfRate's mechanical share is untouched — which is what
+// makes it a different intervention from the levelNormalize path that failed gate C by scaling
+// both layers and flattening the low probability bins.
+const WRECK_EV_EXP_B = {
+  SHORT: { low: 0.921, mid: 2.209, high: 4.779 },
+  INT:   { low: 0.976, mid: 2.741, high: 5.593 },
+  SS:    { low: 3.737, mid: 8.621, high: 12.069 },
+  ROAD:  { low: 0.948, mid: 2.693, high: 4.608 },
+}
 // gxc-v3.1-dnfLL (2026-07-28): DNF'd drivers keep the laps they led before wrecking. Measured
 // share of laps led by eventual DNFers (weekend-feed statuses x loop laps_led, 370 races):
 // SHORT 2.0% / INT 8.2% / SS 17.3% / ROAD 4.1% — old sim credited 0%. DNFers join LL/FL
@@ -578,7 +601,9 @@ function runRaceSim(drivers, simConfig) {
   const __wmFor = p => {
     const cb = __bucketOf(p)
     const sp = WRECK_SETS[trackGroup] ? WRECK_SETS[trackGroup][cb] : null
-    return sp && sp.length ? { sets: sp, P: WRECK_P[trackGroup], surv: WRECK_SURV_COST[trackGroup], accShare: WRECK_ACC_SHARE[trackGroup], pre: WRECK_EV_EXP[trackGroup] } : null
+    const pre = simConfig.perBucketEV && WRECK_EV_EXP_B[trackGroup]
+      ? WRECK_EV_EXP_B[trackGroup][cb] : WRECK_EV_EXP[trackGroup]
+    return sp && sp.length ? { sets: sp, P: WRECK_P[trackGroup], surv: WRECK_SURV_COST[trackGroup], accShare: WRECK_ACC_SHARE[trackGroup], pre } : null
   }
 
   let __K = 1
@@ -608,7 +633,11 @@ function runRaceSim(drivers, simConfig) {
       LLC: ((LL_CURVES_G[trackGroup] || {})[cb]) || LL_CURVES[cb],
       FLC: ((FL_CURVES_G[trackGroup] || {})[cb]) || FL_CURVES[cb],
       wm,
-      wScale: wm ? Math.max(0.3, Math.min(2.5, (n * __effRate * wm.accShare) / wm.pre)) : 0,
+      // The 2.5 upper clamp was set when wm.pre was a GLOBAL per-group normalizer. With the
+      // per-bucket normalizer the sparse calm pool legitimately needs a larger scale (INT low
+      // wants ~4.2 at a 15.5% budget), and clamping it there is what leaves a residual cliff.
+      // Per-victim probability is still guarded by the min(0.95, ...) saturation downstream.
+      wScale: wm ? Math.max(0.3, Math.min(simConfig.perBucketEV ? 8 : 2.5, (n * __effRate * wm.accShare) / wm.pre)) : 0,
       mechRate: wm ? __effRate * (1 - wm.accShare) : 0,
     }
   })
@@ -808,6 +837,7 @@ export {
   CAUTION_PRESETS_BY_SERIES,
   DNF_BY_GROUP,
   DNF_TILT_CURVE,
+  WRECK_EV_EXP_B,
   DNF_TILT_LEVEL,
   DNF_CAP,
   DNF_FLOOR,
