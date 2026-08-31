@@ -5956,3 +5956,35 @@ smoothly to neutral across the middle of the field rather than stepping.
    "try a seventh" but that the sim's finishing distributions are not sensitive enough to WHO
    retires for tier-level DNF accuracy to reach the markets, and the line should close on that
    basis rather than on any individual gate.
+
+### AMENDMENT to the 2026-08-31 two-parameter registration (7065fe3) — GATE 0 split changed
+
+**Written and pushed BEFORE Gate 0 was evaluated. The gate itself is unchanged; only the split is.**
+
+GATE 0 as registered splits TRAIN by YEAR. `train.txt` does not carry a year — its head is
+`series|track|group|priorDnf|nPrior|priorCautions|wl|wm|wh` and nothing in it is a date. The rows
+LOOK chronological (row 1 Daytona, row 2 Atlanta, row 3 Las Vegas — the 2022 season opening), but
+assuming row order is date order is the exact error made and corrected earlier today on
+`holdout-practice.txt`, where 2025 occupied rows 1-83 and 2026 rows 33-94. Not repeating it.
+
+Regenerating the file with a year column means re-running the reconstruction SQL against Supabase,
+which is a 274-race windowed query against a 60s statement timeout. Not worth the risk of a
+half-written data file to a gate that has a cheaper valid form.
+
+**Amended GATE 0 split:** deterministic seeded half-split of the 274 train races (seed 20260831,
+alternating assignment after a seeded shuffle), plus the same table computed BY SERIES as a
+secondary read. Pass condition is unchanged: Q1 and Q4 gaps must carry the same sign in both halves
+with |gap| >= 0.5 in each. The registered stopping condition is unchanged: if Q2 and Q3 are equally
+stable, pinning them was an artifact and the test halts.
+
+**What this costs, stated honestly.** A year split would have tested TEMPORAL stability — does the
+gap persist across seasons, through rule and package changes. A random split tests only SAMPLING
+stability — is the gap bigger than noise within this pooled sample. Sampling stability is what the
+leakage question actually needs (is Q2's instability real or one unlucky holdout draw), so the gate
+still does its job. But it is the weaker of the two claims and no conclusion below may be written up
+as evidence of temporal stability. The series split is reported as a partial substitute: replicating
+across cup / O'Reilly / trucks is a generalization check, though a weaker one than across seasons.
+
+**Carrying forward:** `train.txt` and `holdout.txt` should carry an explicit year and race id the
+next time they are regenerated. Their absence has now cost two separate tests — the non-temporal
+split error this morning and this amendment. Logged as a data-format debt.
