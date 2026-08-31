@@ -58,11 +58,33 @@ rediscover the symptoms and rebuild them. Full history in BACKTEST_LOG 2026-08-3
 tested through the SIM — only on retirement counts. It now is, on 29 cup tracks: MAE 4.41→3.10, bias
 −4.29→−2.27, better at 26 of 29 tracks. It stands, and now on both error and bias rather than bias alone.
 
-**WHAT WAS CLOSED.** The DNF-tilt line, after four parameterizations against a pre-registered holdout.
-The skill gradient in the data is REAL (accident-vs-mechanical control passed decisively: mechanical
-attrition falls with rating everywhere, accident only at short tracks) — but the sim's finishing
-distributions are not sensitive enough to WHO retires for it to reach win/top5/top10. Do not reopen it
-on the strength of the tier tables; calibration improves and forecasts do not.
+**WHAT WAS CLOSED — the DNF-tilt line, now after SIX parameterizations.** Four failed earlier; two
+more were registered and run on the FIXED engine after the cliff fix changed the substrate (the old
+studies all ran on an engine under-delivering its DNF budget ~13%, which `DNF_TILT_LEVEL = 1.15`
+existed to paper over). Neither shipped:
+
+- **Four-parameter one-sided** (BACKTEST_LOG 8a76a87 / 2605629): FAILED the Q2 rail. Its train gap
+  did not replicate out of sample. **But it proved the mechanism** — removing the mean-1 rescaling
+  removed the harm to the strong tier that killed every earlier version.
+- **Two-parameter, Q1/Q4 only** (7065fe3 / 46950e1 / e24a808): **PASSED EVERY REGISTERED GATE** and
+  was still not shipped. Two post-hoc checks, both declared in advance as able to argue only against
+  shipping, killed it: the lone forecast gain went from 1.5x its null floor at 3 runs to 1.0x at 5
+  (it moved TOWARD noise, and top5 flipped sign), and the entire effect turned out to be trucks —
+  **cup top10 is −0.52e-5 against a 7.94e-5 floor, i.e. zero**, with Q4 trending the wrong way for
+  cup and O'Reilly.
+
+**The standing conclusion, now six-for-six: every parameterization improves DNF calibration by tier
+and NONE moves win/top5/top10 at adequate power.** Getting the right cars to retire is not the same
+as getting the finishing order right. DO NOT reopen this on a tier table. Reopen only if the SIM's
+sensitivity to retirement identity changes — that is the actual blocker and it is upstream of any
+tilt. The frozen two-parameter curve is in `scripts/backtest-data/tilt-2param.json` and is
+defensible if per-driver DNF% is ever displayed or sold; it is not a forecasting improvement.
+
+Two process lessons logged with it: run power checks before believing a marginal beyond-noise result
+(3 runs would have shipped a false positive), and **any per-tier work needs a PER-SERIES rail** —
+cup/O'Reilly/trucks have wildly different tier gaps and a single aggregate gate hid a trucks-only
+effect. `train.txt`/`holdout.txt` should carry an explicit year and race id at next regeneration;
+their absence cost two separate tests today.
 
 **TWO CORRECTIONS I HAD TO MAKE TO MYSELF, recorded because the pattern repeats.** (1) I called the
 caution/DNF coupling a defect; it was `wreck-v1.1-cb`, shipped 2026-07-28, by design, documented in

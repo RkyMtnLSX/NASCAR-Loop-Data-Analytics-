@@ -4,6 +4,36 @@ Stable operating rules. Edit ONLY when a rule actually changes. Session start: r
 ## What this is
 PitBoard — NASCAR betting + DFS analytics product approaching subscriber launch. Operator: Aaron (atmmstrs2@gmail.com; master admin uid d7a9f822-1237-4660-9e17-0b8b526e3c44; DK username atmmstrs2). Stack: React CRA on Vercel (https://nascar-loop-data-analytics.vercel.app) + Supabase (https://dqexnylexbypjtiuctxd.supabase.co, publishable key sb_publishable_pVrtVEoQD1i9LiIvaXhS4g_ZDaUUccj). Repo: RkyMtnLSX/NASCAR-Loop-Data-Analytics- (main branch, Vercel auto-deploys). Local scraper cockpit: NascarDataScrapperV3 folder (practice watcher w/ per-lap timestamps, sheet builder w/ LAPS_RAW tab, penalties backfill).
 
+## Pushing from a Cowork / cloud session (added 2026-08-31 — READ THIS BEFORE YOU TRY TO PUSH)
+
+**A Cowork cloud session CANNOT push to this repo.** Anthropic's git proxy refuses any repo not
+attached to the session, and a repo cloned by hand inside a running session is never attached:
+
+    remote: access denied by the git proxy: RkyMtnLSX/NASCAR-Loop-Data-Analytics- is not in this
+    session's authorized repository set, so the proxy will not inject a credential for it.
+
+The error tells you to "add the repository to the session's sources." **There is no such control** —
+no UI, no slash command, no config. Do not go looking; a session burned an hour on 2026-08-31 doing
+exactly that. A user-supplied PAT does not help either: the proxy blocks the write before it reaches
+GitHub. READS work fine (`git ls-remote`, `git fetch`), so this looks like an auth problem and is not.
+
+**The route that works** — the operator's linked PC reaches GitHub normally:
+
+1. Commit in the cloud sandbox as usual.
+2. `git format-patch -1 HEAD --stdout > /tmp/x.patch`, `SendUserFile` it, then
+   `device_commit_files` it into the PitBoard Handoff folder.
+3. In `device_bash`: keep a clone at `/tmp/pb`, `git am` the patch, and push with the operator's
+   token in the URL. Redact the token from all output (`sed -E 's/ghp_[A-Za-z0-9]+/REDACTED/g'`).
+4. **Realign the cloud clone afterward**: `git fetch origin && git reset --hard origin/main`.
+   Rebuilt commits get new SHAs, so without this the local branch looks permanently "ahead" and the
+   unpushed-commit warning cries wolf until a real one is invisible.
+5. Delete the patch from the Handoff folder — `device_bash` cannot `rm` under mounts until
+   `device_request_delete_permission` is granted for that folder.
+
+Token is per session (that sandbox does not persist) and the operator pastes it. **Batch the pushes**
+— work the session, push once at the end. The alternative is the Code tab with the repo attached,
+where push just works, but it may not carry the Supabase/Vercel connectors this project leans on.
+
 ## How to edit code (browser workflow — no local clone)
 Work from a Chrome tab on a PitBoard-origin page (Vercel-origin pages' fetch wrapper can break api.github.com calls). Operator provides the GitHub token in chat each session — it is NEVER written to any file.
 1. GET contents API → decodeURIComponent(escape(atob(content)))
