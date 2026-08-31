@@ -4512,3 +4512,56 @@ reading this entry.
 NEXT, in order: build the practice-carrying reconstruction (practice_laps -> practiceGrader
 long-run pace, per historical board), refit the betas on it, re-run this holdout with a chi-square
 replacement that actually resolves, and only then put a ship decision in front of the operator.
+
+---
+
+## 2026-08-31 — WHERE the skill tilt helps, by field tier: middle and tail YES, top NO. It OVER-TILTS.
+
+Operator: "Do you think it will help price the middle of the field and the tail?" Measured instead of
+reasoned about. 162 holdout races, 15k sims, every prediction split by the driver's speedScore
+quartile within his own field.
+
+    tier            DNF% predicted -> actual        top10 Brier gain (+ = tilt better)
+                    current   tilt    ACTUAL
+    Q4 strongest      12.8     9.5     12.3              -23.40e-5   TILT WORSE
+    Q3                14.1    12.4     15.2               -9.67e-5   TILT WORSE
+    Q2                14.9    15.5     16.8              +29.41e-5   tilt better
+    Q1 weakest        15.8    20.4     20.4              +29.85e-5   tilt better
+
+ANSWER TO THE QUESTION: yes, decisively, for the middle and the tail. Q1 goes from 15.8% predicted
+against a 20.4% actual to 20.4% — exact. Q2 improves. Both bottom tiers improve on top10 Brier by
+about +30e-5, which is far larger than the aggregate effect that passed the holdout.
+
+BUT THE SAME TABLE SHOWS THE TILT IS BROKEN AT THE TOP, and this had not surfaced before because the
+aggregate result netted it out. The current FLAT model predicts 12.8% for the strongest quartile
+against a 12.3% actual — nearly exact, by accident. The tilt drags that to 9.5%, a 2.8-point
+over-correction, and top10 Brier gets WORSE by -23e-5 for exactly the drivers whose prices matter
+most. Q3 is over-corrected too.
+
+The realized spread is Q1 20.4% vs Q4 12.3%, a factor of 1.66. The fitted tilt produces 20.4 vs 9.5,
+a factor of 2.1. It is roughly 25% too steep, and all of the excess lands on the strong end.
+
+LIKELY CAUSE. The fit is a logistic slope on log-odds, applied at runtime as a MULTIPLIER ON
+PROBABILITY. Those agree when p is small and diverge as they separate; the strong end is where the
+multiplier over-extends. The |t|-shrinkage guards against fitting noise, not against this
+mis-specification. This is a form error in the parameterization I froze this morning, not a data
+problem — the train measurement is fine, the mapping from it into the sim is not.
+
+### THIS REVISES MY OWN SHIP RECOMMENDATION FROM ONE TURN AGO
+
+I said I would ship it. That was based on aggregate metrics that passed 12/12 and on a robustness
+check that held. Both of those are still true and neither was wrong. But they were blind to WHERE
+the effect lands, and the operator's question was the thing that looked. As fitted, this change would
+make the favourites — the drivers carrying most of the betting and DFS weight — measurably worse
+priced, in exchange for a larger gain spread across the field. That is not a trade I would make
+silently, and it is not what "passes the holdout" was implying.
+
+DO NOT SHIP AS FITTED. The fix is specific rather than vague: recalibrate so the tilt reproduces the
+OBSERVED tier rates instead of a log-odds slope — moment-match the multipliers to the measured
+quartile spread, or cap the tilt at the strong end so it cannot push a tier below its own realized
+rate. Then re-run this tier table AND the registered holdout. The gate for the re-test should include
+a per-tier rail that this run would have failed: no tier's predicted DNF rate may move further from
+its actual than the current model already is.
+
+STANDING FINDINGS UNCHANGED: the skill gradient is real, the control passed, and the mechanism helps
+the middle and the tail substantially. What is wrong is the shape of the curve, not the idea.
