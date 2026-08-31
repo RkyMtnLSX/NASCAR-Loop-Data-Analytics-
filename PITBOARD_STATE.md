@@ -20,7 +20,17 @@ no DB credentials, no keys.** Two checks after ANY sim change:
 exists — webpack does not flag free variables. That shipped-green-and-crashes case happened this
 session with eight names at once during the extraction.
 
-**NO MODEL CHANGE SHIPPED.** Two experiments sit in the engine behind flags, unreachable from
+**ONE MODEL CHANGE SHIPPED: the superspeedway caution pin, which was cosmetic.** SS carried a
+"pinned (calibrated)" note that only set the note — the config loader bucketed SS from its caution
+average regardless. Cup Talladega (5.33 mean cautions) sat the wrong side of the hard <6 boundary from
+Daytona (6.17), drew the CALM wreck pool, and simmed 10.4% attrition against 20.9% measured — half.
+`setCautionPreset` now pins SS to Medium for real (one line, no constant or curve moved, manual clicks
+still override). Holdout, cup Talladega: DNF 10.4% -> 20.4% · win Brier .02607 -> .02494 · top5 .11890
+-> .10932 · top10 .20981 -> .18996. It was the only SS cell affected — the other 26 holdout SS races
+were already on Medium. Shipped as a bug fix rather than through a registration because it restores
+behaviour the code and UI already claimed.
+
+**NO OTHER MODEL CHANGE SHIPPED.** Two experiments sit in the engine behind flags, unreachable from
 `src/pages/` (verified): `cautionMix` (TESTED AND REJECTED on holdout) and `skillTilt` (passed some
 gates, failed others, blocked on data). Kept rather than deleted so the next session does not
 rediscover the symptoms and rebuild them. Full history in BACKTEST_LOG 2026-08-31.

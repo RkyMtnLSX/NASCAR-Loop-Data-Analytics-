@@ -252,7 +252,15 @@ bug — a session did exactly that on 2026-08-31 and had to append a correction.
 
 The OPEN question, which is different: both `dnfRate` and the caution preset are auto-set from the same
 track's long-run history, so the modulation is applied to the track's baseline rather than to a race's
-deviation from it. Result: 24 of 30 cup tracks sim below their own measured attrition, Talladega at
-0.51x (it and Daytona straddle the hard 6.0-caution bucket boundary). Measured and written up in
-BACKTEST_LOG under 2026-08-31. Nothing has been changed; a fix moves shipped win probabilities and
-goes through the registration discipline.
+deviation from it. Result: most cup tracks sim somewhat below their own measured attrition (schedule
+bias about -2.27 cars per race). Four parameterizations were tested against a pre-registered holdout
+and NONE shipped — see BACKTEST_LOG 2026-08-31, and do not reopen it on the strength of the tier
+tables there: DNF calibration improves and the forecasts do not.
+
+TALLADEGA IS FIXED (shipped). It was a separate defect, not part of the above. Superspeedways carry a
+"pinned (calibrated)" note, but the pin only ever set the note — the config loader bucketed SS from its
+caution average anyway, and cup Talladega (5.33 mean cautions) fell the wrong side of the hard <6
+boundary from Daytona (6.17). It drew the calm wreck pool and simmed 10.4% attrition against 20.9%
+measured. `setCautionPreset` now pins SS to Medium for real. Holdout, cup Talladega: DNF 10.4% -> 20.4%,
+win Brier .02607 -> .02494, top5 .11890 -> .10932, top10 .20981 -> .18996. It was the ONE SS cell
+affected; the other 26 holdout SS races already sat on Medium.
