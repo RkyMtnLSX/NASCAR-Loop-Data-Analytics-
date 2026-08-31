@@ -4280,3 +4280,71 @@ removing a self-contradiction, both of which still hold, and today's earlier ent
 halves attrition-rate error through the sim. None of that is withdrawn. But it is now on record that
 the same axis trades against finishing-position calibration, and that nobody has yet found the
 handle that gives both.
+
+---
+
+## 2026-08-31 — OPERATOR HYPOTHESIS, and it holds: the sim gives EVERY driver the same DNF rate
+
+Operator, after the Fix C failure: "Is it because we aren't including the drivers actual DNF rate?"
+
+He is right about the mechanism. `runRaceSim` applies ONE scalar to the whole field. The mechanical
+layer is `Math.random() < mechRate`, identical per car. The wreck layer takes position-adjacent
+clusters from a random seed, so wreck exposure is near-uniform across the running order too. Nothing
+in the sim knows that some drivers retire less than others.
+
+MEASURED, all series, 2022-26, prior-window rating (n_corr >= 5) so it is a usable predictor and not
+hindsight. DNF rate by prior-rating quartile, Q1 = weakest, Q4 = strongest:
+
+    group                cup  Q1->Q4        oreilly Q1->Q4      trucks Q1->Q4
+    Short & Flat      .110 -> .047 (2.3x)  .242 -> .121       .194 -> .062 (3.1x)
+    Road Course       .088 -> .067         .242 -> .080 (3.0x) .190 -> .182 (flat)
+    Intermediate      .161 -> .157 (flat)  .162 -> .091 (1.8x) .187 -> .091 (2.1x)
+    Superspeedway     .233 -> .259 (INV)   .188 -> .184 (flat) .143 -> .280 (INV)
+
+Pooled by series, decile 1 vs decile 10: cup .172 -> .102, oreilly .183 -> .071, trucks .225 -> .067.
+
+THE STRUCTURE IS THE INTERESTING PART, and it is physically sensible rather than a fitted curiosity:
+skill protects you where retirements come from your own mistakes and from traffic - short tracks,
+road courses, non-cup intermediates - and does NOT protect you at superspeedways, where it is flat
+or slightly INVERTED. The Big One does not check your rating, and elite cars run at the front of the
+pack where it starts. So this is not "good drivers DNF less" as a global fact; it is a group-specific
+effect that switches off exactly where the wreck model is already strongest.
+
+### WHY THIS IS A BETTER LEAD THAN ANYTHING ELSE TODAY
+
+It predicts the observed forecast error, which Fix C never did. The holdout reliability table shows
+the model under-rating favorites: predicted 24.0% -> observed 32.1% in the top win bin. A uniform
+rate retires a cup short-track favorite at ~9% when he actually retires at 4.7%, and lets the
+backmarker off at 9% when he actually retires at 11%. Over-retiring the best car is precisely how a
+favorite's win probability ends up too low.
+
+It also explains the attrition sweep logged above. Win Brier improved monotonically as dnfRate was
+scaled DOWN, all the way to 0.6x, well past the point where retirement counts became badly wrong.
+Read through this finding, that sweep was not saying "the sim should retire fewer cars." It was
+finding a crude proxy for "the sim should retire fewer FAVOURITES," and the only lever available to
+it was the global rate. A skill-tilted allocation gets the same benefit while keeping the total
+correct - which is exactly what Fix C could not do, and why Fix C lost.
+
+### NOT A REGISTERED STUDY YET, AND NOTHING IS BUILT
+
+Stating that plainly given the day: the caution mix also measured beautifully and then failed its
+holdout. A measured gradient is not a validated model change, and this one has a real confound to
+handle before it can be fitted - driver_rating and finishing position are not independent, so some
+of the gradient is mechanically "cars that finish well were running", not "good cars survive". The
+prior-window construction removes the same-race version of that, not all of it.
+
+WHAT A REGISTRATION WOULD NEED, sketched, not frozen:
+  1. A control that separates survival from pace. The candidate is mechanical-only DNFs
+     (`finish_status` in the engine-failure vocabulary): equipment quality should show a skill
+     gradient, and if the gradient is IDENTICAL in accident and mechanical DNFs that points at a
+     shared confound rather than two mechanisms.
+  2. Group-specific application, with superspeedway pinned flat. A single global tilt would be wrong
+     in the one place attrition matters most.
+  3. Holdout 2025-26, the same two gates Fix C failed - chi-square AND Brier - with the same rule
+     that a fail closes it.
+  4. The reconstruction should carry PRACTICE data this time if it can. Fix C's holdout ran without
+     it, which weakened favorite identification, and favorite identification is the exact quantity
+     under test here.
+
+Handing this to the next session as the top lead. The DNF work today closed with nothing shipped;
+this is the thread that was actually worth pulling, and the operator found it, not me.
