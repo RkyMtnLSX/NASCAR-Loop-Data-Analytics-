@@ -4112,3 +4112,78 @@ everywhere, which is the auto-preset interaction, not the constants. And this me
 a synthetic field. Whether finishing distributions, win probabilities or DFS floors are better
 calibrated is the placement-tail protocol and remains undone. The refresh is now validated on the thing
 it was supposed to fix; it is not validated on the thing we actually sell.
+
+---
+
+## 2026-08-31 — PRE-REGISTRATION: caution-distribution sampling as the repair for the auto-preset interaction
+
+Operator asked how to fix the problem found today. Prototyped and measured first; registering before
+anything is built into the engine. Prototype: `scripts/dnf-caution-fix-prototype.js`.
+
+### THE DIAGNOSIS, restated in one line
+
+The sim runs 30,000 copies of the track's AVERAGE race. wreck-v1.1-cb calibrated the caution bucket as a
+property of a RACE (a calm race retires fewer cars, a chaotic one more), and then the board hands it a
+track-level average. So the modulation, which was designed to vary across races, is instead applied as a
+constant offset to a budget that already encodes the track's typical chaos. Talladega's budget is the
+attrition of an average Talladega race; multiplying it by the calm pool's 0.51x is a second application
+of the same fact.
+
+### THE CANDIDATE FIXES, both measured (30k sims, 26 cup tracks with >= 3 races)
+
+  FIX A  Draw the caution bucket PER SIM from that track's own historical distribution of
+         `races.total_cautions`, rather than collapsing it to a mean. No recalibration of anything.
+  FIX C  FIX A, plus divide the wreck scale by K = SUM_b w_b r_b, where w_b is the track's empirical
+         bucket frequency and r_b the group's measured bucket multiplier. Makes the track's own
+         distribution average to exactly 1.0x budget while PRESERVING the calm/chaotic spread within it.
+
+                          MAE     bias      (delivered attrition vs measured, DNF-rate points)
+    CURRENT              2.95    -2.04
+    FIX A                2.13    -0.75
+    FIX C                1.12    -0.49
+
+FIX C is the clear winner and it SUBSUMES the Talladega problem rather than needing a separate patch:
+Talladega 10.4% -> 19.9% against a 20.5% truth. The 6.0-caution bucket boundary that split Talladega
+from Daytona disappears, because nothing buckets a track average any more — their caution DISTRIBUTIONS
+([4,5,0] and [4,6,0]) are nearly identical and now get nearly identical treatment. The Charlotte/Texas
+overshoot introduced by the constant refresh also resolves (28.5 -> 20.7, 28.4 -> 21.1).
+
+FIX C also adds something the sim does not currently have at all: caution-scenario variance across the
+30k draws. Today every sim is the average race. That understates the spread of finishing outcomes, which
+is exactly what DFS floors/ceilings and tail markets are priced off.
+
+### DECLARED IN ADVANCE, BEFORE ANY HOLDOUT IS TOUCHED
+
+**The table above is NOT evidence the model forecasts better, and I will not present it as such.** The
+budget is derived from the same measured track attrition the delivered rate is being scored against, so
+"delivered lands on budget" is close to circular. It shows the MECHANISM works — the sim now does what it
+was told. Whether being told this improves forecasts is the open question and the only thing that ships.
+
+OBJECTIVE. Does making delivered attrition equal the budget improve FORECAST CALIBRATION on races the
+fit never saw?
+
+WHAT IS FITTED: nothing. K is computed from data, not tuned. There is no free parameter to overfit,
+which is why there is no train/test split on the mechanism itself. The holdout is about consequences.
+
+HOLDOUT: 2025-2026 cup, oreilly and trucks. TWO criteria, BOTH required:
+  a. Finishing-position chi-square NO WORSE than current on the same 24-cell win/t5/t10/fin25 band test
+     the 2026-08-29 placement-tail calibration used; and
+  b. Win-market Brier non-degradation on the boards with stored odds.
+A pass on (a) with degradation on (b) is a REJECT, not a trade, on the same reasoning as the leader-wreck
+registration: a distributional improvement bought with worse market calibration is not a win for a
+betting product.
+
+WHAT A FAIL CLOSES. If chi-square does not improve, the conclusion is that delivered attrition RATE is
+not the binding constraint on finishing distributions, and the current behaviour stays as documented
+calibration. The attrition-rate table would then stand as a measurement of a property nobody should
+optimize. I am declaring that outcome acceptable NOW so it cannot be relitigated later — this is the
+same trap as the 2026-08-30 refresh, where "more correct" was not the same claim as "predicts better."
+
+IMPLEMENTATION NOTE, for whoever builds it. `runRaceSim` computes __LLC, __FLC, __wsp, __wm and __wScale
+once outside the sim loop. FIX C needs the three bucket variants precomputed and indexed by a per-sim
+draw, plus `cautionDist` and K in simConfig. The page already queries `races.total_cautions` for the
+auto-preset (SimulationCenter ~line 285 and ~line 755) — it currently averages the data away. Nothing
+new needs to be fetched. Manual preset clicks must keep overriding, expressing "this specific race will
+be calmer/wilder than this track normally is," which is what the buckets were built for.
+
+NOTHING HAS BEEN CHANGED IN THE ENGINE. Awaiting operator go/no-go.
