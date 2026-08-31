@@ -5866,3 +5866,27 @@ the same rail plus an out-of-sample check that Q1/Q4 gap stability is real and n
   table looks better", because the tier table looking better has never once moved a forecast metric.
 - `tiltRescale: false` is now in the engine, default true, unreachable from `src/pages/`. It exists so
   this form can be reconstructed; it is not shipped behaviour.
+
+## 2026-08-31 — Pre-registration was a real rule that lived nowhere a session would find it
+
+Operator: *"why are you registering this stuff no other sessions have done this before."* Checked
+rather than assumed. He is right about what he has observed and wrong about the cause.
+
+The discipline predates this session — BACKTEST_ARCHIVE carries it around item #55, and
+BACKTEST_LOG 2026-08-23 states it outright: *"the pre-registered-confirmatory discipline this log
+uses."* So earlier sessions did register.
+
+**But it appears nowhere in PITBOARD_MANUAL.md**, which is the only thing a session is told to read
+at startup — the manual explicitly says to SEARCH the archives, never read them in full. So whether
+a session pre-registered depended on whether it happened to search deep enough into a 48k-token log
+to notice a convention nobody had written down. That is luck, not discipline, and it explains the
+operator's observation exactly.
+
+Now a standing rule in PITBOARD_MANUAL.md, carrying the three failure modes this session paid for:
+no mid-test parameter additions (`wideClamp`), gates must state WHERE the effect lands and not only
+the aggregate (the tilt passed 12/12 aggregate while degrading the favourites), and every delta is
+judged against a NULL arm (without one a gate is either unpassable or meaningless).
+
+**The general lesson, which is worth more than the specific rule:** a practice that lives only in an
+append-only archive is not a practice, it is an accident that keeps happening. If a rule matters,
+it goes in the file the startup instructions actually name.

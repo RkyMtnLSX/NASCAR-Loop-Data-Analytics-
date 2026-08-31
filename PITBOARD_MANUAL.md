@@ -30,6 +30,21 @@ Two engine flags are deliberately OFF and unreachable from `src/pages/`: `cautio
 ## Standing rules (non-negotiable)
 - NO secrets/tokens/passwords in any file, repo doc, or web form — operator pastes secrets himself. Vercel gotcha: values pasted into the "Note (Optional)" field present as empty env vars.
 - Backtest before ship for model changes. When history can't score it (new data), ship gated + prospective protocol with an explicit revert trigger, logged in BACKTEST_LOG.
+- PRE-REGISTER MODEL TESTS. This log has used pre-registered-confirmatory discipline since ~July
+  (archive #55; explicit in BACKTEST_LOG 2026-08-23) but it was never written here, so whether a
+  session followed it depended on searching deep enough to notice. It is a rule, not a convention.
+  Before running a holdout: write the frozen form, the gates, and the DECISION RULE into
+  BACKTEST_LOG, commit and push, THEN fit and run. Fit on train only; the holdout is read once.
+  Three specifics that were each learned the hard way:
+  (1) No parameter may be added or widened mid-test — that happened 2026-08-31 with `wideClamp`
+      and had to be split out and re-registered as its own arm.
+  (2) Gates must include WHERE the effect lands, not just the aggregate. A tilt passed 12/12 on
+      aggregate while making the favourites measurably worse priced; only a per-tier table caught
+      it. State a per-tier or per-segment rail in the registration.
+  (3) Judge every delta against a NULL arm (the control run against itself). Without it a gate is
+      unpassable or meaningless — MC noise alone moves most metrics.
+  Choosing a form AFTER seeing which arm failed is leakage even when the reasoning is sound. It is
+  sometimes still worth doing; say so in the registration rather than presenting it as clean.
 - md discipline: code changes, doctrine, and queued work earn entries — no color commentary. Corrections are logged as corrections. Every entry dual-written: repo + local PitBoard Handoff mirror. Update PITBOARD_STATE.md in the same motion when the live picture changes.
 - Verify every ship on the live site before reporting done. EXCEPTION (operator, 2026-08-19):
   COSMETIC fixes (labels, colors, sort order, copy) get the light check only - build green +
