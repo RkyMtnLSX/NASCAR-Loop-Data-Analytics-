@@ -4896,3 +4896,123 @@ numbers.
 
 DO NOT reopen the DNF tilt on the strength of the tier tables in this log. The tier calibration
 improves and the forecasts do not. That is the whole story.
+
+---
+
+## 2026-08-31 — PRE-REGISTRATION: the win-market confidence contradiction. Whose favorite number is wrong?
+
+Operator directed continuing. This registration is NOT the DNF tilt in another costume — it targets a
+quantity roughly fifty times larger, and it starts by admitting that my evidence for it CONFLICTS with
+what is already in this log.
+
+### THE OBSERVATION
+
+Raw-sim favorite calibration, measured today across the reconstruction (no marketAnchor, no lineup
+projection, no equipment overrides):
+
+    practice-free holdout, 162 races   board favourite predicted 23.6%  ->  actually won 34.0%
+    practice boards,        94 races   board favourite predicted 25.0%  ->  actually won 31.9%
+
+    win-prob bin      predicted -> observed  (practice-free, n)
+      2-  5%             3.2  ->   2.4    (1092)
+      5- 10%             6.9  ->   5.8    (521)
+     10- 20%            14.2  ->  15.7    (299)
+     20- 35%            24.1  ->  34.7    (75)
+
+That is a textbook UNDER-confidence signature: too much probability spread across the midfield, not
+enough on the top car. Practice narrows the favourite gap from 10.4 points to 6.9 and does not close it.
+
+### THE CONTRADICTION, stated up front
+
+This log already says the OPPOSITE, twice:
+
+  * 2026-08-2x: "cup favorites at the very top of the win market are over-confident (12 picks at
+    20.8 pct stated, 8.3 pct realized), which is what marketAnchor and the favorite shade exist for."
+  * Same series of entries: "Cup favorites were ALREADY over-confident pre (16.8 stated vs 9.1
+    realized) ... and the post board makes it WORSE."
+
+So the shipped product has a FAVORITE-SHADE TOOL that exists to push favourites DOWN, and I have just
+measured that the raw engine puts them 10 points too LOW. Both cannot be describing the same object.
+
+THE RECONCILIATION I SUSPECT, and it is a hypothesis, not a finding: those entries measure the LIVE
+BOARD — practice, projected lineups, equipment overrides, and marketAnchor. I measured the RAW SIM.
+If the raw sim under-rates the favourite and marketAnchor over-corrects past truth, both observations
+are true and the defect is in the correction layer, not the engine. That would make the favourite
+shade a patch over an engine bug, applied twice.
+
+THE ALTERNATIVE, which I rate at least as likely: my reconstruction's "favourite" is not the live
+board's favourite. Without practice or projected lineups the strongest car is identified differently,
+and a reconstruction favourite winning 34% may say nothing about a real board's favourite. Today has
+already produced three cases where a clean-looking measurement from this reconstruction did not mean
+what I first said it meant.
+
+### PRIOR ART THAT CONSTRAINS THIS, found before writing rather than after
+
+`GROUP_NOISE_MULT` — the obvious sharpening dial — has ALREADY been through registered calibration.
+SHORT (2026-08-29): "fit minimum (m=1.00, surv~16; basin flat 15-18, noise dial confirmed clean at
+1.0)." INT: "froze parsimonious m=1.00, surv=18." Both studies moved WRECK_SURV_COST and left noise
+at 1.0. SS carries 1.75 and a later registered study left it untouched.
+
+So the noise dial has been swept and rejected twice. I am NOT re-proposing it blindly. What those
+studies fit was the PLACEMENT band set (win + top5 + top10 + fin25 jointly), and their own note says
+the win band was the part that would not fit: "INT's win band 01-03, which is why the win-only fit's
+holdout failed — wins were the noisy metric." The win market specifically was left unresolved and
+explicitly labelled too noisy. That gap is what this targets, and if the answer is again "noise is
+clean at 1.0" then the defect is elsewhere and this closes.
+
+### PROTOCOL, frozen
+
+**STEP 1 IS A HARD GATE — reconstruction fidelity. Nothing proceeds until this passes.**
+`sim_results` holds 11 stored LIVE boards (5 cup, 3 oreilly, 3 trucks, post-stage, Jul-Aug 2026).
+Run the reconstruction on those same 11 races and compare, PAIRED, per board:
+  a. the reconstruction's favourite win% against the stored live board's favourite win%, and
+  b. whether they name the SAME DRIVER as favourite.
+PASS requires the same driver on at least 8 of 11 boards AND a mean absolute win% difference under
+5 points. FAIL means the reconstruction cannot speak about favourite calibration at all, every
+number in the observation section above is void for this purpose, and this study is CLOSED with that
+recorded. Eleven boards is a small sample for a hit rate but ample for a paired systematic offset,
+which is what is being tested.
+
+**STEP 2 — locate the defect, only if step 1 passes.** Measure favourite calibration separately for
+(i) the raw sim, (ii) the stored live boards' pre-anchor numbers if recoverable from `config`, and
+(iii) post-anchor. If under-confidence is in the raw sim and over-confidence appears only after
+marketAnchor, the target is the anchor layer and NOT the engine, and the registration re-points there
+before any parameter moves.
+
+**STEP 3 — intervention, one parameter, only if steps 1-2 locate it in the engine.**
+A single sharpening term: `noiseWidth * tau`, tau < 1, applied globally, NOT per group — per-group
+was already tried and rejected, and eight groups of freedom is how the DNF tilt died today.
+FIT: tau on TRAIN 2022-2024 by MOMENT-MATCHING the favourite win rate. Never against holdout Brier.
+HOLDOUT: 2025-2026, one shot.
+
+GATES, all required:
+  a. win Brier improves by more than 2x the measured MC noise (sd 0.000007 per run, so > 0.000014),
+     confirmed across FOUR independent runs with the sign never flipping. Two-of-four positive is a
+     FAIL — that is precisely how the one-parameter DNF tilt died tonight and I will not re-learn it.
+  b. NO reliability bin gets worse. Sharpening moves probability from the midfield to the top; if the
+     2-10% bins degrade to buy the top bin, that is a redistribution, not a calibration.
+  c. top5 and top10 Brier non-degradation. The placement bands are already calibrated and shipped;
+     this must not spend them.
+  d. The SS group is exempt from any tau change — GROUP_NOISE_MULT SS 1.75 survived its own
+     registered study and is not in scope.
+
+**DECLARED IN ADVANCE:**
+  * A step-1 failure closes this immediately and also retroactively voids today's favourite-calibration
+    numbers. I would rather find that out in an hour than build a third parameterization on sand.
+  * If the defect lands in marketAnchor rather than the engine, THAT is the finding, and the fix is
+    to stop shading favourites down — a change to a shipped tool, which goes to the operator before
+    anything moves.
+  * "More correct" is not "predicts better." That sentence has cost four attempts today. Unlike the
+    DNF work, though, here the forecast ITSELF is what is miscalibrated — a 10-point error on the
+    single number the product sells — so if the observation survives step 1, fixing it IS a forecast
+    improvement by construction rather than by hope.
+
+**PREDICTION ON RECORD:** step 1 passes on driver identity (>=8/11) but shows the reconstruction's
+favourite win% running 3-6 points BELOW the live board's, because practice concentrates the board
+(this log already measured that: "Top favorite's win pct averages 17.8 pre and 25.3 post"). If so the
+raw-sim under-confidence is real but SMALLER than 10.4 points, and the honest target is nearer 5.
+
+WHY THIS IS WORTH THE OPERATOR'S TIME WHEN THE DNF TILT WAS NOT: the DNF tilt chased a 0.2% relative
+Brier change. A favourite priced at 24% that wins 32-34% is a 8-10 POINT error on the most heavily
+bet number on the board. If it is real and in the engine, it is the largest single mispricing this
+model has, and it is in the direction of leaving money on the table rather than losing it.
