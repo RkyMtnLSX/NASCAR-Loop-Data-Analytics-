@@ -5074,3 +5074,78 @@ which is the correct way to ask it in the first place.
 
 That is the recommendation: stop trying to reconstruct the board, and let the real boards accumulate.
 The instrument for this question is the product's own published output, and it is already being saved.
+
+---
+
+## 2026-08-31 — SHIPPED: the superspeedway caution pin was cosmetic. Talladega was simming half its wrecks.
+
+Operator: "fix Talladega then." This is a BUG FIX, not a model tuning change, and the distinction is
+the whole justification for shipping it without a fresh registration.
+
+### THE BUG
+
+`SimulationCenter` carries a comment from 2026-07-22: "superspeedways pinned (SS noise calibration
+anchor)." The auto-preset effect honours it like this:
+
+    if (isSuperspeedway(config.track_name)) { setCautionAutoNote('SS: pinned (calibrated)'); return }
+
+It sets a NOTE and returns. It never sets a preset. Meanwhile the config loader, which runs for every
+track including superspeedways, had already done this:
+
+    const __ci = a < 6 ? 0 : a < 11.5 ? 1 : 2      // a = track's mean total_cautions
+    setCautionPreset(getCautionPresets(s)[__ci])
+
+So the pin was cosmetic. The board displayed "SS: pinned (calibrated)" while the caution bucket
+actually chose the preset, and the preset selects which wreck pool `runRaceSim` draws from.
+
+### WHAT IT COST, and it is exactly one cell
+
+Cup Talladega averages 5.33 cautions. Daytona averages 6.17. The boundary is at 6. Two plate tracks in
+the same correlation group, same wreck physics, split onto different wreck pools by 0.84 of a caution.
+
+Checked every superspeedway cell in the holdout before assuming it was general — it is not:
+
+    cell                                    n   avgCau   preset    measured DNF
+    cup Talladega                           3    5.33    Low           20.9%    <- the only Low
+    cup Daytona                             4    6.17    Medium        22.8%
+    cup Atlanta                             4    9.00    Medium        25.7%
+    oreilly Talladega / Daytona / Atlanta   11   7.0-7.8 Medium     23.7-32.9%
+    trucks Talladega / Daytona / Atlanta     5   7.0-8.7 Medium     13.7-19.4%
+
+26 of 27 SS races were already on Medium. Cup Talladega alone sat on the calm pool.
+
+### THE MEASUREMENT, 2025-26 holdout, cup Talladega, Low -> Medium
+
+    config       DNF%    win Brier    top5 Brier   top10 Brier
+    Low (was)    10.4     0.026073     0.118903     0.209805
+    Medium       20.4     0.024942     0.109322     0.189962
+    measured     20.9
+
+Attrition goes from HALF the real rate to essentially exact. All three markets improve, and by margins
+an order of magnitude larger than anything else examined today — because this was a broken cell, not a
+tuning question. Low's own run-to-run spread over four repeats is ~0.00014 on win Brier; the Low-Medium
+gap is 0.0011, about eight times that.
+
+SS-wide across all 27 holdout races, pinning Medium also improves every market (win .024499 -> .024356,
+top5 .107556 -> .106405, top10 .183943 -> .181652) and moves delivered attrition 24.5% -> 25.6% against
+24.6% measured. Diluted because only 3 races change, but the direction is consistent.
+
+### THE FIX
+
+One line, making the documented pin real:
+
+    setCautionPreset(getCautionPresets(s)[isSuperspeedway(cfg.track_name) ? 1 : __ci])
+
+Nothing else moves. No constant, no curve, no wreck parameter. Manual preset clicks still override, as
+they always did.
+
+WHY THIS SHIPS WITHOUT A NEW REGISTRATION, stated so it is not used as precedent: the change restores
+behaviour the code already documents and the UI already claims. The registration discipline exists to
+stop new model opinions being smuggled in on a good-looking number — this removes an unintended one.
+The holdout evidence above is confirmatory, not the justification.
+
+WHAT IT DOES NOT FIX: the schedule-wide under-delivery of the DNF budget (bias -2.27 cars/race) is the
+caution-preset interaction described earlier and is untouched. Talladega was the one cell where that
+interaction had crossed into being flatly wrong rather than merely imprecise.
+
+Build green, lint:undef clean, sim:smoke passing.

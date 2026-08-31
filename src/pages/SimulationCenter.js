@@ -284,7 +284,17 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
           const __cr = await supabase.from('races').select('total_cautions').eq('series', s).eq('track_name', cfg.track_name).not('total_cautions', 'is', null).eq('exhibition', false)
           const __cs = ((__cr && __cr.data) || []).map(function (x) { return x.total_cautions }).filter(function (v) { return v != null })
           const __ci = __cs.length ? (function () { var a = __cs.reduce(function (p, q) { return p + q }, 0) / __cs.length; return a < 6 ? 0 : a < 11.5 ? 1 : 2 })() : 1
-          setCautionPreset(getCautionPresets(s)[__ci])
+          // SUPERSPEEDWAYS ARE PINNED TO MEDIUM. The auto-preset effect below already says
+          // "SS: pinned (calibrated)" — but it only set that NOTE and returned, so this line
+          // bucketed SS from its caution average anyway and the pin was cosmetic. That split
+          // cup Talladega (5.33 avg cautions) from Daytona (6.17) across the hard <6 boundary,
+          // putting Talladega alone on the calm wreck pool: it simmed 10.4% attrition against
+          // 20.9% measured, roughly half. Every other SS cell already sat on Medium.
+          // Measured on the 2025-26 holdout, cup Talladega, Low -> Medium:
+          //   DNF 10.4% -> 20.4% (measured 20.9%) · win Brier .02607 -> .02494
+          //   top5 .11890 -> .10932 · top10 .20981 -> .18996
+          // SS-wide across all 27 holdout races it also improves every market. BACKTEST_LOG 2026-08-31.
+          setCautionPreset(getCautionPresets(s)[isSuperspeedway(cfg.track_name) ? 1 : __ci])
           const __dl = await __noEx(supabase.from('loop_data').select('race_id, laps_completed, finish_status').eq('series', s).eq('track_name', cfg.track_name))
           const __by = {}; (((__dl && __dl.data) || [])).forEach(function (r2) { (__by[r2.race_id] = __by[r2.race_id] || []).push({ lc: parseInt(r2.laps_completed) || 0, fs: (r2.finish_status || '').toLowerCase() }) })
           const __dnfs = Object.keys(__by).map(function (k) {
