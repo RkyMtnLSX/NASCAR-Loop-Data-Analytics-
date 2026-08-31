@@ -5783,3 +5783,86 @@ the exact failure mode that produced the "DO NOT SHIP AS FITTED" reversal earlie
 
 **Instrument limit that applies to every number below:** the reconstruction names the same favourite
 on 5/5 cup, 0/3 O'Reilly, 2/3 trucks boards and runs 2.53 points less confident than live. Weight cup.
+
+## 2026-08-31 — RESULT: one-sided tilt FAILS the registered rail on Q2. Not shipped.
+
+Registration 8a76a87. Curve derived on TRAIN only, holdout 162 races, 7000 sims, 3 runs/arm.
+
+### Step 1 — the recorded prediction was right, and it changes the operator's question
+
+I predicted before looking that the cliff fix would push all four tier predictions up ~1.4 points and
+that Q4 would flip from nearly-exact to OVER-predicting. It did. Flat FIXED engine on TRAIN:
+
+    tier            pred%   actual%    gap
+    Q4 strongest     13.9      12.0    -1.9   <-- now OVER-predicts
+    Q3               15.3      15.1    -0.3
+    Q2               16.1      18.7    +2.5
+    Q1 weakest       17.0      20.4    +3.4
+
+So the operator's ask — "only affect midfield and tail, leave the front runners alone" — is not what
+the data wants. The front runners are mispriced too, just in the other direction. Leaving Q4 untouched
+would preserve a known 1.9-point error. What the data supports is a SMALL cut at the top and a LARGE
+lift at the bottom. That is still one-sided in the sense that matters (the top is barely moved, and
+moved toward its actual), but it is not "don't touch the top" and should not be sold as that.
+
+Derived C_t (TRAIN, frozen rule, [Q4..Q1]) — note how much gentler at the top than the old curve:
+
+    SHORT  [0.8985, 0.9888, 1.0703, 1.2605]     old was [0.5005, 0.9912, 1.0662, 1.4421]
+    INT    [0.9697, 0.9461, 1.1027, 1.1936]     old was [0.9084, 0.8314, 1.0935, 1.1668]
+    SS     [0.9729, 1.0748, 1.1315, 0.9777]     old was [0.8210, 1.0315, 1.1764, 0.9711]
+    ROAD   [0.9842, 0.9764, 1.0814, 1.1243]     old was [0.7895, 0.7940, 1.1552, 1.2613]
+
+### Step 2 — holdout
+
+    GATE 1 — per-tier rail
+    tier            flat pred  tilt pred   actual    |gap| flat -> tilt   verdict
+    Q4 strongest      14.0       13.5       12.3     1.64 -> 1.11         PASS
+    Q3                15.6       15.6       15.2     0.34 -> 0.38         PASS
+    Q2                16.4       17.8       16.8     0.40 -> 1.00         FAIL
+    Q1 weakest        17.4       19.5       20.4     2.96 -> 0.92         PASS
+
+    GATE 2 — Q4 top10 Brier delta +8.79e-5 vs a null floor of 21.10e-5 — PASS (inside noise)
+             Q3 +3.60e-5 · Q2 -8.79e-5 · Q1 -9.33e-5
+    GATE 3 — win +0.84e-5 · top5 -0.07e-5 · top10 -1.32e-5, ALL INSIDE THE NULL FLOOR
+    GATE 4 — DNF bias -0.11 -> +0.15 — PASS
+
+**GATE 1 FAIL (Q2) + GATE 2 PASS => DO NOT SHIP, by the rule registered before the run.**
+
+### What actually happened, and it is a data finding not a form error
+
+**GATE 2 PASSED. That is the headline.** The thing that killed the previous attempt — the strongest
+quartile getting measurably worse priced, -23.40e-5 on top10 Brier — does not happen with this form.
+Q4 now moves +8.79e-5 against a 21.10e-5 noise floor, i.e. not distinguishable from noise, while its
+DNF gap improves 1.64 -> 1.11. The mean-1 rescaling really was the mechanism doing the damage.
+
+**Q1 works too:** gap 2.96 -> 0.92, top10 Brier -9.33e-5. The tail is the strongest case in the study.
+
+**Q2 is the failure, and the cause is that its train gap did not replicate.** On TRAIN, Q2 under-
+predicted by 2.5 points. On HOLDOUT the flat model was already nearly exact on Q2 (16.4 vs 16.8, gap
+0.40). So C_Q2 = 1.10 was fitted to a gap that does not exist out of sample, and it pushes Q2 from
+almost-right to 1.0 point over. Q1 and Q4 replicated their train gaps; Q2 did not.
+
+That is the honest reading: **the per-tier gaps are not uniformly stable across samples, and a
+4-parameter per-group form fits noise in the middle tiers.** The events-based shrinkage
+(min(1, events/200)) did not protect Q2 because Q2 has plenty of events — it is a stability problem,
+not a sample-size problem, and my shrinkage rule was aimed at the wrong failure mode.
+
+### What I am NOT doing
+
+The obvious next move is a 2-parameter form: correct Q1 and Q4 only, pin Q2/Q3 at 1.0, since those
+are the tiers whose gaps replicated. **I am not running that off the back of this result.** Choosing a
+form after seeing which tiers failed is exactly the discipline break I committed earlier today with
+the wideClamp, and the whole value of the rail is that it is decided in advance. If that variant is
+worth testing it needs its own registration, written before the fit, and it should be judged against
+the same rail plus an out-of-sample check that Q1/Q4 gap stability is real and not this sample.
+
+### Standing findings
+
+- The skill gradient is real (unchanged, control passed decisively earlier).
+- The mean-1 rescaling was the mechanism that harmed the strong tier. Removing it removes the harm.
+- Aggregate forecast metrics DID NOT MOVE — every one inside the null floor. Consistent with all four
+  earlier parameterizations. **Whatever this line eventually fixes, it is DNF calibration by tier, not
+  win/top5/top10 accuracy.** Anyone tempted to reopen it should have a reason that is not "the tier
+  table looks better", because the tier table looking better has never once moved a forecast metric.
+- `tiltRescale: false` is now in the engine, default true, unreachable from `src/pages/`. It exists so
+  this form can be reconstructed; it is not shipped behaviour.

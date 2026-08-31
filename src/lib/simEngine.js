@@ -308,7 +308,14 @@ const __TILT_ANCHOR = [0.875, 0.625, 0.375, 0.125]
 // Do not apply one without the other.
 const DNF_TILT_LEVEL = 1.15
 
-function __tiltMults(pct, curve) {
+// rescale=false implements the ONE-SIDED form registered in BACKTEST_LOG 2026-08-31 (commit
+// 8a76a87). The mean-1 normalization below is what forces the strongest tier DOWN whenever the
+// weak tiers are raised — under a fixed field budget you cannot lift the bottom without cutting
+// the top, and that is the mechanism behind the -23.40e-5 Q4 top10 regression that stopped the
+// earlier tilt from shipping. With C_t = obs_t/pred_t each tier lands on its own observed rate
+// and the field total follows automatically, so normalizing here would UNDO the calibration.
+// Default stays true: the legacy DNF_TILT_CURVE path is unchanged.
+function __tiltMults(pct, curve, rescale) {
   const n = pct.length
   const m = new Float64Array(n)
   if (!curve) { m.fill(1); return m }
@@ -326,6 +333,7 @@ function __tiltMults(pct, curve) {
     }
     m[i] = v; sum += v
   }
+  if (rescale === false) return m
   const k = n / sum
   for (let i = 0; i < n; i++) m[i] *= k
   return m
@@ -580,7 +588,7 @@ function runRaceSim(drivers, simConfig) {
   }
   // tiltCurve overrides the table — the calibration script passes candidates through it.
   const __curve = skillTilt ? (simConfig.tiltCurve || DNF_TILT_CURVE[trackGroup] || null) : null
-  const __tilt = __tiltMults(__pct, __curve)
+  const __tilt = __tiltMults(__pct, __curve, simConfig.tiltRescale)
   if (skillTilt && simConfig.tiltCurve == null) dnfRate = Math.min(0.6, dnfRate * DNF_TILT_LEVEL)
 
   // CAUTION MIX (2026-08-31). Optional. Without it this runs exactly as before: ONE bucket,
