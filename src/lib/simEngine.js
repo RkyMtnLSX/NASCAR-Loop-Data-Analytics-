@@ -637,7 +637,12 @@ function runRaceSim(drivers, simConfig) {
       // per-bucket normalizer the sparse calm pool legitimately needs a larger scale (INT low
       // wants ~4.2 at a 15.5% budget), and clamping it there is what leaves a residual cliff.
       // Per-victim probability is still guarded by the min(0.95, ...) saturation downstream.
-      wScale: wm ? Math.max(0.3, Math.min(simConfig.perBucketEV ? 8 : 2.5, (n * __effRate * wm.accShare) / wm.pre)) : 0,
+      // The 2.5 upper clamp was set when wm.pre was a GLOBAL per-group normalizer. With the
+      // per-bucket normalizer the sparse calm pool legitimately needs a larger scale (INT low
+      // wants ~4.2 at a 15.5% budget). wideClamp is a SEPARATE flag from perBucketEV so the two
+      // can be tested independently — it was introduced mid-test on 2026-08-31 and that was a
+      // discipline break; splitting it makes it a registered parameter instead of a silent one.
+      wScale: wm ? Math.max(0.3, Math.min(simConfig.wideClamp ? 8 : 2.5, (n * __effRate * wm.accShare) / wm.pre)) : 0,
       mechRate: wm ? __effRate * (1 - wm.accShare) : 0,
     }
   })
