@@ -4801,3 +4801,44 @@ Calibrating without practice and validating with it, which is what today did, ca
 
 `skillTilt` stays OFF. `scripts/backtest-practice-tilt.js` and `scripts/recalibrate-tilt-practice.js`
 reproduce all of the above.
+
+### 2026-08-31 — CORRECTION to the practice entry above: the split was NOT temporal. Redone properly.
+
+Operator: "Did you even include the 2026 practice sessions?" They were included — 47 of the 94
+practice-carrying races are 2026. What was wrong was the SPLIT, and he was right to ask.
+
+THE ERROR. The recalibration sliced the file in half and my script comment asserted "holdout.txt is
+ordered by race id, 2025 first." It is not. Races interleave: in id order 2025 occupies rows 1-83 and
+2026 occupies rows 33-94. So the "fit half" was a scrambled mixture of both seasons and the "test
+half" was too. I described a temporal split and ran a mixed one, and I never checked the assumption
+that made the description true.
+
+REDONE with a real split — fit on 2025 (47 practice races), test on 2026 (47), year now carried in
+the data file so this cannot be assumed again:
+
+    FIT  2025 observed DNF% by tier (Q4->Q1)    9.8  11.2  14.3  22.7
+    TEST 2026 actual                            8.7  12.7  12.3  18.4
+
+    tier   flat   TILT   ACTUAL   |flat-act|  |tilt-act|   rail
+    Q4     11.4   10.0     8.7      2.69        1.33       PASS
+    Q3     12.6   11.5    12.7      0.12        1.20       FAIL
+    Q2     13.0   14.5    12.3      0.77        2.27       FAIL
+    Q1     13.9   22.9    18.4      4.53        4.47       PASS
+
+    aggregate  win Brier 0.022842 -> 0.022850   top10 0.144645 -> 0.144590
+    recalibrated curve [0.7455, 0.7713, 0.8700, 1.6132], level 1.179 — DO NOT USE
+
+THE CONCLUSION SURVIVES AND IS NOW BETTER SUPPORTED, WHICH IS LUCK, NOT CREDIT. The season-to-season
+instability is LARGER than the scrambled split showed: Q1 attrition is 22.7% in 2025 and 18.4% in
+2026, a 4.3-point swing, against a tilt effect of a few points. The curve fitted to 2025 over-tilts
+Q1 on 2026 by 4.5 points and fails the rail at Q3 and Q2. Aggregate win Brier is marginally WORSE.
+
+So: 47 races per season cannot pin a four-point profile, and calibrating on one season to apply to
+the next is unreliable on top of that. The tilt still does not ship, and the blocker is still data.
+Note also that 2026 is a PARTIAL season here — races through 2026-08-23 only — so its 47 races are
+not a full year's coverage either.
+
+WHAT I SHOULD HAVE DONE, recorded as process: the year was available in `races` the whole time and
+cost one extra column to carry. I inferred an ordering from a query that had no ORDER BY on its outer
+select, which is not an ordering at all. `string_agg` over a `group by` guarantees nothing about row
+order. The data file now carries the year explicitly and the script filters on it.

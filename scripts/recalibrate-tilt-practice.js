@@ -21,7 +21,7 @@ function wf(se,tr){if(isRoadCourse(tr))return se==='trucks'?TRUCK_ROAD_WEIGHTS:R
 const all=[]
 for(const line of fs.readFileSync(__dirname+'/backtest-data/holdout-practice.txt','utf8').split('\n').filter(l=>l.trim())){
   const [h,b]=line.split('#');if(!b)continue
-  const [series,track,grp,pDnf,pN,pCau]=h.split('|')
+  const [yr,series,track,grp,pDnf,pN,pCau]=h.split('|')
   const dr=[],dnf=[],fin=[];let i=0,nP=0
   for(const rec of b.split(';')){const f=rec.split(',');if(f.length<10)continue
     const v=num(f[9]); if(v!=null)nP++
@@ -33,11 +33,14 @@ for(const line of fs.readFileSync(__dirname+'/backtest-data/holdout-practice.txt
   const sc=buildSpeedScores(dr,wf(series,track))
   const ord=sc.map((d,ix)=>({ix,s:d.speedScore||0})).sort((a,x)=>x.s-a.s)
   const tier=new Array(sc.length);ord.forEach((o,r)=>{tier[o.ix]=Math.min(3,Math.floor(r*4/sc.length))})
-  all.push({sc,dnf,fin,tier,g:__trackGroup(track),rate:resolveDnfRate(series,grp,num(pDnf),num(pN)||0),
+  all.push({yr:+yr,sc,dnf,fin,tier,g:__trackGroup(track),rate:resolveDnfRate(series,grp,num(pDnf),num(pN)||0),
     preset:cau==null?P[1]:isSuperspeedway(track)?P[cau<6?0:cau<11.5?1:2]:P.reduce((a,x)=>Math.abs(x.value-cau)<Math.abs(a.value-cau)?x:a)})
 }
-// split by position in file: holdout.txt is ordered by race id, 2025 first
-const half=Math.floor(all.length/2), FIT=all.slice(0,half), TEST=all.slice(half)
+// TEMPORAL split. The earlier version sliced the file in half and ASSUMED that separated the
+// seasons. It did not — races interleave by id (2025 occupies id-order rows 1-83, 2026 rows
+// 33-94), so that "fit half" was a scrambled mix of both years. Corrected 2026-08-31 after the
+// operator asked whether 2026 practice was even included. It was; the SPLIT was wrong.
+const FIT=all.filter(b=>b.yr===2025), TEST=all.filter(b=>b.yr===2026)
 function tiers(bs,curve,lvl){
   const T=[0,1,2,3].map(()=>({p:0,o:0,n:0,win:0,t10:0}))
   for(const b of bs){
@@ -50,9 +53,9 @@ function tiers(bs,curve,lvl){
   return T.map(t=>({pred:t.p/t.n,obs:t.o/t.n,win:t.win/t.n,t10:t.t10/t.n,n:t.n}))
 }
 const norm=a=>{const m=a.reduce((x,y)=>x+y,0)/a.length;return a.map(x=>x/m)}
-console.log('FIT half '+FIT.length+' races, TEST half '+TEST.length+' races (practice boards)')
+console.log('FIT = 2025, '+FIT.length+' races.  TEST = 2026, '+TEST.length+' races. (practice boards)')
 const o=tiers(FIT,null,1)
-console.log('FIT observed  '+o.map(t=>(t.obs*100).toFixed(1).padStart(6)).join(''))
+console.log('FIT 2025 observed  '+o.map(t=>(t.obs*100).toFixed(1).padStart(6)).join(''))
 let curve=[1,1,1,1], lvl=1
 for(let it=1;it<=5;it++){
   const d=tiers(FIT,curve,lvl)
