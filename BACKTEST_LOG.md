@@ -5988,3 +5988,89 @@ across cup / O'Reilly / trucks is a generalization check, though a weaker one th
 **Carrying forward:** `train.txt` and `holdout.txt` should carry an explicit year and race id the
 next time they are regenerated. Their absence has now cost two separate tests — the non-temporal
 split error this morning and this amendment. Logged as a data-format debt.
+
+## 2026-08-31 — RESULT: two-parameter tilt PASSES every registered gate. Recommending NOT shipping.
+
+Registration 7065fe3, amendment 46950e1. Holdout 162 races.
+
+### GATE 0 — PASS, with one thing the registration did not anticipate
+
+    tier            gap A    gap B    same sign?   both >=0.5?
+    Q4 strongest     2.63     1.19    yes          yes      STABLE
+    Q3               0.69    -0.16    NO           no
+    Q2              -3.35    -1.73    yes          yes      STABLE
+    Q1 weakest      -2.58    -4.15    yes          yes      STABLE
+
+Q1 and Q4 replicate, so the form choice was not pure leakage and the gate passes. **But Q2 is also
+stable inside train** — the registered stopping condition required Q2 AND Q3 to be stable and only
+Q2 is, so the letter of the rule let this proceed. That conjunction was too lenient and I should
+have written it as OR. Noted rather than quietly benefited from.
+
+The substance: Q2 under-predicts by 1.7-3.4 pts in BOTH train halves, yet on holdout the flat model
+is nearly exact on Q2 (0.40). Train is 2022-24, holdout 2025-26. That is an era difference, not
+noise — and the amended sampling split is structurally incapable of detecting it. **The amendment's
+stated cost turned out to be load-bearing, exactly where it was warned it might be.**
+
+### Registered gates — all pass
+
+    GATE 1 per-tier rail — ALL FOUR PASS, all four improve
+      Q4 1.64 -> 1.14 | Q3 0.34 -> 0.27 | Q2 0.40 -> 0.07 | Q1 2.95 -> 1.07
+    GATE 2 Q4 top10 Brier -4.71e-5 vs 12.46e-5 null — PASS (better, not merely unharmed)
+    GATE 3 win +0.50e-5 · top5 +1.37e-5 · top10 -5.31e-5 vs 3.58e-5 null — "better beyond noise"
+    GATE 4 DNF bias -0.11 -> +0.03 — PASS
+
+**=> ELIGIBLE TO SHIP by the rule registered before the run.** I am recommending against it anyway,
+on two post-hoc checks that were declared able to argue only AGAINST shipping, never for it.
+
+### A) The forecast gain evaporates under power
+
+GATE 3's top10 result was 1.5x its null floor at 3 runs. At 5 runs:
+
+    win    +0.54e-5   null 1.98e-5   inside noise
+    top5   -3.23e-5   null 4.90e-5   inside noise   (sign FLIPPED from +1.37 at 3 runs)
+    top10  -4.09e-5   null 3.96e-5   1.0x the floor
+
+More power moved it TOWARD the noise floor, not away. A real effect sharpens as the floor shrinks;
+this did the opposite. **My recorded prediction #4 — that GATE 3 would land inside noise for the
+sixth time — was contradicted at 3 runs and confirmed at 5.** The 3-run result was underpowered and
+I would have reported a false positive had I stopped there.
+
+### B) The entire effect is trucks. Cup gets nothing.
+
+    series    n    top10 delta   null       Q4 top10 delta
+    cup      62      -0.52e-5   7.94e-5        +5.93e-5
+    oreilly  57      -0.62e-5   6.07e-5       +14.49e-5
+    trucks   43     -14.72e-5  16.60e-5       -12.86e-5
+
+Cup is -0.52e-5 against a 7.94e-5 floor — indistinguishable from zero. The aggregate is carried
+entirely by trucks, and even there it sits inside its own floor. Worse for the intended purpose: the
+strongest quartile's top10 Brier trends the WRONG WAY for cup (+5.93) and O'Reilly (+14.49), and only
+improves for trucks. All inside noise, but the sign pattern is the opposite of the operator's ask in
+the two series where it was asked.
+
+Gate 0 predicted this and the gates could not see it: cup's per-tier gaps are already tiny
+(Q4 -0.05, Q1 -1.46) while trucks' are enormous (Q4 +5.75, Q1 -6.40). The curve is keyed to TRACK
+GROUP, not series, so one correction is applied across three populations that need very different
+ones. **A per-series rail belongs in any future registration of this kind.**
+
+### CLOSING THE LINE, per the pre-commitment in the registration
+
+Six parameterizations: logit-link exponential, log-link exponential, per-tier curve with mean-1
+rescaling, one-sided four-parameter, one-sided two-parameter, plus the level variant. **Every one
+improves DNF calibration by tier. Not one has moved win, top5 or top10 beyond noise at adequate
+power.** The registration pre-committed to closing on this basis rather than building a seventh, and
+that commitment is honored here.
+
+The standing conclusion, unchanged and now much better evidenced: **the sim's finishing
+distributions are not sensitive enough to WHICH cars retire for tier-level DNF accuracy to reach the
+markets.** Getting the right cars to retire is not the same as getting the finishing order right,
+and this line has now demonstrated that six times.
+
+WHAT REMAINS TRUE AND USEFUL: the skill gradient is real; the mean-1 rescaling was the mechanism
+harming the strong tier and removing it removes the harm; the two-parameter form genuinely fixes tier
+DNF calibration (Q1 2.95 -> 1.07). If DNF percentages are ever sold or displayed per driver, the
+frozen curve in `scripts/backtest-data/tilt-2param.json` is the thing to ship, and it is defensible
+on its own merits. It is not defensible as a forecasting improvement.
+
+DO NOT reopen this line on a tier table. Reopen it only if the SIM's sensitivity to retirement
+identity changes — that is the actual blocker, and it is upstream of any tilt.

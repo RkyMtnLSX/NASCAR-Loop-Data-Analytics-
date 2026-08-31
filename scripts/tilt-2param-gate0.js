@@ -11,8 +11,11 @@
 // Registered stopping condition: if Q2 turns out just as stable as Q1/Q4 inside train, pinning it
 // was an artifact of one holdout sample and the registration is unjustified. Say so and stop.
 //
-// The train file is NOT ordered by date - that mistake was made and corrected earlier today. Year
-// is carried explicitly from the race id prefix, never inferred from row order.
+// SPLIT AMENDED 2026-08-31 (commit 46950e1, pushed before this gate was evaluated). The
+// registration called for a YEAR split; train.txt carries no year and no race id. Rows look
+// chronological but assuming row order is date order is the exact error corrected this morning on
+// holdout-practice.txt. Amended to a deterministic seeded half-split plus a by-series read.
+// This tests SAMPLING stability, not TEMPORAL stability - see the amendment for what that costs.
 
 const fs = require('fs')
 const path = require('path')
@@ -44,29 +47,24 @@ function tiersOf(scored) {
 const raw = fs.readFileSync(path.join(__dirname, 'backtest-data', 'train.txt'), 'utf8')
   .split('\n').filter(l => l.trim())
 
-// Year is carried explicitly. Probe how it is encoded rather than assuming.
-function yearOf(head) {
-  const m = head.join('|').match(/\b(20\d\d)\b/)
-  return m ? Number(m[1]) : null
+// Deterministic seeded shuffle (mulberry32, seed 20260831) then alternate assignment. Seeded so
+// the split is reproducible and cannot be re-rolled until it gives a convenient answer.
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0
+    let t = Math.imul(a ^ a >>> 15, 1 | a)
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t
+    return ((t ^ t >>> 14) >>> 0) / 4294967296
+  }
 }
+const rows = raw.filter(l => l.includes('#'))
+const rnd = mulberry32(20260831)
+const shuffled = rows.map((l, i) => ({ l, k: rnd(), i })).sort((a, b) => a.k - b.k).map(o => o.l)
+const halves = { 'A (seeded half)': [], 'B (seeded half)': [] }
+shuffled.forEach((l, i) => halves[i % 2 === 0 ? 'A (seeded half)' : 'B (seeded half)'].push(l))
 
-const halves = { 'A 2022-23': [], 'B 2024': [] }
-let unyeared = 0
-for (const line of raw) {
-  const [head, body] = line.split('#')
-  if (!body) continue
-  const parts = head.split('|')
-  const y = yearOf(parts)
-  if (y == null) { unyeared++; continue }
-  ;(y <= 2023 ? halves['A 2022-23'] : halves['B 2024']).push(line)
-}
-
-if (unyeared > 0 && halves['A 2022-23'].length + halves['B 2024'].length < raw.length * 0.5) {
-  console.log(`\nSTOP: cannot recover the year for ${unyeared} of ${raw.length} train rows.`)
-  console.log('GATE 0 cannot be evaluated without an explicit year. Not guessing from row order —')
-  console.log('that exact mistake was made and corrected earlier today. Test halted.')
-  process.exit(2)
-}
+const bySeries = { cup: [], oreilly: [], trucks: [] }
+for (const l of rows) { const s = l.split('|')[0]; if (bySeries[s]) bySeries[s].push(l) }
 
 function measureHalf(lines) {
   const T = [0, 1, 2, 3].map(() => ({ pred: 0, obs: 0, n: 0 }))
@@ -108,9 +106,10 @@ function measureHalf(lines) {
 }
 
 const LBL = ['Q1 weakest', 'Q2', 'Q3', 'Q4 strongest']
-const A = measureHalf(halves['A 2022-23']), B = measureHalf(halves['B 2024'])
-console.log(`GATE 0 — does per-tier gap replicate INSIDE train?  (${SIMS} sims)`)
-console.log(`  half A 2022-23: ${A.races} races   |   half B 2024: ${B.races} races\n`)
+const A = measureHalf(halves['A (seeded half)']), B = measureHalf(halves['B (seeded half)'])
+console.log(`GATE 0 — does per-tier gap replicate INSIDE train?  (${SIMS} sims, seeded split 20260831)`)
+console.log(`  SAMPLING stability only — not temporal. See amendment 46950e1.`)
+console.log(`  half A: ${A.races} races   |   half B: ${B.races} races\n`)
 console.log('tier            gap A     gap B    same sign?   both >=0.5?')
 const res = {}
 for (let t = 3; t >= 0; t--) {
@@ -139,6 +138,16 @@ if (middleAlsoStable) {
   console.log('unjustified as written. Halting rather than proceeding to step 2.')
   process.exit(3)
 }
+// Secondary read: by series. A generalization check, weaker than a season split.
+console.log('\nSECONDARY (not a gate) — same table by series:')
+console.log('series    Q4 gap   Q3 gap   Q2 gap   Q1 gap')
+for (const s of ['cup', 'oreilly', 'trucks']) {
+  if (!bySeries[s].length) continue
+  const m = measureHalf(bySeries[s])
+  console.log(`${s.padEnd(9)} ` + [3, 2, 1, 0].map(t => m.tier[t].gap.toFixed(2).padStart(6)).join('   ') +
+    `   (${m.races} races)`)
+}
+
 console.log('\n=> proceed to the fit and holdout.')
 fs.writeFileSync(path.join(__dirname, 'backtest-data', 'tilt-2param-gate0.json'),
   JSON.stringify({ A: A.tier, B: B.tier, res }, null, 2) + '\n')

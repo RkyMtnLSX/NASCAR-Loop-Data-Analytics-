@@ -26,7 +26,7 @@ const {
 const SIMS = Number(process.env.SIMS || 8000)
 const RUNS = Number(process.env.RUNS || 3)
 const num = s => (s === '' || s == null ? null : Number(s))
-const CURVE = JSON.parse(fs.readFileSync(path.join(__dirname, 'backtest-data', 'tilt-onesided.json'), 'utf8')).curve
+const CURVE = JSON.parse(fs.readFileSync(path.join(__dirname, 'backtest-data', process.env.CURVE || 'tilt-onesided.json'), 'utf8')).curve
 
 function weightsFor(series, track) {
   if (isRoadCourse(track)) return series === 'trucks' ? TRUCK_ROAD_WEIGHTS : ROAD_COURSE_WEIGHTS
