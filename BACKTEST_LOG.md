@@ -5228,3 +5228,74 @@ Three candidates, cheapest first:
 NOT shipping any of these here. The Talladega fix shipped because it restored documented behaviour;
 these are new model opinions and go through registration. Logged so the exposure is on record: fifteen
 cells within half a caution, cup Daytona among them.
+
+---
+
+## 2026-08-31 — PRE-REGISTRATION: decouple the caution preset's SHAPE from its LEVEL (the cliff fix)
+
+Operator: "we need to fix this." Registering before building. Frozen.
+
+### WHY NOT THE OBVIOUS FIX
+
+The entry above listed interpolation between adjacent presets as the leading candidate. Worked it
+through and it is WRONG, which is worth recording before it gets tried again. Cup presets sit at 4 / 8
+/ 15 cautions. Cup Talladega averages 5.33, so interpolating by caution count gives 67% Low / 33%
+Medium and a delivered ratio near 0.65x — WORSE than the Medium pin just shipped (0.96x, landing 20.4%
+against 20.9% measured). Interpolation removes the cliff by spreading a track across two pools whose
+attrition levels differ 2x; it does not make the level right. It trades a discontinuity for a
+systematic error, and at Talladega it would have undone today's fix.
+
+Hysteresis is also rejected as a primary: it stops a cell FLAPPING across a boundary but leaves a cell
+that is simply on the wrong side exactly where it is. It treats the symptom.
+
+### THE DIAGNOSIS THAT POINTS AT THE RIGHT FIX
+
+Preset selection is doing two jobs at once:
+
+  JOB A — pick the SHAPE appropriate to this track's chaos: which wreck-event pool is bootstrapped,
+          which dominator curves apply, how wide the score noise is. This SHOULD vary by track.
+  JOB B — set the attrition LEVEL, as a side effect of which pool got picked. This should NOT vary by
+          track, because `dnfRate` already carries the level and it is measured from that same track.
+
+Job B is the double-application, the cliff's teeth, and the reason a fraction of one caution swings
+attrition ~80%. Job A is legitimate and stays.
+
+### THE INTERVENTION, frozen
+
+Divide out the selected bucket's delivered/budget ratio so EVERY track lands on its own budget,
+whichever pool it draws from. The shape still varies with cautions; the level stops varying.
+
+The machinery already exists in the engine: `__dnfFraction` measures what a bucket actually delivers at
+a given budget and field size, and the `K` fixed point built for `cautionMix` divides it out. That path
+is currently a deliberate no-op for a single bucket. This registers the single-bucket case as ON.
+
+WHAT THIS IS NOT: it is NOT `cautionMix`, which sampled a track's historical caution DISTRIBUTION per
+sim and FAILED its registered holdout. That test bundled distribution-sampling with K normalization and
+cannot be quoted for or against this. K alone, on the single already-selected preset, has never been
+tested in isolation. New question, new gates.
+
+NO NEW PARAMETER. K is measured at run time from the budget and field, not fitted. Nothing to overfit,
+which is why there is no train/test split on the mechanism.
+
+### GATES, all required, on the 2025-26 holdout, 162 races
+
+  a. CLIFF GONE: for a synthetic track swept across a boundary (5.5 -> 6.5 mean cautions), delivered
+     attrition must change by less than 10% relative. Today it changes by ~80%. This is the point of
+     the exercise and is mechanical, so it is a rail, not evidence.
+  b. Win / top5 / top10 Brier NON-DEGRADATION, judged across FOUR independent runs with the sign never
+     flipping. Two-of-four positive is a FAIL — that is how the one-parameter DNF tilt died and it will
+     not be re-learned.
+  c. NO reliability bin gets worse.
+  d. Schedule-wide DNF bias must move toward zero from its current -2.27 cars per race. If the level
+     is being corrected, this follows mechanically; if it does not, the implementation is wrong.
+  e. Cup Talladega must not regress from what shipped today (DNF 20.4% against 20.9% measured).
+
+DECLARED IN ADVANCE:
+  * A gate-b failure closes this and the cliff stays documented-but-unfixed, with hysteresis as the
+    fallback recommendation for the flapping half of the problem only.
+  * The attrition-level sweep already showed forecast quality is only weakly sensitive to attrition
+    level, so gate b passing is NOT expected to be dramatic. Non-degradation is the bar, not
+    improvement. If it degrades, the level was load-bearing in a way nobody understood and that is
+    itself the finding.
+  * PREDICTION: gates a, d and e pass mechanically; gate b lands neutral, within 2 sd either way.
+    Recording that so a neutral result cannot later be narrated as a win.
