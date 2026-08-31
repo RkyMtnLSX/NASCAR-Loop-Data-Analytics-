@@ -8,7 +8,10 @@ import LineMovementAdmin from './LineMovementAdmin'
 import FastestLapOddsAdmin from './FastestLapOddsAdmin'
 import { parsePracticeExcel } from '../lib/excelParser'
 import { gradePracticeSession } from '../lib/practiceGrader'
-import SimulationCenter, { DEFAULT_WEIGHTS, ROAD_COURSE_WEIGHTS, SUPERSPEEDWAY_WEIGHTS, TRUCK_ROAD_WEIGHTS, ONEILLY_SUPERSPEEDWAY_WEIGHTS } from './SimulationCenter'
+import SimulationCenter from './SimulationCenter'
+// The weight tables moved to src/lib/simEngine.js on 2026-08-31 when the sim was
+// extracted from the page so it could be run from a script. Same values, new home.
+import { DEFAULT_WEIGHTS, ROAD_COURSE_WEIGHTS, SUPERSPEEDWAY_WEIGHTS, TRUCK_ROAD_WEIGHTS, ONEILLY_SUPERSPEEDWAY_WEIGHTS } from '../lib/simEngine'
 import GradeCenter from './GradeCenter'
 import DfsReplay from './DfsReplay'
 import { LoadRaceFromFeed, FeedBackfill } from './NascarFeedAdmin'

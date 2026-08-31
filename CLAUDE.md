@@ -221,3 +221,30 @@ are now IN THIS REPO at the root, synced from the local PitBoard Handoff folder 
 before touching model logic or re-testing anything. They supersede the summaries in this
 file. Local folder and repo copies are kept in sync manually; the repo copies were
 hash-verified identical at sync time.
+
+---
+
+## The sim runs outside the browser (added 2026-08-31)
+
+`src/lib/simEngine.js` holds `runRaceSim` and `buildSpeedScores` plus every constant and curve they
+need. It was extracted from `src/pages/SimulationCenter.js` unchanged — the code was already pure, it
+was just trapped in a React component, which meant no model change could be validated over historical
+boards. `__marketValue` and `__teamCutoff` stayed in the page on purpose: they are odds/EV and page
+history filtering, not simulation, and the engine has to stay importable from a plain node script.
+
+Two commands, both worth running after ANY edit to the engine or its callers:
+
+    npm run lint:undef    # free-variable check across src/
+    npm run sim:smoke     # runs the engine headlessly and checks its invariants
+
+`lint:undef` is not optional politeness. `react-scripts build` COMPILES a page that references a name
+which no longer exists — webpack does not flag a free variable — so a moved constant produces a green
+build and a runtime crash. That is exactly what happened during the extraction: eight names.
+
+`scripts/loadEngine.js` transforms `simEngine.js` ESM→CJS in memory so node can require it. It reads the
+same file the site ships, so a script and the site cannot disagree. No new dependency, no build step.
+
+KNOWN, PINNED DEFECT: the sim's realized DNF count tracks the caution preset rather than the rate it was
+given (~0.5x budget at Low, ~0.9x at Medium, ~1.4x at High). `npm run sim:smoke` prints the current
+numbers. Full diagnosis and cause in BACKTEST_LOG under 2026-08-31. It is pinned, not fixed — a fix
+moves shipped win probabilities and goes through the registration discipline.

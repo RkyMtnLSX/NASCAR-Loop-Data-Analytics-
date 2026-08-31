@@ -3868,3 +3868,84 @@ of a known, accepted residual and the sim keeps its current victim selection.
 DECLARED IN ADVANCE: step 1 is a real gate. If the instrumented sim already matches the measured share,
 there is nothing to fix and the "gap" was an artifact of the older 370-race measurement rather than a
 model defect. I would rather find that in step 1 than build a parameter to close a gap that is not there.
+
+---
+
+## 2026-08-31 — Sim extracted to a library; FIRST FINDING: the DNF budget is not honored
+
+### What was done (a refactor, not a model change)
+
+`src/lib/simEngine.js` is `runRaceSim`, `buildSpeedScores`, and every constant and curve they need,
+moved out of `src/pages/SimulationCenter.js`. Nothing was rewritten — the code was already pure (no
+React, DOM, or Supabase anywhere in it), it was just co-located with a UI, which meant it could only
+run in a browser, one board at a time, with a human clicking. Every model change we have discussed —
+the DNF constant refresh, leader-wreck, a future caution/pit layer — can only be VALIDATED by running
+the sim over hundreds of historical boards. That is why this was worth doing first.
+
+`__marketValue` and `__teamCutoff` deliberately stayed in the page. Neither is part of the simulation;
+`__marketValue` is odds-to-EV conversion and drags in the odds parser, and the engine has to stay
+importable from a plain node script.
+
+`scripts/loadEngine.js` transforms the SAME file ESM→CJS in memory (via @babel/core, already installed
+by react-scripts — no new dependency, no build step, no artifact). Scripts therefore read the shipped
+engine byte for byte. If a backtest says the sim does X, the site does X.
+
+VERIFICATION OF THE REFACTOR:
+  - `react-scripts build` compiles.
+  - A standalone `no-undef` lint over `src/` is clean. This mattered: the build compiled while
+    SimulationCenter still referenced eight names that had moved out from under it (DEFAULT_WEIGHTS,
+    the four other weight tables, TRUCK_SHORT_WEIGHTS, __teamCutoff, __marketValue). Webpack does not
+    catch a free variable — the page would have compiled and then thrown at runtime. Admin.js and
+    GradeCenter.js also imported moved names and were repointed.
+  - `node scripts/sim-smoke.js` runs the engine headlessly: 20k sims per track group, every sim a
+    valid permutation of 1..n, win% sums to 100, top10% to 1000, projected laps led sums to the race
+    distance, and the DNF resolver reproduces its constants including cap and shrinkage.
+
+### THE FINDING: realized DNF count tracks the CAUTION PRESET, not the rate it was given
+
+30k sims, all three series x 4 track groups x 3 caution presets, realized retirements / budgeted
+(`n * dnfRate`):
+
+    preset            cup                oreilly            trucks
+    Low  (4)      0.50 – 0.66 x       0.50 – 0.65 x      0.50 – 0.65 x
+    Medium (8)    0.87 – 0.96 x       0.84 – 0.95 x      0.85 – 0.96 x
+    High (15)     1.29 – 1.47 x       1.22 – 1.48 x      1.19 – 1.47 x
+
+Cup detail (budget in parentheses): SHORT (9.1%) 0.57 / 0.87 / 1.46 · INT (15.5%) 0.51 / 0.88 / 1.46 ·
+SS (25.5%) 0.50 / 0.96 / 1.29 · ROAD (9.5%) 0.66 / 0.97 / 1.29.
+
+CAUSE, structural and visible in the code. `runRaceSim` computes
+
+    __wScale = clamp(0.3, 2.5, (n * dnfRate * WRECK_ACC_SHARE[g]) / WRECK_EV_EXP[g])
+
+`WRECK_EV_EXP` is ONE scalar per track group, but `WRECK_SETS[g][bucket]` holds wildly different event
+counts per caution bucket — the high-caution lists are longer and the events larger. So the normalizer
+is a pooled average across buckets. At a low preset the sim draws far fewer wrecks than that pooled
+expectation and the scale does not compensate; at a high preset it overshoots.
+
+WHY THIS READS AS AN ACCIDENT RATHER THAN AN INTENT. When a track group has no wreck sets, `runRaceSim`
+falls through to `Math.random() < dnfRate` per car, which honors the budget exactly and has no caution
+dependence at all. The two paths disagree. And `resolveDnfRate`'s rates are measured over real races
+that already span every caution level, so re-scaling by caution on top of them double-counts.
+
+CONSEQUENCE. The rate we set is only honored near a mid preset. A short track simmed at Low runs ~5.2%
+effective attrition against a 9.1% budget; at High, ~13.3%. That moves win probability (survival is the
+single biggest lever at plate tracks), DFS floors, and every top-N market. It also means the 2026-08-30
+DNF constant refresh — validated on bias, holdout 2025-26 — only lands at a mid preset. That validation
+is not invalidated, but it is narrower than it read.
+
+### Status: PINNED, NOT FIXED
+
+Recorded in `scripts/sim-smoke.js` as a printed measurement with a wide sanity rail, so a future fix
+shows up as the row moving to ~1.00 rather than as a silent behaviour change. A fix moves shipped win
+probabilities and DFS floors and therefore goes through the registration discipline like any other model
+change — measure, register, freeze, holdout. Not bundled into a refactor commit.
+
+The obvious candidate fix is a per-bucket `WRECK_EV_EXP` (it can be computed directly from the same
+`WRECK_SETS` lists, no new data needed), which would make the normalizer honest by construction. That
+is a proposal, not a decision.
+
+NOTE ON THE OPEN LEADER-WRECK PROTOCOL (registered 2026-08-30). Its step 1 gate — instrument the sim and
+confirm it reproduces the ~14% SS laps-led-by-DNFer share against 17.5% measured — is now runnable, and
+should be run at a MID preset, because at Low or High the sim is not even retiring the right NUMBER of
+cars and any laps-led share measured there would be confounded by this defect.
