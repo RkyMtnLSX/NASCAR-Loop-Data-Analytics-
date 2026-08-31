@@ -4716,3 +4716,88 @@ Remaining before it goes live, unchanged from the original registration: the pra
 reconstruction. The curve is anchored on speedScore PERCENTILE, and practice sharpens that ordering —
 so the anchors should be recalibrated on boards that have it before this prices a real weekend. That
 is now the only thing between this and shipping.
+
+---
+
+## 2026-08-31 — PRACTICE-CARRYING RECONSTRUCTION: built. Recalibration CANNOT be done. Tilt does not ship.
+
+Operator asked for the practice-carrying reconstruction to recalibrate the tilt anchors. Built it.
+The answer is that the recalibration is not possible with the data that exists, and the tilt is
+therefore not ready. Two hard data facts and one clean measurement.
+
+### DATA FACT 1 — there is no practice data in the training era
+
+`practice_sessions`, which is what the sim actually reads:
+
+    year   cup      oreilly   trucks
+    2023    1 wknd    -         -
+    2024   12         -         -
+    2025   18        14        15
+    2026   21        12        14
+
+The 2022-2024 training era is effectively practice-free. Every calibration to date therefore used
+boards where the speedScore ordering is blurrier than production. That was the known blocker.
+
+Also: `best5` — the metric the shipped sim prefers for cup and trucks — is NULL before 2026 and only
+27% populated in 2026. The reconstruction uses `overall_avg`, which is exactly what the sim falls
+back to, so this is faithful rather than a substitution.
+
+### THE MEASUREMENT — 94 practice-carrying races, four arms, practice and tilt separated
+
+                         win Brier    top5 Brier   top10 Brier   DNF bias
+    no-practice flat      0.022862     0.090726     0.149144      -0.41
+    no-practice TILT      0.022810     0.090696     0.149097      +0.22
+    practice    flat      0.022643     0.089786     0.147335      -0.41
+    practice    TILT      0.022636     0.089728     0.147154      +0.22
+
+**PRACTICE IS WORTH FAR MORE THAN THE TILT.** Adding practice moves win Brier 0.022862 -> 0.022643
+and top10 0.149144 -> 0.147335. The tilt's entire effect is an order of magnitude smaller. Worth
+saying plainly after a day spent on the tilt.
+
+The tilt still helps ON TOP of practice, and helps MORE on the markets that matter for DFS:
+
+    tilt gain (x1e-5)     win     top5    top10
+    without practice     5.24     2.99     4.72
+    WITH practice        0.78     5.72    18.17
+
+But the per-tier rail FAILS on practice boards. The tier profile itself changes when practice is in
+the ordering — actual Q4 attrition is 9.3% under practice-based tiering versus 12.3% without, because
+practice identifies the strong cars better. The curve was calibrated against the practice-free
+profile, so it over-tilts Q2 (predicted 15.9 against 13.3 actual, worse than flat's 12.9).
+
+### DATA FACT 2 — recalibrating is not possible, and this is why
+
+Tried it properly: a GLOBAL curve, 3 free parameters instead of 12, fit on the first 47
+practice-carrying races and tested on the other 47.
+
+    FIT half observed    7.9  10.7  13.1  19.5
+    TEST half observed  10.7  13.3  13.4  21.5
+
+**The target moves 2.8 points at Q4 between the two halves.** That is larger than the effect being
+fitted. The curve fit to the first half's steeper profile over-tilts the second, and the rail fails
+at Q4 and Q3 — not because the method is wrong, but because 47 races cannot pin a four-point profile.
+Recalibrated curve for the record: [0.657, 0.863, 0.930, 1.549], level 1.024. It should not be used.
+
+Notable and honest counterpoint: even mis-calibrated, the tilt improved top10 Brier on EVERY tier of
+the held-out half (+45.15, +12.48, +11.46, +22.78 e-5) and aggregate top10 0.147754 -> 0.147523. The
+finishing distribution improves even where the DNF rate calibration is off. That is a genuine loose
+end, not a reason to ship.
+
+### VERDICT: NOT SHIPPING. The blocker is DATA, not method.
+
+The tilt needs a calibration set of practice-carrying boards big enough that the per-tier profile is
+stable. Ninety-four races is not it. That is roughly another full season across all three series —
+2027, or 2026 plus a backfill of practice for 2024-2025 if those files still exist anywhere.
+
+WHAT STANDS, unchanged:
+  * The skill gradient is real and the accident/mechanical control passed decisively.
+  * The v3 curve + level fix passed every gate on practice-free boards including the per-tier rail.
+  * Practice data is worth several times the tilt, and it is already in the product.
+
+WHAT IS NOW KNOWN THAT WAS NOT THIS MORNING: practice does not merely sharpen the ordering, it
+CHANGES THE TARGET — the DNF-by-tier profile is materially different when tiers are assigned with
+practice in the speedScore. Any future attempt must calibrate on practice boards from the start.
+Calibrating without practice and validating with it, which is what today did, cannot work.
+
+`skillTilt` stays OFF. `scripts/backtest-practice-tilt.js` and `scripts/recalibrate-tilt-practice.js`
+reproduce all of the above.
