@@ -5538,3 +5538,57 @@ ON SHIP, REQUIRED IN THE SAME MOTION: `sim-smoke.js` asserts the 0.5x / 0.9x / 1
 shape as correct calibration and tells the reader not to report it as a bug. That shape is exactly
 what this removes. The row and its comment MUST be rewritten or the next session will read a passing
 test as evidence the fix did not take.
+
+### 2026-08-31 — Two pre-ship checks I had NOT run, plus one product consequence
+
+Operator: "think about it one more time before shipping." Went looking for untested surface rather
+than re-reading the gates. Three things. Two are clean; the third is not a defect but is a change to
+how the operator's own controls behave, and it needs an explicit yes rather than a footnote.
+
+**CHECK 1 — is the clamp at 8 actually non-binding, or did I just pick a number that happened to work
+on one synthetic track?** Computed the required `__wScale` for all 162 holdout boards under the
+per-bucket normalizers:
+
+    max required 4.35 · boards exceeding the clamp: 0 of 162
+    distribution: 0-1: 35 · 1-2: 102 · 2-3: 7 · 3-4: 17 · 4-5: 1
+
+CLEAN, with about 2x headroom. 8 is not a tuned value, it is "comfortably above anything the schedule
+asks for" — which is what a guard rail should be. Had the max come in at 7.8 this would have been a
+fitted parameter in disguise.
+
+**CHECK 2 — the fin>=25 placement band, which my gates OMITTED and which is exactly what
+`WRECK_SURV_COST` (SHORT 16, INT 18) was calibrated against on 2026-08-29.** Changing how many cars
+retire could invalidate that calibration and none of gates A-E would have seen it.
+
+    arm         fin25 Brier    calibration error
+    CURRENT      0.207880          3.453 pts
+    NULL         0.207432          3.344 pts     <- same config, different RNG
+    EV+CLAMP     0.208036          3.486 pts
+
+The EV+CLAMP delta from CURRENT (+0.000156 Brier, +0.033 pts) is SMALLER than the null's own
+(+0.000448, +0.109). The placement tail is untouched and the 2026-08-29 surv calibration survives.
+This was the single most likely way the fix could have quietly broken something already shipped, and
+it did not.
+
+**THE PRODUCT CONSEQUENCE, which is not a defect and is not optional to disclose.**
+
+After this fix the CAUTION buttons stop changing attrition. They will still change the wreck-event
+SHAPE (calm singles vs the Big One), the score noise width, and the dominator curves — but clicking
+High will no longer retire more cars. The UI hint text becomes wrong: "calm pool (sims land under DNF
+budget)" / "chaotic pool (sims land over DNF budget)" is precisely the behaviour being removed.
+
+That leaves the DNF preset (Low .05 / Medium .15 / High .25) as the ONLY attrition dial, which is
+what the 2026-07-14 entry left it as when it demoted those presets to manual overrides. Verified the
+override path still works: `dnfPreset.value` feeds `dnfRate` directly and the per-bucket normalizer
+normalizes around whatever budget it is handed.
+
+ARGUABLY THIS IS BETTER PRODUCT DESIGN — two dials that currently both move attrition become two
+dials that do two different things. But it is a change to controls the operator uses every weekend,
+and he should agree to it before it ships, not discover it on a board.
+
+REQUIRED ON SHIP, now three items:
+  1. `sim-smoke.js` caution-bucket row and its comment — it asserts the 0.5/0.9/1.4 shape as correct
+     calibration and warns against reporting it as a bug. That shape is what this removes.
+  2. The Caution Rate card hint text in SimulationCenter — the "calm pool / chaotic pool ... under /
+     over DNF budget" strings become false.
+  3. CLAUDE.md's "CALIBRATION YOU MUST NOT MISREAD" paragraph, same reason.
