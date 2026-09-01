@@ -126,7 +126,7 @@ function SeasonSummaryTable({ rows }) {
   const seenT = {}
   const trackLabels = raceRows.map(r => { const tk = r.track + '|' + __isoDate(r.race_date).slice(0, 4); seenT[tk] = (seenT[tk] || 0) + 1; const base = shortTrackName(r.track) || r.race_name; return trackCounts[tk] > 1 ? (base + ' R' + seenT[tk]) : base })
   const labeled = raceRows.map((r, i) => ({ ...r, __label: trackLabels[i] }))
-  const sVal = r => sKey === 'date' ? __isoDate(r.race_date) : sKey === 'track' ? r.__label : sKey === 'driver' ? (r.driver || '') : sKey === 'time' ? (parseFloat(r.fastest_time) || Infinity) : sKey === 'lap' ? (parseInt(r.fastest_lap_num) || Infinity) : (parseFloat(r.fastest_speed) || -Infinity)
+  const sVal = r => sKey === 'date' ? __isoDate(r.race_date) : sKey === 'track' ? r.__label : sKey === 'driver' ? (r.driver || '') : sKey === 'time' ? (parseFloat(r.fastest_time) || Infinity) : sKey === 'lap' ? (parseInt(r.fastest_lap_num) || Infinity) : sKey === 'start' ? (parseInt(r.start_pos) || Infinity) : sKey === 'finish' ? (parseInt(r.finish_pos) || Infinity) : (parseFloat(r.fastest_speed) || -Infinity)
   labeled.sort((a, b) => { const va = sVal(a), vb = sVal(b); if (va < vb) return sAsc ? -1 : 1; if (va > vb) return sAsc ? 1 : -1; return 0 })
   if (!raceRows.length) return <div style={{color:'var(--text-muted)',fontSize:'0.875rem',padding:'24px 0'}}>No data available.</div>
   return (
@@ -141,6 +141,8 @@ function SeasonSummaryTable({ rows }) {
           <th onClick={hClick('time')} style={{...numHead,color:'var(--accent-text)',fontWeight:700,cursor:'pointer',userSelect:'none'}}>Fastest Time{arrow('time')}</th>
           <th onClick={hClick('speed')} style={{...numHead,cursor:'pointer',userSelect:'none'}}>Speed (mph){arrow('speed')}</th>
           <th onClick={hClick('lap')} title="Lap of the race the fastest lap was set on" style={{...numHead,cursor:'pointer',userSelect:'none'}}>Lap #{arrow('lap')}</th>
+          <th onClick={hClick('start')} title="Where the driver started that race" style={{...numHead,cursor:'pointer',userSelect:'none'}}>Start{arrow('start')}</th>
+          <th onClick={hClick('finish')} title="Where the driver finished that race" style={{...numHead,cursor:'pointer',userSelect:'none'}}>Finish{arrow('finish')}</th>
         </tr></thead>
         <tbody>
           {labeled.map((r,i) => {
@@ -157,6 +159,8 @@ function SeasonSummaryTable({ rows }) {
                 <td style={{...numCell,color:'var(--accent-text)',fontWeight:600}}>{r.fastest_time}</td>
                 <td style={numCell}>{r.fastest_speed?parseFloat(r.fastest_speed).toFixed(2):'\u2014'}</td>
                 <td style={numCell}>{r.fastest_lap_num||'\u2014'}</td>
+                <td style={numCell}>{r.start_pos||'\u2014'}</td>
+                <td style={numCell}>{r.finish_pos||'\u2014'}</td>
               </tr>
             )
           })}
