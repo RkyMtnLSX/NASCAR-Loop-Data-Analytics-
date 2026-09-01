@@ -3019,3 +3019,20 @@ point favourite calibration is answerable on REAL boards with no reconstruction 
 So the between-now-and-launch job is not modelling. It is running the weekends and letting practice
 and published boards accumulate. Keep publishing boards through the Chase even with nobody watching —
 that is the dataset.
+
+## 2026-09-01 — Fastest Laps: Season Summary alignment + car-number art bug + Lap # column (36240ea)
+Cosmetic, light check only (build green; operator eyeballs). FastestLap.js:
+- Column alignment had three causes: global.css centers every td and the sticky Track cell never
+  overrode it; the Track Type and Driver headers used the right-aligned numHead over left-aligned
+  cells; and the table's slack width went to the sticky Track column. Headers now sit over their
+  data and the Driver th carries width:100% so it absorbs the slack.
+- New DriverCell (used by Season Summary, Race View, Heat Map): inline-flex, fixed 36px slot for the
+  number PNG so names start at the same x whether or not the art rendered, and the art sits on the
+  text line instead of floating above it.
+- BUG WORTH REMEMBERING: rows randomly lost their car-number PNG (e.g. Logano Darlington R2 2022)
+  with CLEAN data and existing art. CarNum's onError hides the <img> imperatively; rows are keyed by
+  index, so after a re-sort/filter React reused the hidden node for a different car. Fix: key the
+  <img> by car + onLoad resets display. Same pattern exists wherever CarNum was copied
+  (LoopData, GreenFlagSpeed, PitCrewRankings, DFS Center) — port if the symptom shows there.
+- Season Summary gains a sortable Lap # column (fastest_lap_num) at the right end — operator wants
+  to see which lap of the race the fastest lap was set on.
