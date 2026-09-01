@@ -12,6 +12,36 @@ const __CAR_ALIAS = { '133': '33' }
 const PEN_SEC = 1.75   // amortized box-time equivalent per crew penalty per race (display methodology, not a sim input)
 const BOMB_X = 1.25    // a bomb = qualifying stop slower than 1.25x the series clean median (hung-lug territory)
 
+// PHYSICAL FLOOR (2026-08-31, operator caught it: "Cindric best stop that can't be right").
+// The Tukey fence below only guards the SLOW tail. NASCAR's feed emits occasional impossible
+// box_times on rows flagged FOUR_WHEEL_CHANGE with all four tire booleans true — 96 of 52,737
+// 4-tire stops (2022-26) come back under 8s, including values of 0.02s and 0.50s. They are
+// scattered across many races, skewed toward road/street courses, so they are feed noise rather
+// than one bad load.
+//
+// A symmetric Tukey fence does NOT work here: the distribution is right-skewed, so cup's lower
+// fence lands at 4.25s and lets 4.86 straight through. The floor is set from the SHAPE of the
+// distribution instead. Cup 2026 4-tire stops, 0.25s buckets:
+//
+//     7.75  1 stop  (1 car)     8.50   2 stops (2 cars)     9.25  323 stops (35 cars)
+//     8.00  1 stop  (1 car)     8.75  38 stops (15 cars)    9.50  398 stops (36 cars)
+//     8.25  1 stop  (1 car)     9.00 146 stops (29 cars)    9.75  402 stops (37 cars)
+//
+// The real population begins at 8.75 — density jumps ~20x there. Below it sit five isolated
+// singletons, each from a different car, never repeated: the tail of the noise, not elite stops.
+// 8.5 sits in that empty band, above every singleton that is clearly garbage and below the point
+// where real stops start, leaving headroom if a crew ever does set a genuine record.
+//
+// Impact was confined to BEST STOP because it is a min — one bad row owns the column outright.
+// Cup 2026 showed Cindric 4.86s (true 8.96), Logano 3.82 (9.02), #43 4.28 (9.16), #47 4.66
+// (9.16), #6 6.36 (9.24). Medians moved <= 0.042s, so Adj, the rankings and the sim's crew term
+// were never materially wrong.
+//
+// If a future season's histogram shows the population starting somewhere else, re-derive this
+// the same way rather than nudging it.
+const FLOOR_4T = 8.5
+const FLOOR_2T = 2.5   // cup 2-tire p01 is 3.92s; the 8 rows under 2.5s are the same feed noise
+
 const median = (arr) => {
   const b = [...arr].sort((a, b) => a - b), n = b.length
   return n % 2 ? b[(n - 1) / 2] : (b[n / 2 - 1] + b[n / 2]) / 2
@@ -88,6 +118,7 @@ export default function PitCrewRankings() {
   const [sort, setSort] = useState('adj')  // 'adj' | 'median' | 'iqr' | 'n'
   const [open, setOpen] = useState(null)
   const [cmp, setCmp] = useState([])
+  const [showHelp, setShowHelp] = useState(false)   // glossary is opt-in: it used to push the table off a phone screen
 
   useEffect(() => {
     let cancelled = false
@@ -126,16 +157,21 @@ export default function PitCrewRankings() {
       // crew = car + team, so a rotating driver lineup stays ONE crew. Normalize name
       // markers (leading *, trailing (i)/#) so one driver is not miscounted as several.
       const cleanName = (n) => n.replace(/^\*\s*/, '').replace(/\s*\(i\)\s*$/i, '').replace(/\s*#\s*$/, '').trim().toLowerCase()
-      const allT = all.filter((r) => +r.tires_changed === 4).map((r) => +r.box_time).sort((a, b) => a - b)
+      // Floor BEFORE taking quartiles: impossible sub-FLOOR_4T rows sit in the low tail and would
+      // drag q1 down, widening the IQR and pushing the slow-side fence out. Small effect, but the
+      // fence should be derived from stops that could physically have happened.
+      const allT = all.filter((r) => +r.tires_changed === 4).map((r) => +r.box_time).filter((t) => t >= FLOOR_4T).sort((a, b) => a - b)
       const sq1 = allT[Math.floor(allT.length * 0.25)], sq3 = allT[Math.floor(allT.length * 0.75)]
       const fence = sq3 + 1.5 * (sq3 - sq1)   // series outlier fence: beyond this = repair/hold/non-competitive stop, excluded from ALL crew stats
-      const seriesMed = median(allT.filter((t) => t <= fence))
-      const all2 = all.filter((r) => +r.tires_changed === 2).map((r) => +r.box_time).sort((a, b) => a - b)
+      // ok4 is the ONLY 4-tire filter used below — both tails. See FLOOR_4T at the top of the file.
+      const ok4 = (t) => t >= FLOOR_4T && t <= fence
+      const seriesMed = median(allT.filter(ok4))
+      const all2 = all.filter((r) => +r.tires_changed === 2).map((r) => +r.box_time).filter((t) => t >= FLOOR_2T).sort((a, b) => a - b)
       const t2q1 = all2[Math.floor(all2.length * 0.25)] || 0, t2q3 = all2[Math.floor(all2.length * 0.75)] || 0
       const fence2 = all2.length >= 30 ? t2q3 + 1.5 * (t2q3 - t2q1) : Infinity   // 2-tire stops get their OWN fence (different timescale)
       const maxRn = all.reduce((m, r) => Math.max(m, r.race_number || 0), 0)
-      const out = Object.values(crews).filter((c) => c.t.filter((t) => t <= fence).length >= MIN_STOPS).map((c) => {
-        const ct = c.t.filter((t) => t <= fence)
+      const out = Object.values(crews).filter((c) => c.t.filter(ok4).length >= MIN_STOPS).map((c) => {
+        const ct = c.t.filter(ok4)
         const b = [...ct].sort((a, b) => a - b)
         const q1 = b[Math.floor(b.length * 0.25)], q3 = b[Math.floor(b.length * 0.75)]
         const names = Object.keys(c.dc)
@@ -152,10 +188,10 @@ export default function PitCrewRankings() {
         // (35-95s), and the polluted distribution pushes the Tukey fence to ~120s (filters
         // nothing). Principle: a competitive 2-tire stop exists to be FASTER than a 4-tire
         // stop - cap the 2T filter at the series clean 4T median.
-        const ct2 = c.t2.filter((t) => t <= Math.min(fence2, seriesMed))
-        const rlist = Object.keys(c.rd).map(Number).sort((a, b) => a - b).map((rn) => { const cts = c.rd[rn].ts.filter((t) => t <= fence); return cts.length ? { rn: rn, med: median(cts), n: cts.length, best: Math.min.apply(null, cts), track: c.rd[rn].track } : null }).filter(Boolean)
+        const ct2 = c.t2.filter((t) => t >= FLOOR_2T && t <= Math.min(fence2, seriesMed))
+        const rlist = Object.keys(c.rd).map(Number).sort((a, b) => a - b).map((rn) => { const cts = c.rd[rn].ts.filter(ok4); return cts.length ? { rn: rn, med: median(cts), n: cts.length, best: Math.min.apply(null, cts), track: c.rd[rn].track } : null }).filter(Boolean)
         const bestStop = rlist.reduce((m, x) => (m && m.best <= x.best ? m : x), null)
-        return { car: c.car, org: c.org, driver: driver, rotating: rotating, median: med, adj: med + (cp / races) * PEN_SEC, penRate: cp / races, cp: cp, dp: dp, bomb: ct.filter((t) => t > seriesMed * BOMB_X).length / ct.length, iqr: q3 - q1, t2m: ct2.length >= 3 ? median(ct2) : null, n2: ct2.length, n: ct.length, rlist: rlist, bestStop: bestStop, pens: (penR[String(c.car)] || {}), prevAdj: (() => { const pts = Object.keys(c.rd).map(Number).filter((rn) => rn !== maxRn).reduce((acc, rn) => acc.concat(c.rd[rn].ts), []).filter((t) => t <= fence); if (pts.length < MIN_STOPS) return null; const pRaces = races - (c.rs[maxRn] ? 1 : 0); if (pRaces < 1) return null; const pCp = cp - (((penR[String(c.car)] || {})[maxRn] || {}).c || 0); return median(pts) + (Math.max(0, pCp) / pRaces) * PEN_SEC })() }
+        return { car: c.car, org: c.org, driver: driver, rotating: rotating, median: med, adj: med + (cp / races) * PEN_SEC, penRate: cp / races, cp: cp, dp: dp, bomb: ct.filter((t) => t > seriesMed * BOMB_X).length / ct.length, iqr: q3 - q1, t2m: ct2.length >= 3 ? median(ct2) : null, n2: ct2.length, n: ct.length, rlist: rlist, bestStop: bestStop, pens: (penR[String(c.car)] || {}), prevAdj: (() => { const pts = Object.keys(c.rd).map(Number).filter((rn) => rn !== maxRn).reduce((acc, rn) => acc.concat(c.rd[rn].ts), []).filter(ok4); if (pts.length < MIN_STOPS) return null; const pRaces = races - (c.rs[maxRn] ? 1 : 0); if (pRaces < 1) return null; const pCp = cp - (((penR[String(c.car)] || {})[maxRn] || {}).c || 0); return median(pts) + (Math.max(0, pCp) / pRaces) * PEN_SEC })() }
       })
       // power-rank movement: rank now vs rank with the latest race excluded (2026-08-08, operator request)
       const curR = [...out].sort((a, b) => a.adj - b.adj); curR.forEach((r, i2) => { r.__cr = i2 + 1 })
@@ -174,27 +210,66 @@ export default function PitCrewRankings() {
 
   return (
     <div style={wrap}>
-      <h1 style={h1}>Pit Crew Rankings</h1>
-      <p style={sub}>
-        <strong>Adj (s)</strong> = median 4-tire box time + {PEN_SEC}s per crew penalty per race &mdash; lower is faster.
-        {' '}{SEASON} season, within series, qualifying stops only (crash repairs and penalty holds excluded).
-        {' '}Click any row for race-by-race detail.
-      </p>
-      <p style={{ ...sub, fontSize: '0.78rem' }}>
-        Consistency = box-time spread (lower = steadier) &middot; Bomb% = stops 1.25&times; slower than the series median
-        {' '}&middot; 2T = median two-tire stop (hover for sample size) &middot; Crew Pen = crew-caused penalties &middot; Drv Pen = driver-caused (speeding, commitment, box)
-        {' '}&middot; crews under {MIN_STOPS} stops hidden &middot; &ldquo;thin&rdquo; = fewer than {LOWN}
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 6 }}>
+        <h1 style={h1}>Pit Crew Rankings</h1>
+        <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
+          {SEASON} SEASON &middot; QUALIFYING STOPS ONLY
+        </span>
+      </div>
+
+      <p style={{ ...sub, margin: '0 0 12px', maxWidth: 680 }}>
+        Ranked by <strong style={{ color: 'var(--text-primary)' }}>Adj</strong> &mdash; median 4-tire box time
+        plus {PEN_SEC}s for every crew penalty. Lower is faster. Tap a row for race-by-race detail,
+        or <strong style={{ color: 'var(--text-primary)' }}>+</strong> on two crews to compare them.
       </p>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap' }}>
+      <button onClick={() => setShowHelp((v) => !v)} style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: showHelp ? 10 : 18,
+        padding: '5px 12px', borderRadius: 999, border: '1px solid var(--border)',
+        background: 'transparent', color: 'var(--text-secondary)', fontSize: '0.76rem',
+        cursor: 'pointer', letterSpacing: '0.03em',
+      }}>
+        <span style={{ fontSize: '0.9rem', lineHeight: 1 }}>{showHelp ? '−' : '+'}</span>
+        What the columns mean
+      </button>
+
+      {showHelp && (
+        <div style={{
+          marginBottom: 18, padding: '14px 16px', background: 'var(--bg-surface)',
+          border: '1px solid var(--border)', borderRadius: 10,
+          display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '10px 22px',
+        }}>
+          {[
+            ['Adj (s)', 'Median 4-tire box time + ' + PEN_SEC + 's per crew penalty per race.'],
+            ['Consistency', 'Box-time spread. Lower means steadier, stop to stop.'],
+            ['Bomb%', 'Share of stops ' + BOMB_X + '× slower than the series median — hung-lug territory.'],
+            ['2T (s)', 'Median two-tire stop. Hover the number for sample size.'],
+            ['Crew Pen', 'Crew-caused penalties: loose wheel, too many men, equipment.'],
+            ['Drv Pen', 'Driver-caused: speeding, commitment line, missing the box.'],
+            ['Δ', 'Rank movement against the standings before the latest race.'],
+            ['Sample', 'Crews under ' + MIN_STOPS + ' stops are hidden. Under ' + LOWN + ' is tagged “thin”.'],
+          ].map(([term, def]) => (
+            <div key={term}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-primary)', marginBottom: 2 }}>{term}</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.45 }}>{def}</div>
+            </div>
+          ))}
+          <div style={{ gridColumn: '1 / -1', fontSize: '0.76rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border)', paddingTop: 10, lineHeight: 1.5 }}>
+            Crash repairs, penalty holds and impossible sub-{FLOOR_4T}s feed errors are excluded before anything is computed.
+            Times are raw seconds and are never compared across series.
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: 'inline-flex', gap: 4, marginBottom: 18, padding: 4, borderRadius: 10, background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
         {SERIES.map((s) => {
           const active = series === s.v
           return (
             <button key={s.v} onClick={() => setSeries(s.v)} style={{
-              padding: '7px 18px', borderRadius: 6, border: '1px solid var(--border)',
-              background: active ? SERIES_COLOR[s.v] : 'var(--bg-surface)',
+              padding: '7px 20px', borderRadius: 7, border: 'none',
+              background: active ? SERIES_COLOR[s.v] : 'transparent',
               color: active ? (s.v === 'trucks' ? '#111' : '#fff') : 'var(--text-secondary)',
-              fontWeight: active ? 600 : 400, fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.15s',
+              fontWeight: active ? 700 : 500, fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.15s',
             }}>{s.label}</button>
           )
         })}
@@ -209,31 +284,69 @@ export default function PitCrewRankings() {
           if (a.med < b.med) aw++; else if (b.med < a.med) bw++
           return { rn, track: (a.track || '').split(' ').slice(0, 2).join(' '), am: a.med, bm: b.med }
         })
+        const WIN = '#22c55e'
+        // Value cell carries a proportional bar so the SIZE of the gap reads at a glance \u2014
+        // "10.12 vs 10.36" is a quarter second, which the bare numbers do not convey.
         const statRow = (label, av, bv, fmt, lower) => {
-          const aWin = av != null && bv != null && (lower ? av < bv : av > bv)
-          const bWin = av != null && bv != null && (lower ? bv < av : bv > av)
+          const both = av != null && bv != null
+          const aWin = both && (lower ? av < bv : av > bv)
+          const bWin = both && (lower ? bv < av : bv > av)
+          const mx = both ? Math.max(av, bv) || 1 : 1
+          const cell = (v, win, right) => (
+            <div style={{ width: '34%', textAlign: right ? 'right' : 'left' }}>
+              <div style={{ fontSize: '0.95rem', fontVariantNumeric: 'tabular-nums', fontWeight: win ? 700 : 500, color: win ? WIN : 'var(--text-primary)' }}>
+                {v != null ? fmt(v) : '\u2014'}
+              </div>
+              {both && (
+                <div style={{ height: 3, borderRadius: 2, background: 'var(--border)', marginTop: 4, display: 'flex', justifyContent: right ? 'flex-end' : 'flex-start' }}>
+                  <div style={{ width: (Math.abs(v) / mx * 100).toFixed(1) + '%', height: '100%', borderRadius: 2, background: win ? WIN : 'var(--text-muted)', opacity: win ? 0.9 : 0.4 }} />
+                </div>
+              )}
+            </div>
+          )
           return (
-            <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid var(--border)', fontSize: '0.85rem' }}>
-              <span style={{ width: 110, fontWeight: aWin ? 700 : 400, color: aWin ? '#22c55e' : 'var(--text-primary)' }}>{av != null ? fmt(av) : '\u2014'}</span>
-              <span style={{ color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: '0.05em' }}>{label}</span>
-              <span style={{ width: 110, textAlign: 'right', fontWeight: bWin ? 700 : 400, color: bWin ? '#22c55e' : 'var(--text-primary)' }}>{bv != null ? fmt(bv) : '\u2014'}</span>
+            <div key={label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 0', borderBottom: '1px solid var(--border)' }}>
+              {cell(av, aWin, false)}
+              <span style={{ color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: '0.68rem', letterSpacing: '0.07em', textAlign: 'center', flex: 1 }}>{label}</span>
+              {cell(bv, bWin, true)}
             </div>
           )
         }
         const s2 = (v) => v.toFixed(2)
+        const crewHead = (c, right) => (
+          <div style={{ width: '38%', textAlign: right ? 'right' : 'left' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: right ? 'flex-end' : 'flex-start', marginBottom: 3 }}>
+              <CarNum car={c.car} series={series} />
+            </div>
+            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>{c.driver || ('#' + c.car)}</div>
+            <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', lineHeight: 1.3 }}>{c.org || ''}</div>
+          </div>
+        )
+        const tot = Math.max(1, aw + bw)
         return (
-          <div style={{ margin: '0 0 18px', padding: '14px 18px', background: 'var(--bg-surface)', border: '1px solid var(--accent)', borderRadius: 8, maxWidth: 560 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <strong style={{ display: 'flex', alignItems: 'center', gap: 4 }}><CarNum car={A.car} series={series} />{A.org || ''}</strong>
-              <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>vs</span>
-              <strong style={{ display: 'flex', alignItems: 'center', gap: 4 }}><CarNum car={B.car} series={series} />{B.org || ''}</strong>
+          <div style={{ margin: '0 0 18px', padding: '16px 18px', background: 'var(--bg-surface)', border: '1px solid var(--accent)', borderRadius: 12, maxWidth: 560 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+              {crewHead(A, false)}
+              <div style={{ flex: 1, textAlign: 'center', paddingTop: 6 }}>
+                <div style={{ fontSize: '0.68rem', letterSpacing: '0.12em', color: 'var(--text-muted)' }}>VS</div>
+              </div>
+              {crewHead(B, true)}
             </div>
-            <div style={{ textAlign: 'center', marginBottom: 8, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              Race-by-race median head-to-head: <strong style={{ color: aw > bw ? '#22c55e' : 'var(--text-primary)' }}>{aw}</strong>
-              {' \u2013 '}
-              <strong style={{ color: bw > aw ? '#22c55e' : 'var(--text-primary)' }}>{bw}</strong>
-              {shared.length !== aw + bw ? ' (' + (shared.length - aw - bw) + ' even)' : ''} across {shared.length} shared races
+
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 5 }}>
+                <span style={{ fontSize: '1.35rem', fontWeight: 800, color: aw > bw ? WIN : 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{aw}</span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  head-to-head &middot; {shared.length} shared races{shared.length !== aw + bw ? ' \u00b7 ' + (shared.length - aw - bw) + ' even' : ''}
+                </span>
+                <span style={{ fontSize: '1.35rem', fontWeight: 800, color: bw > aw ? WIN : 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{bw}</span>
+              </div>
+              <div style={{ display: 'flex', height: 6, borderRadius: 3, overflow: 'hidden', background: 'var(--border)' }}>
+                <div style={{ width: (aw / tot * 100).toFixed(1) + '%', background: aw > bw ? WIN : 'var(--text-muted)', opacity: aw > bw ? 0.9 : 0.45 }} />
+                <div style={{ width: (bw / tot * 100).toFixed(1) + '%', background: bw > aw ? WIN : 'var(--text-muted)', opacity: bw > aw ? 0.9 : 0.45, marginLeft: 'auto' }} />
+              </div>
             </div>
+
             {statRow('Adj (s)', A.adj, B.adj, s2, true)}
             {statRow('Median 4T', A.median, B.median, s2, true)}
             {statRow('Best stop', A.bestStop && A.bestStop.best, B.bestStop && B.bestStop.best, s2, true)}
@@ -241,15 +354,22 @@ export default function PitCrewRankings() {
             {statRow('Consistency', A.iqr, B.iqr, s2, true)}
             {statRow('Pen / race', A.penRate, B.penRate, s2, true)}
             {statRow('Stops', A.n, B.n, (v) => v, false)}
-            <div style={{ marginTop: 10, maxHeight: 160, overflowY: 'auto' }}>
+
+            <div style={{ marginTop: 12, fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', marginBottom: 4 }}>Race by race</div>
+            <div style={{ maxHeight: 168, overflowY: 'auto' }}>
               {perRace.map((r) => (
-                <div key={r.rn} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', padding: '2px 0', color: 'var(--text-secondary)' }}>
-                  <span style={{ width: 110, color: r.am < r.bm ? '#22c55e' : 'var(--text-secondary)' }}>{r.am.toFixed(2)}</span>
-                  <span style={{ color: 'var(--text-muted)' }}>R{r.rn} {r.track}</span>
-                  <span style={{ width: 110, textAlign: 'right', color: r.bm < r.am ? '#22c55e' : 'var(--text-secondary)' }}>{r.bm.toFixed(2)}</span>
+                <div key={r.rn} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem', padding: '3px 0', color: 'var(--text-secondary)' }}>
+                  <span style={{ width: '30%', fontVariantNumeric: 'tabular-nums', fontWeight: r.am < r.bm ? 700 : 400, color: r.am < r.bm ? WIN : 'var(--text-secondary)' }}>{r.am.toFixed(2)}</span>
+                  <span style={{ flex: 1, textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.72rem' }}>R{r.rn} {r.track}</span>
+                  <span style={{ width: '30%', textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: r.bm < r.am ? 700 : 400, color: r.bm < r.am ? WIN : 'var(--text-secondary)' }}>{r.bm.toFixed(2)}</span>
                 </div>
               ))}
             </div>
+
+            <button onClick={() => setCmp([])} style={{
+              marginTop: 12, padding: '5px 14px', borderRadius: 999, border: '1px solid var(--border)',
+              background: 'transparent', color: 'var(--text-secondary)', fontSize: '0.74rem', cursor: 'pointer',
+            }}>Clear comparison</button>
           </div>
         )
       })()}

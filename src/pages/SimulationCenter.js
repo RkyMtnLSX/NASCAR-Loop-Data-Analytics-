@@ -411,7 +411,15 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
           const __fq1 = __allBt[Math.floor(__allBt.length * 0.25)] || 0
           const __fq3 = __allBt[Math.floor(__allBt.length * 0.75)] || 0
           const __fence = __allBt.length >= 100 ? __fq3 + 1.5 * (__fq3 - __fq1) : Infinity
-          Object.keys(__byCar).forEach(c => { const a = __byCar[c].filter(t => t <= __fence).sort((x, y) => x - y); if (a.length >= 5) __crewMap[c] = a.length % 2 ? a[(a.length - 1) / 2] : (a[a.length / 2 - 1] + a[a.length / 2]) / 2 })
+          // 2026-08-31: the Tukey fence guards only the SLOW tail. NASCAR's feed emits impossible
+          // box_times on rows flagged FOUR_WHEEL_CHANGE (96 of 52,737 stops 2022-26, some as low
+          // as 0.02s). The floor is set from where the real distribution starts: cup 4-tire stops
+          // are 5 isolated singletons below 8.75s, then 38 stops across 15 cars in 8.75-9.00 and
+          // hundreds above. The median already absorbed these (shifts <= 0.042s, so no sim result
+          // changes), but the floor is applied here too so the sim and PitCrewRankings agree on
+          // what counts as a valid stop. Same constant, same derivation — see FLOOR_4T there.
+          const __FLOOR_4T = 8.5
+          Object.keys(__byCar).forEach(c => { const a = __byCar[c].filter(t => t >= __FLOOR_4T && t <= __fence).sort((x, y) => x - y); if (a.length >= 5) __crewMap[c] = a.length % 2 ? a[(a.length - 1) / 2] : (a[a.length / 2 - 1] + a[a.length / 2]) / 2 })
         } catch (e) {}
 
         // Specific track history
