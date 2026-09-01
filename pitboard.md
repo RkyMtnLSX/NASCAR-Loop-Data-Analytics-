@@ -3036,3 +3036,6 @@ Cosmetic, light check only (build green; operator eyeballs). FastestLap.js:
   (LoopData, GreenFlagSpeed, PitCrewRankings, DFS Center) — port if the symptom shows there.
 - Season Summary gains a sortable Lap # column (fastest_lap_num) at the right end — operator wants
   to see which lap of the race the fastest lap was set on.
+- (same day, 0a99da9) Season Summary also gains sortable Start / Finish columns right of Lap # —
+  `start_pos`/`finish_pos` were already stored for 100% of races (checked per year 2022-2026);
+  no loader or data change.
