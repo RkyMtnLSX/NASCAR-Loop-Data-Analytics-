@@ -257,6 +257,9 @@ export default function PitCrewRankings() {
           <div style={{ gridColumn: '1 / -1', fontSize: '0.76rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border)', paddingTop: 10, lineHeight: 1.5 }}>
             Crash repairs, penalty holds and impossible sub-{FLOOR_4T}s feed errors are excluded before anything is computed.
             Times are raw seconds and are never compared across series.
+            <br />
+            <strong style={{ color: 'var(--text-secondary)' }}>Penalties are parsed from race-control lap notes and are not complete</strong> —
+            a few races each season come back with none recorded, so a crew&rsquo;s penalty count is a floor, not a total.
           </div>
         </div>
       )}
@@ -352,7 +355,11 @@ export default function PitCrewRankings() {
             {statRow('Best stop', A.bestStop && A.bestStop.best, B.bestStop && B.bestStop.best, s2, true)}
             {statRow('2T median', A.t2m, B.t2m, s2, true)}
             {statRow('Consistency', A.iqr, B.iqr, s2, true)}
-            {statRow('Pen / race', A.penRate, B.penRate, s2, true)}
+            {/* 2026-08-31: this row was labelled just "Pen / race" and showed ONLY the crew rate.
+                Blaney's two 2026 penalties are both driver-caused, so his card read 0.00 and the
+                operator reasonably read that as "penalties are missing". Both kinds are shown now. */}
+            {statRow('Crew pen / race', A.penRate, B.penRate, s2, true)}
+            {statRow('Driver pen', A.dp, B.dp, (v) => v, true)}
             {statRow('Stops', A.n, B.n, (v) => v, false)}
 
             <div style={{ marginTop: 12, fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', marginBottom: 4 }}>Race by race</div>
