@@ -21,13 +21,26 @@ const sectionHead = { fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text
 const stickyHead = { position: 'sticky', left: 0, zIndex: 3, background: 'var(--bg-elevated)', textAlign: 'left', padding: '10px 16px', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap', borderBottom: '1px solid var(--border)', borderRight: '1px solid var(--border)', minWidth: 180 }
 const numHead = { padding: '10px 12px', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', textAlign: 'right', whiteSpace: 'nowrap', borderBottom: '1px solid var(--border)', background: 'var(--bg-elevated)' }
 const __CAR_ALIAS = { '133': '33' }
-function CarNum({ car, series }) {
+function CarNum({ car, series, noMargin }) {
   if (!car) return null
   const dir = series === 'oreilly' ? '/car-numbers-oreilly/' : series === 'trucks' ? '/car-numbers-trucks/' : '/car-numbers/'
+  // key={car}: the onError fallback hides the node imperatively; without a key React reuses that
+  // hidden <img> for a different car after a re-sort/filter and the number silently disappears.
   return (
-    <img src={dir + (__CAR_ALIAS[String(car)] || car) + '.png'} alt={'#' + car}
-      style={{ height: 22, marginRight: 6, verticalAlign: 'middle' }}
+    <img key={String(car)} src={dir + (__CAR_ALIAS[String(car)] || car) + '.png'} alt={'#' + car}
+      style={{ height: 22, marginRight: noMargin ? 0 : 6, verticalAlign: 'middle' }}
+      onLoad={(e) => { e.target.style.display = '' }}
       onError={(e) => { const t = e.target; if (!t.dataset.retried) { t.dataset.retried = '1'; t.src = t.src + (t.src.indexOf('?') >= 0 ? '&r=' : '?r=') + Date.now() } else { t.style.display = 'none' } }} />
+  )
+}
+// Driver cell: fixed-width slot for the number art so names start at the same x whether or not the
+// PNG rendered, and flex-centered so the art sits on the same line as the text (not floating above it).
+function DriverCell({ car, driver, weight }) {
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle', gap: 6, fontWeight: weight || 400 }}>
+      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 36, flex: '0 0 36px' }}><CarNum car={car} noMargin /></span>
+      <span>{driver}</span>
+    </span>
   )
 }
 
@@ -80,8 +93,8 @@ function RaceTable({ rows, raceName, track }) {
               return (
                 <tr key={i} style={{background:rowBg}}>
                   <td style={stickyCell(rowBg)}>
-                    <span style={{marginRight:6,fontSize:rank<=3?'1.2rem':'0.75rem',fontFamily:'var(--font-mono)',color:rank<=3?'var(--accent-text)':'var(--text-muted)',minWidth:26,display:'inline-block'}}>{MEDAL[rank]||rank}</span>
-                    <span style={{fontWeight:rank<=3?700:400}}><CarNum car={r.car} />{r.driver}</span>
+                    <span style={{marginRight:6,fontSize:rank<=3?'1.2rem':'0.75rem',fontFamily:'var(--font-mono)',color:rank<=3?'var(--accent-text)':'var(--text-muted)',minWidth:26,display:'inline-block',verticalAlign:'middle'}}>{MEDAL[rank]||rank}</span>
+                    <DriverCell car={r.car} driver={r.driver} weight={rank<=3?700:400} />
                   </td>
                   <td style={numCell}>{r.car}</td>
                   <td style={{...numCell,color:'var(--accent-text)',fontWeight:rank===1?700:400}}>{r.fastest_time}</td>
@@ -113,35 +126,37 @@ function SeasonSummaryTable({ rows }) {
   const seenT = {}
   const trackLabels = raceRows.map(r => { const tk = r.track + '|' + __isoDate(r.race_date).slice(0, 4); seenT[tk] = (seenT[tk] || 0) + 1; const base = shortTrackName(r.track) || r.race_name; return trackCounts[tk] > 1 ? (base + ' R' + seenT[tk]) : base })
   const labeled = raceRows.map((r, i) => ({ ...r, __label: trackLabels[i] }))
-  const sVal = r => sKey === 'date' ? __isoDate(r.race_date) : sKey === 'track' ? r.__label : sKey === 'driver' ? (r.driver || '') : sKey === 'time' ? (parseFloat(r.fastest_time) || Infinity) : (parseFloat(r.fastest_speed) || -Infinity)
+  const sVal = r => sKey === 'date' ? __isoDate(r.race_date) : sKey === 'track' ? r.__label : sKey === 'driver' ? (r.driver || '') : sKey === 'time' ? (parseFloat(r.fastest_time) || Infinity) : sKey === 'lap' ? (parseInt(r.fastest_lap_num) || Infinity) : (parseFloat(r.fastest_speed) || -Infinity)
   labeled.sort((a, b) => { const va = sVal(a), vb = sVal(b); if (va < vb) return sAsc ? -1 : 1; if (va > vb) return sAsc ? 1 : -1; return 0 })
   if (!raceRows.length) return <div style={{color:'var(--text-muted)',fontSize:'0.875rem',padding:'24px 0'}}>No data available.</div>
   return (
     <XScroll style={{borderRadius:'var(--radius-md)',border:'1px solid var(--border)'}}>
       <table style={{borderCollapse:'collapse',minWidth:800,width:'100%'}}>
         <thead><tr>
-          <th onClick={hClick('track')} style={{...stickyHead,cursor:'pointer',userSelect:'none'}}>Track{arrow('track')}</th>
+          <th onClick={hClick('track')} style={{...stickyHead,cursor:'pointer',userSelect:'none',width:220,maxWidth:280}}>Track{arrow('track')}</th>
           <th onClick={hClick('date')} style={{...numHead,cursor:'pointer',userSelect:'none'}}>Date{arrow('date')}</th>
-          <th style={numHead}>Track Type</th>
-          <th onClick={hClick('driver')} style={{...numHead,cursor:'pointer',userSelect:'none'}}>Driver{arrow('driver')}</th>
+          <th style={{...numHead,textAlign:'left'}}>Track Type</th>
+          <th onClick={hClick('driver')} style={{...numHead,textAlign:'left',cursor:'pointer',userSelect:'none',width:'100%'}}>Driver{arrow('driver')}</th>
           <th style={numHead}>Car #</th>
           <th onClick={hClick('time')} style={{...numHead,color:'var(--accent-text)',fontWeight:700,cursor:'pointer',userSelect:'none'}}>Fastest Time{arrow('time')}</th>
           <th onClick={hClick('speed')} style={{...numHead,cursor:'pointer',userSelect:'none'}}>Speed (mph){arrow('speed')}</th>
+          <th onClick={hClick('lap')} title="Lap of the race the fastest lap was set on" style={{...numHead,cursor:'pointer',userSelect:'none'}}>Lap #{arrow('lap')}</th>
         </tr></thead>
         <tbody>
           {labeled.map((r,i) => {
             const bg=i%2===0?'rgb(10,10,15)':'#1a1a24'
             return (
               <tr key={i} style={{background:bg}}>
-                <td title={r.race_name} style={{...stickyCell(bg),maxWidth:280,overflow:'hidden',textOverflow:'ellipsis'}}>{r.__label}</td>
+                <td title={r.race_name} style={{...stickyCell(bg),textAlign:'left',maxWidth:280,overflow:'hidden',textOverflow:'ellipsis'}}>{r.__label}</td>
                 <td style={numCell}>{r.race_date}</td>
                 <td style={{...numCell,textAlign:'left',fontSize:'0.75rem'}}>
                   <span style={{padding:'2px 8px',borderRadius:4,fontSize:'0.7rem',fontFamily:'var(--font-sans)',background:TRACK_TYPE_COLORS[r.track_type]||'#444',color:'#fff',whiteSpace:'nowrap'}}>{r.track_type}</span>
                 </td>
-                <td style={{...numCell,textAlign:'left',fontWeight:600}}><CarNum car={r.car} />{r.driver}</td>
+                <td style={{...numCell,textAlign:'left',fontFamily:'var(--font-sans)'}}><DriverCell car={r.car} driver={r.driver} weight={600} /></td>
                 <td style={numCell}>{r.car}</td>
                 <td style={{...numCell,color:'var(--accent-text)',fontWeight:600}}>{r.fastest_time}</td>
                 <td style={numCell}>{r.fastest_speed?parseFloat(r.fastest_speed).toFixed(2):'\u2014'}</td>
+                <td style={numCell}>{r.fastest_lap_num||'\u2014'}</td>
               </tr>
             )
           })}
@@ -207,9 +222,9 @@ function HeatMapView({ rows, year, trackType }) {
               const isTop=d.avg<=5&&d.count>=2
               return (
                 <tr key={d.driver}>
-                  <td style={{...stickyCell(rowBg),fontWeight:isTop?700:400}}>
-                    {isTop&&<span style={{marginRight:6,fontSize:'0.7rem'}}>{'\u26A1'}</span>}
-                    <CarNum car={carMap.get(d.driver)} />{d.driver}
+                  <td style={{...stickyCell(rowBg),textAlign:'left'}}>
+                    {isTop&&<span style={{marginRight:6,fontSize:'0.7rem',verticalAlign:'middle'}}>{'\u26A1'}</span>}
+                    <DriverCell car={carMap.get(d.driver)} driver={d.driver} weight={isTop?700:400} />
                   </td>
                   {hasMulti&&<td style={{...numCell,fontWeight:700,background:rowBg,color:isTop?'var(--accent-text)':d.avg<=15?'var(--text-primary)':'var(--text-muted)'}}>{isFinite(d.avg)?d.avg.toFixed(1):'\u2014'}</td>}
                   {finalLabels.map(r=>{
