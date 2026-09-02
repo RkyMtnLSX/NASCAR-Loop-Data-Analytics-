@@ -165,7 +165,14 @@ max 4-5. Four of those real sentences are permanent regression cases in `test_pe
 **Never trust a parser change validated on one season.** Note style varies by era, and 2026 is the
 one that hides this failure.
 
-`POST_RACE_UPDATE.bat` still calls v2. Switch it to v3 once you have seen a clean weekend run.
+**`POST_RACE_UPDATE.bat` runs v3 as of 2026-08-31.** Its penalties step is gated on
+`test_penalties_v3.py`: if any check fails the step is SKIPPED with a loud message and penalty rows
+are left untouched, while pit stops and lap archives still run. The original v2 flow is kept
+verbatim as `POST_RACE_UPDATE_v2_backup.bat` if it is ever needed.
+
+The switch was made after v3 processed the full 431-race corpus twice, not after a single weekend —
+a weekend run would have been the 432nd race through the same code path and would have tested
+nothing the backfill had not.
 
 ### `pitboard_practice_capture.py` — live lap capture (v4)
 Polls `live-feed.json` every ~4s while any session is live, for all three series at once, and
