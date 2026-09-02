@@ -21,16 +21,21 @@ const sectionHead = { fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text
 const stickyHead = { position: 'sticky', left: 0, zIndex: 3, background: 'var(--bg-elevated)', textAlign: 'left', padding: '10px 16px', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap', borderBottom: '1px solid var(--border)', borderRight: '1px solid var(--border)', minWidth: 180 }
 const numHead = { padding: '10px 12px', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', textAlign: 'right', whiteSpace: 'nowrap', borderBottom: '1px solid var(--border)', background: 'var(--bg-elevated)' }
 const __CAR_ALIAS = { '133': '33' }
-function CarNum({ car, series, noMargin }) {
+function CarNum({ car, series, noMargin, fallbackText }) {
+  // State-driven load/retry/fail. The old version toggled the <img> imperatively in onError/onLoad,
+  // which drifted out of sync (art AND fallback text both visible when a retry succeeded late).
+  const [state, setState] = useState({ car: null, tries: 0, status: 'loading' })
+  const key = String(car || '')
+  if (state.car !== key) { setState({ car: key, tries: 0, status: 'loading' }); return null }
   if (!car) return null
   const dir = series === 'oreilly' ? '/car-numbers-oreilly/' : series === 'trucks' ? '/car-numbers-trucks/' : '/car-numbers/'
-  // key={car}: the onError fallback hides the node imperatively; without a key React reuses that
-  // hidden <img> for a different car after a re-sort/filter and the number silently disappears.
+  if (state.status === 'failed') return fallbackText ? <span style={{ fontFamily: 'var(--font-mono)' }}>{car}</span> : null
+  const src = dir + (__CAR_ALIAS[key] || car) + '.png' + (state.tries > 0 ? '?r=' + state.tries : '')
   return (
-    <img key={String(car)} src={dir + (__CAR_ALIAS[String(car)] || car) + '.png'} alt={'#' + car}
-      style={{ height: 22, marginRight: noMargin ? 0 : 6, verticalAlign: 'middle' }}
-      onLoad={(e) => { e.target.style.display = '' }}
-      onError={(e) => { const t = e.target; if (!t.dataset.retried) { t.dataset.retried = '1'; t.src = t.src + (t.src.indexOf('?') >= 0 ? '&r=' : '?r=') + Date.now() } else { t.style.display = 'none'; const f = t.nextSibling; if (f && f.className === 'car-art-fallback') f.style.display = '' } }} />
+    <img src={src} alt={'#' + car}
+      style={{ height: 22, marginRight: noMargin ? 0 : 6, verticalAlign: 'middle', visibility: state.status === 'ok' ? 'visible' : 'hidden' }}
+      onLoad={() => setState(st => ({ ...st, status: 'ok' }))}
+      onError={() => setState(st => st.tries < 1 ? { ...st, tries: st.tries + 1, status: 'loading' } : { ...st, status: 'failed' })} />
   )
 }
 // Car # column cell: the number art centered in the cell; the plain number shows only if the art fails.
@@ -38,8 +43,7 @@ function CarArtCell({ car }) {
   if (!car) return <span style={{color:'var(--text-muted)'}}>{'\u2014'}</span>
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 36, verticalAlign: 'middle' }}>
-      <CarNum car={car} noMargin />
-      <span className="car-art-fallback" style={{ display: 'none', fontFamily: 'var(--font-mono)' }}>{car}</span>
+      <CarNum car={car} noMargin fallbackText />
     </span>
   )
 }
