@@ -175,6 +175,10 @@ NEWEST, and every model here weights recent races hardest.
 with a unique `ORDER BY`, so it defeats the cap AND the non-unique-order bug above in one call.
 Pass a FUNCTION returning a fresh builder (supabase builders are single-use).
 
+**A `.limit(N)` ABOVE 5,000 IS A LIE.** `.limit(20000)` and `.limit(50000)` read like generous
+bounds and deliver 5,000. Four queries in this app carried one and three were truncating or about
+to. Never treat a large `.limit()` as proof a query is safe — measure the row count.
+
 Current headroom, measured 2026-09-02 — re-measure before assuming a query is still safe:
 
 | query | rows | cap | note |
@@ -184,6 +188,12 @@ Current headroom, measured 2026-09-02 — re-measure before assuming a query is 
 | QualifyingCenter, worst correlation group | 2,360 | 5,000 | safe for years |
 | PracticeReportCard, worst session | 3,866 | 5,000 | safe |
 | SimulationCenter track+series reads | 398 | 5,000 | safe |
+| **SimulationCenter CREW TERM** (`pit_stops`, had `.limit(20000)`) | cup 2025 **6,528** / 2026 4,354 | 5,000 | **PAGINATED** — past seasons were truncating; 2026 crosses ~3 races out |
+| **NascarFeedAdmin ingest resolver** (`loop_data`, had `.limit(20000)`) | cup **6,348** | 5,000 | **PAGINATED** — 2 of 101 cup drivers were missing from the map |
+| **GradeCenter finishes** (`loop_data`, had `.limit(20000)`) | 2,533 today | 5,000 | **PAGINATED** — ~3,400/season, breaks on the first two-season grade |
+| LapComparison practice_laps (had `.limit(50000)`) | 3,866 | 5,000 | **PAGINATED** — 1,134 rows of headroom |
+| GradeCenter `odds_snapshots` `.limit(2000)` | window 2,965 max | 2,000 | **NOT a bug — verified.** Rows truncate, KEYS never do: it keeps the first row per driver\|market\|book inside a 10-min close window, and all 429-676 keys sit inside the newest 2,000 on every race. The publish-side odds come from `row.results`, not this query. |
+| Admin track-median sanity check | up to 15,555 | 1,000 | bound KEPT (it is a sanity check) but now `.order('id', desc)` — was an arbitrary, oldest-skewed subset |
 
 Note the sim's series list is `[s, 'cup', ...__borrowSeries]` and `__borrowSeries` comes from
 `crossover_borrows WHERE active`. That table is EMPTY, so the list is at most two wide today.

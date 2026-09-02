@@ -35,6 +35,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import { fetchAllRows } from '../lib/fetchAllRows'
 import { SERIES_ID, SERIES_OPTS, fold, makeResolver, feed, mapRace } from '../lib/nascarFeedMap'
 
 const card = { marginBottom: 20 }
@@ -91,8 +92,13 @@ export function LoadRaceFromFeed() {
         setStatus({ err: `Feeds disagree on the field: ${payload.join.weekendOnly} driver(s) scored in the weekend results but absent from loop data. Not loading — look at this first.` })
         return
       }
-      const { data: existing } = await supabase.from('loop_data')
-        .select('driver_name, nascar_driver_id').eq('series', series).limit(20000)
+      // PAGINATED 2026-09-02. .limit(20000) is not real - the cap is 5,000, and cup loop_data is
+      // 6,348 rows. Rows arrive in heap order so the NEWEST are dropped, which is precisely the
+      // drivers a resolver needs: measured, 2 of 101 cup drivers were missing from the map
+      // (Kevin Magnussen, Daniel Dye - both recent one-off entrants). An unresolved driver on
+      // ingest is a mis-attributed or duplicated row, so this is data integrity, not display.
+      const { data: existing } = await fetchAllRows(() => supabase.from('loop_data')
+        .select('driver_name, nascar_driver_id').eq('series', series))
       const resolve = makeResolver(existing || [])
       const mapped = mapRace(payload, {
         series, year: parseInt(year, 10), raceNumber: parseInt(raceNum, 10),
@@ -329,8 +335,8 @@ export function FeedBackfill() {
       // Re-read the name index for every season pass: once a season is written,
       // its NASCAR ids are in the table, so later seasons resolve by id rather
       // than by name folding.
-      const { data: existingNames } = await supabase.from('loop_data')
-        .select('driver_name, nascar_driver_id').eq('series', series).limit(20000)
+      const { data: existingNames } = await fetchAllRows(() => supabase.from('loop_data')
+        .select('driver_name, nascar_driver_id').eq('series', series))   // same cap, see above
       const resolve = makeResolver(existingNames || [])
 
       say(`  ${races.length} races in the registry.`)

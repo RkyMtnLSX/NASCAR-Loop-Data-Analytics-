@@ -409,10 +409,18 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
         let __crewMap = {}
         try {
           const __cyy = cfg.race_year || new Date().getFullYear()
-          const { data: __pits } = await supabase.from('pit_stops')
+          // PAGINATED 2026-09-02. This carried .limit(20000), which is meaningless - PostgREST
+          // caps every response at 5,000. Measured cup 4-tire stops per season: 2022 6,507 /
+          // 2023 6,043 / 2024 6,264 / 2025 6,528 / 2026 4,354. So any sim configured to a PAST
+          // cup season was already computing the crew term from 5,000 of ~6,300 stops, and cup
+          // 2026 (4,354) crosses 5,000 partway through this season - a cup race adds ~250
+          // 4-tire stops, so roughly three races out. Verified live: cup 2025 returned 5,000 of
+          // 6,528. I told the operator earlier that day this query was safe "~4k against a 20k
+          // limit"; the limit was never the binding constraint.
+          const { data: __pits } = await fetchAllRows(() => supabase.from('pit_stops')
             .select('car_number, box_time')
             .eq('series', s).eq('year', __cyy).eq('tires_changed', 4)
-            .not('box_time', 'is', null).gt('lap', 0).limit(20000)
+            .not('box_time', 'is', null).gt('lap', 0))
           const __byCar = {}
           ;(__pits || []).forEach(p => { const c = String(p.car_number || '').trim(); if (c && p.box_time != null) (__byCar[c] = __byCar[c] || []).push(parseFloat(p.box_time)) })
           // task #68 (2026-07-23): qualifying-stops fence — exclude crash repairs / penalty holds via

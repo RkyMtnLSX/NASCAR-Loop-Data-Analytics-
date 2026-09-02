@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { fetchAllRows } from '../lib/fetchAllRows'
 import { __marketValue } from './SimulationCenter'
 
 // Shared driver-name key (2026-08-30). NFD-folds accents BEFORE stripping non-alphanumerics.
@@ -142,7 +143,12 @@ function ClvPanel({ series, stage }) {
     const __need={ win:1, t3:3, t5:5, t10:10 };
     try {
       const __yrs=[...new Set(d.map(x=>x.race_year).filter(Boolean))];
-      const { data:__ld } = await supabase.from('loop_data').select('series,year,race_number,driver_name,finish_position').in('year', __yrs.length?__yrs:[0]).limit(20000);
+      // PAGINATED 2026-09-02. .limit(20000) never applied - the real cap is 5,000. __yrs comes
+      // from the flagged bets on screen; those are all 2026 today (2,533 rows, safe), but
+      // loop_data runs ~3,400 rows per season, so the FIRST bet graded across two seasons pushes
+      // this over the cap and silently drops finishes - which show up as ungradeable bets, not
+      // as an error.
+      const { data:__ld } = await fetchAllRows(() => supabase.from('loop_data').select('series,year,race_number,driver_name,finish_position').in('year', __yrs.length?__yrs:[0]));
       const __f={}; (__ld||[]).forEach(r=>{ __f[r.series+'|'+r.year+'|'+r.race_number+'|'+r.driver_name]=r.finish_position });
       d.forEach(r=>{ const fp=__f[r.series+'|'+r.race_year+'|'+r.race_number+'|'+r.driver_name]; const nd=__need[r.market];
         r.__fin=(fp==null?null:fp);

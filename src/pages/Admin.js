@@ -2129,8 +2129,13 @@ export default function Admin() {
       if (newLaps.length >= 30) {
         newLaps.sort((a, b) => a - b)
         const newMed = newLaps[Math.floor(newLaps.length / 2)]
+        // 2026-09-02: kept bounded ON PURPOSE (this is a sanity check, not analysis) but made
+        // DETERMINISTIC and meaningful. It was an unordered .limit(1000) over up to 15,555 laps
+        // at a track, so the median came from an arbitrary subset that heap order skews toward
+        // the OLDEST laps - different cars, different rules packages. Newest 1,000 is both
+        // reproducible and the right comparison for "does this session look sane".
         const { data: histLaps } = await supabase.from('practice_laps').select('lap_time')
-          .eq('track_name', trackName).gt('lap_time', 0).limit(1000)
+          .eq('track_name', trackName).gt('lap_time', 0).order('id', { ascending: false }).limit(1000)
         const h = (histLaps || []).map(l => l.lap_time).sort((a, b) => a - b)
         if (h.length >= 200) {
           const histMed = h[Math.floor(h.length / 2)]

@@ -1,6 +1,7 @@
 import { gradePracticeSession } from '../lib/practiceGrader'
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { fetchAllRows } from '../lib/fetchAllRows'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts'
@@ -141,7 +142,10 @@ export default function LapComparison({ isSubscriber }) {
     setSelectedDrivers([])
 
     async function load() {
-      const { data, error: err } = await supabase
+      // PAGINATED 2026-09-02: the .limit(50000) below never applied (cap is 5,000). Worst
+      // session today is 3,866 laps, so nothing is lost yet - 1,134 rows of headroom on a
+      // number that grows with session length.
+      const { data, error: err } = await fetchAllRows(() => supabase
         .from('practice_laps')
         .select('driver_name, car_number, lap_number, lap_time, starting_position')
         .eq('series', selectedSession.series)
@@ -149,8 +153,7 @@ export default function LapComparison({ isSubscriber }) {
         .eq('track_name', selectedSession.track_name)
         .eq('session_number', selectedSession.session_number)
         .eq('race_number', selectedSession.race_number)
-        .order('lap_number', { ascending: true })
-      .limit(50000)
+        .order('lap_number', { ascending: true }))
 
       if (cancelled) return
       setLoading(false)
