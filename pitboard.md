@@ -3042,3 +3042,8 @@ Cosmetic, light check only (build green; operator eyeballs). FastestLap.js:
 - (same day, 24fe92d) Season Summary: Car # column moved LEFT of Driver and renders the number PNG
   (CarArtCell — centered art, plain-number fallback only if the art fails); driver cell is now just
   the name. Sortable by car. Race View / Heat Map untouched (their sticky first column is Driver).
+- (same day, fedc3f2) CORRECTION to the CarNum fix above: keying the <img> was not enough — the
+  imperative onError/onLoad toggling still left BOTH art and fallback number visible when the retry
+  loaded late (Logano/Reddick rows). CarNum is now state-driven (loading -> one retry -> ok|failed);
+  a cell renders exactly one of art or number. Live PNG loads on Vercel DO fail transiently for
+  some rows on first request — the retry usually lands; root cause of the flaky first load unknown.
