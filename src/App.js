@@ -12,6 +12,7 @@ import LoopDataAudit      from './pages/LoopDataAudit'
 import PracticeAudit      from './pages/PracticeAudit'
 import QualifyingAudit    from './pages/QualifyingAudit'
 import FastestLap         from './pages/FastestLap'
+import FastestLapSurvival from './pages/FastestLapSurvival'
 import GreenFlagSpeed     from './pages/GreenFlagSpeed'
 import PitCrewRankings   from './pages/PitCrewRankings'
 import QualifyingCenter   from './pages/QualifyingCenter'
@@ -78,6 +79,7 @@ export default function App() {
         <Route path="/practice-audit"    element={<PracticeAudit />} />
         <Route path="/qualifying-audit"  element={<QualifyingAudit />} />
         <Route path="/fastest-laps"       element={<FastestLap />} />
+        <Route path="/fastest-lap-survival" element={<FastestLapSurvival />} />
             <Route path="/green-flag-speed"   element={<GreenFlagSpeed />} />
           <Route path="/pit-crew-rankings"  element={<PitCrewRankings />} />
         <Route path="/qualifying"         element={<QualifyingCenter isSubscriber={isSubscriber} />} />
