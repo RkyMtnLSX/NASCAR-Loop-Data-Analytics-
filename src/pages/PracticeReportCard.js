@@ -1,6 +1,7 @@
 // redeploy nudge 1784478835019
 import React, { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { fetchAllRows } from '../lib/fetchAllRows'
 import { gradeColor } from '../lib/practiceGrader'
 
 const SERIES_COLOR = { cup: 'var(--series-cup)', xfinity: 'var(--series-oreilly)', trucks: 'var(--series-trucks)' }
@@ -128,10 +129,13 @@ export default function PracticeReportCard({ isSubscriber }) {
       } catch (e2) {}
       // 10/15/20-lap sustained averages from raw practice_laps (display only, falloff included)
       try {
-        const { data: __pl } = await supabase.from('practice_laps')
+        // PAGINATED 2026-09-02 (review). Unbounded read against the 5,000-row cap; worst session
+        // today is 3,866 laps (same headroom as LapComparison). A long session would silently lose
+        // laps and the sustained averages would be computed from a partial run.
+        const { data: __pl } = await fetchAllRows(() => supabase.from('practice_laps')
           .select('driver_name, lap_number, lap_time')
           .eq('series', session.series).eq('year', session.year)
-          .eq('track_name', session.track_name).eq('session_number', session.session_number)
+          .eq('track_name', session.track_name).eq('session_number', session.session_number))
         const __byDrv = {}
         ;(__pl || []).forEach(l => { const k = l.driver_name; (__byDrv[k] = __byDrv[k] || []).push([+l.lap_number, +l.lap_time]) })
         const __lapAvgs = (arr) => {

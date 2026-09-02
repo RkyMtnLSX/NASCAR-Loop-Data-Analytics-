@@ -6,10 +6,11 @@
 // way to know more existed. Verified live on 2026-09-02: `loop_data` for cup returns 5,000 of
 // 6,348, `qualifying_results` for cup returns 5,000 of 5,943.
 //
-// The failure mode is nastier than a plain cutoff. Rows come back in heap order (roughly insertion
-// order) unless something forces otherwise, so the rows that get dropped are THE MOST RECENT ONES.
-// A model reading a truncated history therefore loses this season first, while keeping the oldest
-// season intact — and every page in this app weights recent races most heavily.
+// Which rows get dropped is NOT predictable. An earlier version of this note claimed heap order
+// drops the newest rows; measured live on 2026-09-02 (review) that is false for this database —
+// an unordered cup `loop_data` read lost rows from EVERY season (2022: 517 of 1,322 missing,
+// 2026: 494 of 981) and the set differed between requests. Updated rows move in the heap. Treat
+// an unordered truncated read as a random sample with no error flag, which is worse.
 //
 // The `orderColumn` MUST be unique. `.range()` issues one request per page and Postgres guarantees
 // no row order without a total ORDER BY, so ordering by a non-unique column lets rows tied on it
@@ -27,7 +28,11 @@ export async function fetchAllRows(build, opts) {
   const o = opts || {}
   const orderColumn = o.orderColumn || 'id'
   const pageSize = o.pageSize || 1000
-  const maxPages = o.maxPages || 60           // 60k rows; a runaway loop stops rather than hangs
+  // 200k rows. The largest table (practice_laps) is ~132k; the bail exists to stop a runaway loop,
+  // NOT to bound normal reads. The original 60k default silently truncated odds_snapshots (68,832
+  // rows) and dropped a race from the Line Movement picker - the exact failure this helper was
+  // written to prevent - because every caller discards `error`. Hence console.error below.
+  const maxPages = o.maxPages || 200
   let out = []
   for (let page = 0; page < maxPages; page++) {
     const from = page * pageSize
@@ -41,8 +46,12 @@ export async function fetchAllRows(build, opts) {
   }
   // Hitting this means the result set is larger than maxPages*pageSize. Returning what we have
   // WITH an error is deliberate: a caller that ignores `error` still degrades to the old truncating
-  // behaviour rather than crashing, and one that checks it finds out instead of guessing.
-  return { data: out, error: new Error('fetchAllRows: exceeded ' + maxPages * pageSize + ' rows; raise maxPages or filter harder') }
+  // behaviour rather than crashing, and one that checks it finds out instead of guessing. No
+  // current caller checks it, so the truncation is also logged loudly - a silent partial read is
+  // the whole reason this file exists.
+  const msg = 'fetchAllRows: exceeded ' + maxPages * pageSize + ' rows; result is TRUNCATED. Raise maxPages or filter harder.'
+  console.error(msg)
+  return { data: out, error: new Error(msg) }
 }
 
 export default fetchAllRows

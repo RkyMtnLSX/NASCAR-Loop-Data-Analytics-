@@ -168,8 +168,10 @@ it is a single request, not a loop, so it has no boundary.
 
 No error, no warning, no flag — a query matching 6,363 rows returns 5,000 and the code has no way
 to know. Verified live 2026-09-02: `loop_data` cup = 5,000 of 6,348; `qualifying_results` cup =
-5,000 of 5,943. Worse than a plain cutoff: rows arrive in heap order, so the ones DROPPED are the
-NEWEST, and every model here weights recent races hardest.
+5,000 of 5,943. Which rows get dropped is NOT predictable - an earlier version of this section said
+"the newest"; an independent live re-test (2026-09-02) found an unordered cup `loop_data` read lost
+rows from EVERY season (2022: 517 of 1,322; 2026: 494 of 981) and returned a different set on the
+next request. Updated rows move in the heap. Treat it as a random sample with no error flag.
 
 **`src/lib/fetchAllRows.js` is the fix — use it for any query whose result set can grow.** It pages
 with a unique `ORDER BY`, so it defeats the cap AND the non-unique-order bug above in one call.
@@ -193,7 +195,7 @@ Current headroom, measured 2026-09-02 — re-measure before assuming a query is 
 | **GradeCenter finishes** (`loop_data`, had `.limit(20000)`) | 2,533 today | 5,000 | **PAGINATED** — ~3,400/season, breaks on the first two-season grade |
 | LapComparison practice_laps (had `.limit(50000)`) | 3,866 | 5,000 | **PAGINATED** — 1,134 rows of headroom |
 | GradeCenter `odds_snapshots` `.limit(2000)` | window 2,965 max | 2,000 | **NOT a bug — verified.** Rows truncate, KEYS never do: it keeps the first row per driver\|market\|book inside a 10-min close window, and all 429-676 keys sit inside the newest 2,000 on every race. The publish-side odds come from `row.results`, not this query. |
-| **LineMovementAdmin race picker** (`odds_snapshots`, had `.limit(6000)`) | 68,832 rows / 12 races | 5,000 | **WAS SHOWING 1 RACE OF 12** — newest race alone is ~10k rows, so all 5,000 came from it. Paginated; a DB-side distinct view would be better and needs operator sign-off |
+| **LineMovementAdmin race picker** (`odds_snapshots`, had `.limit(6000)`) | 68,832 rows / 12 races | 5,000 | **WAS SHOWING 1 RACE OF 12** — newest race alone is ~10k rows, so all 5,000 came from it. First fix paginated the rows and STILL showed 11 of 12: `fetchAllRows` bailed at its 60k default and the caller discarded the error. Now reads the `odds_snapshot_races` view (one row per race, `security_invoker`), one request. `fetchAllRows` default raised to 200k and overflow logs `console.error`. |
 | Admin track-median sanity check | up to 15,555 | 1,000 | bound KEPT (it is a sanity check) but now `.order('id', desc)` — was an arbitrary, oldest-skewed subset |
 
 Note the sim's series list is `[s, 'cup', ...__borrowSeries]` and `__borrowSeries` comes from

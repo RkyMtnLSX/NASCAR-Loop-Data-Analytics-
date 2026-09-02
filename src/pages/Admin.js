@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { fetchAllRows } from '../lib/fetchAllRows'
 import DfsSalaryAdmin from './DfsSalaryAdmin'
 import FlaggedBetsAdmin from './FlaggedBetsAdmin'
 import MyBetsAdmin from './MyBetsAdmin'
@@ -854,7 +855,11 @@ function LoadNewRace() {
       const { trackName: parsedTrack, expectedLaps, rows, totalCautions, totalCautionLaps, leadChanges, avgSpeed, greenFlagPasses, marginOfVictory } = parseLoopData(pasteText); const trackName = selTrack || parsedTrack
       if (rows.length === 0) return setStatus({ error: 'No driver rows found. Make sure you copied the full page (Ctrl+A, Ctrl+C).' })
       {
-        const { data: __kd } = await supabase.from('loop_data').select('driver_name').eq('series', series).limit(5000)
+        // PAGINATED 2026-09-02 (review). .limit(5000) IS the cap, and cup loop_data is 6,348 rows,
+        // so the "known drivers" list was an unordered 5,000-row sample: 4 real cup drivers were
+        // missing live (Will Brown, Loris Hezemans, Scott Heckert, Kevin Magnussen), which turns a
+        // clean paste into a false "Unrecognized driver" prompt.
+        const { data: __kd } = await fetchAllRows(() => supabase.from('loop_data').select('driver_name').eq('series', series))
         const __known = [...new Set((__kd || []).map((x) => x.driver_name).filter(Boolean))]
         const __unk = __findUnknownDrivers(rows, __known)
         if (__unk.length) {

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
-import { fetchAllRows } from '../lib/fetchAllRows'
 
 const LBL = { win: 'Win', t3: 'Top 3', t5: 'Top 5', t10: 'Top 10' }
 const MKTS = ['win', 't3', 't5', 't10']
@@ -24,20 +23,16 @@ export default function LineMovementAdmin() {
     // meant all 5,000 returned rows came from that single race. Measured: 1 distinct race visible
     // out of 12.
     //
-    // Paginated so the list is complete. It is ~69 requests for 4 narrow columns, which is heavy
-    // for a page that only needs DISTINCT races - the better fix is a DB-side distinct (a small
-    // view, or an RPC), but that is a schema addition and needs the operator's say-so, so this
-    // takes the correct-but-chatty route rather than leaving the picker wrong.
-    const { data } = await fetchAllRows(() => supabase.from('odds_snapshots')
-      .select('series,race_year,race_number,track_name')
-      .order('race_year', { ascending: false }).order('race_number', { ascending: false }))
-    const m = {}
-    ;(data || []).forEach(r => {
-      const k = r.series + '|' + r.race_year + '|' + r.race_number
-      if (!m[k]) m[k] = { key: k, series: r.series, race_year: r.race_year, race_number: r.race_number, track_name: r.track_name, n: 0 }
-      m[k].n++
-    })
-    const list = Object.keys(m).map(k => m[k])
+    // Read from the odds_snapshot_races VIEW (one row per race, security_invoker so RLS still
+    // applies) - one request instead of a 69-request row scan. The row-scan version that replaced
+    // the .limit(6000) was ALSO wrong: fetchAllRows bailed at its 60k default on a 68,832-row
+    // table and, because the error was discarded here, the picker showed 11 of 12 races (trucks
+    // 2026 R16 lost). Verified live 2026-09-02 in review. A view cannot truncate.
+    const { data, error } = await supabase.from('odds_snapshot_races')
+      .select('series,race_year,race_number,track_name,n')
+      .order('race_year', { ascending: false }).order('race_number', { ascending: false })
+    if (error) console.error('odds_snapshot_races', error)
+    const list = (data || []).map(r => ({ key: r.series + '|' + r.race_year + '|' + r.race_number, series: r.series, race_year: r.race_year, race_number: r.race_number, track_name: r.track_name, n: r.n }))
     list.sort((a, b) => (b.race_year - a.race_year) || (b.race_number - a.race_number) || a.series.localeCompare(b.series))
     setRaces(list)
     setSel(prev => prev || (list.length ? list[0].key : ''))

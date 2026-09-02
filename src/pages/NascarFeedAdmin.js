@@ -93,10 +93,11 @@ export function LoadRaceFromFeed() {
         return
       }
       // PAGINATED 2026-09-02. .limit(20000) is not real - the cap is 5,000, and cup loop_data is
-      // 6,348 rows. Rows arrive in heap order so the NEWEST are dropped, which is precisely the
-      // drivers a resolver needs: measured, 2 of 101 cup drivers were missing from the map
-      // (Kevin Magnussen, Daniel Dye - both recent one-off entrants). An unresolved driver on
-      // ingest is a mis-attributed or duplicated row, so this is data integrity, not display.
+      // 6,348 rows. Which rows the cap drops is NOT predictable (an earlier note here said "the
+      // newest"; a live unordered read lost rows from every season, and the set changed between
+      // requests). Measured live in review: 4 of 101 cup drivers absent from the map - Will Brown,
+      // Loris Hezemans, Scott Heckert, Kevin Magnussen. An unresolved driver on ingest is a
+      // mis-attributed or duplicated row, so this is data integrity, not display.
       const { data: existing } = await fetchAllRows(() => supabase.from('loop_data')
         .select('driver_name, nascar_driver_id').eq('series', series))
       const resolve = makeResolver(existing || [])
