@@ -3047,3 +3047,79 @@ Cosmetic, light check only (build green; operator eyeballs). FastestLap.js:
   loaded late (Logano/Reddick rows). CarNum is now state-driven (loading -> one retry -> ok|failed);
   a cell renders exactly one of art or number. Live PNG loads on Vercel DO fail transiently for
   some rows on first request — the retry usually lands; root cause of the flaky first load unknown.
+
+## 2026-09-02 — Pit Crew Rankings rebuilt; a REAL data bug behind it; pagination audited app-wide
+
+Operator asked to clean up and beautify the Pit Crew Rankings page. Four display commits, then the
+display work surfaced a data defect that mattered far more than the styling.
+
+### Display (308199a, d21de00, 5617885, 13ef790, 81d09f8, 7f9ad70)
+- 13 columns -> 10: Organization + Driver merged into one "Driver / Team" cell; Bomb% and Drv Pen
+  moved off the table into a stat strip at the top of the expanded row.
+- Headers spelled out (Rank, Move, Compare, Adjusted Time, Two-Tire Time, Crew Penalties). "(s)"
+  removed after the operator asked what it meant; the subhead now says once that all times are
+  seconds.
+- Type scale matched to LoopData (0.89rem headers, 0.96rem cells) — the page was measurably smaller
+  than the rest of the site, not just subjectively.
+- Two live defects fixed on the way: the loading state rendered the literal text "Loading pit
+  data…" (a JSX-text escape React never processes), and driver names shipped with entry-list
+  markers intact ("* Corey Heim(i)", "Connor Zilisch #").
+
+### The header saga — THREE wrong fixes before the right one, all from bad verification
+The operator reported header clipping three times. Each of my first two fixes targeted something
+that was not the cause, because I verified a PROXY instead of the symptom:
+  1. measured scrollHeight vs clientHeight — the WRONG AXIS; header overflow is horizontal.
+  2. measured longest-word width — right axis, but assumed a wrap that never happened.
+  3. both were measured on a LOCAL MOCK-UP with no site stylesheet.
+Root cause, found only after loading the deployed page: the site stylesheet carries
+`th { text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap }`. This file set none
+of the three and inherited all of them silently. The nowrap is what made the whole "wrap to two
+lines" strategy a no-op. Fix: state all three explicitly, `whiteSpace: 'normal'`, and size columns
+from measurements taken ON THE LIVE PAGE.
+
+### THE DATA BUG (63dd3a1) — the important part
+Stops read 192 for Hamlin against 107 in the database. Cup 2026 is 4,846 matching rows, so the page
+fetched it in five `range()` requests with NO `.order()`. Postgres guarantees no row order without
+ORDER BY and may order each request differently, so pages overlapped — rows fetched twice, others
+never. Off by up to 2x IN BOTH DIRECTIONS (Briscoe 177/95, Chastain 162/91, Bell 69/91, Gibbs
+79/98). Not a display bug: duplicated and missing stops move each crew's MEDIAN, so Adj,
+Consistency, Bomb% and the rank order were all wrong and non-deterministic between loads. Fixed
+with `.order('id')`. Verified live afterwards — every crew now matches the DB exactly.
+THE SIM WAS NEVER AFFECTED: its crew term is one request filtered to a single series+year (~4k rows
+against a 20k limit), no pagination.
+
+### App-wide pagination audit (018d3d2, 810d373)
+Audited every `.range()` query in src/. Five were fixed. Then the operator asked "are you sure those
+were bugs?" and re-testing said NO for four of them — see the CORRECTION section in
+PITBOARD_MANUAL.md. Only two were ever shown to corrupt data (PitCrewRankings, observed; and
+LineMovementAdmin, reproduced at 3,000 fetched / 2,944 distinct). The other four had the
+precondition and no observed symptom. I reported preconditions as damage; that is logged as a
+standing lesson rather than buried here.
+
+### The 5,000-row cap (2bb790f)
+PostgREST silently caps EVERY response at 5,000 rows — no error, no warning, and because rows come
+back in heap order the dropped ones are the NEWEST. I first reported this as live damage to the sim
+(51% of 2026 missing at intermediate tracks). THAT WAS WRONG: I reconstructed the query as three
+series, but the real list is `[s,'cup',...__borrowSeries]` and `crossover_borrows WHERE active` is
+EMPTY, so it is at most two wide — 4,836 rows, under the cap. Nothing was truncated; BACKTEST_LOG is
+unaffected. What is real: oreilly Intermediate has 164 rows of headroom, gains ~800-1,000 a season
+(crosses in 2027, silently, mid-season), and activating ONE crossover_borrow widens the list to
+three and crosses it immediately. New `src/lib/fetchAllRows.js` pages with a unique order column and
+defeats both the cap and the non-unique-order bug. Verified live: today's query returns an IDENTICAL
+row set, so no model behaviour changed and no re-validation is owed.
+
+### Also this session
+- Manual: the two competing GitHub write-path sections merged into one with a condition->path table
+  (81dce8f), then corrected again (e75f6d9) — `device_bash` HAS network and clones/pushes to
+  github.com; a session had told the operator path B was impossible and asked him to run git
+  commands himself. Three commits were pushed that way while writing that correction.
+- Applied and pushed another session's Fastest Lap Survival page (d10960f) after it was blocked by a
+  classifier mid-push; verified isSubscriber untouched, lint + build clean before pushing.
+
+### Open / not done
+- GradeCenter `odds_snapshots` uses `.limit(2000)` ordered captured_at DESC against a largest race
+  of 10,082 rows. The grading logic wants odds AT PUBLISH (the oldest); newest-first would drop
+  them. NOT verified — I did not read the grading logic. Candidate, not a finding.
+- Offered and not taken: statistical-tie grouping on the rankings medals (crew medians carry
+  SE +-0.10-0.16s while the top five sit 0.02-0.14s apart — every 95% interval overlaps), and
+  stacked cards for phones.

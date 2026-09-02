@@ -1,5 +1,50 @@
 # PITBOARD STATE
-Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2026-08-31. **LAUNCH IS PUSHED TO NEXT SEASON (operator, 2026-08-31) — the Chase starts Sunday and we are not ready.** The sim now runs OUTSIDE the browser: src/lib/simEngine.js + scripts/, see scripts/README.md. Nine model studies were registered and run this session; the DNF-tilt line is CLOSED. **TWO changes shipped: the SS caution pin, and the cliff fix — the caution buttons no longer move attrition, `dnfRate` is now the only attrition dial (operator-approved).** Both remaining blockers are the same blocker — one season of accumulated data. PIT DATA BLOCKER IS CLOSED (verified against the database 2026-08-31, not against a doc): `pit_stops` holds 81,647 rows / 413 races / 2022-2026, last loaded 2026-08-30. The 24 races still without pit rows are tracks where NASCAR publishes no pit timing at all — Bristol dirt, Lime Rock, IRP, Portland, Road America, Rockingham; 17 of the 24 are trucks. Nothing to backfill. pitcrewrank.com is retired and its table dropped; pit crew is live via `pit_stops` (`pitCrew: 0.06` in every weight set).
+Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2026-09-02. **LAUNCH IS PUSHED TO NEXT SEASON (operator, 2026-08-31) — the Chase starts Sunday and we are not ready.** The sim now runs OUTSIDE the browser: src/lib/simEngine.js + scripts/, see scripts/README.md. Nine model studies were registered and run this session; the DNF-tilt line is CLOSED. **TWO changes shipped: the SS caution pin, and the cliff fix — the caution buttons no longer move attrition, `dnfRate` is now the only attrition dial (operator-approved).** Both remaining blockers are the same blocker — one season of accumulated data. PIT DATA BLOCKER IS CLOSED (verified against the database 2026-08-31, not against a doc): `pit_stops` holds 81,647 rows / 413 races / 2022-2026, last loaded 2026-08-30. The 24 races still without pit rows are tracks where NASCAR publishes no pit timing at all — Bristol dirt, Lime Rock, IRP, Portland, Road America, Rockingham; 17 of the 24 are trucks. Nothing to backfill. pitcrewrank.com is retired and its table dropped; pit crew is live via `pit_stops` (`pitCrew: 0.06` in every weight set).
+
+## 2026-09-02 — PIT CREW PAGE REBUILT; ONE REAL DATA BUG; PAGINATION AUDITED; FOUR OF MY CLAIMS RETRACTED
+
+**Pit Crew Rankings was showing wrong numbers, and it was not cosmetic.** The page paginated
+`pit_stops` over five `range()` requests with no `.order()`. Stop counts were off by up to 2x in
+BOTH directions (Hamlin 192 shown / 107 real; Briscoe 177/95; Bell 69/91), and because duplicated
+and missing stops move a crew's MEDIAN, Adj / Consistency / Bomb% / rank order were all wrong and
+changed between page loads. Fixed (`63dd3a1`, `.order('id')`) and verified live against the DB.
+**The simulation was never affected** — its crew term is a single unpaginated request of ~4k rows.
+
+**Two silent Supabase failure modes are now documented in the MANUAL, with measured headroom:**
+1. `.range()` pagination over a non-unique ORDER BY duplicates and drops rows.
+2. PostgREST caps EVERY response at 5,000 rows with no error, and drops the NEWEST rows first.
+`src/lib/fetchAllRows.js` (new) defeats both. Use it for any query whose result set can grow.
+
+**FOUR OF MY OWN CLAIMS RETRACTED THIS SESSION — all the same error.** I measured a PRECONDITION and
+reported it as a SYMPTOM:
+- Told the operator four other pages had live pagination corruption. Re-tested: 0 duplicates on all
+  four. Only PitCrewRankings (observed) and LineMovementAdmin (reproduced, 3,000 fetched / 2,944
+  distinct) were ever shown to corrupt data.
+- Told him the sim was losing 51% of 2026 at intermediate tracks to the row cap. WRONG — I
+  reconstructed the query with three series; the real list is `[s,'cup',...__borrowSeries]` and
+  `crossover_borrows WHERE active` is EMPTY. Nothing is truncated. **BACKTEST_LOG is unaffected.**
+- Reported header clipping "fixed" twice on evidence from a local mock-up that had none of the
+  site's stylesheet. Root cause was a global `th { ... white-space: nowrap }` this file never set.
+The standing lesson is in the MANUAL: verify the symptom on the DEPLOYED page, not a proxy.
+
+**SHIPPED (all display-only unless noted):** rankings page 13 cols -> 10, headers spelled out and
+sized from live measurements, type scale matched to LoopData, JSX-escape and entry-list-marker
+display bugs fixed. Data: `63dd3a1` (rankings), `018d3d2` (5 paginated queries), `2bb790f` (row-cap
+helper — verified to return an IDENTICAL row set today, so no model change and no re-validation owed).
+
+**Manual rewritten twice on GitHub write paths.** `device_bash` HAS network and clones/pushes to
+github.com — a session had told the operator path B was impossible and asked him to run git commands
+himself. Three commits were pushed that way while writing the correction.
+
+**OPEN / OPERATOR ACTION:**
+- **REVOKE the GitHub PAT** pasted in chat 2026-09-02 — it is in plaintext in two transcripts.
+- GradeCenter `odds_snapshots` `.limit(2000)` ordered captured_at DESC, largest race 10,082 rows.
+  The grading logic wants odds AT PUBLISH (oldest); newest-first would drop them. **Candidate, NOT
+  verified** — I did not read the grading logic. Do not repeat it as a finding until someone does.
+- Offered, not taken: tie-grouping on the rankings medals (every top-five 95% interval overlaps —
+  SE +-0.10-0.16s vs gaps of 0.02-0.14s), and stacked cards on phones.
+- Still open from 2026-08-31: fold the to-the-rear start-position correction into the
+  train.txt/holdout.txt regeneration (which also owes year + race-id columns).
 
 ## 2026-08-31 — THE SIM RUNS HEADLESSLY; LAUNCH PUSHED; NINE STUDIES, ZERO SHIPS
 
