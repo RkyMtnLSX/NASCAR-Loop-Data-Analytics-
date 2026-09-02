@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 
 const YEARS = ['2022', '2023', '2024', '2025', '2026']
 const SERIES_OPTS = [['cup', 'Cup'], ['oreilly', "O'Reilly"], ['trucks', 'Trucks']] // fastest_laps.series (2026-09-02)
+const SERIES_COLOR = { cup: 'var(--series-cup)', oreilly: 'var(--series-oreilly)', trucks: 'var(--series-trucks)' } // same tokens as LoopData
 const TRACK_TYPES = ['All', 'Short & Flat Tracks', 'High-Banked Concrete', 'Superspeedway', 'Intermediate', 'Road Course', 'All-Star'] // display groups (2026-07-15)
 const MEDAL = { 1: '\uD83E\uDD47', 2: '\uD83E\uDD48', 3: '\uD83E\uDD49' }
 const MEDAL_BG = { 1: 'rgba(255,215,0,0.15)', 2: 'rgba(192,192,192,0.15)', 3: 'rgba(205,127,50,0.15)' }
@@ -337,7 +338,7 @@ export default function FastestLap({ isSubscriber }) {
         <p className="page-subtitle">Fastest lap data {'\u2014'} Cup, O'Reilly and Trucks (2022{'\u2013'}2026)</p>
       </div>
       <div style={{display:'flex',gap:6,marginBottom:16,flexWrap:'wrap'}}>
-        {SERIES_OPTS.map(([v,label])=><button key={v} onClick={()=>setSeries(v)} style={pillStyle(series===v)}>{label}</button>)}
+        {SERIES_OPTS.map(([v,label])=><button key={v} onClick={()=>setSeries(v)} style={{...pillStyle(series===v),...(series===v?{background:SERIES_COLOR[v],borderColor:SERIES_COLOR[v],color:v==='trucks'?'#111':'#fff'}:{})}}>{label}</button>)}
       </div>
       <div style={{display:'flex',gap:14,marginBottom:16,flexWrap:'wrap',alignItems:'center',border:'1px solid var(--border)',borderRadius:8,padding:'8px 14px',width:'fit-content'}}>
         <span style={{fontSize:'0.7rem',letterSpacing:1,color:'var(--text-muted)',fontWeight:700}}>RACE YEARS</span>
