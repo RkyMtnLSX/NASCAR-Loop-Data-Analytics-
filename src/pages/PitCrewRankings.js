@@ -142,13 +142,18 @@ const sub = { fontSize: '0.95rem', color: 'var(--text-secondary)', margin: '0 0 
 // Headers still wrap, but paddingTop is explicit and lineHeight is a whole number of pixels at
 // this size — the earlier verticalAlign:'bottom' with a fractional line box was clipping the top
 // line of the two-line headers ("Adjusted" over "Time"). Top-aligned with real padding instead.
-// textTransform and letterSpacing are set EXPLICITLY here even though a global `th` rule in the
-// site stylesheet already applies both (uppercase, 0.06em). That rule is why two rounds of column
-// widths were wrong: this file said nothing about casing, so it was measured and sized as sentence
-// case, while every visitor saw UPPERCASE — which is far wider. Restating them means the component
-// describes what actually renders, and the next person sizing a column measures the right string.
+// The site stylesheet carries `th { text-transform: uppercase; letter-spacing: 0.06em;
+// white-space: nowrap }`. This file used to set NONE of the three, and inherited all of them
+// invisibly, which cost four rounds of wrong column widths:
+//   - uppercase + tracking made every header much wider than the sentence-case string measured
+//   - nowrap meant the two-word headers could never wrap, so "ADJUSTED TIME" rendered on one
+//     line and overflowed a column sized for the word "ADJUSTED"
+// All three are now restated here. whiteSpace 'normal' is the one that actually had to CHANGE:
+// with it, a two-word header wraps and the column only has to fit its longest single word.
+// Rule for editing this table: a th style must state its own casing, tracking and wrapping, or
+// the widths below are measuring a string nobody sees.
 const th = (o) => ({ padding: '10px 10px', fontSize: '0.89rem', fontWeight: 600,
-  textTransform: 'uppercase', letterSpacing: '0.06em',
+  textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'normal',
   color: o.active ? 'var(--accent-text)' : 'var(--text-secondary)',
   borderBottom: '1px solid var(--border)', cursor: o.sortable ? 'pointer' : 'default',
   lineHeight: '18px', verticalAlign: 'top', userSelect: 'none', textAlign: o.align || 'center',
