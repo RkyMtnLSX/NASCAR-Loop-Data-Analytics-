@@ -89,8 +89,8 @@ function CrewDetail({ c }) {
             c.bestStop ? 'R' + c.bestStop.rn + (c.bestStop.track ? ' · ' + c.bestStop.track : '') : null],
           ['Races', rl.length, null],
           ['Bomb%', (c.bomb * 100).toFixed(0) + '%', 'stops ' + BOMB_X + '× series median'],
-          ['Crew pen', c.cp, c.cp ? c.penRate.toFixed(2) + ' per race' : null],
-          ['Driver pen', c.dp, null],
+          ['Crew penalties', c.cp, c.cp ? c.penRate.toFixed(2) + ' per race' : null],
+          ['Driver penalties', c.dp, null],
         ].map(([label, val, note]) => (
           <div key={label} style={{ minWidth: 74 }}>
             <div style={{ fontSize: '0.66rem', textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)' }}>{label}</div>
@@ -130,10 +130,14 @@ function CrewDetail({ c }) {
 const wrap = { maxWidth: 1120, margin: '0 auto', padding: '24px 16px 60px' }
 const h1 = { fontSize: '1.5rem', fontWeight: 700, margin: '0 0 4px' }
 const sub = { fontSize: '0.9rem', color: 'var(--text-secondary)', margin: '0 0 20px', lineHeight: 1.5 }
+// 2026-09-02: headers are spelled out rather than abbreviated. They WRAP instead of staying on
+// one line (whiteSpace: nowrap is gone) — "Crew Penalties" over two lines fits the same column a
+// nowrap "Crew Pen" needed, so full words cost ~76px across the whole table rather than ~170px.
+// verticalAlign bottom keeps one- and two-line headers sitting on the same baseline.
 const th = (o) => ({ padding: '9px 14px', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase',
   letterSpacing: '0.05em', color: o.active ? 'var(--accent-text)' : 'var(--text-secondary)',
   borderBottom: '1px solid var(--border)', cursor: o.sortable ? 'pointer' : 'default',
-  whiteSpace: 'nowrap', userSelect: 'none', textAlign: o.align || 'center' })
+  lineHeight: 1.25, verticalAlign: 'bottom', userSelect: 'none', textAlign: o.align || 'center' })
 const td = (align) => ({ padding: '9px 14px', fontSize: '0.9rem', borderBottom: '1px solid var(--border)',
   textAlign: align || 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' })
 
@@ -244,7 +248,7 @@ export default function PitCrewRankings() {
       </div>
 
       <p style={{ ...sub, margin: '0 0 12px', maxWidth: 680 }}>
-        Ranked by <strong style={{ color: 'var(--text-primary)' }}>Adj</strong> &mdash; median 4-tire box time
+        Ranked by <strong style={{ color: 'var(--text-primary)' }}>Adjusted</strong> &mdash; median 4-tire box time
         plus {PEN_SEC}s for every crew penalty. Lower is faster. Tap a row for race-by-race detail,
         or <strong style={{ color: 'var(--text-primary)' }}>+</strong> on two crews to compare them.
       </p>
@@ -266,13 +270,13 @@ export default function PitCrewRankings() {
           display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '10px 22px',
         }}>
           {[
-            ['Adj (s)', 'Median 4-tire box time + ' + PEN_SEC + 's per crew penalty per race.'],
+            ['Adjusted (s)', 'Median 4-tire box time + ' + PEN_SEC + 's per crew penalty per race.'],
             ['Consistency', 'Box-time spread. Lower means steadier, stop to stop.'],
-            ['2T (s)', 'Median two-tire stop. Hover the number for sample size.'],
-            ['Crew Pen', 'Crew-caused penalties: loose wheel, too many men, equipment.'],
+            ['Two-Tire (s)', 'Median two-tire stop. Hover the number for sample size.'],
+            ['Crew Penalties', 'Crew-caused: loose wheel, too many men, equipment.'],
             ['Bomb%', 'In the row detail. Share of stops ' + BOMB_X + '× slower than the series median — hung-lug territory.'],
-            ['Drv Pen', 'In the row detail. Driver-caused: speeding, commitment line, missing the box.'],
-            ['Δ', 'Rank movement against the standings before the latest race.'],
+            ['Driver Penalties', 'In the row detail. Driver-caused: speeding, commitment line, missing the box.'],
+            ['Move', 'Rank movement against the standings before the latest race.'],
             ['Sample', 'Crews under ' + MIN_STOPS + ' stops are hidden. Under ' + LOWN + ' is tagged “thin”.'],
           ].map(([term, def]) => (
             <div key={term}>
@@ -376,16 +380,16 @@ export default function PitCrewRankings() {
               </div>
             </div>
 
-            {statRow('Adj (s)', A.adj, B.adj, s2, true)}
-            {statRow('Median 4T', A.median, B.median, s2, true)}
+            {statRow('Adjusted (s)', A.adj, B.adj, s2, true)}
+            {statRow('Median 4-tire', A.median, B.median, s2, true)}
             {statRow('Best stop', A.bestStop && A.bestStop.best, B.bestStop && B.bestStop.best, s2, true)}
-            {statRow('2T median', A.t2m, B.t2m, s2, true)}
+            {statRow('Median 2-tire', A.t2m, B.t2m, s2, true)}
             {statRow('Consistency', A.iqr, B.iqr, s2, true)}
             {/* 2026-08-31: this row was labelled just "Pen / race" and showed ONLY the crew rate.
                 Blaney's two 2026 penalties are both driver-caused, so his card read 0.00 and the
                 operator reasonably read that as "penalties are missing". Both kinds are shown now. */}
-            {statRow('Crew pen / race', A.penRate, B.penRate, s2, true)}
-            {statRow('Driver pen', A.dp, B.dp, (v) => v, true)}
+            {statRow('Crew penalties / race', A.penRate, B.penRate, s2, true)}
+            {statRow('Driver penalties', A.dp, B.dp, (v) => v, true)}
             {statRow('Stops', A.n, B.n, (v) => v, false)}
 
             <div style={{ marginTop: 12, fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', marginBottom: 4 }}>Race by race</div>
@@ -415,28 +419,28 @@ export default function PitCrewRankings() {
         <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 10 }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
             <colgroup>
-              <col style={{ width: 50 }} />
-              <col style={{ width: 52 }} />
               <col style={{ width: 58 }} />
+              <col style={{ width: 58 }} />
+              <col style={{ width: 82 }} />
               <col style={{ width: 68 }} />
               <col />
               <col style={{ width: 92 }} />
               <col style={{ width: 118 }} />
-              <col style={{ width: 68 }} />
-              <col style={{ width: 78 }} />
+              <col style={{ width: 88 }} />
+              <col style={{ width: 96 }} />
               <col style={{ width: 84 }} />
             </colgroup>
             <thead>
               <tr>
-                <th style={th({ align: 'center' })}>#</th>
-                <th style={th({ align: 'center' })} title={'Rank movement vs before the latest race'}>{'\u0394'}</th>
-                <th style={th({ align: 'center' })} title={'Select two crews to compare'}>Cmp</th>
+                <th style={th({ align: 'center' })}>Rank</th>
+                <th style={th({ align: 'center' })} title={'Rank movement vs before the latest race'}>Move</th>
+                <th style={th({ align: 'center' })} title={'Select two crews to compare'}>Compare</th>
                 <th style={th({ align: 'left' })}>Car</th>
-                <th style={th({ align: 'left' })}>Crew</th>
-                <th style={th({ align: 'center', sortable: true, active: sort === 'adj' })} onClick={() => setSort('adj')}>Adj (s)</th>
+                <th style={th({ align: 'left' })}>Driver / Team</th>
+                <th style={th({ align: 'center', sortable: true, active: sort === 'adj' })} onClick={() => setSort('adj')}>Adjusted (s)</th>
                 <th style={th({ align: 'center', sortable: true, active: sort === 'iqr' })} onClick={() => setSort('iqr')}>Consistency</th>
-                <th style={th({ align: 'center', sortable: true, active: sort === '2t' })} onClick={() => setSort('2t')}>2T (s)</th>
-                <th style={th({ align: 'center' })}>Crew Pen</th>
+                <th style={th({ align: 'center', sortable: true, active: sort === '2t' })} onClick={() => setSort('2t')}>Two-Tire (s)</th>
+                <th style={th({ align: 'center' })}>Crew Penalties</th>
                 <th style={th({ align: 'center', sortable: true, active: sort === 'n' })} onClick={() => setSort('n')}>Stops</th>
               </tr>
             </thead>
