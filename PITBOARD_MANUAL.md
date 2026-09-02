@@ -4,46 +4,79 @@ Stable operating rules. Edit ONLY when a rule actually changes. Session start: r
 ## What this is
 PitBoard — NASCAR betting + DFS analytics product approaching subscriber launch. Operator: Aaron (atmmstrs2@gmail.com; master admin uid d7a9f822-1237-4660-9e17-0b8b526e3c44; DK username atmmstrs2). Stack: React CRA on Vercel (https://nascar-loop-data-analytics.vercel.app) + Supabase (https://dqexnylexbypjtiuctxd.supabase.co, publishable key sb_publishable_pVrtVEoQD1i9LiIvaXhS4g_ZDaUUccj). Repo: RkyMtnLSX/NASCAR-Loop-Data-Analytics- (main branch, Vercel auto-deploys). Local scraper cockpit: NascarDataScrapperV3 folder (practice watcher w/ per-lap timestamps, sheet builder w/ LAPS_RAW tab, penalties backfill).
 
-## Pushing from a Cowork / cloud session (added 2026-08-31 — READ THIS BEFORE YOU TRY TO PUSH)
+## Writing to GitHub — pick the path your session actually has (rewritten 2026-08-31)
 
-**A Cowork cloud session CANNOT push to this repo.** Anthropic's git proxy refuses any repo not
-attached to the session, and a repo cloned by hand inside a running session is never attached:
+There are THREE write paths. Which one you have depends on the session, not on preference, and
+two sessions disagreeing about "the only way" usually means each had a different toolset. Check
+in this order:
+
+| condition | path | what it is |
+|---|---|---|
+| `mcp__remote-devices__device_bash` present | **B — PATCH VIA THE OPERATOR'S PC** | preferred |
+| Chrome connected, no device bridge | **A — GITHUB CONTENTS API** | fallback |
+| session created WITH the repo attached | **C — plain `git push`** | rare here |
+
+**Prefer B whenever the device bridge is up.** It is one atomic operation per COMMIT: real message,
+real history, and git confirms the SHA so you know it landed. A is per FILE — a six-file change is
+six GET/edit/verify/PUT/poll cycles, and if the blob SHA moves between the GET and the PUT you start
+that file over.
+
+**What is actually blocked in a Cowork sandbox is the GIT PROTOCOL, not writing.** The proxy refuses
+any repo not attached at session creation, and a repo cloned by hand inside a running session is
+never attached:
 
     remote: access denied by the git proxy: RkyMtnLSX/NASCAR-Loop-Data-Analytics- is not in this
     session's authorized repository set, so the proxy will not inject a credential for it.
 
-The error tells you to "add the repository to the session's sources." **There is no such control** —
-no UI, no slash command, no config. Do not go looking; a session burned an hour on 2026-08-31 doing
-exactly that. A user-supplied PAT does not help either: the proxy blocks the write before it reaches
-GitHub. READS work fine (`git ls-remote`, `git fetch`), so this looks like an auth problem and is not.
+The error says to "add the repository to the session's sources." **There is no such control** — no
+UI, no slash command, no config. Do not go looking; a session burned an hour on 2026-08-31 doing
+exactly that, and a user-supplied PAT does not help because the proxy blocks the write before it
+reaches GitHub. READS work fine (`git ls-remote`, `git fetch`), so it presents as an auth failure
+and is not one. **But path A goes over HTTPS from a browser and never touches that proxy** — the
+first version of this section said a Cowork session "CANNOT push to this repo" full stop, which
+generalised one dead end into a rule and is how the two-sessions-disagreeing problem started.
 
-**The route that works** — the operator's linked PC reaches GitHub normally:
+### PATH B — patch via the operator's PC (preferred)
 
 1. Commit in the cloud sandbox as usual.
 2. `git format-patch -1 HEAD --stdout > /tmp/x.patch`, `SendUserFile` it, then
    `device_commit_files` it into the PitBoard Handoff folder.
-3. In `device_bash`: keep a clone at `/tmp/pb`, `git am` the patch, and push with the operator's
-   token in the URL. Redact the token from all output (`sed -E 's/ghp_[A-Za-z0-9]+/REDACTED/g'`).
-4. **Realign the cloud clone afterward**: `git fetch origin && git reset --hard origin/main`.
-   Rebuilt commits get new SHAs, so without this the local branch looks permanently "ahead" and the
-   unpushed-commit warning cries wolf until a real one is invisible.
+3. In `device_bash`: keep a clone at `/tmp/pb`, `git am` the patch, push with the operator's token
+   in the URL. Redact the token from ALL output (`sed -E 's/ghp_[A-Za-z0-9]+/REDACTED/g'`).
+4. **Realign the cloud clone**: `git fetch origin && git reset --hard origin/main`. Rebuilt commits
+   get new SHAs, so without this the branch looks permanently "ahead" and the unpushed-commit
+   warning cries wolf until a real one is invisible.
 5. Delete the patch from the Handoff folder — `device_bash` cannot `rm` under mounts until
    `device_request_delete_permission` is granted for that folder.
 
-Token is per session (that sandbox does not persist) and the operator pastes it. **Batch the pushes**
-— work the session, push once at the end. The alternative is the Code tab with the repo attached,
-where push just works, but it may not carry the Supabase/Vercel connectors this project leans on.
+The device sandbox does not persist, so its clone and any `safe.directory` config are gone next
+session; if `/tmp/pb` throws "dubious ownership" or permission errors after a restart, clone fresh
+to a new path rather than fighting it. **Batch the pushes** — work the session, push once at the end.
 
-## How to edit code (browser workflow — no local clone)
-Work from a Chrome tab on a PitBoard-origin page (Vercel-origin pages' fetch wrapper can break api.github.com calls). Operator provides the GitHub token in chat each session — it is NEVER written to any file.
+### PATH A — GitHub Contents API from a Chrome tab (fallback, and the long-standing method)
+
+Work from a Chrome tab on a PitBoard-origin page (Vercel-origin pages' fetch wrapper can break
+api.github.com calls). Operator provides the token in chat each session — NEVER written to any file.
+If several browsers are connected, ask which one before driving it.
+
 1. GET contents API → decodeURIComponent(escape(atob(content)))
 2. Counted split/join edits: `if (s.split(anchor).length !== 2) throw` — never blind-replace
 3. Babel-standalone verify (cdnjs, presets [['env',{modules:false}],'react']) BEFORE every PUT
 4. PUT with btoa(unescape(encodeURIComponent(s))) + current sha
-5. Poll commits/{sha}/status with sleeps ≤40s (45s+ hits CDP timeout); builds run ~60-120s
-6. Verify the LIVE bundle with FUNCTIONAL string literals (comments are minifier-stripped; regexes can match display code ambiguously — verify at source when unsure)
+5. Poll commits/{sha}/status with sleeps <=40s (45s+ hits CDP timeout); builds run ~60-120s
+6. Verify the LIVE bundle with FUNCTIONAL string literals (comments are minifier-stripped; regexes
+   can match display code ambiguously — verify at source when unsure)
 
-Quirks: the content filter blocks tool OUTPUTS containing = & ? : ; together — sanitize outputs with replace maps (inputs unaffected). Tabs die frequently — recreate, renavigate, never rely on window.* state across turns. Supabase REST from browser: publishable key as apikey + operator session access_token from the localStorage auth-token entry (JWT expires — renavigate to refresh).
+Quirks: the content filter blocks tool OUTPUTS containing = & ? : ; together — sanitize outputs with
+replace maps (inputs unaffected). Tabs die frequently — recreate, renavigate, never rely on window.*
+state across turns. Supabase REST from browser: publishable key as apikey + operator session
+access_token from the localStorage auth-token entry (JWT expires — renavigate to refresh).
+
+### PATH C — plain `git push`
+
+Works only in a session created WITH the repo attached (the desktop app's Code tab: Environment
+Cloud, then pick the repository). Cowork sessions are never repo-attached. Worth knowing it exists,
+but a Code session may not carry the Supabase/Vercel connectors this project leans on.
 
 ## Running the sim outside the browser (added 2026-08-31)
 `src/lib/simEngine.js` holds `runRaceSim` + `buildSpeedScores` and every constant they use. The website imports it and so do node scripts, so a backtest and the live site cannot disagree about what the model does. Setup is `git clone` + `npm install` — no DB credentials, no keys; backtest data is committed. Full guide: scripts/README.md.
@@ -51,7 +84,7 @@ Quirks: the content filter blocks tool OUTPUTS containing = & ? : ; together —
 AFTER ANY CHANGE TO THE SIM OR ITS CALLERS, both of these, every time:
 ```
 npm run lint:undef    # free-variable check across src/
-npm run sim:smoke     # engine invariants + caution calibration row
+npm run sim:smoke     # engine invariants + ASSERTS attrition is preset-independent
 ```
 `lint:undef` is NOT optional politeness: `npm run build` compiles a page that references a name which no longer exists (webpack does not flag free variables), so a moved constant gives a green build and a page that crashes on load. That happened 2026-08-31 with eight names at once.
 
