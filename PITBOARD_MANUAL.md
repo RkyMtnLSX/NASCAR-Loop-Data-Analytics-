@@ -154,6 +154,43 @@ Two engine flags are deliberately OFF and unreachable from `src/pages/`: `cautio
 - Betting: flagged_bets append-only, one flag per driver+market per stage at first price; my_bets = actual money; clv_log stage-scoped.
 - Name-join rule (identical copies in GradeCenter, FlaggedBetsAdmin, MyBetsAdmin; DfsSalaryAdmin adds first+last fallback for DK middle-initials): lowercase → NFD accent-fold → strip non-alphanumerics.
 
+## Paginated Supabase reads need a UNIQUE ORDER BY (added 2026-09-02)
+
+`.range()` pagination issues one HTTP request per page. Postgres guarantees NO row order without
+an `ORDER BY`, and ordering by a NON-UNIQUE key is only half a guarantee — rows tied on that key
+may come back in any order, so a tie group split across a page boundary can hand you the same row
+twice and never hand you another. **Every paginated query must end in a unique column** (`id`, or
+a verified-unique composite for a view). All of `src/` was audited and fixed on 2026-09-02;
+`Admin.js` was already correct. `pit_penalties` in PitCrewRankings is deliberately NOT ordered:
+it is a single request, not a loop, so it has no boundary.
+
+### Correction to what commit 2debbe4 implied
+
+That commit fixed five queries and its message let the reader infer all five were actively
+corrupting data. **Only two of six were ever shown to be.** The operator asked "are you sure those
+were bugs?" and re-testing said no:
+
+| page | evidence | verdict |
+|---|---|---|
+| PitCrewRankings | live page read against the DB: Hamlin 192 stops vs 107 real | **PROVEN broken** |
+| LineMovementAdmin | 3 pages fetched 3,000 rows, 2,944 distinct — 56 duplicated | **PROVEN broken** |
+| FastestLapOddsAdmin | same reproduction: 0 duplicates, despite NO order key at all | not observed |
+| GreenFlagSpeed | 0 duplicates | not observed |
+| FastestLapSurvival | 0 duplicates | not observed |
+| FastestLap | 0 duplicates (0 of 14 boundaries in a tie) | not observed |
+
+**The lesson is the one that cost four wrong answers today: a PRECONDITION IS NOT A SYMPTOM.**
+"A page boundary sits inside a tie group" means corruption is possible, not that it is happening.
+I measured the precondition and reported it as damage. Verify the symptom — read the deployed page,
+or reproduce the actual fetch — before telling the operator his numbers are wrong.
+
+Two caveats that keep the four fixes justified anyway. The reproduction ran all pages inside ONE
+SQL statement: one planner invocation, one snapshot, no concurrent writes — the friendliest
+possible case. The real pages issue separate requests in separate transactions while the loader may
+be writing. And undefined ordering is undefined: it can change when statistics update, an index
+starts being used, autovacuum moves pages, or the server version changes — silently, with no error.
+The fixes cost nothing and remove the class of failure. They were insurance, not repairs.
+
 ## Model doctrine (current truths — evidence lives in BACKTEST_LOG)
 - Practice grader v6.3-st: pace 40% = tire-corrected all-clean-lap mean; speed 40% = RAW best5; longRun 20% = TC ≥10-lap runs (missing → 25). Tire correction = pooled within-stint demeaned slope, laps normalized to lap-5 age. Session-time correction (group-relative 5-min bucket medians of per-driver-demeaned residuals) activates only on timestamped sessions — UNDER PROSPECTIVE REVIEW, see STATE. Validation target: race-day driver_rating (Racing Reference).
 - Sim: 50k draws; correlated wreck events + independent mechanical DNFs; auto-DNF calibrated from track history; caution preset intentionally scales realized DNFs around the budget (low under, high over). Group A/B practice is gone from NASCAR formats going forward.
