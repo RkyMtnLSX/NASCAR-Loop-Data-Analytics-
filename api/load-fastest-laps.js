@@ -10,13 +10,14 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
   const { year, track_type, race_name, race_date, track, rows } = req.body || {}
+  const series = ['cup', 'oreilly', 'trucks'].includes(req.body && req.body.series) ? req.body.series : 'cup' // fastest_laps.series (2026-09-02)
   if (!year || !race_name || !race_date || !track || !Array.isArray(rows) || !rows.length) {
     return res.status(400).json({ error: 'Missing required fields: year, race_name, race_date, track, rows[]' })
   }
   const sorted = [...rows].sort((a, b) => (parseFloat(b.fastest_speed) || 0) - (parseFloat(a.fastest_speed) || 0))
   const num = (v) => { const n = parseFloat(v); return Number.isFinite(n) ? n : null }
   const records = sorted.map((r, i) => ({
-    year: parseInt(year), track_type: track_type || null, race_name, race_date, track,
+    series, year: parseInt(year), track_type: track_type || null, race_name, race_date, track,
     rank: i + 1, driver: (r.driver || '').trim(), car: r.car ? String(r.car).trim() : null,
     fastest_lap_num: r.fastest_lap_num ? parseInt(r.fastest_lap_num) : null,
     fastest_time: r.fastest_time ? String(r.fastest_time).trim() : null,
@@ -30,7 +31,7 @@ module.exports = async function handler(req, res) {
     p50_speed: num(r.p50_speed), p95_speed: num(r.p95_speed),
   })).filter(r => r.driver)
   if (!records.length) return res.status(400).json({ error: 'No valid driver rows after filtering' })
-  const { error: delError } = await supabase.from('fastest_laps').delete().eq('race_name', race_name).eq('race_date', race_date)
+  const { error: delError } = await supabase.from('fastest_laps').delete().eq('series', series).eq('race_name', race_name).eq('race_date', race_date)
   if (delError) return res.status(500).json({ error: `Delete failed: ${delError.message}` })
   const { error: insertError } = await supabase.from('fastest_laps').insert(records)
   if (insertError) return res.status(500).json({ error: insertError.message })
