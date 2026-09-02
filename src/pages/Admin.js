@@ -1517,11 +1517,12 @@ const FL_TRACK_TYPES = ['Short Track', 'Intermediate', 'Superspeedway', 'Road Co
 
 function LoadFastestLaps() {
   const [year, setYear]           = useState(new Date().getFullYear())
+  const [series, setSeries]       = useState('cup') // fastest_laps.series (2026-09-02)
   const [trackType, setTrackType] = useState('Intermediate')
   const [raceName, setRaceName]   = useState('')
   const [raceDate, setRaceDate]   = useState('')
   const [trackName, setTrackName] = useState('')
-  useWeekendTrack('cup', setTrackName)
+  useWeekendTrack(series, setTrackName)
   const [pasteText, setPasteText] = useState('')
   const [parsed, setParsed]       = useState(null)
   const [loading, setLoading]     = useState(false)
@@ -1590,6 +1591,7 @@ function LoadFastestLaps() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          series,
           year: String(year),
           track_type: trackType,
           race_name: raceName,
@@ -1627,6 +1629,12 @@ function LoadFastestLaps() {
         <div>
           <label style={labelStyle}>Year</label>
           <input type="number" value={year} onChange={e => setYear(parseInt(e.target.value))} style={{ ...inputStyle, width: 80 }} />
+        </div>
+        <div>
+          <label style={labelStyle}>Series</label>
+          <select value={series} onChange={e => setSeries(e.target.value)} style={inputStyle}>
+            <option value="cup">Cup</option><option value="oreilly">O'Reilly</option><option value="trucks">Trucks</option>
+          </select>
         </div>
         <div>
           <label style={labelStyle}>Track Type</label>

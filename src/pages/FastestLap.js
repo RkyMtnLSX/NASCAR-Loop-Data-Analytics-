@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 
 const YEARS = ['2022', '2023', '2024', '2025', '2026']
+const SERIES_OPTS = [['cup', 'Cup'], ['oreilly', "O'Reilly"], ['trucks', 'Trucks']] // fastest_laps.series (2026-09-02)
 const TRACK_TYPES = ['All', 'Short & Flat Tracks', 'High-Banked Concrete', 'Superspeedway', 'Intermediate', 'Road Course', 'All-Star'] // display groups (2026-07-15)
 const MEDAL = { 1: '\uD83E\uDD47', 2: '\uD83E\uDD48', 3: '\uD83E\uDD49' }
 const MEDAL_BG = { 1: 'rgba(255,215,0,0.15)', 2: 'rgba(192,192,192,0.15)', 3: 'rgba(205,127,50,0.15)' }
@@ -39,20 +40,20 @@ function CarNum({ car, series, noMargin, fallbackText }) {
   )
 }
 // Car # column cell: the number art centered in the cell; the plain number shows only if the art fails.
-function CarArtCell({ car }) {
+function CarArtCell({ car, series }) {
   if (!car) return <span style={{color:'var(--text-muted)'}}>{'\u2014'}</span>
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 36, verticalAlign: 'middle' }}>
-      <CarNum car={car} noMargin fallbackText />
+      <CarNum car={car} series={series} noMargin fallbackText />
     </span>
   )
 }
 // Driver cell: fixed-width slot for the number art so names start at the same x whether or not the
 // PNG rendered, and flex-centered so the art sits on the same line as the text (not floating above it).
-function DriverCell({ car, driver, weight }) {
+function DriverCell({ car, driver, weight, series }) {
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle', gap: 6, fontWeight: weight || 400 }}>
-      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 36, flex: '0 0 36px' }}><CarNum car={car} noMargin /></span>
+      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 36, flex: '0 0 36px' }}><CarNum car={car} series={series} noMargin /></span>
       <span>{driver}</span>
     </span>
   )
@@ -80,7 +81,7 @@ function rankColor(rank) {
   return 'rgba(231,76,60,0.42)'
 }
 
-function RaceTable({ rows, raceName, track }) {
+function RaceTable({ rows, raceName, track, series }) {
   if (!rows.length) return <div style={{color:'var(--text-muted)',fontSize:'0.875rem',padding:'24px 0'}}>No data for this race.</div>
   return (
     <div>
@@ -108,7 +109,7 @@ function RaceTable({ rows, raceName, track }) {
                 <tr key={i} style={{background:rowBg}}>
                   <td style={stickyCell(rowBg)}>
                     <span style={{marginRight:6,fontSize:rank<=3?'1.2rem':'0.75rem',fontFamily:'var(--font-mono)',color:rank<=3?'var(--accent-text)':'var(--text-muted)',minWidth:26,display:'inline-block',verticalAlign:'middle'}}>{MEDAL[rank]||rank}</span>
-                    <DriverCell car={r.car} driver={r.driver} weight={rank<=3?700:400} />
+                    <DriverCell car={r.car} driver={r.driver} weight={rank<=3?700:400} series={series} />
                   </td>
                   <td style={numCell}>{r.car}</td>
                   <td style={{...numCell,color:'var(--accent-text)',fontWeight:rank===1?700:400}}>{r.fastest_time}</td>
@@ -127,7 +128,7 @@ function RaceTable({ rows, raceName, track }) {
   )
 }
 
-function SeasonSummaryTable({ rows }) {
+function SeasonSummaryTable({ rows, series }) {
   const [sKey, setSKey] = useState('date')
   const [sAsc, setSAsc] = useState(true)
   const hClick = k => () => { if (sKey === k) setSAsc(a => !a); else { setSKey(k); setSAsc(true) } }
@@ -168,7 +169,7 @@ function SeasonSummaryTable({ rows }) {
                 <td style={{...numCell,textAlign:'left',fontSize:'0.75rem'}}>
                   <span style={{padding:'2px 8px',borderRadius:4,fontSize:'0.7rem',fontFamily:'var(--font-sans)',background:TRACK_TYPE_COLORS[r.track_type]||'#444',color:'#fff',whiteSpace:'nowrap'}}>{r.track_type}</span>
                 </td>
-                <td style={{...numCell,textAlign:'center',padding:'4px 12px'}}><CarArtCell car={r.car} /></td>
+                <td style={{...numCell,textAlign:'center',padding:'4px 12px'}}><CarArtCell car={r.car} series={series} /></td>
                 <td style={{...numCell,textAlign:'left',fontFamily:'var(--font-sans)',fontWeight:600}}>{r.driver}</td>
                 <td style={{...numCell,color:'var(--accent-text)',fontWeight:600}}>{r.fastest_time}</td>
                 <td style={numCell}>{r.fastest_speed?parseFloat(r.fastest_speed).toFixed(2):'\u2014'}</td>
@@ -185,7 +186,7 @@ function SeasonSummaryTable({ rows }) {
 }
 
 function __isoDate(d) { const s = String(d || ''); let m = s.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); if (!m) m = (s.match(/^(\d{2})(\d{2})\/(\d{4})$/) || []).length ? s.match(/^(\d{2})(\d{2})\/(\d{4})$/) : null; return m ? m[3] + '-' + m[1].padStart(2, '0') + '-' + m[2].padStart(2, '0') : s }
-function HeatMapView({ rows, year, trackType }) {
+function HeatMapView({ rows, year, trackType, series }) {
   const [sortKey, setSortKey] = useState('avg')
   const [sortAsc, setSortAsc] = useState(true)
   if (!rows.length) return <div style={{color:'var(--text-muted)',fontSize:'0.875rem',padding:'24px 0'}}>No data available.</div>
@@ -242,7 +243,7 @@ function HeatMapView({ rows, year, trackType }) {
                 <tr key={d.driver}>
                   <td style={{...stickyCell(rowBg),textAlign:'left'}}>
                     {isTop&&<span style={{marginRight:6,fontSize:'0.7rem',verticalAlign:'middle'}}>{'\u26A1'}</span>}
-                    <DriverCell car={carMap.get(d.driver)} driver={d.driver} weight={isTop?700:400} />
+                    <DriverCell car={carMap.get(d.driver)} driver={d.driver} weight={isTop?700:400} series={series} />
                   </td>
                   {hasMulti&&<td style={{...numCell,fontWeight:700,background:rowBg,color:isTop?'var(--accent-text)':d.avg<=15?'var(--text-primary)':'var(--text-muted)'}}>{isFinite(d.avg)?d.avg.toFixed(1):'\u2014'}</td>}
                   {finalLabels.map(r=>{
@@ -263,6 +264,7 @@ function HeatMapView({ rows, year, trackType }) {
 
 export default function FastestLap({ isSubscriber }) {
   const [years, setYears] = useState(['2026'])
+  const [series, setSeries] = useState('cup')
   const [trackType, setTrackType] = useState('All')
   const [trackSel, setTrackSel] = useState('All')
   const [entryDrivers, setEntryDrivers] = useState(null) // Set of normalized names from cup weekend entry list; null = no weekend configured
@@ -275,20 +277,20 @@ export default function FastestLap({ isSubscriber }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  useEffect(() => { loadYear(years, trackType) }, [years.join(','), trackType]) // eslint-disable-line
+  useEffect(() => { loadYear(years, trackType) }, [years.join(','), trackType, series]) // eslint-disable-line
 
   useEffect(() => {
     (async () => {
       try {
-        const { data: cfg } = await supabase.from('featured_weekend').select('*').eq('series', 'cup').single()
+        const { data: cfg } = await supabase.from('featured_weekend').select('*').eq('series', series).single()
         if (!cfg || !cfg.track_name) { setEntryDrivers(null); return }
         const { data: el } = await supabase.from('entry_list').select('driver_name')
-          .eq('series', 'cup').eq('race_year', cfg.correlation_year).eq('track_name', cfg.track_name)
+          .eq('series', series).eq('race_year', cfg.correlation_year).eq('track_name', cfg.track_name)
         if (!el || !el.length) { setEntryDrivers(null); return }
         setEntryDrivers(new Set(el.map(e => __normName(e.driver_name))))
       } catch (e) { setEntryDrivers(null) }
     })()
-  }, []) // eslint-disable-line
+  }, [series]) // eslint-disable-line
 
   async function loadYear(yrs, tt) {
     setLoading(true); setError(null); setRaceRows([]); setSelectedRace('')
@@ -297,7 +299,7 @@ export default function FastestLap({ isSubscriber }) {
       let err = null
       const data = []
       for (let pg = 0; pg < 20; pg++) {
-        let q = supabase.from('fastest_laps').select('*').in('year', yrs).order('race_date').order('rank').range(pg * 1000, pg * 1000 + 999)
+        let q = supabase.from('fastest_laps').select('*').eq('series', series).in('year', yrs).order('race_date').order('rank').range(pg * 1000, pg * 1000 + 999)
         // track-type scoping is now client-side via display groups (2026-07-15)
         const res = await q
         if (res.error) { err = res.error; break }
@@ -332,7 +334,10 @@ export default function FastestLap({ isSubscriber }) {
     <div className="page">
       <div className="page-header">
         <h1 className="page-title">Fastest Laps</h1>
-        <p className="page-subtitle">Fastest lap data {'\u2014'} NextGen era (2022{'\u2013'}2026)</p>
+        <p className="page-subtitle">Fastest lap data {'\u2014'} Cup, O'Reilly and Trucks (2022{'\u2013'}2026)</p>
+      </div>
+      <div style={{display:'flex',gap:6,marginBottom:16,flexWrap:'wrap'}}>
+        {SERIES_OPTS.map(([v,label])=><button key={v} onClick={()=>setSeries(v)} style={pillStyle(series===v)}>{label}</button>)}
       </div>
       <div style={{display:'flex',gap:14,marginBottom:16,flexWrap:'wrap',alignItems:'center',border:'1px solid var(--border)',borderRadius:8,padding:'8px 14px',width:'fit-content'}}>
         <span style={{fontSize:'0.7rem',letterSpacing:1,color:'var(--text-muted)',fontWeight:700}}>RACE YEARS</span>
@@ -357,7 +362,7 @@ export default function FastestLap({ isSubscriber }) {
       </div>
       {error&&<div style={{padding:'12px 16px',background:'#922B2120',border:'1px solid #922B2140',borderRadius:'var(--radius-md)',color:'#E74C3C',fontSize:'0.8125rem',marginBottom:24}}>{error}</div>}
       {loading&&<div style={{color:'var(--text-muted)',fontSize:'0.875rem',padding:'32px 0'}}>Loading...</div>}
-      {!loading&&!error&&view==='heat'&&<HeatMapView rows={(entryDrivers && entryOnly) ? shownRows.filter(r => entryDrivers.has(__normName(r.driver))) : shownRows} year={years.join(', ')} trackType={trackType}/>}
+      {!loading&&!error&&view==='heat'&&<HeatMapView rows={(entryDrivers && entryOnly) ? shownRows.filter(r => entryDrivers.has(__normName(r.driver))) : shownRows} year={years.join(', ')} trackType={trackType} series={series}/>}
       {!loading&&!error&&view==='race'&&(
         <>
           <div style={{marginBottom:24}}>
@@ -367,13 +372,13 @@ export default function FastestLap({ isSubscriber }) {
             </select>
             <span style={{marginLeft:12,fontSize:'0.75rem',color:'var(--text-muted)'}}>{raceRows.length} drivers</span>
           </div>
-          <RaceTable rows={raceRows} raceName={selectedRace} track={selectedRaceTrack}/>
+          <RaceTable rows={raceRows} raceName={selectedRace} track={selectedRaceTrack} series={series}/>
         </>
       )}
       {!loading&&!error&&view==='season'&&(
         <>
           <h3 style={{...sectionHead,marginBottom:16}}>Fastest Lap per Race {'\u2014'} {years.join(', ')}</h3>
-          <SeasonSummaryTable rows={shownRows}/>
+          <SeasonSummaryTable rows={shownRows} series={series}/>
         </>
       )}
     </div>
