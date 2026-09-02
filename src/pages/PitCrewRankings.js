@@ -142,10 +142,14 @@ const sub = { fontSize: '0.95rem', color: 'var(--text-secondary)', margin: '0 0 
 // Headers still wrap, but paddingTop is explicit and lineHeight is a whole number of pixels at
 // this size — the earlier verticalAlign:'bottom' with a fractional line box was clipping the top
 // line of the two-line headers ("Adjusted" over "Time"). Top-aligned with real padding instead.
-const th = (o) => ({ padding: '10px 12px', fontSize: '0.89rem', fontWeight: 600,
+const th = (o) => ({ padding: '10px 10px', fontSize: '0.89rem', fontWeight: 600,
   color: o.active ? 'var(--accent-text)' : 'var(--text-secondary)',
   borderBottom: '1px solid var(--border)', cursor: o.sortable ? 'pointer' : 'default',
-  lineHeight: '18px', verticalAlign: 'top', userSelect: 'none', textAlign: o.align || 'center' })
+  lineHeight: '18px', verticalAlign: 'top', userSelect: 'none', textAlign: o.align || 'center',
+  // A header's LONGEST WORD cannot wrap, so if it exceeds the column it spills sideways into the
+  // neighbouring header. overflowWrap makes it break instead of bleed - the widths below are sized
+  // so it never has to, but font metrics differ per machine and this is the backstop.
+  overflowWrap: 'break-word' })
 const td = (align) => ({ padding: '8px 12px', fontSize: '0.96rem', borderBottom: '1px solid var(--border)',
   textAlign: align || 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' })
 
@@ -425,22 +429,25 @@ export default function PitCrewRankings() {
       ) : sorted.length === 0 ? (
         <p style={{ color: 'var(--text-secondary)' }}>No 4-tire stops yet for this series in {SEASON}.</p>
       ) : (
-        <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 10, maxWidth: 1040 }}>
+        <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 10, maxWidth: 1100 }}>
           {/* maxWidth above caps the TABLE, not the page. Without it the one flexible column
               (Driver / Team) swallowed every spare pixel — 446px at a 1280 viewport — leaving a
               canyon between a driver's name and his numbers that made a row hard to read across. */}
           <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
             <colgroup>
-              <col style={{ width: 62 }} />
-              <col style={{ width: 62 }} />
-              <col style={{ width: 84 }} />
+              {/* Widths are the measured width of each header's LONGEST WORD plus >=16px of
+                  headroom, not a tight fit. The previous set was fitted to the pixel - Compare
+                  needed 86px in an 84px column - which is why the headers ran together. */}
+              <col style={{ width: 72 }} />
+              <col style={{ width: 72 }} />
+              <col style={{ width: 100 }} />
               <col style={{ width: 70 }} />
               <col />
-              <col style={{ width: 96 }} />
-              <col style={{ width: 112 }} />
-              <col style={{ width: 92 }} />
+              <col style={{ width: 100 }} />
+              <col style={{ width: 124 }} />
               <col style={{ width: 98 }} />
-              <col style={{ width: 76 }} />
+              <col style={{ width: 102 }} />
+              <col style={{ width: 80 }} />
             </colgroup>
             <thead>
               <tr>
