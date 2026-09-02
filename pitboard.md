@@ -3039,3 +3039,6 @@ Cosmetic, light check only (build green; operator eyeballs). FastestLap.js:
 - (same day, 0a99da9) Season Summary also gains sortable Start / Finish columns right of Lap # —
   `start_pos`/`finish_pos` were already stored for 100% of races (checked per year 2022-2026);
   no loader or data change.
+- (same day, 24fe92d) Season Summary: Car # column moved LEFT of Driver and renders the number PNG
+  (CarArtCell — centered art, plain-number fallback only if the art fails); driver cell is now just
+  the name. Sortable by car. Race View / Heat Map untouched (their sticky first column is Driver).
