@@ -178,6 +178,23 @@ export default function PitCrewRankings() {
     setLoading(true)
     ;(async () => {
       // all timed 4-tire stops (green + caution): lower series pit mostly under yellow
+      //
+      // .order('id') IS LOAD-BEARING, NOT TIDINESS (2026-09-02, operator: "that's supposed to be
+      // number of pit stops so maybe something is wrong"). Cup 2026 is 4,846 rows, so this loop
+      // issues five separate 1,000-row requests. Postgres guarantees NO row order without an
+      // ORDER BY, and it is free to return a different order per request — so pages overlapped:
+      // some stops were fetched twice and others never at all. Measured on the live page against
+      // the database, stop counts were off by up to 2x IN BOTH DIRECTIONS:
+      //
+      //     Hamlin   192 shown / 107 real      Gibbs    79 / 98
+      //     Briscoe  177 / 95                  Bell     69 / 91
+      //     Chastain 162 / 91                  Logano   77 / 99
+      //
+      // That is not a display bug. Duplicated and missing stops move each crew's MEDIAN, so Adj,
+      // Consistency, Bomb% and the resulting rank order were all wrong, and re-rendered
+      // differently on every page load. id is the table's bigint primary key, so ordering by it
+      // is unique and total — the only kind of ORDER BY that makes range() pagination sound.
+      // Any paginated query added here needs the same, ending in a UNIQUE column.
       let all = [], from = 0
       for (;;) {
         const { data, error } = await supabase
@@ -186,6 +203,7 @@ export default function PitCrewRankings() {
           .eq('series', series).eq('year', SEASON)
           .in('tires_changed', [2, 4])
           .not('box_time', 'is', null)
+          .order('id', { ascending: true })
           .range(from, from + 999)
         if (error || !data) break
         all = all.concat(data)
