@@ -58,7 +58,7 @@ function CarNum({ car, series }) {
   const dir = series === 'oreilly' ? '/car-numbers-oreilly/' : series === 'trucks' ? '/car-numbers-trucks/' : '/car-numbers/'
   return (
     <img src={dir + (__CAR_ALIAS[String(car)] || car) + '.png'} alt={'#' + car}
-      style={{ height: 22, marginRight: 8, verticalAlign: 'middle' }}
+      style={{ height: 28, marginRight: 8, verticalAlign: 'middle' }}
       onError={(e) => { const t = e.target; if (!t.dataset.retried) { t.dataset.retried = '1'; t.src = t.src + (t.src.indexOf('?') >= 0 ? '&r=' : '?r=') + Date.now() } else { const s = document.createElement('span'); s.textContent = t.alt; s.style.fontWeight = '700'; t.replaceWith(s) } }} />
   )
 }
@@ -127,18 +127,26 @@ function CrewDetail({ c }) {
   )
 }
 
-const wrap = { maxWidth: 1120, margin: '0 auto', padding: '24px 16px 60px' }
-const h1 = { fontSize: '1.5rem', fontWeight: 700, margin: '0 0 4px' }
-const sub = { fontSize: '0.9rem', color: 'var(--text-secondary)', margin: '0 0 20px', lineHeight: 1.5 }
+const wrap = { maxWidth: 1200, margin: '0 auto', padding: '24px 16px 60px' }
+const h1 = { fontSize: '1.6rem', fontWeight: 700, margin: '0 0 4px' }
+const sub = { fontSize: '0.95rem', color: 'var(--text-secondary)', margin: '0 0 20px', lineHeight: 1.5 }
 // 2026-09-02: headers are spelled out rather than abbreviated. They WRAP instead of staying on
 // one line (whiteSpace: nowrap is gone) — "Crew Penalties" over two lines fits the same column a
 // nowrap "Crew Pen" needed, so full words cost ~76px across the whole table rather than ~170px.
 // verticalAlign bottom keeps one- and two-line headers sitting on the same baseline.
-const th = (o) => ({ padding: '9px 14px', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase',
-  letterSpacing: '0.05em', color: o.active ? 'var(--accent-text)' : 'var(--text-secondary)',
+// 2026-09-02 (operator: "everything on that page looks kinda small compared to the loop data
+// page"). It was. LoopData runs 0.89rem sentence-case headers and 0.96rem cells; this page was on
+// 0.72rem UPPERCASE headers and 0.9rem cells, which reads as a different, smaller product. Matched
+// to LoopData: same header size, same casing, same cell size, same padding.
+//
+// Headers still wrap, but paddingTop is explicit and lineHeight is a whole number of pixels at
+// this size — the earlier verticalAlign:'bottom' with a fractional line box was clipping the top
+// line of the two-line headers ("Adjusted" over "Time"). Top-aligned with real padding instead.
+const th = (o) => ({ padding: '10px 12px', fontSize: '0.89rem', fontWeight: 600,
+  color: o.active ? 'var(--accent-text)' : 'var(--text-secondary)',
   borderBottom: '1px solid var(--border)', cursor: o.sortable ? 'pointer' : 'default',
-  lineHeight: 1.25, verticalAlign: 'bottom', userSelect: 'none', textAlign: o.align || 'center' })
-const td = (align) => ({ padding: '9px 14px', fontSize: '0.9rem', borderBottom: '1px solid var(--border)',
+  lineHeight: '18px', verticalAlign: 'top', userSelect: 'none', textAlign: o.align || 'center' })
+const td = (align) => ({ padding: '8px 12px', fontSize: '0.96rem', borderBottom: '1px solid var(--border)',
   textAlign: align || 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' })
 
 export default function PitCrewRankings() {
@@ -248,9 +256,10 @@ export default function PitCrewRankings() {
       </div>
 
       <p style={{ ...sub, margin: '0 0 12px', maxWidth: 680 }}>
-        Ranked by <strong style={{ color: 'var(--text-primary)' }}>Adjusted</strong> &mdash; median 4-tire box time
-        plus {PEN_SEC}s for every crew penalty. Lower is faster. Tap a row for race-by-race detail,
-        or <strong style={{ color: 'var(--text-primary)' }}>+</strong> on two crews to compare them.
+        Ranked by <strong style={{ color: 'var(--text-primary)' }}>Adjusted Time</strong> &mdash; median 4-tire box time
+        plus {PEN_SEC} seconds for every crew penalty. Lower is faster.
+        <strong style={{ color: 'var(--text-primary)' }}> Every time on this page is in seconds.</strong> Tap
+        a row for race-by-race detail, or <strong style={{ color: 'var(--text-primary)' }}>+</strong> on two crews to compare them.
       </p>
 
       <button onClick={() => setShowHelp((v) => !v)} style={{
@@ -270,9 +279,9 @@ export default function PitCrewRankings() {
           display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '10px 22px',
         }}>
           {[
-            ['Adjusted (s)', 'Median 4-tire box time + ' + PEN_SEC + 's per crew penalty per race.'],
+            ['Adjusted Time', 'Median 4-tire box time + ' + PEN_SEC + 's per crew penalty per race.'],
             ['Consistency', 'Box-time spread. Lower means steadier, stop to stop.'],
-            ['Two-Tire (s)', 'Median two-tire stop. Hover the number for sample size.'],
+            ['Two-Tire Time', 'Median two-tire stop. Hover the number for sample size.'],
             ['Crew Penalties', 'Crew-caused: loose wheel, too many men, equipment.'],
             ['Bomb%', 'In the row detail. Share of stops ' + BOMB_X + '× slower than the series median — hung-lug territory.'],
             ['Driver Penalties', 'In the row detail. Driver-caused: speeding, commitment line, missing the box.'],
@@ -380,7 +389,7 @@ export default function PitCrewRankings() {
               </div>
             </div>
 
-            {statRow('Adjusted (s)', A.adj, B.adj, s2, true)}
+            {statRow('Adjusted Time', A.adj, B.adj, s2, true)}
             {statRow('Median 4-tire', A.median, B.median, s2, true)}
             {statRow('Best stop', A.bestStop && A.bestStop.best, B.bestStop && B.bestStop.best, s2, true)}
             {statRow('Median 2-tire', A.t2m, B.t2m, s2, true)}
@@ -416,19 +425,22 @@ export default function PitCrewRankings() {
       ) : sorted.length === 0 ? (
         <p style={{ color: 'var(--text-secondary)' }}>No 4-tire stops yet for this series in {SEASON}.</p>
       ) : (
-        <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 10 }}>
+        <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 10, maxWidth: 1040 }}>
+          {/* maxWidth above caps the TABLE, not the page. Without it the one flexible column
+              (Driver / Team) swallowed every spare pixel — 446px at a 1280 viewport — leaving a
+              canyon between a driver's name and his numbers that made a row hard to read across. */}
           <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
             <colgroup>
-              <col style={{ width: 58 }} />
-              <col style={{ width: 58 }} />
-              <col style={{ width: 82 }} />
-              <col style={{ width: 68 }} />
-              <col />
-              <col style={{ width: 92 }} />
-              <col style={{ width: 118 }} />
-              <col style={{ width: 88 }} />
-              <col style={{ width: 96 }} />
+              <col style={{ width: 62 }} />
+              <col style={{ width: 62 }} />
               <col style={{ width: 84 }} />
+              <col style={{ width: 70 }} />
+              <col />
+              <col style={{ width: 96 }} />
+              <col style={{ width: 112 }} />
+              <col style={{ width: 92 }} />
+              <col style={{ width: 98 }} />
+              <col style={{ width: 76 }} />
             </colgroup>
             <thead>
               <tr>
@@ -437,9 +449,12 @@ export default function PitCrewRankings() {
                 <th style={th({ align: 'center' })} title={'Select two crews to compare'}>Compare</th>
                 <th style={th({ align: 'left' })}>Car</th>
                 <th style={th({ align: 'left' })}>Driver / Team</th>
-                <th style={th({ align: 'center', sortable: true, active: sort === 'adj' })} onClick={() => setSort('adj')}>Adjusted (s)</th>
+                {/* "(s)" is gone from these three. The operator asked what it meant, which is the
+                    only evidence a unit suffix needs to be replaced with a plain sentence — the
+                    subhead now says every time on the page is in seconds. */}
+                <th style={th({ align: 'center', sortable: true, active: sort === 'adj' })} onClick={() => setSort('adj')}>Adjusted Time</th>
                 <th style={th({ align: 'center', sortable: true, active: sort === 'iqr' })} onClick={() => setSort('iqr')}>Consistency</th>
-                <th style={th({ align: 'center', sortable: true, active: sort === '2t' })} onClick={() => setSort('2t')}>Two-Tire (s)</th>
+                <th style={th({ align: 'center', sortable: true, active: sort === '2t' })} onClick={() => setSort('2t')}>Two-Tire Time</th>
                 <th style={th({ align: 'center' })}>Crew Penalties</th>
                 <th style={th({ align: 'center', sortable: true, active: sort === 'n' })} onClick={() => setSort('n')}>Stops</th>
               </tr>
@@ -459,7 +474,7 @@ export default function PitCrewRankings() {
                       alone ran past a phone's width, so Adj scrolled out of view next to the name. */}
                   <td style={td('left')}>
                     <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', fontStyle: c.rotating ? 'italic' : 'normal' }}>{c.driver || '\u2014'}</div>
-                    <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.org || '\u2014'}</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.org || '\u2014'}</div>
                   </td>
                   <td style={{ ...td('center'), fontWeight: 700 }}>{c.adj.toFixed(2)}</td>
                   <td style={{ ...td('center'), color: 'var(--text-secondary)' }}>{c.iqr.toFixed(2)}</td>
