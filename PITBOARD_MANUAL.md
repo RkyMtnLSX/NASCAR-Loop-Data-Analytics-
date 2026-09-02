@@ -38,6 +38,28 @@ generalised one dead end into a rule and is how the two-sessions-disagreeing pro
 
 ### PATH B — patch via the operator's PC (preferred)
 
+**`device_bash` HAS NETWORK. It clones from and pushes to github.com.** Verified end to end on
+2026-09-02: `git clone https://github.com/...` into `/tmp`, `git am`, `git push` — two commits
+landed that way (`81dce8f..308199a`, `308199a..d10960f`). If you are about to tell the operator
+that path B needs him to run three lines himself, you are about to be wrong, and he has had to
+correct a session on exactly this.
+
+Two true facts get combined into a false one, so state them separately:
+
+- The device shell is a **Linux VM with his folders mounted**, not his Windows environment, and it
+  is NOT sitting in his Windows clone. TRUE — and irrelevant. **You do not need his clone.** Clone
+  the repo fresh inside the VM at `/tmp/pb2`, `git am` the patch there, push from there. His clone
+  is never touched and never needs to be.
+- The **cloud sandbox's** git proxy refuses this repo. TRUE, and separate. That is the sandbox, not
+  the device shell. Do not generalise it into "I have no route with network + write."
+
+If some OTHER host tool has no network from the device shell (a data feed, an API), that says
+nothing about github.com. Test the specific host before concluding anything.
+
+Path A (browser + token) is the FALLBACK. A safety classifier can block a browser script that
+combines a raw token with a repo write — that is a guardrail, not a bug to route around, and it is
+one more reason to use B, which never puts a token in a page script.
+
 1. Commit in the cloud sandbox as usual.
 2. `git format-patch -1 HEAD --stdout > /tmp/x.patch`, `SendUserFile` it, then
    `device_commit_files` it into the PitBoard Handoff folder.
