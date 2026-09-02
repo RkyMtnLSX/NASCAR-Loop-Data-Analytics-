@@ -127,6 +127,46 @@ python pitboard_penalties_backfill.py --year 2026 | --year all | --dry-run
 ```
 Wrapper: `PENALTIES_BACKFILL_ALL.bat`. One-time setup: `pit_penalties_schema.sql`.
 
+#### v3 (2026-08-31) — USE THIS ONE. `pitboard_penalties_backfill_v3.py`
+
+Two changes. Click `PENALTIES_FIX_ALL_YEARS.bat` (all seasons, 10-20 min) or
+`PENALTIES_FIX_2026.bat` (current season only). Both run `test_penalties_v3.py` FIRST and abort
+before touching the database if any check fails — that is the stand-in for a dry run.
+
+**1. A 4th category, `grid`.** Pre-race calls: "To the rear: #4, #22 (unapproved adjustments)",
+tail-end-of-field, failed inspection. v2 had no vocabulary for these and recorded ZERO of them —
+2022-2025 sat at 0 while the notes carried ~150-175 per season. They are NOT crew and NOT driver:
+unapproved adjustments is a technical call against the team's setup, and the Pit Crew Rankings add
+1.75s per CREW penalty, so mixing them in would demote crews for what the engineers did.
+
+Why they matter beyond bookkeeping: a car sent to the rear appears at its QUALIFIED spot in both
+`loop_data.start_position` and `qualifying_results.qualifying_position`. Verified at cup 2026
+Kansas R9 — the notes say #22 went to the rear, his recorded start is 15th in a 37-car field. The
+backtest reads `loop_data.start_position` (confirmed by matching holdout.txt against the DB), so
+those driver-races carry a wrong start. Cup 2026: 30 of 39 lap-0 grid calls show start == qual,
+average qualifying spot 25.7 in a 37.6-car field. Roughly 3% of driver-races, off by ~10 spots.
+
+**2. Multi-car sentences.** v2 only saw a penalty whose keyword FOLLOWED the car number, and
+credited only the cars whose own text segment carried it. v3 adds leading context (first car
+only), list-member inheritance, and a whole-sentence fallback. Recovery is modest and consistent:
+crew +3 to +8 per season, driver +15 to +30.
+
+**THE TRAP, and it is in the test suite now.** Older lap notes list every car that pitted before
+naming the one penalised:
+
+> `#41, #43, #19, ... #3, #42, #47 all pit with two to go #42 penalized for crew over the wall too soon`
+
+Only #42 earned it. An uncapped list-inheritance handed a crew penalty to all 21 and DOUBLED crew
+for 2022-2024 (avg 8-10.6 cars per multi-car sentence, max 21). It looked fine on 2026 because
+modern notes do not use that style. Fixed with a 6-car cap plus a requirement that an unresolved
+car be joined to a resolved MENTION by an unbroken chain of separators. Post-fix: avg 2.2-2.8 cars,
+max 4-5. Four of those real sentences are permanent regression cases in `test_penalties_v3.py`.
+
+**Never trust a parser change validated on one season.** Note style varies by era, and 2026 is the
+one that hides this failure.
+
+`POST_RACE_UPDATE.bat` still calls v2. Switch it to v3 once you have seen a clean weekend run.
+
 ### `pitboard_practice_capture.py` — live lap capture (v4)
 Polls `live-feed.json` every ~4s while any session is live, for all three series at once, and
 records each car's lap as `laps_completed` ticks up. Necessary because during practice/qualifying
