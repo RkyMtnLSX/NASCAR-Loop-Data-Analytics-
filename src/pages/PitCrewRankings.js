@@ -142,13 +142,19 @@ const sub = { fontSize: '0.95rem', color: 'var(--text-secondary)', margin: '0 0 
 // Headers still wrap, but paddingTop is explicit and lineHeight is a whole number of pixels at
 // this size — the earlier verticalAlign:'bottom' with a fractional line box was clipping the top
 // line of the two-line headers ("Adjusted" over "Time"). Top-aligned with real padding instead.
+// textTransform and letterSpacing are set EXPLICITLY here even though a global `th` rule in the
+// site stylesheet already applies both (uppercase, 0.06em). That rule is why two rounds of column
+// widths were wrong: this file said nothing about casing, so it was measured and sized as sentence
+// case, while every visitor saw UPPERCASE — which is far wider. Restating them means the component
+// describes what actually renders, and the next person sizing a column measures the right string.
 const th = (o) => ({ padding: '10px 10px', fontSize: '0.89rem', fontWeight: 600,
+  textTransform: 'uppercase', letterSpacing: '0.06em',
   color: o.active ? 'var(--accent-text)' : 'var(--text-secondary)',
   borderBottom: '1px solid var(--border)', cursor: o.sortable ? 'pointer' : 'default',
   lineHeight: '18px', verticalAlign: 'top', userSelect: 'none', textAlign: o.align || 'center',
-  // A header's LONGEST WORD cannot wrap, so if it exceeds the column it spills sideways into the
-  // neighbouring header. overflowWrap makes it break instead of bleed - the widths below are sized
-  // so it never has to, but font metrics differ per machine and this is the backstop.
+  // A header's longest word cannot wrap, so if it exceeds the column it spills sideways into the
+  // neighbouring header. This makes it break instead of bleed - the widths are sized so it never
+  // has to, but this is the backstop.
   overflowWrap: 'break-word' })
 const td = (align) => ({ padding: '8px 12px', fontSize: '0.96rem', borderBottom: '1px solid var(--border)',
   textAlign: align || 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' })
@@ -429,25 +435,27 @@ export default function PitCrewRankings() {
       ) : sorted.length === 0 ? (
         <p style={{ color: 'var(--text-secondary)' }}>No 4-tire stops yet for this series in {SEASON}.</p>
       ) : (
-        <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 10, maxWidth: 1100 }}>
+        <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 10 }}>
           {/* maxWidth above caps the TABLE, not the page. Without it the one flexible column
               (Driver / Team) swallowed every spare pixel — 446px at a 1280 viewport — leaving a
               canyon between a driver's name and his numbers that made a row hard to read across. */}
           <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
             <colgroup>
-              {/* Widths are the measured width of each header's LONGEST WORD plus >=16px of
-                  headroom, not a tight fit. The previous set was fitted to the pixel - Compare
-                  needed 86px in an 84px column - which is why the headers ran together. */}
-              <col style={{ width: 72 }} />
-              <col style={{ width: 72 }} />
-              <col style={{ width: 100 }} />
+              {/* Sized from the longest word of each header MEASURED ON THE LIVE PAGE, in Inter
+                  at 14.24px, UPPERCASE, 0.06em tracking, + 20px padding, + >=13px headroom:
+                    RANK 64  MOVE 66  COMPARE 97  ADJUSTED 104
+                    CONSISTENCY 134  TWO-TIRE 98  PENALTIES 105  STOPS 72
+                  Fixed columns total 933, leaving Driver / Team ~235 at a 1200px page. */}
+              <col style={{ width: 80 }} />
+              <col style={{ width: 82 }} />
+              <col style={{ width: 110 }} />
               <col style={{ width: 70 }} />
               <col />
-              <col style={{ width: 100 }} />
-              <col style={{ width: 124 }} />
-              <col style={{ width: 98 }} />
-              <col style={{ width: 102 }} />
-              <col style={{ width: 80 }} />
+              <col style={{ width: 120 }} />
+              <col style={{ width: 148 }} />
+              <col style={{ width: 114 }} />
+              <col style={{ width: 121 }} />
+              <col style={{ width: 88 }} />
             </colgroup>
             <thead>
               <tr>
