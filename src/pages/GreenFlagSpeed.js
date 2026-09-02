@@ -222,7 +222,10 @@ export default function GreenFlagSpeed() {
     try {
       let all = []; let from = 0
       while (true) {
-        const { data, error: e } = await supabase.from('green_flag_speed').select('*').eq('series', series).order('race_date').order('gfs_rank').range(from, from + 999)
+        // .order('id') is a UNIQUE tiebreaker. (race_date, gfs_rank) is not - 2,411 rows share
+        // a key - and oreilly and trucks each had a page boundary landing inside a tie group,
+        // so rows were being duplicated or dropped. Verified 2026-09-02.
+        const { data, error: e } = await supabase.from('green_flag_speed').select('*').eq('series', series).order('race_date').order('gfs_rank').order('id', { ascending: true }).range(from, from + 999)
         if (e) throw e
         all = all.concat(data || [])
         if (!data || data.length < 1000) break

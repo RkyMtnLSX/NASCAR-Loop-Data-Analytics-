@@ -211,6 +211,9 @@ export default function PitCrewRankings() {
         from += 1000
       }
       let pnl = []
+      // No .order() needed here and none is missing: this is ONE request, not a paginated
+      // loop, so there is no page boundary for an unstable order to fall across. The 2,000 cap
+      // is the only risk and the largest series-season is 200 rows. Leave as is.
       const r2 = await supabase.from('pit_penalties').select('car_number, category, race_number').eq('series', series).eq('year', SEASON).range(0, 1999)
       if (r2.data) pnl = r2.data
       const penC = {}, penD = {}

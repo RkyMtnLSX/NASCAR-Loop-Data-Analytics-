@@ -300,7 +300,12 @@ export default function FastestLap({ isSubscriber }) {
       let err = null
       const data = []
       for (let pg = 0; pg < 20; pg++) {
-        let q = supabase.from('fastest_laps').select('*').eq('series', series).in('year', yrs).order('race_date').order('rank').range(pg * 1000, pg * 1000 + 999)
+        // .order('id') is a UNIQUE tiebreaker. (race_date, rank) is not unique - 220 rows
+        // share a key - and range() pagination over a non-unique order can duplicate or drop
+        // rows wherever a tie group straddles a page boundary. None of the 14 current
+        // boundaries does, so this was latent rather than broken, but adding a race moves
+        // every row position. Verified 2026-09-02.
+        let q = supabase.from('fastest_laps').select('*').eq('series', series).in('year', yrs).order('race_date').order('rank').order('id', { ascending: true }).range(pg * 1000, pg * 1000 + 999)
         // track-type scoping is now client-side via display groups (2026-07-15)
         const res = await q
         if (res.error) { err = res.error; break }

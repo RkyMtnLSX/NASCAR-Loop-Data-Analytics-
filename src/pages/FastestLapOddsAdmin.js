@@ -89,7 +89,12 @@ export default function FastestLapOddsAdmin() {
     const ttype = trk ? (trk.correlation_group_label || trk.track_type) : null
     let flAll = [], off = 0
     while (true) {
-      const { data } = await supabase.from('fastest_laps').select('year,track,track_type,rank,driver,start_pos').range(off, off + 999)
+      // .order('id') is required, not cosmetic: this fetches the WHOLE fastest_laps table
+      // (16,515 rows = 17 requests). Postgres gives no row order without ORDER BY and may
+      // order each request differently, so pages overlapped - rows counted twice, others
+      // never seen - and this tally drives the start-position buckets. Same defect fixed in
+      // PitCrewRankings on 2026-09-02. id is the primary key, so the ordering is total.
+      const { data } = await supabase.from('fastest_laps').select('year,track,track_type,rank,driver,start_pos').order('id', { ascending: true }).range(off, off + 999)
       if (!data || !data.length) break
       flAll = flAll.concat(data); if (data.length < 1000) break; off += 1000; if (off > 20000) break
     }

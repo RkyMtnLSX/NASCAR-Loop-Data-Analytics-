@@ -160,7 +160,11 @@ export default function FastestLapSurvival() {
       try {
         const data = []
         for (let pg = 0; pg < 10; pg++) {
-          const res = await supabase.from('fastest_lap_holder_checkpoints').select('*').eq('series', series).order('race_date').range(pg * 1000, pg * 1000 + 999)
+          // race_date alone is FAR from unique here - every checkpoint of a race shares it
+          // (2,239 tied rows). oreilly is 1,005 rows, so it takes a second page, and that one
+          // boundary landed inside a tie group: it was dropping/duplicating rows. The view has
+          // no id, but (series, race_date, race_name, pct) is unique - verified 2026-09-02.
+          const res = await supabase.from('fastest_lap_holder_checkpoints').select('*').eq('series', series).order('race_date').order('race_name').order('pct').range(pg * 1000, pg * 1000 + 999)
           if (res.error) throw res.error
           data.push(...(res.data || []))
           if (!res.data || res.data.length < 1000) break

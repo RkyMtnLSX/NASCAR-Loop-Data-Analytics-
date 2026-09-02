@@ -41,7 +41,13 @@ export default function LineMovementAdmin() {
       const { data } = await supabase.from('odds_snapshots')
         .select('driver_name,market,book,odds,ev,mev,medge,captured_at')
         .eq('series', series).eq('race_year', yr).eq('race_number', rn)
-        .order('captured_at', { ascending: true }).range(off, off + 999)
+        // .order('id') is a UNIQUE tiebreaker and this query needs it more than any other in
+        // the app. Snapshots are written in BATCHES, so hundreds of rows share an identical
+        // captured_at: of the 63 page boundaries across the 12 races big enough to paginate,
+        // ALL 63 land inside a tie group. Ordering by captured_at alone therefore duplicated
+        // and dropped rows on every paginated race (the largest is 10,082 rows = 11 requests),
+        // which silently distorts the line-movement series. Verified 2026-09-02.
+        .order('captured_at', { ascending: true }).order('id', { ascending: true }).range(off, off + 999)
       if (!data || !data.length) break
       out = out.concat(data)
       if (data.length < 1000) break
