@@ -30,7 +30,17 @@ function CarNum({ car, series, noMargin }) {
     <img key={String(car)} src={dir + (__CAR_ALIAS[String(car)] || car) + '.png'} alt={'#' + car}
       style={{ height: 22, marginRight: noMargin ? 0 : 6, verticalAlign: 'middle' }}
       onLoad={(e) => { e.target.style.display = '' }}
-      onError={(e) => { const t = e.target; if (!t.dataset.retried) { t.dataset.retried = '1'; t.src = t.src + (t.src.indexOf('?') >= 0 ? '&r=' : '?r=') + Date.now() } else { t.style.display = 'none' } }} />
+      onError={(e) => { const t = e.target; if (!t.dataset.retried) { t.dataset.retried = '1'; t.src = t.src + (t.src.indexOf('?') >= 0 ? '&r=' : '?r=') + Date.now() } else { t.style.display = 'none'; const f = t.nextSibling; if (f && f.className === 'car-art-fallback') f.style.display = '' } }} />
+  )
+}
+// Car # column cell: the number art centered in the cell; the plain number shows only if the art fails.
+function CarArtCell({ car }) {
+  if (!car) return <span style={{color:'var(--text-muted)'}}>{'\u2014'}</span>
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 36, verticalAlign: 'middle' }}>
+      <CarNum car={car} noMargin />
+      <span className="car-art-fallback" style={{ display: 'none', fontFamily: 'var(--font-mono)' }}>{car}</span>
+    </span>
   )
 }
 // Driver cell: fixed-width slot for the number art so names start at the same x whether or not the
@@ -126,7 +136,7 @@ function SeasonSummaryTable({ rows }) {
   const seenT = {}
   const trackLabels = raceRows.map(r => { const tk = r.track + '|' + __isoDate(r.race_date).slice(0, 4); seenT[tk] = (seenT[tk] || 0) + 1; const base = shortTrackName(r.track) || r.race_name; return trackCounts[tk] > 1 ? (base + ' R' + seenT[tk]) : base })
   const labeled = raceRows.map((r, i) => ({ ...r, __label: trackLabels[i] }))
-  const sVal = r => sKey === 'date' ? __isoDate(r.race_date) : sKey === 'track' ? r.__label : sKey === 'driver' ? (r.driver || '') : sKey === 'time' ? (parseFloat(r.fastest_time) || Infinity) : sKey === 'lap' ? (parseInt(r.fastest_lap_num) || Infinity) : sKey === 'start' ? (parseInt(r.start_pos) || Infinity) : sKey === 'finish' ? (parseInt(r.finish_pos) || Infinity) : (parseFloat(r.fastest_speed) || -Infinity)
+  const sVal = r => sKey === 'date' ? __isoDate(r.race_date) : sKey === 'track' ? r.__label : sKey === 'driver' ? (r.driver || '') : sKey === 'car' ? (parseInt(r.car) || Infinity) : sKey === 'time' ? (parseFloat(r.fastest_time) || Infinity) : sKey === 'lap' ? (parseInt(r.fastest_lap_num) || Infinity) : sKey === 'start' ? (parseInt(r.start_pos) || Infinity) : sKey === 'finish' ? (parseInt(r.finish_pos) || Infinity) : (parseFloat(r.fastest_speed) || -Infinity)
   labeled.sort((a, b) => { const va = sVal(a), vb = sVal(b); if (va < vb) return sAsc ? -1 : 1; if (va > vb) return sAsc ? 1 : -1; return 0 })
   if (!raceRows.length) return <div style={{color:'var(--text-muted)',fontSize:'0.875rem',padding:'24px 0'}}>No data available.</div>
   return (
@@ -136,8 +146,8 @@ function SeasonSummaryTable({ rows }) {
           <th onClick={hClick('track')} style={{...stickyHead,cursor:'pointer',userSelect:'none',width:220,maxWidth:280}}>Track{arrow('track')}</th>
           <th onClick={hClick('date')} style={{...numHead,cursor:'pointer',userSelect:'none'}}>Date{arrow('date')}</th>
           <th style={{...numHead,textAlign:'left'}}>Track Type</th>
+          <th onClick={hClick('car')} style={{...numHead,textAlign:'center',cursor:'pointer',userSelect:'none'}}>Car #{arrow('car')}</th>
           <th onClick={hClick('driver')} style={{...numHead,textAlign:'left',cursor:'pointer',userSelect:'none',width:'100%'}}>Driver{arrow('driver')}</th>
-          <th style={numHead}>Car #</th>
           <th onClick={hClick('time')} style={{...numHead,color:'var(--accent-text)',fontWeight:700,cursor:'pointer',userSelect:'none'}}>Fastest Time{arrow('time')}</th>
           <th onClick={hClick('speed')} style={{...numHead,cursor:'pointer',userSelect:'none'}}>Speed (mph){arrow('speed')}</th>
           <th onClick={hClick('lap')} title="Lap of the race the fastest lap was set on" style={{...numHead,cursor:'pointer',userSelect:'none'}}>Lap #{arrow('lap')}</th>
@@ -154,8 +164,8 @@ function SeasonSummaryTable({ rows }) {
                 <td style={{...numCell,textAlign:'left',fontSize:'0.75rem'}}>
                   <span style={{padding:'2px 8px',borderRadius:4,fontSize:'0.7rem',fontFamily:'var(--font-sans)',background:TRACK_TYPE_COLORS[r.track_type]||'#444',color:'#fff',whiteSpace:'nowrap'}}>{r.track_type}</span>
                 </td>
-                <td style={{...numCell,textAlign:'left',fontFamily:'var(--font-sans)'}}><DriverCell car={r.car} driver={r.driver} weight={600} /></td>
-                <td style={numCell}>{r.car}</td>
+                <td style={{...numCell,textAlign:'center',padding:'4px 12px'}}><CarArtCell car={r.car} /></td>
+                <td style={{...numCell,textAlign:'left',fontFamily:'var(--font-sans)',fontWeight:600}}>{r.driver}</td>
                 <td style={{...numCell,color:'var(--accent-text)',fontWeight:600}}>{r.fastest_time}</td>
                 <td style={numCell}>{r.fastest_speed?parseFloat(r.fastest_speed).toFixed(2):'\u2014'}</td>
                 <td style={numCell}>{r.fastest_lap_num||'\u2014'}</td>
