@@ -164,6 +164,32 @@ a verified-unique composite for a view). All of `src/` was audited and fixed on 
 `Admin.js` was already correct. `pit_penalties` in PitCrewRankings is deliberately NOT ordered:
 it is a single request, not a loop, so it has no boundary.
 
+### PostgREST silently caps EVERY response at 5,000 rows
+
+No error, no warning, no flag — a query matching 6,363 rows returns 5,000 and the code has no way
+to know. Verified live 2026-09-02: `loop_data` cup = 5,000 of 6,348; `qualifying_results` cup =
+5,000 of 5,943. Worse than a plain cutoff: rows arrive in heap order, so the ones DROPPED are the
+NEWEST, and every model here weights recent races hardest.
+
+**`src/lib/fetchAllRows.js` is the fix — use it for any query whose result set can grow.** It pages
+with a unique `ORDER BY`, so it defeats the cap AND the non-unique-order bug above in one call.
+Pass a FUNCTION returning a fresh builder (supabase builders are single-use).
+
+Current headroom, measured 2026-09-02 — re-measure before assuming a query is still safe:
+
+| query | rows | cap | note |
+|---|---|---|---|
+| SimulationCenter speed scores, oreilly Intermediate | 4,836 | 5,000 | **PAGINATED** — was 164 rows short; ~800-1,000/season, crosses in 2027 |
+| same, cup / trucks Intermediate | 2,444 / 3,971 | 5,000 | covered by the same fix |
+| QualifyingCenter, worst correlation group | 2,360 | 5,000 | safe for years |
+| PracticeReportCard, worst session | 3,866 | 5,000 | safe |
+| SimulationCenter track+series reads | 398 | 5,000 | safe |
+
+Note the sim's series list is `[s, 'cup', ...__borrowSeries]` and `__borrowSeries` comes from
+`crossover_borrows WHERE active`. That table is EMPTY, so the list is at most two wide today.
+**Activating one crossover borrow makes it three wide and takes Intermediate to 6,363** — over the
+cap instantly. That is a real coupling between a config row and a silent data loss, now defused.
+
 ### Correction to what commit 2debbe4 implied
 
 That commit fixed five queries and its message let the reader infer all five were actively

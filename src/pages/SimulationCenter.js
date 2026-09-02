@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { parseSect, FD_HEADERS, HR_HEADERS, normDriver } from '../lib/oddsSectionParser'
 import { supabase } from '../lib/supabase'
+import { fetchAllRows } from '../lib/fetchAllRows'
 import useSubscriber from '../lib/useSubscriber'
 
 
@@ -382,11 +383,23 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
         } catch (e) {}
         let loopRows = []
         if (corrNames.length) {
-          const { data: ld } = await __noEx(supabase
+          // PAGINATED because this is the query closest to PostgREST's silent 5,000-row cap
+          // (2026-09-02). It fetches the whole correlation group, unfiltered by year, and feeds
+          // BOTH corrAvgMap (driver form) and carAvgMap (equipment) — the speed-score inputs.
+          // Measured that day, Intermediate:
+          //     cup sim      ['cup']            2,444
+          //     trucks sim   ['trucks','cup']   3,971
+          //     oreilly sim  ['oreilly','cup']  4,836   <- 164 rows of headroom
+          // O'Reilly picks up ~800-1,000 rows a season here, so it crosses the cap during 2027,
+          // and activating any crossover_borrow makes the series list three-wide (6,363) and
+          // crosses it immediately. Nothing is truncated TODAY - this is not a repair, it is
+          // removing a failure that would otherwise appear silently mid-season and drop the
+          // NEWEST races first, which is exactly the data the age weights lean on hardest.
+          const { data: ld } = await fetchAllRows(() => __noEx(supabase
             .from('loop_data')
             .select('driver_name, finish_position, laps_led, fastest_laps, driver_rating, pct_quality_passes, year, series, car_number')
             .in('track_name', corrNames)
-            .in('series', [...new Set([s, 'cup', ...__borrowSeries])]))
+            .in('series', [...new Set([s, 'cup', ...__borrowSeries])])))
           loopRows = ld || []
         }
 
