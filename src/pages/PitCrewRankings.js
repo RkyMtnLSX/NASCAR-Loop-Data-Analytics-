@@ -42,6 +42,12 @@ const BOMB_X = 1.25    // a bomb = qualifying stop slower than 1.25x the series 
 const FLOOR_4T = 8.5
 const FLOOR_2T = 2.5   // cup 2-tire p01 is 3.92s; the 8 rows under 2.5s are the same feed noise
 
+// Feed driver names carry entry-list markers: a leading '*' (rookie), a trailing '(i)'
+// (ineligible for points in this series), a trailing '#'. Those belong in an entry list, not in
+// a rankings cell — before 2026-09-02 the page rendered "* Corey Heim(i)", "Connor Zilisch #"
+// and "* Jimmie Johnson" verbatim. Strip for display; the markers are not stored here anyway.
+const displayName = (n) => (n || '').replace(/^\*\s*/, '').replace(/\s*\(i\)\s*$/i, '').replace(/\s*#\s*$/, '').trim()
+
 const median = (arr) => {
   const b = [...arr].sort((a, b) => a - b), n = b.length
   return n % 2 ? b[(n - 1) / 2] : (b[n / 2 - 1] + b[n / 2]) / 2
@@ -74,9 +80,29 @@ function CrewDetail({ c }) {
   const pts = rl.map((r, i) => xf(i) + ',' + yf(cl(r.med))).join(' ')
   return (
     <div>
+      {/* 2026-09-02: Bomb% and Drv Pen moved off the main table into this strip. Neither is a
+          column you sort on — bomb rate is 0% for most crews and driver penalties are not the
+          crew's doing — but both matter once you are already looking at one crew. */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 28px', marginBottom: 12 }}>
+        {[
+          ['Best stop', c.bestStop ? c.bestStop.best.toFixed(2) + 's' : '—',
+            c.bestStop ? 'R' + c.bestStop.rn + (c.bestStop.track ? ' · ' + c.bestStop.track : '') : null],
+          ['Races', rl.length, null],
+          ['Bomb%', (c.bomb * 100).toFixed(0) + '%', 'stops ' + BOMB_X + '× series median'],
+          ['Crew pen', c.cp, c.cp ? c.penRate.toFixed(2) + ' per race' : null],
+          ['Driver pen', c.dp, null],
+        ].map(([label, val, note]) => (
+          <div key={label} style={{ minWidth: 74 }}>
+            <div style={{ fontSize: '0.66rem', textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)' }}>{label}</div>
+            <div style={{ fontSize: '0.98rem', fontWeight: 700, fontVariantNumeric: 'tabular-nums', lineHeight: 1.25 }}>{val}</div>
+            {note && <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{note}</div>}
+          </div>
+        ))}
+      </div>
+
       <div style={{ fontSize: '0.8rem', marginBottom: 8 }}>
-        <strong>Race-by-race median 4-tire stop</strong> (up = faster)
-        {c.bestStop && <span style={{ color: 'var(--text-secondary)' }}> &middot; best stop {c.bestStop.best.toFixed(2)}s (R{c.bestStop.rn}{c.bestStop.track ? ', ' + c.bestStop.track : ''}) &middot; {rl.length} races &middot; {c.cp} crew pen / {c.dp} driver pen</span>}
+        <strong>Race-by-race median 4-tire stop</strong>{' '}
+        <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(up = faster)</span>
       </div>
       <svg width={W} height={H} style={{ maxWidth: '100%' }}>
         <text x={4} y={yf(lo) + 4} style={{ fontSize: 10, fill: 'var(--text-secondary)' }}>{lo.toFixed(1)}s</text>
@@ -156,7 +182,7 @@ export default function PitCrewRankings() {
       })
       // crew = car + team, so a rotating driver lineup stays ONE crew. Normalize name
       // markers (leading *, trailing (i)/#) so one driver is not miscounted as several.
-      const cleanName = (n) => n.replace(/^\*\s*/, '').replace(/\s*\(i\)\s*$/i, '').replace(/\s*#\s*$/, '').trim().toLowerCase()
+      const cleanName = (n) => displayName(n).toLowerCase()
       // Floor BEFORE taking quartiles: impossible sub-FLOOR_4T rows sit in the low tail and would
       // drag q1 down, widening the IQR and pushing the slow-side fence out. Small effect, but the
       // fence should be derived from stops that could physically have happened.
@@ -178,7 +204,7 @@ export default function PitCrewRankings() {
         const distinct = new Set(names.map(cleanName))
         const ov = (DRIVER_OVERRIDE[series] || {})[c.car]
         const rotating = ov ? false : distinct.size > 1
-        const driver = ov || (rotating ? 'Rotating' : (names.sort((a, b) => c.dc[b] - c.dc[a])[0] || ''))
+        const driver = ov || (rotating ? 'Rotating' : displayName(names.sort((a, b) => c.dc[b] - c.dc[a])[0]))
         const races = Object.keys(c.rs).length || 1
         const cp = penC[String(c.car)] || 0
         const dp = penD[String(c.car)] || 0
@@ -242,10 +268,10 @@ export default function PitCrewRankings() {
           {[
             ['Adj (s)', 'Median 4-tire box time + ' + PEN_SEC + 's per crew penalty per race.'],
             ['Consistency', 'Box-time spread. Lower means steadier, stop to stop.'],
-            ['Bomb%', 'Share of stops ' + BOMB_X + '× slower than the series median — hung-lug territory.'],
             ['2T (s)', 'Median two-tire stop. Hover the number for sample size.'],
             ['Crew Pen', 'Crew-caused penalties: loose wheel, too many men, equipment.'],
-            ['Drv Pen', 'Driver-caused: speeding, commitment line, missing the box.'],
+            ['Bomb%', 'In the row detail. Share of stops ' + BOMB_X + '× slower than the series median — hung-lug territory.'],
+            ['Drv Pen', 'In the row detail. Driver-caused: speeding, commitment line, missing the box.'],
             ['Δ', 'Rank movement against the standings before the latest race.'],
             ['Sample', 'Crews under ' + MIN_STOPS + ' stops are hidden. Under ' + LOWN + ' is tagged “thin”.'],
           ].map(([term, def]) => (
@@ -382,7 +408,7 @@ export default function PitCrewRankings() {
       })()}
 
       {loading ? (
-        <p style={{ color: 'var(--text-secondary)' }}>Loading pit data\u2026</p>
+        <p style={{ color: 'var(--text-secondary)' }}>Loading pit data&hellip;</p>
       ) : sorted.length === 0 ? (
         <p style={{ color: 'var(--text-secondary)' }}>No 4-tire stops yet for this series in {SEASON}.</p>
       ) : (
@@ -394,12 +420,9 @@ export default function PitCrewRankings() {
               <col style={{ width: 58 }} />
               <col style={{ width: 68 }} />
               <col />
-              <col />
               <col style={{ width: 92 }} />
               <col style={{ width: 118 }} />
-              <col style={{ width: 64 }} />
               <col style={{ width: 68 }} />
-              <col style={{ width: 78 }} />
               <col style={{ width: 78 }} />
               <col style={{ width: 84 }} />
             </colgroup>
@@ -409,14 +432,11 @@ export default function PitCrewRankings() {
                 <th style={th({ align: 'center' })} title={'Rank movement vs before the latest race'}>{'\u0394'}</th>
                 <th style={th({ align: 'center' })} title={'Select two crews to compare'}>Cmp</th>
                 <th style={th({ align: 'left' })}>Car</th>
-                <th style={th({ align: 'left' })}>Organization</th>
-                <th style={th({ align: 'left' })}>Driver</th>
+                <th style={th({ align: 'left' })}>Crew</th>
                 <th style={th({ align: 'center', sortable: true, active: sort === 'adj' })} onClick={() => setSort('adj')}>Adj (s)</th>
                 <th style={th({ align: 'center', sortable: true, active: sort === 'iqr' })} onClick={() => setSort('iqr')}>Consistency</th>
-                <th style={th({ align: 'center' })}>Bomb%</th>
                 <th style={th({ align: 'center', sortable: true, active: sort === '2t' })} onClick={() => setSort('2t')}>2T (s)</th>
                 <th style={th({ align: 'center' })}>Crew Pen</th>
-                <th style={th({ align: 'center' })}>Drv Pen</th>
                 <th style={th({ align: 'center', sortable: true, active: sort === 'n' })} onClick={() => setSort('n')}>Stops</th>
               </tr>
             </thead>
@@ -430,20 +450,23 @@ export default function PitCrewRankings() {
                     <span style={{ cursor: 'pointer', padding: '2px 6px', borderRadius: 4, fontSize: '0.78rem', border: '1px solid ' + (cmp.includes(c.car + '|' + (c.org || '')) ? 'var(--accent)' : 'var(--border)'), color: cmp.includes(c.car + '|' + (c.org || '')) ? 'var(--accent-text)' : 'var(--text-muted)' }}>{cmp.includes(c.car + '|' + (c.org || '')) ? '\u2713' : '+'}</span>
                   </td>
                   <td style={td('left')}><CarNum car={c.car} series={series} /></td>
-                  <td style={td('left')}>{c.org || '\u2014'}</td>
-                  <td style={{ ...td('left'), color: 'var(--text-secondary)', fontStyle: c.rotating ? 'italic' : 'normal' }}>{c.driver || '\u2014'}</td>
+                  {/* 2026-09-02: Organization and Driver were two columns. Merged into one "Crew"
+                      cell (driver over org) to get the table off 13 columns \u2014 the fixed widths
+                      alone ran past a phone's width, so Adj scrolled out of view next to the name. */}
+                  <td style={td('left')}>
+                    <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', fontStyle: c.rotating ? 'italic' : 'normal' }}>{c.driver || '\u2014'}</div>
+                    <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.org || '\u2014'}</div>
+                  </td>
                   <td style={{ ...td('center'), fontWeight: 700 }}>{c.adj.toFixed(2)}</td>
                   <td style={{ ...td('center'), color: 'var(--text-secondary)' }}>{c.iqr.toFixed(2)}</td>
-                  <td style={{ ...td('center'), color: 'var(--text-secondary)' }}>{(c.bomb * 100).toFixed(0)}%</td>
                   <td style={{ ...td('center'), color: 'var(--text-secondary)' }} title={c.n2 + ' two-tire stops'}>{c.t2m != null ? c.t2m.toFixed(2) : '\u2014'}{/* thin tag removed 2026-07-28: overflowed the 64px col into 4.4...; sample size lives in the hover title */}</td>
                   <td style={td('center')} title={c.penRate.toFixed(2) + ' crew penalties per race'}>{c.cp}</td>
-                  <td style={td('center')}>{c.dp}</td>
                   <td style={td('center')}>
                     {c.n}{c.n < LOWN && <span style={{ marginLeft: 6, fontSize: '0.68rem', color: 'var(--text-secondary)', border: '1px solid var(--border)', borderRadius: 4, padding: '1px 5px' }}>thin</span>}
                   </td>
                 </tr>
                 {open === c.car + '|' + (c.org || '') && (
-                  <tr><td colSpan={13} style={{ padding: '12px 16px 18px', background: 'var(--bg-surface)', borderTop: '1px solid var(--border)' }}><CrewDetail c={c} /></td></tr>
+                  <tr><td colSpan={10} style={{ padding: '12px 16px 18px', background: 'var(--bg-surface)', borderTop: '1px solid var(--border)' }}><CrewDetail c={c} /></td></tr>
                 )}
                 </React.Fragment>
               ))}
