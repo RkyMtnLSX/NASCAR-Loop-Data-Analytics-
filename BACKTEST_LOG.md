@@ -6305,3 +6305,39 @@ DECISION RULE (written now; holdout read once).
   draw_order percentile when the race has it, ROAD 0), stamp startProj 'trail10-v4-form', #73
   sampling shifts by the same term so the sampled centre matches the point estimate; O'Reilly /
   trucks keep v3.5 (no evidence, different metric rules) until measured.
+
+## 2026-09-03 — START PROJECTION v4 EXECUTED AS REGISTERED: strong at INT, letter of the pooled gate missed by one race (ties) — OPERATOR DECISION
+
+Harness scripts/backtest-start-v4.js; data start-v4-cup-2025-26.txt (62 cup races); fit committed
+(3d7c2b6) before the holdout was opened. beta (TRAIN 2025): INT 0.2495, SHORT 0.1649, SS 0.1863,
+ROAD 0 (fixed). Train in-sample: INT 7.69 -> 6.98 (11/13 better), pooled 7.68 -> 7.27.
+
+HOLDOUT 2026 (26 races, read once) — M1 rank-vs-rank start MAE, CONTROL -> F:
+  INT    n=8   7.56 -> 6.24   (-1.32, better 8/8)
+  SHORT  n=7   7.93 -> 7.56   (-0.37, better 4/7)
+  SS     n=5  10.03 -> 9.46   (-0.56, better 2/5)
+  ROAD   n=6   7.37 -> 7.37   (0, by construction — beta fixed at 0)
+  ALL    n=26  8.09 -> 7.47   (-0.61, better 14/26)
+M2 sim rail (26 matched holdout boards, projected grid as startPos, paired seeds):
+  CONTROL win .02301 t5 .0981 t10 .1612 | NULL .02301 .0981 .1610 | F .02301 .0975 .1603 — PASS
+  (t5/t10 a hair better than the null floor; win identical).
+M3 favourite gap (stated - hit): CONTROL -0.84, NULL -0.95, F -0.53 — no overshoot, PASS.
+ARM O (Jayski order pctile in place of last-finish, same beta; 6 races, SHORT/SS/ROAD only, no
+INT among them): 8.53 -> 8.64, no better than F (8.65). Report only; nothing learned about INT.
+
+GATE READING, honestly: M2 PASS, M3 PASS, per-group rule PASS (every fitted group improves on
+mean; none worse). The pooled "improves in >= 55% of races" gate: 14 of 26 = 53.8% — ONE race
+short of the 15 required. Six of the 26 are road courses where the frozen form sets beta = 0, so
+they are exact ties that count as non-improvements under the letter; among the 20 races where the
+term is live, 14 improved (70%). The registration did not say how ties count, and the form itself
+manufactured them. By the letter F does not ship; by the evident intent it does. Recorded as a
+gate-definition defect, not reinterpreted after the fact: the call goes to the operator, with two
+honest options — (a) ship F as registered with this disclosure; (b) ship INT ONLY (8/8, -1.32
+positions, the clearest result in the study, and narrower than registered — a post-hoc choice, but
+in the against-ship direction the protocol allows), leaving SHORT/SS (4/7, 2/5) for more data.
+No refit; no new arm; ROAD stays at 0 either way. NOTE for future registrations: state how ties
+count in any "share of races" gate.
+INSTRUMENT NOTE: the study's CONTROL MAE (7.6-8.1) is above the 08-03 figure (6.35) because the
+trailing window here is built from 2024+ rows with the study's own eligibility, not the live
+projection block; the comparison is paired and the control is identical across arms, so the deltas
+stand, the levels do not transfer.
