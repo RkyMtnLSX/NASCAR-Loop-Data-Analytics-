@@ -6240,3 +6240,68 @@ INT inherit, judged forward via the DFS ledger); SHORT/ROAD/SS still deal fastes
 lap — their green-lap fractions were not measured here and need their own (one-constant) entry.
 OPERATOR: re-run + republish the cup Darlington pre board (and the O'Reilly one) so sim_results /
 DFS Center pick up the new laps_led / avg_fast_laps / proj_dk. Win/T3/T5/T10 will not move.
+
+## 2026-09-03 — PRE-REGISTERED: START PROJECTION v4 — a recent-form / qualifying-order term on trail10 (metric era). Written before any fit. DO NOT MODIFY.
+
+WHAT PROMPTED IT. Operator: "still unhappy with how the simulation is projecting start position
+prior to practice and qualifying ... a backfill of prior races qualifying order could help."
+CORRECTION RECORDED FIRST: the NASCAR weekend feed's `qualifying_order` (the column PITBOARD_SCRIPTS
+calls "the order cars went out") is NOT the run order — in every race checked (2022 Daytona, 2026
+Kansas, others) it equals the driver's rank when car numbers are sorted ascending (#1->1, #22->21,
+#45->27, #97->37). It is a placeholder. The 56 stored races with that column carry car-number order,
+and a "residual order effect" measured on them earlier today was a car-number/team effect and is
+withdrawn. Do not backfill that column. `draw_order` (Jayski, 7 cup 2026 races incl. R27) IS the
+real order: it correlates -0.95 with previous-race finish, i.e. it is the published metric (70%
+last finish + 30% owner points, worst first; Jayski posts it Wednesday morning).
+DIAGNOSTIC MEASUREMENTS made before this registration (cup, trail10-style trailing-10 start pctile,
+min 3 prior, residual = actual start pctile - trailing): 2025-26 (metric era) INT n=762
+corr(last-race finish pctile, residual) +0.386 — top-quarter last-week finishers start ~0.10 pctile
+(~4 positions) better than trail10 says, bottom quarter ~0.14 (~5 positions) worse; SHORT +0.22;
+SS +0.21; ROAD +0.09 (~0). 2023-24, pre-metric: INT +0.21, SHORT +0.22, ROAD/SS ~0. trail10's own
+corr with the real start fell .647 -> .561 at INT across the format change. These are the effect
+sizes the arms below are built to capture; they are NOT the test.
+
+QUESTION. Does adding a recent-form term (last-race finish percentile; the exact Jayski order
+percentile when loaded) to trail10 reduce projected-start error on held-out 2026 races WITHOUT
+degrading the sim's finish forecasts or re-creating the 07-25 favourite overshoot?
+
+SCOPE. Cup only, 2025-2026 (the metric era; the format is what created the effect). TRAIN = 2025
+(36 races). HOLDOUT = 2026 (26 races through R26; R27 Darlington has no result), read once after
+the constants are fixed. Trailing history for the study is computed leak-free from loop_data with
+production's rules (last 10 prior starts, min 3, hybrid: SS/ROAD races use same-category history),
+history reaching back into 2024 so early-2025 boards are not history-starved.
+
+FROZEN FORM.
+  CONTROL  trail10 as shipped: proj pctile = trailing mean.
+  ARM F    proj pctile = trailing mean + beta_g x (last_fp - 0.5), last_fp = previous cup race
+           finish percentile (must be within 21 days; else term = 0), beta_g fit on TRAIN by
+           least squares per group for INT, SHORT, SS; ROAD fixed at 0 (measured ~0, and road
+           qualifying is a separate discipline per 07-25). Three constants. Drivers with no prior
+           race get the trailing mean alone. Result re-ranked 1..K exactly as trail10-v2.1 does.
+  ARM O    (order-known, report only, cannot be fit): F with the actual Jayski order percentile
+           (draw_order rank / field, later = higher) in place of last_fp, same beta_g, on the 2026
+           races that carry draw_order and a result (R18, R19, R20, R23, R25, R26). Judged forward.
+  Nothing else may be added or widened; no per-track term; no owner-points term this round.
+
+METRICS.
+  M1  per race, rank-vs-rank MAE of projected start vs actual start among projection-eligible
+      drivers (the 08-03 metric; trail10 INT 6.35). Reported per group and pooled, with the share
+      of races improved. Deterministic — no null arm needed; the paired per-race sign is the noise
+      check.
+  M2  sim forecast rail: win / top5 / top10 Brier on the HOLDOUT cup boards from the committed
+      reconstruction (holdout.txt, fingerprint-matched), each run twice — startPos = CONTROL
+      projection vs startPos = ARM F projection, paired seeds, plus a NULL (control on a second
+      seed) for the MC floor. The start term is the 0.33-weight input, so this is the finish
+      model's rail, not a DFS nicety.
+  M3  favourite overshoot (07-25): mean stated win% of each board's favourite minus realized hit
+      rate, CONTROL vs F. F may not overshoot by more than CONTROL + the null floor.
+DECISION RULE (written now; holdout read once).
+  SHIP F if on HOLDOUT 2026: M1 pooled MAE improves vs CONTROL AND improves in >= 55% of races AND
+  no group with a fitted beta gets worse by more than 0.10 positions; M2 win/top5/top10 not worse
+  than CONTROL by more than the null floor; M3 passes. Any failure = does not ship; no refit on
+  holdout; a different form needs a new registration. ARM O numbers are reported alongside as the
+  forward hypothesis for the Wednesday-order stage and cannot themselves ship anything.
+  IF F SHIPS: SimulationCenter's projection block gains the term (last-race finish from loop_data,
+  draw_order percentile when the race has it, ROAD 0), stamp startProj 'trail10-v4-form', #73
+  sampling shifts by the same term so the sampled centre matches the point estimate; O'Reilly /
+  trucks keep v3.5 (no evidence, different metric rules) until measured.
