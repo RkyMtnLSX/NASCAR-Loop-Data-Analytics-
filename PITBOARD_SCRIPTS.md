@@ -328,9 +328,15 @@ template with range-checked integer parameters.
 
 ### Still manual
 
-- **Jayski pill-draw PDF.** The feed's `qualifying_order` is the order cars went out to qualify, NOT
-  the draw. Checked: Chastain is 1 in the feed and 9 in our `draw_order`, Buescher 13 vs 29. Different
-  quantities. `qualifying_order` does fill a column we only have on 1,980 of 6,093 rows.
+- **Jayski qualifying-order PDF.** CORRECTED 2026-09-03: the feed's `qualifying_order` is NOT the
+  order cars went out — it is the driver's rank when car numbers are sorted ascending (#1 -> 1,
+  #22 -> 21, #45 -> 27, #97 -> 37; the "Chastain 1 / Buescher 13" check above was reading car #1
+  and car #17). It is a placeholder and must never be used as a run order or backfilled as one.
+  The real order is what the Admin "Load Qualifying Order" panel writes to
+  `qualifying_results.draw_order` from Jayski (posted Wednesday mornings): since 2025 it is the
+  published metric — 70% previous-race finish + 30% owner points, worst first — and it correlates
+  -0.95 with the previous race's finish in our own `loop_data`. As of 2026-09-03 the race sim reads
+  `draw_order` (start projection v4, cup); before that only Qualifying Center did. Still manual.
 - **Lap Raptor fastest-lap paste.** Different source. `lap-times.json` may cover it; unverified.
 
 ### When NASCAR publishes no weekend feed

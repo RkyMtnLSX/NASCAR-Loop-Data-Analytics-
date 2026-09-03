@@ -202,6 +202,12 @@ export const supabase = createClient(
 - `fastest_laps` has 2022-2025 historical data; 2026 races loaded manually via Admin as they occur
 - The `series` field throughout uses values: `'cup'`, `'oreilly'`, `'trucks'`
 - All years arrays in `featured_weekend.correlation_years` are Postgres integer arrays
+- (2026-09-03) At intermediate tracks `runRaceSim` deals laps led / fastest laps by a STRENGTH
+  order (`INT_DOM_V2` in simEngine.js), not finish order, and deals fastest laps for the green-lap
+  fraction only. Cup pre-qualifying boards project starts with trail10 PLUS a recent-form term
+  (`trail10-v4-form` in SimulationCenter.js) that reads `qualifying_results.draw_order` when the
+  Jayski order PDF is loaded. Both were pre-registered and holdout-judged in BACKTEST_LOG.md.
+- The NASCAR feed's `qualifying_order` field is car-number sort order, NOT the run order. Never use it.
 
 
 ---

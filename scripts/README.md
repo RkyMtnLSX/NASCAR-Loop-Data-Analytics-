@@ -63,6 +63,8 @@ site, or anything you'd have to undo.
 | `backtest-caution-mix.js` | The registered holdout harness. `MODE=tilt` switches arms. |
 | `backtest-practice-tilt.js` | Does a change survive when boards carry practice data? |
 | `validate-vs-stored-boards.js` | Does the reconstruction match your real published boards? |
+| `backtest-int-dominance.js` | The registered 2026-09-03 laps-led / fastest-laps study (INT). `PHASE=train` never opens the holdout. Shipped as `INT_DOM_V2`; `domPool:'finish'` reconstructs the old allocator. |
+| `backtest-start-v4.js` | The registered 2026-09-03 start-projection study (cup): trail10 + recent-form / Jayski-order term. Data in `start-v4-cup-2025-26.txt`, fit in `start-v4-fit.json`. |
 
 Most take a `SIMS=` environment variable, e.g. `SIMS=20000 node scripts/dnf-per-track.js`.
 Lower is faster and noisier. A full holdout run at 10,000 sims takes a couple of minutes.
