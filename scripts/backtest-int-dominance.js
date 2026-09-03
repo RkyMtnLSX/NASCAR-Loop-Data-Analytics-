@@ -104,7 +104,7 @@ function cfgFor(arm, b, fit, diag) {
   base.flBudget = fit.G_FL
   if (diag) base.__domDiag = diag
   if (arm === 'A') return base
-  base.domPool = 'strength'; base.domK = fit.k
+  base.domPool = 'strength'; base.domK = fit.k; if (fit.alpha != null) base.domAlpha = fit.alpha; if (fit.kFL != null) base.domKFL = fit.kFL
   if (arm === 'B') base.domCurves = fit.curves
   if (arm === 'C') base.domBoot = fit.boot
   return base
@@ -161,24 +161,39 @@ function spearman(x, y) {
   return sxy / Math.sqrt(sxx * syy)
 }
 
-// ---- fit k on train: match P(top-pool car wins) and E[finish of top-pool car]
-function fitK(train, fit) {
-  const grid = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3, 4]
-  const res = []
-  for (const k of grid) {
+// ---- v2 fit on train (BACKTEST_LOG 2026-09-03 amendment): alpha shared, k_LL / k_FL separate.
+// Objective per target: sum over strength tiers of (tier bias)^2, subject to P(top-LL-pool car
+// wins) in [0.30, 0.50]. Everything here reads TRAIN only.
+function tierBias(rows, sc) {
+  const by = new Map(rows.map(r => [r.simIdx, r]))
+  const ord = sc.map((d, i) => ({ i, s: d.speedScore || 0 })).sort((x, y) => y.s - x.s)
+  const T = {}; const tierOf = r => (r === 0 ? '1' : r <= 2 ? '2-3' : r <= 5 ? '4-6' : r <= 11 ? '7-12' : '13+')
+  ord.forEach((o, rank) => { const a = sc[o.i].__act, r = by.get(o.i); if (!a || !r) return; const t = tierOf(rank); T[t] = T[t] || { ll: 0, fl: 0, n: 0 }; T[t].ll += a.ll - r.projLapsLed; T[t].fl += a.fl - r.avgFastLaps; T[t].n++ })
+  return T
+}
+function fitV2(train, fit) {
+  const KS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2], ALS = [0.25, 0.5, 0.75]
+  const table = []
+  for (const al of ALS) for (const k of KS) {
     seedRandom(11)
-    let wins = 0, fin = 0, n = 0
+    const acc = {}; let wins = 0, n = 0
     for (const b of train) {
       const sc = scoreBoard(b); const diag = {}
-      runRaceSim(sc, { ...cfgFor('B', b, { ...fit, k }, diag), numSims: Math.min(SIMS, 2000) })
-      wins += diag.wins || 0; fin += diag.finSum || 0; n += diag.n || 0
+      const cfg = { ...cfgFor('B', b, { ...fit, k }, diag), domAlpha: al, domKFL: k, numSims: Math.min(SIMS, 1500) }
+      const rows = runRaceSim(sc, cfg); wins += diag.wins || 0; n += diag.n || 0
+      const T = tierBias(rows, sc); for (const t in T) { acc[t] = acc[t] || { ll: 0, fl: 0, n: 0 }; acc[t].ll += T[t].ll; acc[t].fl += T[t].fl; acc[t].n += T[t].n }
     }
-    const pw = wins / n, ef = fin / n
-    const err = ((pw - fit.targetTopWin) / 0.1) ** 2 + ((ef - fit.targetTopFin) / 2) ** 2
-    res.push({ k, pTopWins: +pw.toFixed(3), eTopFin: +ef.toFixed(2), err: +err.toFixed(3) })
+    let oLL = 0, oFL = 0; for (const t in acc) { oLL += (acc[t].ll / acc[t].n) ** 2; oFL += (acc[t].fl / acc[t].n) ** 2 }
+    table.push({ al, k, pTopWin: +(wins / n).toFixed(3), objLL: +oLL.toFixed(1), objFL: +oFL.toFixed(1), t1LL: +(acc['1'].ll / acc['1'].n).toFixed(1), t1FL: +(acc['1'].fl / acc['1'].n).toFixed(1) })
   }
-  res.sort((a, b) => a.err - b.err)
-  return { k: res[0].k, table: res.sort((a, b) => a.k - b.k) }
+  // alpha: the value whose best feasible k_LL objective is lowest; then k_LL and k_FL separately at that alpha
+  const feas = table.filter(r => r.pTopWin >= 0.30 && r.pTopWin <= 0.50)
+  if (!feas.length) throw new Error('no feasible (alpha,k) satisfies the coupling constraint')
+  const bestLL = feas.slice().sort((a, b) => a.objLL - b.objLL)[0]
+  const alpha = bestLL.al
+  const kLL = bestLL.k
+  const kFL = table.filter(r => r.al === alpha).sort((a, b) => a.objFL - b.objFL)[0].k   // FL order does not enter the coupling constraint
+  return { alpha, kLL, kFL, table }
 }
 
 // ======================================================================= run
@@ -193,11 +208,11 @@ if (PHASE !== 'holdout') {
   console.log(`train targets: P(top-LL car wins) = ${fit.targetTopWin.toFixed(3)}, E[fin of top-LL car] = ${fit.targetTopFin.toFixed(2)}`)
   console.log(`strength-rank LL curve (mid) top5: ${fit.curves.LL.mid.slice(0, 5).map(x => x.toFixed(3)).join(' ')}`)
   console.log(`strength-rank FL curve (mid) top5: ${fit.curves.FL.mid.slice(0, 5).map(x => x.toFixed(3)).join(' ')}`)
-  const kf = fitK(train, fit)
-  fit.k = kf.k
-  console.log('k grid:'); kf.table.forEach(r => console.log('   ', JSON.stringify(r)))
-  console.log(`CHOSEN k = ${fit.k}`)
-  fs.writeFileSync(fitPath, JSON.stringify({ G_FL: fit.G_FL, k: fit.k, curves: fit.curves, boot: fit.boot, targets: { topWin: fit.targetTopWin, topFin: fit.targetTopFin }, nBucket: fit.nBucket }, null, 0))
+  const v2 = fitV2(train, fit)
+  fit.alpha = v2.alpha; fit.k = v2.kLL; fit.kFL = v2.kFL
+  console.log('v2 grid (train):'); v2.table.forEach(r => console.log('   ', JSON.stringify(r)))
+  console.log(`CHOSEN alpha = ${fit.alpha}  k_LL = ${fit.k}  k_FL = ${fit.kFL}`)
+  fs.writeFileSync(fitPath, JSON.stringify({ G_FL: fit.G_FL, k: fit.k, alpha: fit.alpha, kFL: fit.kFL, curves: fit.curves, boot: fit.boot, targets: { topWin: fit.targetTopWin, topFin: fit.targetTopFin }, nBucket: fit.nBucket }, null, 0))
   console.log('\n--- TRAIN-side reference (in-sample, not the test) ---')
   for (const [arm, seed] of [['CONTROL', 1], ['NULL', 2], ['A', 1], ['B', 1], ['C', 1]]) report(evalArm(arm, train, fit, seed))
 }

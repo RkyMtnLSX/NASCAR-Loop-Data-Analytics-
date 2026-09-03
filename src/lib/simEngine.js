@@ -791,21 +791,21 @@ function runRaceSim(drivers, simConfig) {
     // ARM B/C (2026-09-03 study): dominance order = pre-race strength + independent noise, so the
     // car that leads is not by construction the car that wins (real INT: the top-LL car is not the
     // winner 61% of the time). Control path (domPool unset) is byte-for-byte the old finish order.
-    let __pool
+    // v2 (amendment): dom_T(i) = speedScore + alpha x (score - speedScore) + k_T x noiseWidth x eps,
+    // a separate order per target (LL, FL). alpha 0 = pure pre-race strength, 1 = the realized
+    // draw score. domK applies to LL; domKFL (defaults to domK) to FL.
+    let __pool, __poolFL
     if (simConfig.domPool === 'strength') {
-      const __sd = (simConfig.domK != null ? simConfig.domK : 1) * S.noiseWidth
-      const __ds = new Float64Array(n)
-      // domAlpha (0..1): share of the draw's realized finish noise (score - speedScore, which
-      // includes wreck survivor penalties) that carries into the dominance order. 0 = pure
-      // pre-race strength; 1 = the realized draw score (finish order) plus independent noise.
       const __al = simConfig.domAlpha != null ? simConfig.domAlpha : 0
-      for (let x = 0; x < n; x++) __ds[x] = 0
-      for (let x = 0; x < n; x++) { const sv = scored[x]; __ds[sv.i] = drivers[sv.i].speedScore + __al * (sv.score - drivers[sv.i].speedScore) + gaussNoise() * __sd }
-      __pool = scored.slice().sort((a, b) => __ds[b.i] - __ds[a.i])
+      const __mk = (kk) => { const sd = kk * S.noiseWidth; const ds = new Float64Array(n); for (let x = 0; x < n; x++) { const sv = scored[x]; ds[sv.i] = drivers[sv.i].speedScore + __al * (sv.score - drivers[sv.i].speedScore) + gaussNoise() * sd }; return scored.slice().sort((a, b) => ds[b.i] - ds[a.i]) }
+      __pool = __mk(simConfig.domK != null ? simConfig.domK : 1)
+      __poolFL = __mk(simConfig.domKFL != null ? simConfig.domKFL : (simConfig.domK != null ? simConfig.domK : 1))
     } else {
       __pool = scored.slice().sort((a, b) => b.score - a.score)
+      __poolFL = __pool
     }
     const __lead = __pool.findIndex(sv => !sv.dnf)
+    const __leadFL = __poolFL.findIndex(sv => !sv.dnf)
     if (simConfig.__domDiag && __lead >= 0) { const d = simConfig.__domDiag; d.n = (d.n || 0) + 1; const tp = __pool[__lead]; if (simPos[tp.i] === 1) d.wins = (d.wins || 0) + 1; d.finSum = (d.finSum || 0) + simPos[tp.i] }
     // Curve source per draw: bootstrap vector (ARM C) > strength-rank curve (ARM B) > finish-rank curve.
     const __LLC = S.bootLL ? S.bootLL[(Math.random() * S.bootLL.length) | 0] : (S.domLL || S.LLC)
@@ -835,10 +835,10 @@ function runRaceSim(drivers, simConfig) {
       scored.forEach((s) => { sumLapsLed[s.i] += simLL[s.i] })
       if (simConfig.__domDiag) { let mx = 0; for (let x = 0; x < n; x++) if (simLL[x] > mx) mx = simLL[x]; simConfig.__domDiag.topShare = (simConfig.__domDiag.topShare || 0) + mx / totalRaceLaps; simConfig.__domDiag.draws = (simConfig.__domDiag.draws || 0) + 1 }
       let flWt = 0
-      const flw = __pool.map((s, r) => { const c = r < __FLC.length ? __FLC[r] : __FLC[__FLC.length - 1] * Math.pow(0.85, r - __FLC.length + 1); const sp = __domSp(s.i); const w = c * __flTilt(sp) * __wLL(s); flWt += w; return w })
+      const flw = __poolFL.map((s, r) => { const c = r < __FLC.length ? __FLC[r] : __FLC[__FLC.length - 1] * Math.pow(0.85, r - __FLC.length + 1); const sp = __domSp(s.i); const w = c * __flTilt(sp) * __wLL(s); flWt += w; return w })
       let remFL = __flTotal
-      for (let r = __pool.length - 1; r >= 0; r--) { if (r === __lead) continue; const fl = Math.max(0, Math.min(Math.round(flw[r] / flWt * __flTotal), remFL)); simFastLaps[__pool[r].i] = fl; remFL -= fl }
-      simFastLaps[__pool[__lead].i] = remFL
+      for (let r = __poolFL.length - 1; r >= 0; r--) { if (r === __leadFL) continue; const fl = Math.max(0, Math.min(Math.round(flw[r] / flWt * __flTotal), remFL)); simFastLaps[__poolFL[r].i] = fl; remFL -= fl }
+      simFastLaps[__poolFL[__leadFL].i] = remFL
       scored.forEach((s) => { sumFastLaps[s.i] += simFastLaps[s.i] })
     }
 
