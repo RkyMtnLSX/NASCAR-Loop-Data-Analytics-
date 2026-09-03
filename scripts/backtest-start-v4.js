@@ -34,7 +34,9 @@ function project(r, arm, beta) {
   const b = arm === 'CONTROL' ? 0 : (beta[r.grp] || 0)
   return r.rows.map(d => {
     if (d.tr == null) return null
-    const x = arm === 'O' ? d.ord : d.lfp
+    // ARM O: Jayski order pctile runs first=0 .. last=1 and LATER is better, so it enters as 1-ord
+    // (the first holdout run used d.ord directly — sign flipped; corrected 2026-09-03, logged).
+    const x = arm === 'O' ? (d.ord == null ? null : 1 - d.ord) : d.lfp
     return d.tr + (x == null ? 0 : b * (x - 0.5))
   })
 }

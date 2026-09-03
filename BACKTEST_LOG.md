@@ -6341,3 +6341,27 @@ INSTRUMENT NOTE: the study's CONTROL MAE (7.6-8.1) is above the 08-03 figure (6.
 trailing window here is built from 2024+ rows with the study's own eligibility, not the live
 projection block; the comparison is paired and the control is identical across arms, so the deltas
 stand, the levels do not transfer.
+
+## 2026-09-03 — START PROJECTION v4 SHIPPED AS REGISTERED (operator call: "qualifying order matters at every track") — trail10-v4-form
+
+Operator ruled on the gate reading above: ship F as registered, all fitted groups (INT .2495 /
+SHORT .1649 / SS .1863 / ROAD 0), with the pooled-count shortfall disclosed. His reasoning, logged
+as his: order matters everywhere; road courses matter less because multiple cars share the track
+in group qualifying — which is also what the data said (ROAD residual ~0, beta fixed at 0).
+CORRECTION, same entry: the ARM O numbers in the previous entry were computed with the order
+percentile entered in the WRONG DIRECTION (first = 0 .. last = 1 used as-is, when LATER is better,
+so it must enter as 1 - order pctile). Fixed in the harness and re-run on the same 6 report-only
+races: CONTROL 8.53 / F 8.65 / O 8.60 (better 2/6). Still flat and still SHORT/SS/ROAD only — no
+INT among the races carrying a Jayski order. Nothing about the decision rested on ARM O; the
+correction is recorded because the previous entry states the wrong number.
+WHAT SHIPPED (src/pages/SimulationCenter.js projection block, CUP ONLY; O'Reilly / trucks keep
+v3.5): proj pctile += beta_g x (x - 0.5); x = 1 - Jayski order pctile for THIS race when
+qualifying_results.draw_order is loaded for >= 15 drivers (the Admin "Load Qualifying Order"
+PDF panel — which until today only the Qualifying Center read), else previous-round finish
+pctile (adjacent race_number, same season, >= 15 rows), else no term. The #73 per-sim start
+history shifts by the same term. The 1..K re-rank now sorts on the raw percentile (the integer
+rounding it sorted on before produced ties). Stamp startProj 'trail10-v4-form' on cup boards.
+Reads only columns the page already fetched plus finish_position / draw_order.
+OPERATOR: re-run + republish the cup Darlington pre board. Its Jayski order is already loaded
+(33 drivers), so the board moves straight to the order-known stage. Judge forward: the routine
+pre-vs-post-quali delta, now with an order-known stage in between.

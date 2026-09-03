@@ -3161,3 +3161,19 @@ criterion optimized who-leads-vs-who-wins, not how much the identifiable cars le
 form was registered as an amendment with that history disclosed. Holdout read once.
 Practice question answered for the operator: practice best5 pctile DOES feed fastest laps (mult-v1,
 r .20 FL vs .12 LL, 07-28) but only after practice is loaded — the Wednesday pre board has none.
+
+## 2026-09-03 — Start projection v4 shipped (cup): trail10 + recent-form / Jayski-order term
+Operator: unhappy with pre-practice projected starts; suggested backfilling prior qualifying orders.
+Search of the logs (07-16 rejection, 07-25 task #72 / hybrid / shade, 07-28 #73 sampling, 08-03
+"history ceiling" measurement) plus new measurement on the 2025-26 metric-era format led to a
+pre-registered study (BACKTEST_LOG 2026-09-03, three entries): registration -> execution ->
+operator decision -> ship. Code: SimulationCenter projection block (cup only), stamp
+'trail10-v4-form'; harness scripts/backtest-start-v4.js; data start-v4-cup-2025-26.txt.
+TWO CORRECTIONS RECORDED IN THE LOG: (1) the NASCAR feed's qualifying_order is car-number sort
+order, not the run order (PITBOARD_SCRIPTS' description and the 56 stored races were wrong; an
+earlier in-chat "order effect" from them was withdrawn before anything was built on it); (2) the
+harness's report-only ARM O had the order sign flipped on the first holdout run; fixed, re-run,
+flat either way. api/nascar-feed.js gained a compact read-only type=qorder mode during the
+false start; harmless, kept, but nothing should use the feed's qualifying_order.
+The Jayski "Load Qualifying Order" panel now matters to the published board: before today only
+Qualifying Center read draw_order.

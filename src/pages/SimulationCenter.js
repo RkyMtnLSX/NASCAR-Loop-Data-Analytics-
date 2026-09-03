@@ -328,7 +328,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
             // Double-header guard (2026-07-10): scope lineup to the configured Race # so a
             // spring lineup at the same track/year cannot leak into the fall sim
             let q = supabase.from('qualifying_results')
-              .select('driver_name, qualifying_position, lap_time, lineup_source')
+              .select('driver_name, qualifying_position, lap_time, lineup_source, draw_order')
               .eq('series', s)
               .eq('track_name', cfg.track_name)
               .eq('year', cfg.race_year || new Date().getFullYear())
@@ -600,7 +600,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
         const __projStartH = new Map()   // task #73: last-10 lists for per-sim start sampling
         try {
           const { data: __pstarts } = await supabase.from('loop_data')
-            .select('driver_name, start_position, year, race_number, track_name, car_number')
+            .select('driver_name, start_position, finish_position, year, race_number, track_name, car_number')
             .eq('series', s).gte('year', 2025).not('start_position', 'is', null).limit(6000)
           const __pbr = {}
           ;(__pstarts || []).forEach(r => { const k = r.year * 100 + r.race_number; (__pbr[k] = __pbr[k] || []).push(r) })
@@ -641,6 +641,34 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
             const ch = __cn2 ? (__phistCarAll[__cn2] || []) : []
             if (ch.length >= 3) { const last = ch.slice(-10); __projStart.set(dn, last.reduce((x, y) => x + y, 0) / last.length); __projStartH.set(dn, last) }
           })
+          // trail10-v4-form (2026-09-03, pre-registered + holdout-passed, BACKTEST_LOG same date; CUP ONLY):
+          // since 2025 the Cup qualifying ORDER is set by a metric (70% previous-race finish, 30% owner
+          // points; worst go first, best go last) and recent form now moves qualifying by a lot more than
+          // a ten-race average can see: 2026 holdout start MAE INT 7.56 -> 6.24 (8/8 races), SHORT 7.93 ->
+          // 7.56, SS 10.03 -> 9.46, ROAD untouched (beta 0). Term: proj pctile += beta_g x (x - 0.5) where
+          // x = the Jayski order for THIS race when loaded (qualifying_results.draw_order via the Admin
+          // PDF panel; later = better, so x = 1 - order pctile), else previous-round finish pctile
+          // (adjacent round, same season). The #73 sampling history shifts by the same term so the
+          // sampled centre matches the point estimate. O'Reilly / trucks keep v3.5 (not measured).
+          if (s === 'cup') {
+            const __beta = ({ INT: 0.2495, SHORT: 0.1649, SS: 0.1863, ROAD: 0 })[__trackGroup(cfg.track_name)] || 0
+            if (__beta) {
+              const __x = {}
+              const __cy = cfg.race_year || new Date().getFullYear(), __crn = parseInt(cfg.race_number)
+              if (__crn > 1) {
+                const __prev = __pbr[__cy * 100 + (__crn - 1)] || []
+                if (__prev.length >= 15) __prev.forEach(r => { if (r.finish_position != null) __x[normalizeName(r.driver_name)] = (r.finish_position - 1) / (__prev.length - 1) })
+              }
+              const __ord = (qualData || []).filter(r => r.draw_order != null && isFinite(parseFloat(r.draw_order))).sort((a, b) => parseFloat(a.draw_order) - parseFloat(b.draw_order))
+              if (__ord.length >= 15) __ord.forEach((r, i) => { __x[normalizeName((r.driver_name || '').trim())] = 1 - i / (__ord.length - 1) })
+              __projStart.forEach((v, dn) => {
+                const x = __x[dn]; if (x == null) return
+                const adj = __beta * (x - 0.5)
+                __projStart.set(dn, v + adj)
+                const h = __projStartH.get(dn); if (h) __projStartH.set(dn, h.map(e => e + adj))
+              })
+            }
+          }
         } catch (e) { __projStart = new Map() }
 
         const drivers = driverSource
@@ -660,6 +688,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
               organization:  e.organization || null,
               manufacturer:  e.manufacturer || null,
               __startProjected: !(qual && qual.qualifying_position) && !(prac && prac.qualifying_position) && __projStart.has(normName),
+              __projPct: __projStart.has(normName) ? __projStart.get(normName) : null,
               __startHist: (!(qual && qual.qualifying_position) && !(prac && prac.qualifying_position) && __projStartH.has(normName)) ? __projStartH.get(normName) : null,
               startPos:      qual && qual.qualifying_position ? parseFloat(qual.qualifying_position) : (prac && prac.qualifying_position ? parseFloat(prac.qualifying_position) : (__projStart.has(normName) ? Math.max(1, Math.round(__projStart.get(normName) * driverSource.length)) : null)),
               qualTime:      qual ? parseFloat(qual.lap_time)       || null : null,
@@ -699,7 +728,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
         // and DK place-differential computes start-finish literally, so a compressed pseudo
         // grid biased DFS projections. Best projected qualifier now sits on the pole.
         {
-          const __pj = drivers.filter(d => d.__startProjected).sort((a, b) => a.startPos - b.startPos)
+          const __pj = drivers.filter(d => d.__startProjected).sort((a, b) => (a.__projPct != null && b.__projPct != null) ? a.__projPct - b.__projPct : a.startPos - b.startPos)
           __pj.forEach((d, i) => { d.startPos = i + 1 })
         }
 
@@ -977,7 +1006,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
       race_year:  config.race_year || new Date().getFullYear(),
       race_number: raceNumMap[series] ? parseInt(raceNumMap[series]) : null,
       stage: simStage,
-      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'car-auto-v2', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06-fenced', domCurves: (__trackGroup(config && config.track_name) === 'INT' ? 'int-dom-v2' : 'gxc-v3.1-dnfLL'), domSpeed: 'mult-v1', startProj: 'trail10-v3.5-eqStart', flagGuard: 'conf-v1', dnfModel: 'wreck-v1.1-cb', marketAnchor: 'v1.4-multimkt', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), runNote: (runNote.trim() ? runNote.trim() : null), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
+      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'car-auto-v2', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06-fenced', domCurves: (__trackGroup(config && config.track_name) === 'INT' ? 'int-dom-v2' : 'gxc-v3.1-dnfLL'), domSpeed: 'mult-v1', startProj: (series === 'cup' ? 'trail10-v4-form' : 'trail10-v3.5-eqStart'), flagGuard: 'conf-v1', dnfModel: 'wreck-v1.1-cb', marketAnchor: 'v1.4-multimkt', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), runNote: (runNote.trim() ? runNote.trim() : null), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
       results: simResults.map(d => ({
         driver_name:  d.name,
         car_number:   d.carNumber,
