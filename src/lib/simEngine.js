@@ -668,6 +668,15 @@ function runRaceSim(drivers, simConfig) {
       noiseWidth: p.noise * (GROUP_NOISE_MULT[trackGroup] || 1),
       LLC: ((LL_CURVES_G[trackGroup] || {})[cb]) || LL_CURVES[cb],
       FLC: ((FL_CURVES_G[trackGroup] || {})[cb]) || FL_CURVES[cb],
+      // 2026-09-03 INT dominance-level study (BACKTEST_LOG, pre-registered). EXPERIMENTAL, OFF
+      // unless simConfig sets them; nothing in src/pages/ passes them until the study ships.
+      //   domCurves: { LL: {low,mid,high}, FL: {...} }  strength-rank (sorted-share) curves
+      //   domBoot:   { LL: {low: [vec,...]}, FL: {...} }  per-draw bootstrap of real share vectors
+      cb,
+      domLL: simConfig.domCurves && simConfig.domCurves.LL ? (simConfig.domCurves.LL[cb] || null) : null,
+      domFL: simConfig.domCurves && simConfig.domCurves.FL ? (simConfig.domCurves.FL[cb] || null) : null,
+      bootLL: simConfig.domBoot && simConfig.domBoot.LL ? (simConfig.domBoot.LL[cb] || null) : null,
+      bootFL: simConfig.domBoot && simConfig.domBoot.FL ? (simConfig.domBoot.FL[cb] || null) : null,
       wm,
       // The 2.5 upper clamp was set when wm.pre was a GLOBAL per-group normalizer. With the
       // per-bucket normalizer the sparse calm pool legitimately needs a larger scale (INT low
@@ -779,8 +788,30 @@ function runRaceSim(drivers, simConfig) {
     const active = scored.filter(s => !s.dnf)
     const __bLL = WRECK_LL_B[trackGroup] || 0
     const __wLL = (sv) => sv.dnf ? Math.min(1, (sv.dnfLap || 0) * __bLL) : 1
-    const __pool = scored.slice().sort((a, b) => b.score - a.score)
+    // ARM B/C (2026-09-03 study): dominance order = pre-race strength + independent noise, so the
+    // car that leads is not by construction the car that wins (real INT: the top-LL car is not the
+    // winner 61% of the time). Control path (domPool unset) is byte-for-byte the old finish order.
+    let __pool
+    if (simConfig.domPool === 'strength') {
+      const __sd = (simConfig.domK != null ? simConfig.domK : 1) * S.noiseWidth
+      const __ds = new Float64Array(n)
+      // domAlpha (0..1): share of the draw's realized finish noise (score - speedScore, which
+      // includes wreck survivor penalties) that carries into the dominance order. 0 = pure
+      // pre-race strength; 1 = the realized draw score (finish order) plus independent noise.
+      const __al = simConfig.domAlpha != null ? simConfig.domAlpha : 0
+      for (let x = 0; x < n; x++) __ds[x] = 0
+      for (let x = 0; x < n; x++) { const sv = scored[x]; __ds[sv.i] = drivers[sv.i].speedScore + __al * (sv.score - drivers[sv.i].speedScore) + gaussNoise() * __sd }
+      __pool = scored.slice().sort((a, b) => __ds[b.i] - __ds[a.i])
+    } else {
+      __pool = scored.slice().sort((a, b) => b.score - a.score)
+    }
     const __lead = __pool.findIndex(sv => !sv.dnf)
+    if (simConfig.__domDiag && __lead >= 0) { const d = simConfig.__domDiag; d.n = (d.n || 0) + 1; const tp = __pool[__lead]; if (simPos[tp.i] === 1) d.wins = (d.wins || 0) + 1; d.finSum = (d.finSum || 0) + simPos[tp.i] }
+    // Curve source per draw: bootstrap vector (ARM C) > strength-rank curve (ARM B) > finish-rank curve.
+    const __LLC = S.bootLL ? S.bootLL[(Math.random() * S.bootLL.length) | 0] : (S.domLL || S.LLC)
+    const __FLC = S.bootFL ? S.bootFL[(Math.random() * S.bootFL.length) | 0] : (S.domFL || S.FLC)
+    // ARM A: fastest laps exist only on green laps; deal the measured fraction, not every lap.
+    const __flTotal = simConfig.flBudget != null ? Math.round(totalRaceLaps * simConfig.flBudget) : totalRaceLaps
     const simLL = new Float64Array(n)
     const simFastLaps = new Int32Array(n)
     if (active.length > 0) {
@@ -797,15 +828,16 @@ function runRaceSim(drivers, simConfig) {
       const __flTilt = (sp) => (trackGroup === 'SS' ? Math.max(0.1, 1 - 0.45 * (sp - 0.5)) : Math.max(0.1, 1 + 1.0 * (sp - 0.5)))
       const __domSp = (i) => (trackGroup === 'SS' ? (__ssSpd.get(i) != null ? __ssSpd.get(i) : 0.5) : (drivers[i].__spdPct != null ? drivers[i].__spdPct : 0.5))
       let llW = 0
-      const llw = __pool.map((s, r) => { const c = r < S.LLC.length ? S.LLC[r] : S.LLC[S.LLC.length - 1] * Math.pow(0.75, r - S.LLC.length + 1); const sp = __domSp(s.i); const w = c * __llTilt(sp) * __wLL(s); llW += w; return w })
+      const llw = __pool.map((s, r) => { const c = r < __LLC.length ? __LLC[r] : __LLC[__LLC.length - 1] * Math.pow(0.75, r - __LLC.length + 1); const sp = __domSp(s.i); const w = c * __llTilt(sp) * __wLL(s); llW += w; return w })
       let remLL = totalRaceLaps
       for (let r = __pool.length - 1; r >= 0; r--) { if (r === __lead) continue; const ll = Math.max(0, Math.min(Math.round(llw[r] / llW * totalRaceLaps), remLL)); simLL[__pool[r].i] = ll; remLL -= ll }
       simLL[__pool[__lead].i] = remLL
       scored.forEach((s) => { sumLapsLed[s.i] += simLL[s.i] })
+      if (simConfig.__domDiag) { let mx = 0; for (let x = 0; x < n; x++) if (simLL[x] > mx) mx = simLL[x]; simConfig.__domDiag.topShare = (simConfig.__domDiag.topShare || 0) + mx / totalRaceLaps; simConfig.__domDiag.draws = (simConfig.__domDiag.draws || 0) + 1 }
       let flWt = 0
-      const flw = __pool.map((s, r) => { const c = r < S.FLC.length ? S.FLC[r] : S.FLC[S.FLC.length - 1] * Math.pow(0.85, r - S.FLC.length + 1); const sp = __domSp(s.i); const w = c * __flTilt(sp) * __wLL(s); flWt += w; return w })
-      let remFL = totalRaceLaps
-      for (let r = __pool.length - 1; r >= 0; r--) { if (r === __lead) continue; const fl = Math.max(0, Math.min(Math.round(flw[r] / flWt * totalRaceLaps), remFL)); simFastLaps[__pool[r].i] = fl; remFL -= fl }
+      const flw = __pool.map((s, r) => { const c = r < __FLC.length ? __FLC[r] : __FLC[__FLC.length - 1] * Math.pow(0.85, r - __FLC.length + 1); const sp = __domSp(s.i); const w = c * __flTilt(sp) * __wLL(s); flWt += w; return w })
+      let remFL = __flTotal
+      for (let r = __pool.length - 1; r >= 0; r--) { if (r === __lead) continue; const fl = Math.max(0, Math.min(Math.round(flw[r] / flWt * __flTotal), remFL)); simFastLaps[__pool[r].i] = fl; remFL -= fl }
       simFastLaps[__pool[__lead].i] = remFL
       scored.forEach((s) => { sumFastLaps[s.i] += simFastLaps[s.i] })
     }

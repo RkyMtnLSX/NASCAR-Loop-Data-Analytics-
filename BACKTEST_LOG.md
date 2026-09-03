@@ -6149,3 +6149,38 @@ DECISION RULE (written now; the holdout is read once):
   Post-hoc checks allowed ONLY to argue against shipping: per-track residual table (does
   Darlington still sit outside?), and the practice-arm rerun (holdout-practice) — a pass on
   no-practice boards that reverses with practice does not ship.
+
+## 2026-09-03 — AMENDMENT (v2) to the INT dominance registration — written BEFORE the holdout was opened. DO NOT MODIFY.
+
+WHAT HAPPENED. The v1 ARM B fit ran on TRAIN as registered and the registered fit criterion pulled
+k to the grid floor (0.25) without reaching its targets: P(top-pool car wins) 0.16 vs real 0.37,
+E[fin] 8.4 vs 8.95. Worse, on the TRAIN-side reference the level metric v1 was built to fix went
+the other way: strength-tier-1 LL bias +17.0 (control, under-projected) -> -29.1 (B, over-
+projected), FL -2.3 -> -19.2. Cause: with almost no dominance noise the strength-#1 car takes the
+40% top slot in nearly every draw, so its expectation becomes ~40% of the race, while the real
+pre-race-#1 car averages ~18%. The fit criterion optimized WHO leads relative to who wins, not
+HOW MUCH the identifiable cars lead — the wrong target for a level study. A train-only probe of a
+blended order (below) shows no single setting satisfies both coupling targets AND tier level; the
+real top-LL car wins 37% yet finishes 9th on average (led-then-faded), a shape the FINISH
+machinery does not produce and this study does not touch. Level is what the product sells
+(mean LL/FL per driver, DK projections); coupling matters second, for the GPP samples.
+THE HOLDOUT WAS NOT OPENED for v1 and is not opened for any v1 arm. The v1 form is abandoned on
+train evidence only. Train is for fitting; this is not holdout leakage. It IS a form change after
+seeing an arm fail on train, so it is recorded as such rather than presented as the plan all along.
+
+FROZEN FORM v2 (replaces ARM B/C; ARM A, CONTROL, NULL, metrics, split and gates are UNCHANGED).
+  ARM B2   dominance order per target T in {LL, FL}:
+             dom_T(i) = speedScore_i + alpha x (score_i - speedScore_i) + k_T x noiseWidth x eps_T,i
+           where score_i is the draw's realized finish score (includes wreck survivor penalties),
+           eps independent per target and per draw. THREE constants, all fit on TRAIN:
+             alpha in {0.25, 0.5, 0.75}; k_LL, k_FL each in {0.25, 0.5, 0.75, 1, 1.25, 1.5, 2}.
+           Fit objective: minimize the sum over strength tiers (1, 2-3, 4-6, 7-12, 13+) of
+           (tier bias)^2 for that target, SUBJECT TO P(top-LL-pool car wins) in [0.30, 0.50]
+           (real train 0.37; control is ~0.9 by construction). Curves = TRAIN mean sorted-share
+           vectors by caution bucket, as in v1. mult-v1 practice tilt and dnfLL unchanged.
+  ARM C2   B2 with the per-draw bootstrap of TRAIN share vectors (as v1 ARM C).
+  Nothing else may be added or widened. If B2 fails the holdout gates, the line closes with A
+  (if A passes) and a Darlington-specific term is NOT tried this week.
+DECISION RULE: exactly as v1 (M1 and M2 beyond null; M3 top-tier |bias| shrinks for LL and FL
+with the 13+ tier not worsening beyond null; M4 not worse than control - null; win/top5/top10
+within MC noise). Post-hoc checks as v1 (per-track residuals, practice rerun), against-ship only.
