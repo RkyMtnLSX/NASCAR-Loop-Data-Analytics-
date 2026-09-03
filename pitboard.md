@@ -3123,3 +3123,27 @@ row set, so no model behaviour changed and no re-validation is owed.
 - Offered and not taken: statistical-tie grouping on the rankings medals (crew medians carry
   SE +-0.10-0.16s while the top five sit 0.02-0.14s apart — every 95% interval overlaps), and
   stacked cards for phones.
+
+
+## 2026-09-02 (session 3, review) — independent re-test of the data-layer work; three corrections shipped
+
+Reviewed the 2026-09-02 pagination / 5,000-row-cap work adversarially, per the brief the operator
+carried between sessions. Method: live REST through the operator's logged-in session with
+`Prefer: count=exact` (the only way the cap is observable; SQL bypasses PostgREST), plus SQL for
+sizing. Findings #1-#5 confirmed. Wrong in the brief: "the cap drops the NEWEST rows" (measured:
+loss spread over every season, non-deterministic between requests) and the #5 victim list (live:
+Will Brown, Loris Hezemans, Scott Heckert, Kevin Magnussen — not Magnussen/Dye). Incomplete fix:
+the Line Movement picker still showed 11 of 12 races because `fetchAllRows` bailed at 60k rows on a
+68,832-row table and the caller discarded the error. Missed instances: `Admin.js` paste typo-check
+`.limit(5000)`; `PracticeReportCard` `practice_laps` unbounded.
+
+Shipped `527268c`: `odds_snapshot_races` view (security_invoker) for the picker — 12 races, one
+request, 1.7s; `fetchAllRows` bail 60k -> 200k with `console.error` on overflow; two missed reads
+paginated; comments and MANUAL corrected. Applied via path B (device shell clone + push). STATE
+updated: sim crew term for past cup seasons was truncated until `d1bd408` and is now complete;
+BACKTEST_LOG unaffected (backtest reads committed files with no crew field).
+
+Also this session: Kalshi fastest-lap capacity sweep (18 events, ~$3.5k edge on the table, 8 races
+= 92%), `fastest_laps.series` + O'Reilly/Trucks backfill (264/266 races from lap-times.json, junk-lap
+filter), Fastest Lap Survival page, Darlington qualifying-draw analysis (9/9 NextGen fastest laps from
+P1-P3 starters; drew 1-10 = 0/89 top-3).

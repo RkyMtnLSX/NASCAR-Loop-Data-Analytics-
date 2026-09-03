@@ -1,5 +1,40 @@
 # PITBOARD STATE
-Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2026-09-02. **LAUNCH IS PUSHED TO NEXT SEASON (operator, 2026-08-31) — the Chase starts Sunday and we are not ready.** The sim now runs OUTSIDE the browser: src/lib/simEngine.js + scripts/, see scripts/README.md. Nine model studies were registered and run this session; the DNF-tilt line is CLOSED. **TWO changes shipped: the SS caution pin, and the cliff fix — the caution buttons no longer move attrition, `dnfRate` is now the only attrition dial (operator-approved).** Both remaining blockers are the same blocker — one season of accumulated data. PIT DATA BLOCKER IS CLOSED (verified against the database 2026-08-31, not against a doc): `pit_stops` holds 81,647 rows / 413 races / 2022-2026, last loaded 2026-08-30. The 24 races still without pit rows are tracks where NASCAR publishes no pit timing at all — Bristol dirt, Lime Rock, IRP, Portland, Road America, Rockingham; 17 of the 24 are trucks. Nothing to backfill. pitcrewrank.com is retired and its table dropped; pit crew is live via `pit_stops` (`pitCrew: 0.06` in every weight set).
+Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2026-09-02 (review pass). **LAUNCH IS PUSHED TO NEXT SEASON (operator, 2026-08-31) — the Chase starts Sunday and we are not ready.** The sim now runs OUTSIDE the browser: src/lib/simEngine.js + scripts/, see scripts/README.md. Nine model studies were registered and run this session; the DNF-tilt line is CLOSED. **TWO changes shipped: the SS caution pin, and the cliff fix — the caution buttons no longer move attrition, `dnfRate` is now the only attrition dial (operator-approved).** Both remaining blockers are the same blocker — one season of accumulated data. PIT DATA BLOCKER IS CLOSED (verified against the database 2026-08-31, not against a doc): `pit_stops` holds 81,647 rows / 413 races / 2022-2026, last loaded 2026-08-30. The 24 races still without pit rows are tracks where NASCAR publishes no pit timing at all — Bristol dirt, Lime Rock, IRP, Portland, Road America, Rockingham; 17 of the 24 are trucks. Nothing to backfill. pitcrewrank.com is retired and its table dropped; pit crew is live via `pit_stops` (`pitCrew: 0.06` in every weight set).
+
+## 2026-09-02 (later) — INDEPENDENT REVIEW OF THE DATA-LAYER WORK; THREE CORRECTIONS SHIPPED (`527268c`)
+
+A second session re-tested every claim in the section below against the LIVE site (operator session
+token, `Prefer: count=exact`) and in SQL. Findings #1-#5 held. Three things did not:
+
+- **The Line Movement race picker was STILL wrong after `a711e81`** — 11 of 12 races. The row-scan
+  fix bailed at `fetchAllRows`' 60,000-row default (odds_snapshots is 68,832) and `loadRaces()`
+  discarded the error, so trucks 2026 R16 vanished; the page also spent ~2.5 min on 60 requests.
+  Now reads the `odds_snapshot_races` VIEW (one row per race, `security_invoker` so RLS still
+  applies). One request, 12 races, 1.7s. `fetchAllRows` default raised to 200k and overflow now
+  `console.error`s — every caller discards `error`, so a silent bail is the exact failure the helper
+  exists to prevent.
+- **"The cap drops the NEWEST rows" is FALSE for this database.** Unordered cup `loop_data` (5,000 of
+  6,348) by year: 2022 805/1,322 · 2023 1,226/1,320 · 2024 1,238/1,356 · 2025 1,244/1,369 · 2026
+  487/981. Every season loses rows and the set changes between requests (updated rows move in the
+  heap). The #5 victims were therefore wrong: live, the cup drivers missing from the resolver map were
+  Will Brown, Loris Hezemans, Scott Heckert, Kevin Magnussen (4 of 101); Daniel Dye was present. The
+  SQL proxy `row_number() OVER (ORDER BY id) <= 5000` matches only 4,290 of the 5,000 rows REST
+  actually returns — it is not a valid re-test. Only a live read is.
+- **Two instances the audit missed**, now paginated: `Admin.js` loop-data paste typo check
+  (`.limit(5000)` IS the cap; 4 real drivers absent → false "Unrecognized driver" prompts) and
+  `PracticeReportCard` `practice_laps` per session (unbounded; 3,866-lap worst case).
+
+**Verified correct and left alone:** #1 exact (7 crews match SQL under the same fence), #2 (3,000
+fetched / 2,950 distinct on `captured_at`; 3,000/3,000 with `id`), #4 direction (cup 2025 5,000/6,528
+live; cup 2026 4,354 full), #6 latent (`crossover_borrows` has 0 rows), GradeCenter key preservation
+(0 keys at risk even inside the tied batch straddling rank 2,000 — the open item below is CLOSED,
+not a bug), FastestLapSurvival 0 duplicates, `api/*.js` all narrowly filtered.
+
+**SIM STATUS AFTER TODAY:** the crew term for PAST cup seasons WAS truncated (5,000 of ~6,300
+stops) until `d1bd408`; it is now complete. Cup 2026 was never truncated (4,354). The speed-score
+query was never truncated (#6). `scripts/backtest-data/*.txt` are committed files with no crew
+field, so BACKTEST_LOG needs no re-validation. Any past-season sim run in the browser BEFORE
+2026-09-02 used a partial crew term — re-run if a past-season number matters.
 
 ## 2026-09-02 — PIT CREW PAGE REBUILT; ONE REAL DATA BUG; PAGINATION AUDITED; FOUR OF MY CLAIMS RETRACTED
 
@@ -8,11 +43,11 @@ Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2
 BOTH directions (Hamlin 192 shown / 107 real; Briscoe 177/95; Bell 69/91), and because duplicated
 and missing stops move a crew's MEDIAN, Adj / Consistency / Bomb% / rank order were all wrong and
 changed between page loads. Fixed (`63dd3a1`, `.order('id')`) and verified live against the DB.
-**The simulation was never affected** — its crew term is a single unpaginated request of ~4k rows.
+~~The simulation was never affected~~ — WRONG, corrected same day (`d1bd408`): the crew term's `.limit(20000)` was capped at 5,000 and past cup seasons are 6,000+ stops. See the section above.
 
 **Two silent Supabase failure modes are now documented in the MANUAL, with measured headroom:**
 1. `.range()` pagination over a non-unique ORDER BY duplicates and drops rows.
-2. PostgREST caps EVERY response at 5,000 rows with no error, and drops the NEWEST rows first.
+2. PostgREST caps EVERY response at 5,000 rows with no error. Which rows are dropped is NOT predictable (the "newest first" claim was retracted in review — see above).
 `src/lib/fetchAllRows.js` (new) defeats both. Use it for any query whose result set can grow.
 
 **FOUR OF MY OWN CLAIMS RETRACTED THIS SESSION — all the same error.** I measured a PRECONDITION and
@@ -38,9 +73,8 @@ himself. Three commits were pushed that way while writing the correction.
 
 **OPEN / OPERATOR ACTION:**
 - **REVOKE the GitHub PAT** pasted in chat 2026-09-02 — it is in plaintext in two transcripts.
-- GradeCenter `odds_snapshots` `.limit(2000)` ordered captured_at DESC, largest race 10,082 rows.
-  The grading logic wants odds AT PUBLISH (oldest); newest-first would drop them. **Candidate, NOT
-  verified** — I did not read the grading logic. Do not repeat it as a finding until someone does.
+- ~~GradeCenter `odds_snapshots` `.limit(2000)`~~ — CLOSED, verified NOT a bug (`d1bd408`, re-verified
+  in review: 0 keys at risk on any race).
 - Offered, not taken: tie-grouping on the rankings medals (every top-five 95% interval overlaps —
   SE +-0.10-0.16s vs gaps of 0.02-0.14s), and stacked cards on phones.
 - Still open from 2026-08-31: fold the to-the-rear start-position correction into the
