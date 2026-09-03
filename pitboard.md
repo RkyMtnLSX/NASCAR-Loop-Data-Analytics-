@@ -3177,3 +3177,21 @@ flat either way. api/nascar-feed.js gained a compact read-only type=qorder mode 
 false start; harmless, kept, but nothing should use the feed's qualifying_order.
 The Jayski "Load Qualifying Order" panel now matters to the published board: before today only
 Qualifying Center read draw_order.
+
+## 2026-09-03 — practice_sessions.best5 backfilled (3,267 rows, DB only, no code)
+Operator asked whether the sim squeezes all the signal out of practice. Findings (cup 2025-26, 32
+practice-covered races, lap-level metrics rebuilt from practice_laps): best5 is the only practice
+metric with signal beyond trailing rating (partial +0.18, t 6.8); best lap, best 10, session
+average, slow-half average and lap count add nothing (partials -0.02..+0.06). Normalization
+(min-max vs percentile) does not change ranking. Practice's partial signal is much stronger at
+INT (+0.225) than SHORT (+0.138) while both carry the same 0.15 weight — a candidate registered
+sweep, queued. BUT the sim's preferred input was mostly absent: best5 NULL on every session
+uploaded before 2026-07-16 (grader computes it at upload time only), so ~70% of 2026 cup boards
+and ALL of the reconstruction ran on overall_avg (best5 adds +0.11 partial over overall_avg,
+t 3.0). Backfilled via SQL from practice_laps: grader formula reproduced exactly on 440/440
+populated rows first; normalized-name join (roster markers '#', '(i)', 'A.J.' vs 'AJ' differ
+between the two tables on older uploads); 3,267 rows filled; 278 left NULL = the seven sessions
+uploaded without lap rows (cup 2025 Las Vegas, Phoenix; 2026 COTA, Martinsville, Coronado, Sonoma,
+Watkins Glen) plus <5-lap drivers. Sanity: no best5 below best_lap. Effect: live boards were
+already correct from mid-July on; the win is that holdout-practice.txt can now be regenerated
+with best5 so the practice-weight-by-track-group study runs on the sim's real input.
