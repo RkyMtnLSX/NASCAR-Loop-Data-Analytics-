@@ -209,6 +209,33 @@ async function race(res, year, series, raceId) {
   })
 }
 
+// ---------------------------------------------------------------- qualifying order (compact, bulk)
+//
+// type=qorder&year=Y&series=S&races=id,id,...   (up to 8 ids)
+// Weekend feed only, one row per scored driver, ~1.5 KB per race. Built for the
+// 2026-09-03 qualifying-order backfill/study: the full type=race payload is ~30 KB
+// and 160 races of it is not something a session can read back. Read-only.
+
+const QORDER_MAX = 8
+async function qorder(res, year, series, ids) {
+  const out = []
+  await Promise.all(ids.map(async raceId => {
+    let wk = null, err = null
+    try { wk = await getJson(`${NASCAR}/cacher/${year}/${series}/${raceId}/weekend-feed.json`) } catch (e) { err = e.message }
+    const wkRace = wk?.weekend_race?.[0] || null
+    const results = (wkRace && wkRace.results) || []
+    out.push({
+      nascar_race_id: raceId, err,
+      track_name: wkRace ? wkRace.track_name : null,
+      race_date: wkRace ? String(wkRace.race_date || '').slice(0, 10) : null,
+      // [driver_id, name, car, qualifying_order, qualifying_position, qualifying_speed, start, finish]
+      rows: results.map(r => [r.driver_id, r.driver_fullname, r.car_number, r.qualifying_order, r.qualifying_position, r.qualifying_speed, r.starting_position, r.finishing_position]),
+    })
+  }))
+  out.sort((a, b) => a.nascar_race_id - b.nascar_race_id)
+  return res.status(200).json({ type: 'qorder', year, series_id: series, races: out })
+}
+
 // ---------------------------------------------------------------- handler
 
 module.exports = async function handler(req, res) {
@@ -234,6 +261,13 @@ module.exports = async function handler(req, res) {
 
   try {
     if (q.type === 'schedule') return await schedule(res, year, series, date)
+    if (q.type === 'qorder') {
+      const ids = String(q.races || '').split(',').map(x => intInRange(x, 1, 999999)).filter(x => x != null)
+      if (series === undefined || !ids.length || ids.length > QORDER_MAX) {
+        return res.status(400).json({ error: `type=qorder needs series and races=id,... (1-${QORDER_MAX} integers)` })
+      }
+      return await qorder(res, year, series, ids)
+    }
     if (q.type === 'race') {
       if (series === undefined || raceId === undefined) {
         return res.status(400).json({ error: 'type=race needs series and race' })
