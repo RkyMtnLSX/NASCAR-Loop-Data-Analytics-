@@ -100,6 +100,7 @@ function deriveFromTrain(train) {
 function cfgFor(arm, b, fit, diag) {
   const base = { numSims: SIMS, cautionPreset: b.preset, dnfRate: b.dnfRate, totalRaceLaps: b.A.laps, trackGroup: 'INT', startSampling: null }
   if (diag) base.__domDiag = diag
+  base.domPool = 'finish'   // INT_DOM_V2 shipped as the engine default 2026-09-03; every arm sets its own allocator explicitly
   if (arm === 'CONTROL' || arm === 'NULL') return base
   base.flBudget = fit.G_FL
   if (diag) base.__domDiag = diag
@@ -221,6 +222,19 @@ if (PHASE !== 'train') {
   const hold = loadBoards('holdout.txt', false)
   console.log(`\n=== HOLDOUT (read once): ${hold.length} cup INT boards, no practice ===`)
   for (const [arm, seed] of [['CONTROL', 1], ['NULL', 2], ['A', 1], ['B', 1], ['C', 1]]) report(evalArm(arm, hold, fit, seed))
+  // post-hoc (against-ship only): per-track top-3-strength LL bias, control vs B, on the holdout
+  console.log('\n--- post-hoc: per-race top-3-strength LL/FL bias (act-proj), CONTROL vs B ---')
+  for (const b of hold) {
+    const line = []
+    for (const [arm, seed] of [['CONTROL', 1], ['B', 1]]) {
+      seedRandom(seed); const sc = scoreBoard(b); const rows = runRaceSim(sc, cfgFor(arm, b, fit, {}))
+      const by = new Map(rows.map(r => [r.simIdx, r])); const ord = sc.map((d, i) => ({ i, s: d.speedScore || 0 })).sort((x, y) => y.s - x.s).slice(0, 3)
+      let ll = 0, fl = 0; ord.forEach(o => { const a = sc[o.i].__act, r = by.get(o.i); ll += a.ll - r.projLapsLed; fl += a.fl - r.avgFastLaps })
+      line.push(`${arm} ${(ll / 3).toFixed(1)}/${(fl / 3).toFixed(1)}`)
+    }
+    const top = b.A.rows.slice().sort((x, y) => y.ll - x.ll)[0]
+    console.log(`  ${b.A.date} ${b.A.track.padEnd(32)} topLL ${String(top.ll).padStart(3)}/${b.A.laps} (fin ${top.fi})  ${line.join('   ')}`)
+  }
   const holdP = loadBoards('holdout-practice.txt', true)
   console.log(`\n=== HOLDOUT with PRACTICE (post-hoc rail): ${holdP.length} practice-covered cup INT boards ===`)
   for (const [arm, seed] of [['CONTROL', 1], ['NULL', 2], ['A', 1], ['B', 1], ['C', 1]]) report(evalArm(arm, holdP, fit, seed))

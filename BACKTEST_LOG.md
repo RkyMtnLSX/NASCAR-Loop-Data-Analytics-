@@ -6184,3 +6184,59 @@ FROZEN FORM v2 (replaces ARM B/C; ARM A, CONTROL, NULL, metrics, split and gates
 DECISION RULE: exactly as v1 (M1 and M2 beyond null; M3 top-tier |bias| shrinks for LL and FL
 with the 13+ tier not worsening beyond null; M4 not worse than control - null; win/top5/top10
 within MC noise). Post-hoc checks as v1 (per-track residuals, practice rerun), against-ship only.
+
+## 2026-09-03 — INT DOMINANCE v2 EXECUTED AS REGISTERED: B PASSES EVERY GATE ON THE HOLDOUT — SHIPPED as the INT default (int-dom-v2)
+
+Harness: scripts/backtest-int-dominance.js (SIMS=4000, seeded; NULL = control on a second seed).
+Train 41 cup INT races 2022-24 -> G_FL 0.7794 (bucket n low 6 / mid 15 / high 20; low falls back to
+pooled per the registration); strength-rank LL curve (mid) 0.405/0.202/0.127/0.089/0.062, FL
+0.232/0.146/0.112/0.086/0.071. v2 fit: alpha 0.5, k_LL 0.5, k_FL 0.75 (P(top-LL-pool car wins)
+0.46 on train, inside the [0.30,0.50] constraint; real 0.37; control ~0.9 by construction).
+Constants frozen and committed (cca6fe4) BEFORE the holdout was opened. Holdout read once.
+
+HOLDOUT, 21 cup INT races 2025-26, NO practice (the registered test):
+                 M1 llMAE   M2 flMAE   M4 dkRho   M5 topGap   win Brier   t5      t10
+  CONTROL         9.72       5.70       0.311      0.199       0.83681   3.3975  5.6998
+  NULL            9.71       5.70       0.309      0.199       0.83753   3.3995  5.6993
+  A (FL budget)   9.72       5.20       0.306      0.199       0.83681   3.3975  5.6998
+  B (v2)          8.54       4.80       0.320      0.152       0.83610   3.3991  5.6951
+  C (bootstrap)   8.56       4.82       0.324      0.152       0.83244   3.3907  5.7026
+  M3 bias (actual - projected), LL/FL by pre-race strength tier:
+                 1           2-3         4-6         7-12        13+
+  CONTROL        44.5/11.3   11.6/1.9    -6.9/-2.7   0.8/-1.7    -2.0/-1.9
+  B              23.7/9.4    -1.5/0.9    -12.3/-2.9  0.6/-0.9    0.5/0.5
+GATES (B): M1 and M2 improve far beyond the null floor (0.01 / 0.00): PASS. Tier-1 |bias| shrinks
+LL 44.5->23.7 and FL 11.3->9.4; tier 2-3 11.6->1.5 and 1.9->0.9; tier 13+ 2.0->0.5 (not worse):
+PASS. M4 0.311->0.320 vs null floor 0.002: PASS (not worse; better). Win/top5/top10 move by less
+than the null's own movement: PASS. => B SHIPS. A alone would have failed the M4 rail by 0.003
+(-0.005 vs a 0.002 floor) but ships inside B. C is within the null floor of B on M2/M4 and 0.02
+off on M1 against a 0.01 floor — by the letter it does not earn preference; its per-draw variance
+(the 80% nights) is a DFS-ceiling property this study did not judge. C stays in the engine behind
+domBoot, OFF, for a ceiling-targeted registration later.
+
+POST-HOC (against-ship only, both disclosed):
+  * Practice rerun (17 practice-covered holdout boards): B 7.48 / 4.32 / 0.334 vs control
+    8.63 / 5.13 / 0.327; tier-1 LL bias 38.6 -> 18.0. The pass does not reverse with practice.
+  * Per-race top-3-strength residuals: B reduces |bias| in 16 of 21 races; it OVER-projects the
+    top-3 at five low-dominance races (Vegas 25s, Nashville 25s, Pocono 25s/26, Texas 26, Michigan
+    26) by 11-20 laps where control was near zero. Tier 4-6 gets WORSE (-6.9 -> -12.3): the sorted
+    curve spreads more laps into slots 4-6 than the identifiable 4th-6th strongest cars earn. Net
+    top-6 bias goes from +7.8 laps under to -2.7 over; neither post-hoc argues against shipping,
+    both are logged as the next thing to look at. Tier-1 is STILL under-projected by 24 laps on
+    2025-26 — these two seasons are the most concentrated in the corpus (Byron 243, Briscoe 309,
+    Larson 221/283 in one calendar year); the train curves know 2022-24. Refit on all 62 when the
+    season ends, with the same registration.
+  * The 2026 Darlington spring board (holdout) reconstructs to top projected LL 59.5 under B vs
+    36.5 under control; real pole-sitter mean at Darlington is 33% (~97 laps). Closer, not there.
+
+WHAT SHIPPED (engine only, src/lib/simEngine.js; SimulationCenter stamps domCurves 'int-dom-v2'
+at INT): INT_DOM_V2 constants; at trackGroup INT the allocator defaults to domPool 'strength' with
+alpha/k_LL/k_FL/flBudget/curves above; mult-v1 practice tilt and dnfLL unchanged on top; other
+groups byte-identical; domPool:'finish' reconstructs the old allocator. A NaN guard was added to
+the allocator: a sparse share vector whose nonzero slots all land on lap-0 DNFs made llW 0 and
+0/0 poisoned an entire run (found on C, Darlington 2026 with practice); zero weight now sends
+everything to the leader. Scope caveats carried forward: cup evidence only (O'Reilly/trucks at
+INT inherit, judged forward via the DFS ledger); SHORT/ROAD/SS still deal fastest laps for every
+lap — their green-lap fractions were not measured here and need their own (one-constant) entry.
+OPERATOR: re-run + republish the cup Darlington pre board (and the O'Reilly one) so sim_results /
+DFS Center pick up the new laps_led / avg_fast_laps / proj_dk. Win/T3/T5/T10 will not move.

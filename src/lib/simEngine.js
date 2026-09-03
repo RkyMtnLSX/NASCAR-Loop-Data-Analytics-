@@ -567,8 +567,27 @@ function __dnfFraction(n, dnfRate, wm, iters, wide) {
   return total / (iters * n)
 }
 
+// INT DOMINANCE v2 (shipped 2026-09-03, BACKTEST_LOG same date — pre-registered, holdout-passed).
+// At INTERMEDIATE tracks laps led / fastest laps are dealt by a STRENGTH order, not finish order:
+//   dom_T(i) = speedScore + alpha x (draw score - speedScore) + k_T x noiseWidth x eps_T
+// with share curves that are the mean SORTED share vector of real cup INT races (train 2022-24,
+// by caution bucket; low bucket n=6 falls back to pooled), and fastest laps dealt for the measured
+// green-lap fraction of the race instead of every lap. Fit on train, judged once on 2025-26:
+// LL MAE 9.72 -> 8.54, FL MAE 5.70 -> 4.80, DK Spearman .311 -> .320, strength-tier-1 LL bias
+// +44.5 -> +23.7, tier 2-3 +11.6 -> -1.5; win/top5/top10 within MC noise. Cup evidence only —
+// O'Reilly/trucks at INT tracks inherit it (group-level, like every other dominance constant) and
+// are judged forward. Other groups untouched. Reconstruct the old allocator with domPool:'finish'.
+const INT_DOM_V2 = { alpha: 0.5, kLL: 0.5, kFL: 0.75, flBudget: 0.7794, curves: { LL: { low: [0.4048,0.2022,0.1272,0.0885,0.0619,0.0437,0.0282,0.017,0.0094,0.0064,0.0041,0.0027,0.0017,0.0008,0.0007,0.0004,0.0001,0.0001,0.0001,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], mid: [0.4048,0.2022,0.1272,0.0885,0.0619,0.0437,0.0282,0.017,0.0094,0.0064,0.0041,0.0027,0.0017,0.0008,0.0007,0.0004,0.0001,0.0001,0.0001,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], high: [0.367,0.2087,0.1281,0.0936,0.0663,0.0479,0.0332,0.0201,0.0123,0.0081,0.0062,0.0039,0.0022,0.0009,0.0008,0.0004,0.0001,0.0001,0.0001,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0] }, FL: { low: [0.2324,0.1461,0.1122,0.0858,0.0714,0.0587,0.0494,0.0406,0.0347,0.029,0.024,0.0203,0.0164,0.0147,0.0128,0.0105,0.0082,0.0068,0.0061,0.005,0.0039,0.0029,0.0018,0.0016,0.0014,0.001,0.0009,0.0007,0.0004,0.0002,0.0002,0.0002,0,0,0,0,0,0,0,0], mid: [0.2324,0.1461,0.1122,0.0858,0.0714,0.0587,0.0494,0.0406,0.0347,0.029,0.024,0.0203,0.0164,0.0147,0.0128,0.0105,0.0082,0.0068,0.0061,0.005,0.0039,0.0029,0.0018,0.0016,0.0014,0.001,0.0009,0.0007,0.0004,0.0002,0.0002,0.0002,0,0,0,0,0,0,0,0], high: [0.2374,0.1526,0.1202,0.0878,0.0718,0.0572,0.0485,0.0407,0.0348,0.0289,0.0223,0.0193,0.0155,0.0135,0.0112,0.0095,0.007,0.005,0.0047,0.0044,0.0027,0.0021,0.001,0.0006,0.0006,0.0002,0.0002,0.0002,0,0,0,0,0,0,0,0,0,0,0,0] } } }
+
 function runRaceSim(drivers, simConfig) {
   const { numSims, cautionPreset, totalRaceLaps, trackGroup, startSampling, cautionMix, skillTilt } = simConfig
+  // INT dominance v2 defaults (see INT_DOM_V2). Explicit simConfig values always win; domPool:'finish'
+  // restores the finish-rank allocator for backtests.
+  if (trackGroup === 'INT' && simConfig.domPool == null) {
+    simConfig = { ...simConfig, domPool: 'strength', domAlpha: INT_DOM_V2.alpha, domK: INT_DOM_V2.kLL, domKFL: INT_DOM_V2.kFL,
+      flBudget: simConfig.flBudget != null ? simConfig.flBudget : INT_DOM_V2.flBudget,
+      domCurves: simConfig.domCurves || INT_DOM_V2.curves }
+  } else if (simConfig.domPool === 'finish') { simConfig = { ...simConfig, domPool: null } }
   let dnfRate = simConfig.dnfRate
   // SS dominator tilt keys off the sim's own speedScore percentile, NOT practice __spdPct:
   // SS races often have no practice (everyone defaulted to neutral 0.5, making any tilt a no-op),
@@ -816,6 +835,8 @@ function runRaceSim(drivers, simConfig) {
     const simFastLaps = new Int32Array(n)
     if (active.length > 0) {
       // rounding remainder goes to the LEADER (was: last active driver - caused tail FL artifact)
+      // llW/flWt can be 0 with a sparse bootstrap vector whose nonzero slots all land on lap-0 DNFs;
+      // 0/0 was NaN-poisoning the whole run (found 2026-09-03). Zero weight -> everything to the leader.
       // SS dominator tilts (2026-08-29, race-day fit on cup SS 2022-26 rank-share bands, BACKTEST_LOG;
       // corrected same night: v1 keyed off practice __spdPct, which is neutral 0.5 when SS has no
       // practice - a no-op. Now keyed off __ssSpd (speedScore percentile), refit with tilt-inactive
@@ -830,14 +851,14 @@ function runRaceSim(drivers, simConfig) {
       let llW = 0
       const llw = __pool.map((s, r) => { const c = r < __LLC.length ? __LLC[r] : __LLC[__LLC.length - 1] * Math.pow(0.75, r - __LLC.length + 1); const sp = __domSp(s.i); const w = c * __llTilt(sp) * __wLL(s); llW += w; return w })
       let remLL = totalRaceLaps
-      for (let r = __pool.length - 1; r >= 0; r--) { if (r === __lead) continue; const ll = Math.max(0, Math.min(Math.round(llw[r] / llW * totalRaceLaps), remLL)); simLL[__pool[r].i] = ll; remLL -= ll }
+      for (let r = __pool.length - 1; r >= 0; r--) { if (r === __lead) continue; const ll = llW > 0 ? Math.max(0, Math.min(Math.round(llw[r] / llW * totalRaceLaps), remLL)) : 0; simLL[__pool[r].i] = ll; remLL -= ll }
       simLL[__pool[__lead].i] = remLL
       scored.forEach((s) => { sumLapsLed[s.i] += simLL[s.i] })
       if (simConfig.__domDiag) { let mx = 0; for (let x = 0; x < n; x++) if (simLL[x] > mx) mx = simLL[x]; simConfig.__domDiag.topShare = (simConfig.__domDiag.topShare || 0) + mx / totalRaceLaps; simConfig.__domDiag.draws = (simConfig.__domDiag.draws || 0) + 1 }
       let flWt = 0
       const flw = __poolFL.map((s, r) => { const c = r < __FLC.length ? __FLC[r] : __FLC[__FLC.length - 1] * Math.pow(0.85, r - __FLC.length + 1); const sp = __domSp(s.i); const w = c * __flTilt(sp) * __wLL(s); flWt += w; return w })
       let remFL = __flTotal
-      for (let r = __poolFL.length - 1; r >= 0; r--) { if (r === __leadFL) continue; const fl = Math.max(0, Math.min(Math.round(flw[r] / flWt * __flTotal), remFL)); simFastLaps[__poolFL[r].i] = fl; remFL -= fl }
+      for (let r = __poolFL.length - 1; r >= 0; r--) { if (r === __leadFL) continue; const fl = flWt > 0 ? Math.max(0, Math.min(Math.round(flw[r] / flWt * __flTotal), remFL)) : 0; simFastLaps[__poolFL[r].i] = fl; remFL -= fl }
       simFastLaps[__poolFL[__leadFL].i] = remFL
       scored.forEach((s) => { sumFastLaps[s.i] += simFastLaps[s.i] })
     }
@@ -932,6 +953,7 @@ export {
   WRECK_SURV_COST,
   __applyRainOut,
   __trackGroup,
+  INT_DOM_V2,
   buildSpeedScores,
   dkFinishPts,
   gaussNoise,
