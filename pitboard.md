@@ -3147,3 +3147,17 @@ Also this session: Kalshi fastest-lap capacity sweep (18 events, ~$3.5k edge on 
 = 92%), `fastest_laps.series` + O'Reilly/Trucks backfill (264/266 races from lap-times.json, junk-lap
 filter), Fastest Lap Survival page, Darlington qualifying-draw analysis (9/9 NextGen fastest laps from
 P1-P3 starters; drew 1-10 = 0/89 top-3).
+
+## 2026-09-03 — INT dominance v2 shipped (560e26c); registration + harness + fit in 4882bf9 / 128bd5f / cca6fe4
+Operator: "I don't think we are projecting properly for the Darlington cup race." He was right, and
+the fix is group-wide (all intermediates), not Darlington-specific — see BACKTEST_LOG 2026-09-03
+(registration, v2 amendment, execution). The sim ran headlessly in the cloud sandbox for the whole
+study; no browser. Engine flags added (domPool/domAlpha/domK/domKFL/domCurves/domBoot/flBudget,
+__domDiag), INT defaults via INT_DOM_V2, NaN guard on zero allocation weight, SimulationCenter
+stamps domCurves 'int-dom-v2' at INT. Data file scripts/backtest-data/int-dominance-actuals.txt
+(cup INT loop_data actuals joined to the reconstruction by start/finish fingerprint, 62/62).
+PROCESS NOTE: v1 ARM B was abandoned on TRAIN evidence before the holdout was opened — its fit
+criterion optimized who-leads-vs-who-wins, not how much the identifiable cars lead — and the v2
+form was registered as an amendment with that history disclosed. Holdout read once.
+Practice question answered for the operator: practice best5 pctile DOES feed fastest laps (mult-v1,
+r .20 FL vs .12 LL, 07-28) but only after practice is loaded — the Wednesday pre board has none.
