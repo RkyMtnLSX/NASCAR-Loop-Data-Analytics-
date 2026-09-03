@@ -6074,3 +6074,78 @@ on its own merits. It is not defensible as a forecasting improvement.
 
 DO NOT reopen this line on a tier table. Reopen it only if the SIM's sensitivity to retirement
 identity changes — that is the actual blocker, and it is upstream of any tilt.
+
+## 2026-09-03 — PRE-REGISTERED: INTERMEDIATE DOMINANCE LEVEL (laps led / fastest laps) — written before any fit or arm was run. DO NOT MODIFY.
+
+WHAT PROMPTED IT. Operator: "I don't think we are projecting properly for the Darlington cup race."
+Diagnostic measurements made BEFORE this registration, disclosed so nothing below is presented as
+clean that is not: cup INT 2022-26 (62 races) from loop_data — the TOP laps-led car averages 40.5%
+of the race (Darlington 58%, Homestead 48%, Vegas/Kansas 46%, Charlotte 43%, Gateway/Nashville/
+Pocono 35%, Texas 31%, Michigan 29%) and is NOT the winner 61% of the time (Darlington 78%); the
+pole-sitter averages 18.5% LL / 11.0% FL across INT (Darlington 33% / 18%); the sum of fastest laps
+per race is 78% of total laps across INT (72-86% by track; 84% Darlington), not 100%. The engine
+deals LL/FL by realized FINISH rank from LL_CURVES_G.INT (winner 32%), so the top-LL car in every
+draw is the winner and the per-draw top-car share is capped at 32-37% for every INT track; and it
+deals totalRaceLaps fastest laps. The 2026-09-03 Darlington pre board projects Hamlin/Reddick at
+33 LL (9%) as its TOP values. These are level/calibration findings, not ranking findings — the
+2026-08-24 decomposition (every DK component ranks 0.46-0.67) is not contradicted and is not the
+target here. The 2026-07-23 log wrote this exact limitation down ("dominance allocated purely by
+realized finish rank") the day the curves shipped.
+
+QUESTION. Does allocating dominance by pre-race STRENGTH order with a strength-rank share curve,
+plus a green-lap fastest-lap budget, produce better-calibrated per-driver laps-led and fastest-laps
+projections on held-out INT races than the finish-rank allocator — without touching win/top5/top10?
+
+SCOPE. Cup, INT track group only (as classified by __trackGroup), 2022-2026, exhibitions excluded.
+Sim inputs: the committed leak-free reconstruction (train.txt / holdout.txt / holdout-practice.txt),
+joined to loop_data actuals by (start, finish) fingerprint — 62/62 races matched, file
+scripts/backtest-data/int-dominance-actuals.txt. TRAIN = 2022-2024 (41 races). HOLDOUT = 2025-2026
+(21 races), read once, after all constants are fixed on train. Practice arm uses holdout-practice
+(2025+ practice-covered boards) with __spdPct derived from lrpTime rank exactly as SimulationCenter
+does. Series rail: evidence is cup-only; O'Reilly/trucks at INT tracks would inherit the group
+change with no evidence — stated as a known limitation, judged forward.
+
+FROZEN FORM (three arms + control, nothing else; no parameter added or widened mid-test).
+  CONTROL  engine as at cc9ec74 (finish-rank curves, mult-v1 tilt, dnfLL, FL budget = total laps).
+  ARM A    FL budget only: fastest laps dealt = round(totalRaceLaps x G_FL), G_FL = mean over TRAIN
+           INT races of sum(fastest_laps)/total_laps. One constant. LL untouched.
+  ARM B    A + strength-keyed pool: dominance order = speedScore + sigma_d x N(0,1), sigma_d =
+           k x noiseWidth, drawn independently of the finish noise; k is ONE scalar fit on TRAIN by
+           grid so that P(top-pool car wins) and E[finish of top-pool car] match the train means.
+           Share curves re-derived on TRAIN as the mean SORTED share vector (top-LL car, 2nd, ...
+           40 slots) for LL and FL separately, by the same caution buckets as gxc-v3 (n<20 cells
+           fall back to pooled). Practice tilt (mult-v1) and dnfLL weighting applied unchanged on
+           top of the new pool. Finish machinery untouched — win/top5/top10 must be unchanged
+           within MC noise (checked, gate 4).
+  ARM C    B, but each draw uses the sorted share vector of ONE randomly chosen TRAIN race from
+           the same caution bucket instead of the bucket mean (empirical bootstrap), so the
+           per-draw concentration has the real variance (the 80% nights exist). Means should
+           match B; this arm exists for the DFS ceiling (p90) and is judged on the same gates.
+  Fitting uses TRAIN only. The holdout is not opened until k, G_FL and the curves are committed.
+
+METRICS, per race then averaged (fields differ in size, so no pooling of raw values):
+  M1  per-driver MAE of projected vs actual laps led (laps).
+  M2  per-driver MAE of projected vs actual fastest laps (laps).
+  M3  strength-tier BIAS table (tiers by pre-race speedScore rank: 1, 2-3, 4-6, 7-12, 13+):
+      mean(actual - projected) for LL and FL. WHERE the effect lands, per the 08-31 rule.
+  M4  Spearman(proj DK, actual DK) per race (actual DK = dkFinishPts + (start-finish) + 0.25 LL +
+      0.45 FL from loop_data) — the ranking rail: the 08-24 result must not get worse.
+  M5  top-car share calibration: mean over races of |sim per-draw top-share mean - actual
+      top-share| (control's is structurally ~0.35 vs 0.40).
+  NULL ARM: control vs control on a different seed, same sims, gives the noise floor for every
+  metric. A delta smaller than the null spread is noise, whatever its sign.
+
+DECISION RULE (written now; the holdout is read once):
+  SHIP A alone if A beats control on M2 beyond the null floor and M4 is not worse by more than
+  the null floor. (A is a measurement, not a model; failure would mean the measurement is wrong.)
+  SHIP B (or C) if, on HOLDOUT: M1 AND M2 improve vs control beyond the null floor; M3 top-tier
+  (1, 2-3) |bias| shrinks for LL and FL without the 13+ tier |bias| growing beyond the null floor;
+  M4 not worse than control minus the null floor; win/top5/top10 unchanged within MC noise.
+  C is preferred over B only if C's mean metrics are within the null floor of B's (then the
+  variance is free); otherwise B.
+  Any gate failure = that arm does not ship; no re-fit on holdout; no fourth arm without a new
+  registration. If B/C fail, the Darlington board runs on control (+A if A passes) and this entry
+  records why.
+  Post-hoc checks allowed ONLY to argue against shipping: per-track residual table (does
+  Darlington still sit outside?), and the practice-arm rerun (holdout-practice) — a pass on
+  no-practice boards that reverses with practice does not ship.
