@@ -124,6 +124,6 @@ if (PHASE !== 'train') {
   const withOrd = hold.filter(r => r.rows.some(d => d.ord != null))
   reportM1('HOLDOUT 2026, races carrying the Jayski order (ARM O, report only)', withOrd, beta, ['CONTROL', 'F', 'O'])
   const boards = loadBoards()
-  console.log(`\n--- M2/M3 sim rail on ${boards.length} matched holdout cup boards, projected grids as startPos ---`)
+  console.log(`\n--- M2/M3 sim rail on ${boards.length} matched holdout ${SERIES} boards, projected grids as startPos ---`)
   for (const [arm, seed] of [['CONTROL', 1], ['NULL', 2], ['F', 1]]) { const r = simArm(boards, arm, beta, seed); console.log(`  ${arm.padEnd(8)} win ${r.win.toFixed(5)}  t5 ${r.t5.toFixed(4)}  t10 ${r.t10.toFixed(4)}  favGap ${r.favGap.toFixed(2)} pts`) }
 }

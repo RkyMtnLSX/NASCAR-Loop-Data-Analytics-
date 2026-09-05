@@ -650,8 +650,12 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
           // PDF panel; later = better, so x = 1 - order pctile), else previous-round finish pctile
           // (adjacent round, same season). The #73 sampling history shifts by the same term so the
           // sampled centre matches the point estimate. O'Reilly / trucks keep v3.5 (not measured).
-          if (s === 'cup') {
-            const __beta = ({ INT: 0.2495, SHORT: 0.1649, SS: 0.1863, ROAD: 0 })[__trackGroup(cfg.track_name)] || 0
+          // 2026-09-05: O'Reilly added (same metric sets its order — operator; own fit, own holdout:
+          // 2026 start MAE 6.00 -> 5.73, INT 6.43 -> 5.68 7/7, live-race share 13/17; BACKTEST_LOG).
+          // Trucks: unmeasured, no term.
+          const __V4_BETA = { cup: { INT: 0.2495, SHORT: 0.1649, SS: 0.1863, ROAD: 0 }, oreilly: { INT: 0.1708, SHORT: 0.1441, SS: 0.0353, ROAD: 0 } }
+          if (__V4_BETA[s]) {
+            const __beta = __V4_BETA[s][__trackGroup(cfg.track_name)] || 0
             if (__beta) {
               const __x = {}
               const __cy = cfg.race_year || new Date().getFullYear(), __crn = parseInt(cfg.race_number)
@@ -1006,7 +1010,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
       race_year:  config.race_year || new Date().getFullYear(),
       race_number: raceNumMap[series] ? parseInt(raceNumMap[series]) : null,
       stage: simStage,
-      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'car-auto-v2', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06-fenced', domCurves: (__trackGroup(config && config.track_name) === 'INT' ? 'int-dom-v2' : 'gxc-v3.1-dnfLL'), domSpeed: 'mult-v1', startProj: (series === 'cup' ? 'trail10-v4-form' : 'trail10-v3.5-eqStart'), flagGuard: 'conf-v1', dnfModel: 'wreck-v1.1-cb', marketAnchor: 'v1.4-multimkt', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), runNote: (runNote.trim() ? runNote.trim() : null), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
+      config: { practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'car-auto-v2', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06-fenced', domCurves: (__trackGroup(config && config.track_name) === 'INT' ? 'int-dom-v2' : 'gxc-v3.1-dnfLL'), domSpeed: 'mult-v1', startProj: ((series === 'cup' || series === 'oreilly') ? 'trail10-v4-form' : 'trail10-v3.5-eqStart'), flagGuard: 'conf-v1', dnfModel: 'wreck-v1.1-cb', marketAnchor: 'v1.4-multimkt', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), runNote: (runNote.trim() ? runNote.trim() : null), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
       results: simResults.map(d => ({
         driver_name:  d.name,
         car_number:   d.carNumber,

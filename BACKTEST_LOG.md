@@ -6388,3 +6388,26 @@ rule EXACTLY as the cup v4 registration, with these series-specific points fixed
     with its own betas; cup untouched; trucks unmeasured and unchanged.
 DECISION RULE: ship if HOLDOUT M1 pooled improves, live-race share >= 55%, no fitted group worse
 by > 0.10, M2 win/top5/top10 not worse than control by more than the null floor, M3 no overshoot.
+
+## 2026-09-05 — START PROJECTION v4 for O'REILLY EXECUTED AS REGISTERED: PASSES — SHIPPED (oreilly betas, own gate)
+
+Data start-v4-oreilly-2025-26.txt (57 races: 33 train 2025 / 24 holdout 2026); harness now takes
+SERIES=oreilly and reads O'Reilly boards/weights. Fit (TRAIN 2025): INT 0.1708, SHORT 0.1441,
+SS 0.0353, ROAD 0 — smaller than cup's (.25/.16/.19); trail10 already sits ~2 positions better in
+O'Reilly (5.9 vs 7.7 control MAE), so there was less to recover. Fit committed before the holdout.
+HOLDOUT 2026 (read once), M1 CONTROL -> F:
+  INT   n=7   6.43 -> 5.68  (-0.74, better 7/7)
+  SHORT n=6   5.45 -> 5.27  (-0.17, better 4/6)
+  SS    n=5   5.40 -> 5.34  (-0.06, better 2/4 live; inside the 0.10 rail)
+  ROAD  n=6   unchanged by construction
+  ALL   n=24  6.00 -> 5.73  (-0.27); live-race share 13/17 = 76% (>= 55% gate, ties excluded
+        as this registration specified)
+M2 (24 matched O'Reilly boards, weak instrument, not-worse rail): CONTROL win .02333 t5 .0931
+t10 .1433 | NULL .02324 .0932 .1433 | F .02325 .0927 .1430 — PASS (inside the null floor).
+M3 favourite gap: CONTROL -1.00, NULL -0.86, F -4.39 — the sign is UNDER-statement, not
+overshoot; one favourite win on 24 boards is ~4.2 points, so this is noise-level. PASS.
+ARM O: no O'Reilly draw_order rows exist; nothing to report. Judged forward once loaded.
+SHIPPED: SimulationCenter projection block now keys the v4 betas by series (__V4_BETA: cup,
+oreilly); trucks have no entry and no term. Jayski draw_order substitution applies to O'Reilly the
+moment an O'Reilly PDF is loaded through the same Admin panel (series-scoped rows). Stamp
+'trail10-v4-form' on O'Reilly boards too.
