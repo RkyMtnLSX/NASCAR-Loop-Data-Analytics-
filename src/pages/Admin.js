@@ -2143,6 +2143,7 @@ export default function Admin() {
     if (!practiceRaceNum || !parseInt(practiceRaceNum)) { setUploadStatus({ type: 'error', message: 'Enter the Race # (season round R#) before uploading - sessions and laps join on it.' }); return }
     setUploading(true)
     setUploadStatus(null)
+    let __rnFinal = parseInt(practiceRaceNum)
     // ---- UPLOAD GUARDS (2026-07-16): confirm dialogs for the three dropdown/race# mistake modes ----
     try {
       let rn = parseInt(practiceRaceNum)
@@ -2155,7 +2156,17 @@ export default function Admin() {
       if (!exactMatch) {
         const trackNums = [...new Set((trackRaces || []).map(r => parseInt(r.race_number)).filter(Boolean))].sort((a, b) => a - b)
         const other = (rnRaces || []).map(r => r.track_name).join(', ') || 'no race'
-        if (trackNums.length) {
+        // 2026-09-05: a RETURN VISIT (Darlington O'Reilly R25 after R6 in March) used to be
+        // "corrected" to the spring number because the registry only held completed races.
+        // If the entered R# is past every race in the registry for this series/year and no
+        // race holds that number, it is a future race - offer a stub for it, not the old number.
+        const { data: __maxRow } = await supabase.from('races').select('race_number').eq('year', year).eq('series', series).order('race_number', { ascending: false }).limit(1)
+        const __maxRn = __maxRow && __maxRow[0] ? parseInt(__maxRow[0].race_number) : 0
+        if (trackNums.length && !(rnRaces || []).length && rn > __maxRn) {
+          const ok = window.confirm('RETURN VISIT\n\n' + trackName + ' was R' + trackNums.map(n => 'R' + n).join(' / ').replace(/^R/, '') + ' earlier this season and the registry ends at R' + __maxRn + '.\n' +
+            'R' + rn + ' is not in the registry yet.\n\nOK = create ' + trackName + ' R' + rn + ' (second visit) and upload\nCancel = stop')
+          if (!ok) { setUploading(false); setUploadStatus({ type: 'error', message: 'Upload cancelled (return-visit race not created).' }); return }
+        } else if (trackNums.length) {
           // The track IS on the schedule, just under a different number -> offer the correct one.
           const suggest = trackNums[0]
           const msg = 'RACE NUMBER MISMATCH\n\n' +
@@ -2209,13 +2220,17 @@ export default function Admin() {
           }
         }
       }
+      __rnFinal = rn
     } catch (guardErr) { /* guards must never block uploads on their own errors */ }
     // ---- end guards ----
+    // 2026-09-05: use the number the guard settled on. setPracticeRaceNum() is async, so the
+    // 'upload as R6' path used to write practice rows under the ORIGINAL number anyway.
+    const __rnUse = String(__rnFinal)
     try {
       let raceId = null
       const { data: raceMatches } = await supabase
         .from('races').select('id, racing_reference_url')
-        .eq('track_name', trackName).eq('year', year).eq('series', series).eq('race_number', practiceRaceNum)
+        .eq('track_name', trackName).eq('year', year).eq('series', series).eq('race_number', __rnUse)
         .order('id', { ascending: true })
       // Prefer the canonical row (loop-data loader row has the RR URL) if duplicates exist
       const existingRace = (raceMatches || []).find(rm => rm.racing_reference_url) || (raceMatches || [])[0] || null
@@ -2225,7 +2240,7 @@ export default function Admin() {
       } else {
         const { data: newRace, error: raceError } = await supabase
           .from('races')
-          .insert({ race_name: `${trackName} ${year} R${practiceRaceNum}`, series, year, track_name: trackName, race_number: practiceRaceNum })
+          .insert({ race_name: `${trackName} ${year} R${__rnUse}`, series, year, track_name: trackName, race_number: __rnUse })
           .select('id').single()
         if (raceError) throw raceError
         raceId = newRace.id
@@ -2233,7 +2248,7 @@ export default function Admin() {
 
       // Delete and re-insert practice session summaries
       await supabase.from('practice_sessions').delete()
-        .eq('race_id', raceId).eq('series', series).eq('session_number', sessionNum).eq('race_number', practiceRaceNum)
+        .eq('race_id', raceId).eq('series', series).eq('session_number', sessionNum).eq('race_number', __rnUse)
 
       const rows = preview.graded.map(d => ({
         race_id: raceId,
@@ -2241,7 +2256,7 @@ export default function Admin() {
         series, year,
         track_name: trackName,
         session_number: sessionNum,
-        race_number: practiceRaceNum,
+        race_number: __rnUse,
         qualifying_position: d.start,
         car_number: d.carNumber || null,
         practice_group: d.group || null,
@@ -2269,7 +2284,7 @@ export default function Admin() {
       try {
         await supabase.from('practice_laps').delete()
           .eq('series', series).eq('year', year)
-          .eq('track_name', trackName).eq('session_number', sessionNum).eq('race_number', practiceRaceNum)
+          .eq('track_name', trackName).eq('session_number', sessionNum).eq('race_number', __rnUse)
 
         const lapRows = []
         for (const d of (preview.parsed.drivers || [])) {
@@ -2280,7 +2295,7 @@ export default function Admin() {
             if (isNaN(t) || t <= 0) continue
             lapRows.push({
               series, year, track_name: trackName, session_number: sessionNum,
-            race_number: practiceRaceNum,
+            race_number: __rnUse,
               driver_name: stripRosterMarkers(d.driver),
               car_number: d.carNumber || null,
               starting_position: d.start || null,
