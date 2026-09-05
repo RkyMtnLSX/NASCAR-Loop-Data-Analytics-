@@ -426,14 +426,30 @@ export default function DFSPage() {
     return out
   }, [samples])
 
-  const rows = useMemo(() => drivers.map(d => {
-    // OUT drivers (withdrawn / DNQ, from dfs_salaries.__out 2026-08-20): effective salary 0
-    // kills value AND drops them from every optimizer path (all pools filter sal > 0).
-    const isOut = (salaries.__out || []).includes(d.name)
-    const sal = isOut ? 0 : (salaries[d.name] || 0)
-    const value = sal > 0 ? d.projDK / (sal / 1000) : 0
-    return { ...d, sal, value, out: isOut, opt: optPct[d.name] || 0, ceil: ceilMap[d.name] || 0 }
-  }), [drivers, salaries, optPct, ceilMap])
+  // VALUE = marginal DK points per marginal $1K above the salary floor (2026-09-05, operator choice).
+  // pts/$K ranked by salary: every floor car starting last projects ~24 (finish pts + place diff)
+  // and topped the column each week (Cram 4.99 at Darlington). Every slot costs >= the floor and
+  // buys >= the floor projection, so the only decision is what the EXTRA money buys:
+  //   value = (projDK - floorProj) / ((sal - floorSal) / 1000)
+  // floorSal = min posted salary; floorProj = median projection of drivers within $500 of it.
+  // Drivers within $500 of the floor are PUNTS (no marginal $ to divide) - shown as 'punt', compared
+  // on raw projection. Old pts/$K kept as ptsPerK for the tooltip.
+  const rows = useMemo(() => {
+    const posted = drivers.map(d => ({ d, sal: (salaries.__out || []).includes(d.name) ? 0 : (salaries[d.name] || 0) })).filter(x => x.sal > 0)
+    const floorSal = posted.length ? Math.min(...posted.map(x => x.sal)) : 0
+    const nearFloor = posted.filter(x => x.sal <= floorSal + 500).map(x => x.d.projDK).sort((a, b) => a - b)
+    const floorProj = nearFloor.length ? nearFloor[Math.floor(nearFloor.length / 2)] : 0
+    return drivers.map(d => {
+      // OUT drivers (withdrawn / DNQ, from dfs_salaries.__out 2026-08-20): effective salary 0
+      // kills value AND drops them from every optimizer path (all pools filter sal > 0).
+      const isOut = (salaries.__out || []).includes(d.name)
+      const sal = isOut ? 0 : (salaries[d.name] || 0)
+      const ptsPerK = sal > 0 ? d.projDK / (sal / 1000) : 0
+      const punt = sal > 0 && sal <= floorSal + 500
+      const value = sal > 0 && !punt ? (d.projDK - floorProj) / ((sal - floorSal) / 1000) : 0
+      return { ...d, sal, value, ptsPerK, punt, out: isOut, opt: optPct[d.name] || 0, ceil: ceilMap[d.name] || 0 }
+    })
+  }, [drivers, salaries, optPct, ceilMap])
 
   const ownMap = useMemo(() => projectOwnership(rows), [rows])
   const rowsOwn = useMemo(() => rows.map(d => ({ ...d, pOwn: ownMap[d.name] || 0 })), [rows, ownMap])
@@ -768,7 +784,7 @@ export default function DFSPage() {
                 <button onClick={() => setEntFile(null)} style={{ padding: '6px 14px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: 'transparent', color: 'var(--text,#e8eaed)' }}>Cancel</button>
               </div>
             </div>}
-            <span style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 12 }}>{canBuild ? 'Cap $50,000 \u00b7 6 drivers \u00b7 Lock/Excl to steer' + (samples ? ' \u00b7 Optimal% from ' + samples.rows.length + ' sims \u00b7 Value = proj DK pts per $1K salary (higher = more points per dollar) \u00b7 Ceiling = 90th-percentile DK score (tournament upside)' : '') : 'Salaries not posted yet'}</span>
+            <span style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 12 }}>{canBuild ? 'Cap $50,000 \u00b7 6 drivers \u00b7 Lock/Excl to steer' + (samples ? ' \u00b7 Optimal% from ' + samples.rows.length + ' sims \u00b7 Value = extra DK pts per extra $1K above the salary floor (what the money buys; floor cars = PUNT, compare on Proj DK) \u00b7 Ceiling = 90th-percentile DK score (tournament upside)' : '') : 'Salaries not posted yet'}</span>
             {note && <span style={{ color: 'var(--accent,#e11d2a)', fontSize: 12 }}>{note}</span>}
           </div>
 
@@ -784,7 +800,7 @@ export default function DFSPage() {
               <tbody>
                 {sorted.map(d => {
                   const locked = locks.has(d.name), excl = excludes.has(d.name)
-                  const vBg = d.value >= 4 ? 'rgba(46,160,67,0.28)' : d.value >= 3 ? 'rgba(46,160,67,0.14)' : 'transparent'
+                  const vBg = d.punt ? 'transparent' : d.value >= 3 ? 'rgba(46,160,67,0.28)' : d.value >= 2 ? 'rgba(46,160,67,0.14)' : d.value < 0.5 ? 'rgba(225,29,42,0.12)' : 'transparent'
                   const oBg = d.opt >= 30 ? 'rgba(232,185,35,0.3)' : d.opt >= 12 ? 'rgba(232,185,35,0.15)' : 'transparent'
                   return (
                     <tr key={d.name} style={{ borderBottom: '1px solid var(--border,#22252b)', opacity: excl ? 0.4 : 1 }}>
@@ -807,7 +823,7 @@ export default function DFSPage() {
                       <td style={{ padding: '4px 8px', textAlign: 'right' }}>{d.out ? <span style={{ fontSize: 10, fontWeight: 800, color: '#ff5148', border: '1px solid #ff5148', borderRadius: 4, padding: '1px 5px' }}>OUT</span> : d.sal ? '$' + d.sal.toLocaleString() : '\u2014'}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right', fontWeight: 600 }}>{d.projDK.toFixed(1)}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right', color: 'var(--text-secondary,#9aa0aa)' }}>{d.ceil ? d.ceil.toFixed(0) : '\u2014'}</td>
-                      <td style={{ padding: '4px 8px', textAlign: 'right', background: vBg, fontWeight: 600 }}>{d.value ? d.value.toFixed(2) : '\u2014'}</td>
+                      <td style={{ padding: '4px 8px', textAlign: 'right', background: vBg, fontWeight: 600 }} title={d.sal ? (d.punt ? 'Floor-salary punt: compare on Proj DK. ' : 'Marginal DK pts per $1K above the floor. ') + 'Pts per $1K: ' + d.ptsPerK.toFixed(2) : ''}>{!d.sal ? '\u2014' : d.punt ? <span style={{ fontSize: 10, color: 'var(--text-secondary,#9aa0aa)', fontWeight: 700 }}>PUNT</span> : d.value.toFixed(2)}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right', background: oBg }}>{d.opt ? d.opt.toFixed(1) + '%' : '\u2014'}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right', color: 'var(--text-secondary,#9aa0aa)' }} title="Projected field ownership - a monotone map off our own projection ranking, normalised so the board sums to 600%. Measured accuracy: 6.1 ownership points MAE across 8 races. It is derived from our projection, so the gap to Optimal% is not a leverage edge.">{d.pOwn ? d.pOwn.toFixed(1) + '%' : '\u2014'}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right' }}>{d.winPct.toFixed(1)}</td>
