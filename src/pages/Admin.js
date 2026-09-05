@@ -319,9 +319,9 @@ function EntryListManager() {
   const [pdfStatus, setPdfStatus] = React.useState('')
   const [status, setStatus] = React.useState(null)
 
-  const showStatus = (msg, isErr) => {
+  const showStatus = (msg, isErr, ms) => {
     setStatus({ msg, isErr })
-    setTimeout(() => setStatus(null), 3000)
+    setTimeout(() => setStatus(null), ms || 3000)
   }
 
   const parsePdf = async (file) => {
@@ -459,28 +459,84 @@ function EntryListManager() {
     showStatus('Cleared')
   }
 
+  // SPONSOR GUARD (2026-09-05): the paste is positional (car, driver, organization, mfr) and a
+  // Jayski list whose third column is the SPONSOR used to land in entry_list.organization
+  // silently (O'Reilly Darlington 2026 - 38 cars showed sponsors as teams, repaired by hand).
+  // Now: (1) an optional header line maps columns by name; (2) with 5+ columns the team column
+  // is whichever fold-matches a team this series has run before; (3) if most parsed organizations
+  // match no known team the import stops and offers each driver's most recent known team instead.
+  const foldTeam = t => (t || '').toString().toLowerCase().replace(/[^a-z0-9]/g, '')
+  const teamMatch = (t, known) => { const f = foldTeam(t); if (f.length < 4) return false; return known.some(k => k === f || (f.length >= 6 && k.length >= 6 && (k.includes(f) || f.includes(k)))) }
+  const loadKnownTeams = async () => {
+    const yr = cfg.correlation_year
+    const { data } = await supabase.from('entry_list').select('driver_name, organization, race_year, id')
+      .eq('series', series).in('race_year', [yr, yr - 1]).not('organization', 'is', null)
+      .order('id', { ascending: false }).limit(5000)
+    const known = new Set(), byDriver = new Map()
+    for (const r of data || []) {
+      const f = foldTeam(r.organization); if (f.length >= 4) known.add(f)
+      const d = foldTeam(stripRosterMarkers(r.driver_name)); if (d && !byDriver.has(d)) byDriver.set(d, r.organization)  // newest row first
+    }
+    return { known: [...known], byDriver }
+  }
   const bulkImport = async () => {
     if (!cfg || !bulkText.trim()) return
     const lines = bulkText.trim().split('\n').filter(l => l.trim())
-    const rows = []
+    const { known, byDriver } = await loadKnownTeams()
+    // header line: no digit in the first cell and a "driver" cell somewhere -> map columns by name
+    let colMap = null
+    const first = lines[0].split(',').map(p => p.trim().toLowerCase())
+    if (!/\d/.test(first[0]) && first.some(h => /driver|name/.test(h))) {
+      const find = re => first.findIndex(h => re.test(h))
+      colMap = { car: find(/^(car|no\.?|#|number|car ?#|car ?no)/), driver: find(/driver|name/), org: find(/team|organi[sz]ation|owner/), mfr: find(/make|manufacturer|mfr/), sponsor: find(/sponsor/) }
+      if (colMap.driver < 0) colMap = null; else lines.shift()
+    }
+    const rows = [], unknownOrgs = []
     for (const line of lines) {
       const parts = line.split(',').map(p => p.trim())
-      if (parts.length >= 2 && parts[1]) {
-        rows.push({
-          series, race_year: cfg.correlation_year, track_name: cfg.track_name,
-          car_number: parts[0] || null,
-          driver_name: stripRosterMarkers(parts[1]),
-          organization: parts[2] || null,
-          manufacturer: normMfr(parts[3]) || null,
-        })
+      let car, drv, org, mfr
+      if (colMap) {
+        car = parts[colMap.car >= 0 ? colMap.car : 0]; drv = parts[colMap.driver]
+        org = colMap.org >= 0 ? parts[colMap.org] : ''
+        mfr = colMap.mfr >= 0 ? parts[colMap.mfr] : parts.slice(2).find(p => normMfr(p))
+      } else {
+        car = parts[0]; drv = parts[1]
+        const rest = parts.slice(2)
+        // 5+ columns: the team is whichever trailing column matches a known team, else column 3
+        const hit = rest.length >= 3 ? rest.find(p => teamMatch(p, known) && !normMfr(p)) : null
+        org = hit != null ? hit : rest[0]
+        mfr = rest.find(p => normMfr(p)) || parts[3]
       }
+      if (!drv) continue
+      const driver_name = stripRosterMarkers(drv)
+      if (org && known.length >= 10 && !teamMatch(org, known)) unknownOrgs.push({ driver_name, org })
+      rows.push({
+        series, race_year: cfg.correlation_year, track_name: cfg.track_name,
+        car_number: car || null, driver_name,
+        organization: org || null,
+        manufacturer: normMfr(mfr) || null,
+      })
     }
     if (!rows.length) { showStatus('No valid lines parsed', true); return }
+    const withOrg = rows.filter(r => r.organization).length
+    if (withOrg >= 5 && unknownOrgs.length / withOrg > 0.5) {
+      // looks like a sponsor column - offer the swap, never import silently
+      const fixable = rows.filter(r => r.organization && !teamMatch(r.organization, known) && byDriver.get(foldTeam(r.driver_name)))
+      const ex = unknownOrgs.slice(0, 3).map(u => '"' + u.org + '"').join(', ')
+      const ok = window.confirm(
+        unknownOrgs.length + ' of ' + withOrg + ' organizations match no ' + series + ' team seen before (e.g. ' + ex + ') - that column looks like SPONSORS, not teams.\n\n' +
+        'OK = import using each driver\'s most recent known team instead (' + fixable.length + ' of ' + unknownOrgs.length + ' can be filled; the rest stay as pasted).\n' +
+        'Cancel = abort so you can fix the paste.')
+      if (!ok) { showStatus('Import cancelled - organization column looked like sponsors', true); return }
+      for (const r of fixable) r.organization = byDriver.get(foldTeam(r.driver_name))
+      unknownOrgs.length = 0; for (const r of rows) if (r.organization && !teamMatch(r.organization, known)) unknownOrgs.push({ driver_name: r.driver_name, org: r.organization })
+    }
     const { error } = await supabase.from('entry_list').upsert(rows, { onConflict: 'series,race_year,track_name,driver_name' })
     if (error) { showStatus('Error: ' + error.message, true); return }
     await loadEntries(series, cfg)
     setBulkText(''); setShowBulk(false)
-    showStatus('Imported ' + rows.length + ' drivers')
+    if (unknownOrgs.length) showStatus('Imported ' + rows.length + ' drivers - ' + unknownOrgs.length + ' organization(s) not seen before in ' + series + ': ' + unknownOrgs.slice(0, 4).map(u => u.driver_name + ' / ' + u.org).join('; ') + (unknownOrgs.length > 4 ? ' ...' : ''), true, 15000)
+    else showStatus('Imported ' + rows.length + ' drivers')
   }
 
   const inp = {
@@ -558,7 +614,7 @@ function EntryListManager() {
         {showBulk && (
           <div style={{ marginTop: 10 }}>
             <p style={{ fontSize: '0.775rem', color: 'var(--text-muted)', marginBottom: 6 }}>
-              One driver per line: <code>car#, Driver Name, Organization</code>
+              One driver per line: <code>car#, Driver Name, Organization, Make</code> (a header line like <code>Car, Driver, Sponsor, Team, Make</code> maps columns by name; a sponsor column pasted where the team belongs is caught and confirmed before import)
             </p>
             <textarea value={bulkText} onChange={e => setBulkText(e.target.value)}
               rows={8}

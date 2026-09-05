@@ -3201,3 +3201,17 @@ Operator: the O'Reilly order is set by the same metric. Registered as a series-s
 (no cup constant reused; ties excluded from the share gate in advance), fit on 2025, judged once on
 2026: pooled 6.00->5.73, INT 6.43->5.68 (7/7), live-race share 13/17. Shipped via a per-series beta
 table in the projection block; trucks still have no term. Harness takes SERIES=oreilly.
+
+## 2026-09-05 — Entry list import: sponsor column landed in `organization` (data repaired + importer guard)
+Operator: the O'Reilly Darlington entry list showed sponsors where team names belong. Cause: the
+Admin.js bulk import is positional (`car, driver, organization, mfr`) and this week's paste carried the
+sponsor in column 3, so entry_list.organization stored sponsors for 38 cars; a spelling-variant duplicate
+("Nicholas Sanchez" #87 beside "Nick Sanchez") rode in with it. DATA: duplicate deleted, organization
+restored for all 38 from each driver's most recent prior O'Reilly entry row (spot-checked). CODE
+(`bulkImport`): (1) an optional header line (`Car, Driver, Sponsor, Team, Make`) maps columns by name;
+(2) with 5+ columns the team is whichever trailing column fold-matches a team this series has run in
+the last two seasons; (3) if more than half the parsed organizations match no known team the import
+STOPS with a confirm — OK swaps in each driver's most recent known team, Cancel aborts; (4) any
+remaining never-seen organization is named in a 15s warning. Guard arms only once the series has 10+
+known teams. PDF parser unchanged (it never emits a sponsor). Light check: header/positional/5-col
+cases exercised in node; lint:undef + CI build green.
