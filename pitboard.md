@@ -3215,3 +3215,15 @@ STOPS with a confirm — OK swaps in each driver's most recent known team, Cance
 remaining never-seen organization is named in a 15s warning. Guard arms only once the series has 10+
 known teams. PDF parser unchanged (it never emits a sponsor). Light check: header/positional/5-col
 cases exercised in node; lint:undef + CI build green.
+
+## 2026-09-05 — DK odds parser: markets split across pages (Darlington)
+Operator: DK posted the driver markets on two pages this week — cup Winner / Top 3 / Top 10 on one
+page and Top 5 alone; O'Reilly Winner / Top 3 on one page and Top 5 alone. The DK box parser (07-14
+column auto-detect) read the header cells ONCE for the whole paste and collected that many numbers per
+driver, so two pages pasted together = 3 markets expected, 2 or 1 numbers found, 0 parsed. Fix:
+`parseDkPages` (now in src/lib/oddsSectionParser.js, fixture-tested — 3 new tests) reads the paste as
+segments: each header run sets the column order for the drivers that follow, each segment collects its
+own column count. Top 10 is now recognised as a DK column (the cup page's third column used to be
+dropped); the Top 10 box uses the same parser with a one-column default. Single-page weeks parse
+exactly as before. WORKFLOW: paste every DK page into the DK box one after the other, each with its
+header row. Book-side layout changes are a recurring class (see the 08-14 HR header rename).

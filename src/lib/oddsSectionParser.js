@@ -75,3 +75,49 @@ export function parseSect(txt, hdr) {
   })
   return m
 }
+
+// ---- DraftKings multi-column box (moved here from SimulationCenter.__marketValue 2026-09-05).
+// DK COLUMN-ORDER AUTO-DETECT (2026-07-14) -> DK MULTI-PAGE PASTE (2026-09-05). DK prints the driver
+// markets as a multi-column box whose header cells name the columns (Race Winner / Top 3 / Top 5
+// usually; the order varies). 2026-09-05 (operator, Darlington): DK split the markets across pages -
+// cup: Winner / Top 3 / Top 10 on one page and Top 5 alone on another; O'Reilly: Winner / Top 3 on one
+// page and Top 5 alone. Both pages pasted together gave a 3-market header set for drivers who each
+// carried 2 or 1 numbers, and nothing parsed. The paste is now read as SEGMENTS: every header run (one
+// or more consecutive lines made only of market words) sets the column order for the drivers that
+// follow until the next header run, and each segment collects exactly its own column count. Top 10 is
+// recognised as a column too (it used to be dropped from the winner box). `dflt` is the column order
+// used before any header is seen (winner box: win/t3/t5; Top 10 box: t10), so a header-less paste
+// behaves exactly as it did before.
+function isDkHeaderLine(l) {
+  var rest = l.replace(/race\s*-?\s*winner/g, ' ').replace(/top\s*-?\s*\d+\s*finish/g, ' ').replace(/top\s*-?\s*\d+/g, ' ').replace(/\bfinish\b/g, ' ').replace(/\bto win\b/g, ' ').replace(/\bwinner\b/g, ' ').replace(/\boutright\b/g, ' ').replace(/[^a-z0-9]+/g, '').trim();
+  return !rest;
+}
+function dkHeaderMarkets(l) {
+  var found = [];
+  var m10 = /top\s*-?\s*10/.exec(l);           if (m10) found.push([m10.index, 't10']);
+  var m5 = /top\s*-?\s*5(?!\d)/.exec(l);       if (m5) found.push([m5.index, 't5']);
+  var m3 = /top\s*-?\s*3(?!\d)/.exec(l);       if (m3) found.push([m3.index, 't3']);
+  var mw = /race\s*winner|outright|(^|\s)winner(\s|$)/.exec(l); if (mw) found.push([mw.index, 'win']);
+  found.sort(function (a, b) { return a[0] - b[0]; });
+  return found.map(function (f) { return f[1]; });
+}
+export function parseDkPages(txt, dflt) {
+  var out = { win: {}, t3: {}, t5: {}, t10: {} }, order = dflt.slice(), inHdr = false, name = null, buf = [];
+  var flush = function () { if (name && buf.length >= order.length) { order.forEach(function (mk, ci) { out[mk][normDriver(name)] = buf[ci]; }); } name = null; buf = []; };
+  (txt || '').split('\n').forEach(function (raw) {
+    var l = raw.trim(); if (!l) return;
+    var low = l.toLowerCase();
+    if (isDkHeaderLine(low)) {
+      var mks = dkHeaderMarkets(low); if (!mks.length) return;   // e.g. a bare "Finish" cell
+      if (!inHdr) { flush(); order = []; inHdr = true; }
+      mks.forEach(function (mk) { if (order.indexOf(mk) < 0) order.push(mk); });
+      return;
+    }
+    inHdr = false;
+    var o = americanOdds(l);
+    if (o !== null) { if (name) buf.push(o); }
+    else if (/[a-zA-Z]{2,}/.test(l)) { flush(); name = l; }
+  });
+  flush();
+  return out;
+}

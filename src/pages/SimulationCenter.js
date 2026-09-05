@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { parseSect, FD_HEADERS, HR_HEADERS, normDriver } from '../lib/oddsSectionParser'
+import { parseSect, parseDkPages, FD_HEADERS, HR_HEADERS, normDriver } from '../lib/oddsSectionParser'
 import { supabase } from '../lib/supabase'
 import { fetchAllRows } from '../lib/fetchAllRows'
 import useSubscriber from '../lib/useSubscriber'
@@ -37,39 +37,17 @@ export function __marketValue(winTxt, t10Txt, fdTxt, hrTxt, drivers) {
     var amer = function (l) { var m = l.trim().replace(/[\u2212\u2013\u2014]/g, '-'); return /^[+\-]\d{2,6}$/.test(m) ? parseInt(m, 10) : null; };
     var dec = function (a) { return a > 0 ? a / 100 + 1 : 100 / (-a) + 1; };
     var impl = function (a) { return a > 0 ? 100 / (a + 100) : -a / (-a + 100); };
-    var parseDK = function (txt, n) { var out = {}, name = null, buf = []; var flush = function () { if (name && buf.length >= n) out[norm(name)] = buf.slice(0, n); name = null; buf = []; }; (txt || '').split('\n').forEach(function (raw) { var l = raw.trim(); if (!l) return; var o = amer(l); if (o !== null) { if (name) buf.push(o); } else if (/[a-zA-Z]{2,}/.test(l)) { flush(); name = l; } }); flush(); return out; };
     // parseSect + section-killer regexes live in src/lib/oddsSectionParser.js (extracted
     // 2026-08-28, code-review m3) - the group-market and season-futures bug history is documented there.
 
     var FDh = FD_HEADERS;
     var HRh = HR_HEADERS;
-    // DK COLUMN-ORDER AUTO-DETECT (2026-07-14). DK sometimes prints the 3-col winner box in a
-    // different column order (seen~ Top 5 / Top 3 / Race Winner instead of Winner / Top 3 / Top 5).
-    // parseDK collects the 3 numbers per row positionally; we must map columns by the HEADER CELLS
-    // in the paste, not by a fixed position. Header lines are already in winTxt (parseDK discards
-    // them). Reads both separate-line and tab-joined header rows. Falls back to Winner/Top3/Top5
-    // when headers are absent, so normal weeks are byte-for-byte unchanged.
-    var detectDkOrder = function (txt) {
-      var seq = [];
-      (txt || '').split('\n').forEach(function (raw) {
-        var l = raw.toLowerCase(), found = [];
-        var __hdr = l.replace(/race\s*-?\s*winner/g, ' ').replace(/top\s*-?\s*\d+\s*finish/g, ' ').replace(/top\s*-?\s*\d+/g, ' ').replace(/\bfinish\b/g, ' ').replace(/\bto win\b/g, ' ').replace(/\bwinner\b/g, ' ').replace(/\boutright\b/g, ' ').replace(/[^a-z0-9]+/g, '').trim();
-        if (__hdr) return;
-        var m5 = /top\s*-?\s*5/.exec(l);            if (m5) found.push([m5.index, 't5']);
-        var m3 = /top\s*-?\s*3/.exec(l);            if (m3) found.push([m3.index, 't3']);
-        var mw = /race\s*winner|outright|(^|\s)winner(\s|$)/.exec(l); if (mw) found.push([mw.index, 'win']);
-        found.sort(function (a, b) { return a[0] - b[0]; });
-        found.forEach(function (f) { if (seq.indexOf(f[1]) < 0) seq.push(f[1]); });
-      });
-      return seq.length ? seq : ['win', 't3', 't5'];   // 1, 2, or 3 markets; fallback only if none
-    };
-    var __dkOrder = detectDkOrder(winTxt);
-    // DK may post FEWER markets than 3 (e.g. Race Winner only, early in the week). Parse exactly as
-    // many columns per driver as there are detected market headers, so a winner-only page still parses.
-    var d1 = parseDK(winTxt, __dkOrder.length), d2 = parseDK(t10Txt, 1);
-    var dk = { win: {}, t3: {}, t5: {}, t10: {} };
-    Object.keys(d1).forEach(function (k) { __dkOrder.forEach(function (mk, ci) { if (d1[k][ci] != null) dk[mk][k] = d1[k][ci]; }); });
-    Object.keys(d2).forEach(function (k) { dk.t10[k] = d2[k][0]; });
+    // DK: header-cell column detection (2026-07-14) + multi-page segments (2026-09-05, DK split
+    // Winner/Top 3(/Top 10) and Top 5 across pages at Darlington). Full history in the lib file.
+    // isDkHeaderLine / dkHeaderMarkets / parseDkPages live in src/lib/oddsSectionParser.js (fixture-tested).
+    var dk = parseDkPages(winTxt, ['win', 't3', 't5']);
+    var dk10 = parseDkPages(t10Txt, ['t10']);
+    Object.keys(dk10).forEach(function (mk) { Object.keys(dk10[mk]).forEach(function (k) { dk[mk][k] = dk10[mk][k]; }); });
     var books = { dk: dk, fd: parseSect(fdTxt, FDh), hr: parseSect(hrTxt, HRh) };
     var MKS = [['win', 1, 'winPct'], ['t3', 3, 'top3Pct'], ['t5', 5, 'top5Pct'], ['t10', 10, 'top10Pct']];
     // Tail guard (2026-07-09): below these model probabilities the sim has no calibrated
@@ -1428,7 +1406,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
             {/* ODDS PASTE moved out of the simResults conditional (2026-07-22): Paste -> Run -> Publish requires the boxes to exist BEFORE the first run (market anchors read odds at run time). */}
             {rawDrivers.length > 0 && (
               <div style={{ marginTop: 12 }}>
-  <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 4 }}>DK odds - paste incl. the header row (any column order auto-detected)</div>
+  <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 4 }}>DK odds - paste incl. the header row (any column order auto-detected; if DK splits the markets across pages, paste every page here one after the other, each with its header)</div>
   <textarea value={oddsWinTxt} onChange={e => setOddsWinTxt(e.target.value)} rows={3} style={{ width: '100%', fontFamily: 'monospace', fontSize: 11 }} />
   <div style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '6px 0 4px' }}>DK odds - Top 10 (paste)</div>
   <textarea value={oddsT10Txt} onChange={e => setOddsT10Txt(e.target.value)} rows={3} style={{ width: '100%', fontFamily: 'monospace', fontSize: 11 }} /> <div style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '6px 0 4px' }}>FanDuel odds - full page (paste)</div>

@@ -1,7 +1,7 @@
 // Fixture tests for the sportsbook paste parser. Every fixture reproduces a REAL incident -
 // if you touch a regex in oddsSectionParser.js, these must pass, and any new book-layout bug
 // gets its page added here as the regression fixture. Run: CI=true npm test
-import { parseSect, FD_HEADERS, HR_HEADERS, normDriver } from './oddsSectionParser'
+import { parseSect, parseDkPages, FD_HEADERS, HR_HEADERS, normDriver } from './oddsSectionParser'
 
 // FIXTURE 1 - the 2026-08-28 FanDuel futures incident (oreilly Daytona, Winn-Dixie 250).
 // FanDuel put "O'Reilly Auto Parts Series 2026 Winner" on the race page; the championship
@@ -100,4 +100,81 @@ test('legitimate market headers are never killed by the futures guard', () => {
     const total = Object.keys(r.win).length + Object.keys(r.t3).length + Object.keys(r.t5).length + Object.keys(r.t10).length
     expect(total).toBe(1)
   }
+})
+
+// ---- DraftKings multi-page pastes (2026-09-05, Darlington). DK split the driver markets across
+// two pages: cup Winner / Top 3 / Top 10 + a Top 5 page; O'Reilly Winner / Top 3 + a Top 5 page.
+// Pasted one after the other, the old single-header parser produced nothing.
+const DK_CUP_P1 = `Cook Out Southern 500
+Race Winner
+Top 3
+Top 10
+Denny Hamlin
++600
++180
+-200
+Tyler Reddick
++900
++250
+-150
+Chase Briscoe
++1200
++330
+-120`
+const DK_CUP_P2 = `Cook Out Southern 500
+Top 5
+Denny Hamlin
+-110
+Tyler Reddick
++120
+Chase Briscoe
++150`
+const DK_ORE_P1 = `Sport Clips Haircuts VFW Help A Hero 200
+Race Winner
+Top 3
+Justin Allgaier
++400
++110
+Jesse Love
++550
++140`
+const DK_ORE_P2 = `Sport Clips Haircuts VFW Help A Hero 200
+Top 5
+Justin Allgaier
+-180
+Jesse Love
+-140`
+
+test('DK cup: Winner/Top3/Top10 page + Top 5 page pasted together', () => {
+  const m = parseDkPages(DK_CUP_P1 + '\n' + DK_CUP_P2, ['win', 't3', 't5'])
+  expect(m.win['denny hamlin']).toBe(600)
+  expect(m.t3['denny hamlin']).toBe(180)
+  expect(m.t10['denny hamlin']).toBe(-200)
+  expect(m.t5['denny hamlin']).toBe(-110)
+  expect(m.t5['chase briscoe']).toBe(150)
+  expect(Object.keys(m.win)).toHaveLength(3)
+  expect(Object.keys(m.t5)).toHaveLength(3)
+})
+
+test('DK oreilly: Winner/Top3 page + Top 5 page pasted together (either order)', () => {
+  for (const txt of [DK_ORE_P1 + '\n' + DK_ORE_P2, DK_ORE_P2 + '\n' + DK_ORE_P1]) {
+    const m = parseDkPages(txt, ['win', 't3', 't5'])
+    expect(m.win['jesse love']).toBe(550)
+    expect(m.t3['jesse love']).toBe(140)
+    expect(m.t5['jesse love']).toBe(-140)
+    expect(Object.keys(m.t10)).toHaveLength(0)
+  }
+})
+
+test('DK normal week: one header run, unchanged behaviour; tab-joined header; no header at all', () => {
+  const one = `Race Winner\nTop 3\nTop 5\nKyle Larson\n+500\n+150\n-130\nWilliam Byron\n+700\n+200\n-110`
+  const m = parseDkPages(one, ['win', 't3', 't5'])
+  expect(m.win['kyle larson']).toBe(500); expect(m.t3['kyle larson']).toBe(150); expect(m.t5['kyle larson']).toBe(-130)
+  const tab = `Top 5\tTop 3\tRace Winner\nKyle Larson\n-130\n+150\n+500`
+  const t = parseDkPages(tab, ['win', 't3', 't5'])
+  expect(t.win['kyle larson']).toBe(500); expect(t.t5['kyle larson']).toBe(-130)
+  const none = parseDkPages(`Kyle Larson\n+500\n+150\n-130\nJunk Line\n+100`, ['win', 't3', 't5'])
+  expect(none.win['kyle larson']).toBe(500); expect(none.win['junk line']).toBeUndefined()
+  const t10 = parseDkPages(`Kyle Larson\n-300\nWilliam Byron\n-250`, ['t10'])
+  expect(t10.t10['william byron']).toBe(-250)
 })
