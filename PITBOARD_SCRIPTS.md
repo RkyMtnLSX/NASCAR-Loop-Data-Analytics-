@@ -189,7 +189,7 @@ python pitboard_practice_capture.py --race                    # race lap archive
 Output: `{YYYYMMDD}_{series}_{track}_{run}_laps_FULL.csv` in the script folder.
 
 ### `pitboard_practice_sheet.py` — capture CSV → practice sheet
-Converts a `*_laps_FULL.csv` into `POS | Driver | AVG LAP | LAP 1..N`. Flying laps only (drops laps
+Converts a `*_laps_FULL.csv` into `POS | Driver | Car # | AVG LAP | LAP 1..N` (Car # added 2026-09-05 from the feed's vehicle_number - without it every watcher upload since 08-08 stored no car numbers in any series and the report card showed no number badges; 2026 cup R22-25 and O'Reilly R22/23/25 were backfilled from entry_list). Flying laps only (drops laps
 > 1.2× that driver's median, and anything outside 5-300s). Since 2026-09-05 page 1 keeps ORIGINAL
 lap numbers: a filtered pit / in-out lap shows as `--` in its column and rows are padded with `--`,
 exactly like the old-method sheet, so pit visits and over-long runs are visible before upload
