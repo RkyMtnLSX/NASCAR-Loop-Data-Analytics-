@@ -48,6 +48,30 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-05 — REGISTRATION: track-type-conditioned driver prior (pre-test, loop data only; no sim change)
+
+Queued 2026-08-09, never run. Trigger today: the grade x prior blend (above, not shipped) showed
+history carries about as much race-speed information as practice; the operator's objection to it was
+that a Daytona result says nothing about Darlington. The sim's driver prior is pooled across all
+tracks. Question: does conditioning the trailing rating on track group beat the pooled prior?
+
+FORM (frozen before any data is read):
+- Data: loop_data, all three series, races with >=20 rated drivers, exhibition excluded. Target A =
+  race-day driver_rating; target B = finish_position. Leak-free: priors use only races dated before
+  the target race.
+- Pooled prior P = age-weighted mean of the driver's driver_rating over prior races (weights 1.3 /
+  1.0 / .75 / .55 by season lag, .4 beyond — the grader's existing gc weights), min 3 races.
+- Conditioned prior C = same weighting restricted to races in the target's `tracks.correlation_group_label`
+  (Intermediate / Short & Flat / Road Course / Superspeedway), shrunk toward P: C = (sum_w*rating_g + k*P)
+  / (sum_w + k). DECISION k = 4 (four same-group races before the group speaks louder than the pool).
+  k = 2 and k = 8 reported as sensitivity only - they do not decide.
+- Metric: per-race Spearman of prior vs target, averaged; per-race W/L (|delta| > .005). Reported
+  overall and per track group (the SS group is where conditioning should matter most; a per-group
+  reversal is a finding, per the manual's per-tier rail).
+- DECISION RULE: C beats P if mean rho(A) improves AND W/L >= 1.5:1 on cup. Then and only then a
+  sim A/B (driver prior input) queues behind the replay ledger. A tie or loss closes the line; a
+  loss on one group only is recorded as a group-specific note, not a partial ship.
+
 ## 2026-09-05 — v6.4-sets: cumulative tire age for 1-SET sessions (gate passed); K>=2 detector FAILED its gate
 
 **Trigger.** Darlington O'Reilly practice (first watcher sheet with pit laps as numbered laps): Alfredo
