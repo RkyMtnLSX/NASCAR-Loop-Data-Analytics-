@@ -15,13 +15,14 @@ const { buildSpeedScores, runRaceSim, getCautionPresets, resolveDnfRate, DEFAULT
   ROAD_COURSE_WEIGHTS, SUPERSPEEDWAY_WEIGHTS, __trackGroup, isSuperspeedway, isRoadCourse } = E
 const SIMS = Number(process.env.SIMS || 4000)
 const PHASE = process.env.PHASE || 'all'
+const SERIES = process.env.SERIES || 'cup'   // 2026-09-05: 'oreilly' runs the registered O'Reilly extension on its own data/fit
 const D = p => path.join(__dirname, 'backtest-data', p)
 const num = s => (s === '' || s == null ? null : Number(s))
 function seedRandom(seed) { let a = seed >>> 0; Math.random = function () { a += 0x6D2B79F5; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296 } }
 
 // ---- study rows
 const races = []
-for (const l of fs.readFileSync(D('start-v4-cup-2025-26.txt'), 'utf8').split('\n')) {
+for (const l of fs.readFileSync(D(`start-v4-${SERIES}-2025-26.txt`), 'utf8').split('\n')) {
   if (!l.trim() || l.startsWith('#')) continue
   const [h, b] = l.split('#'); const [id, yr, rn, grp, track, date] = h.split('|')
   const rows = b.split(';').map(r => { const f = r.split(','); return { st: +f[0], fi: +f[1], tr: num(f[2]), lfp: num(f[3]), ord: num(f[4]) } })
@@ -65,21 +66,21 @@ function reportM1(label, set, beta, arms) {
     for (const arm of arms) {
       const v = rs.map(r => m1(r, arm, beta))
       const mean = a => a.reduce((s, x) => s + x, 0) / a.length
-      let better = 0; v.forEach((x, i) => { if (x < ctl[i] - 1e-9) better++ })
-      line.push(`${arm} ${mean(v).toFixed(2)}${arm !== 'CONTROL' ? ` (d ${(mean(v) - mean(ctl)).toFixed(2)}, better ${better}/${rs.length})` : ''}`)
+      let better = 0, live = 0; v.forEach((x, i) => { if (Math.abs(x - ctl[i]) > 1e-9) live++; if (x < ctl[i] - 1e-9) better++ })
+      line.push(`${arm} ${mean(v).toFixed(2)}${arm !== 'CONTROL' ? ` (d ${(mean(v) - mean(ctl)).toFixed(2)}, better ${better}/${rs.length}, live ${better}/${live})` : ''}`)
     }
     console.log('  ' + line.join('   '))
   }
 }
 
 // ---- M2/M3: the sim with projected grids (reconstruction boards, fingerprint-matched)
-function weightsFor(track) { if (isRoadCourse(track)) return ROAD_COURSE_WEIGHTS; if (isSuperspeedway(track)) return SUPERSPEEDWAY_WEIGHTS; return DEFAULT_WEIGHTS }
+function weightsFor(track) { if (isRoadCourse(track)) return ROAD_COURSE_WEIGHTS; if (isSuperspeedway(track)) return SERIES === 'oreilly' ? E.ONEILLY_SUPERSPEEDWAY_WEIGHTS : SUPERSPEEDWAY_WEIGHTS; return DEFAULT_WEIGHTS }
 function loadBoards() {
   const out = []
   for (const line of fs.readFileSync(D('holdout.txt'), 'utf8').split('\n')) {
     if (!line.trim()) continue
     const [h, b] = line.split('#'); if (!b) continue
-    const [series, track, grp, pDnf, pN, pCau] = h.split('|'); if (series !== 'cup') continue
+    const [series, track, grp, pDnf, pN, pCau] = h.split('|'); if (series !== SERIES) continue
     const recs = b.split(';').map(r => r.split(',')).filter(f => f.length >= 9)
     const fp = recs.map(f => f[0] + ':' + f[1]).sort().join('|')
     const R = hold.find(r => r.fp === fp); if (!R) continue
@@ -113,10 +114,10 @@ function simArm(boards, arm, beta, seed) {
 }
 
 // ======================================================================= run
-console.log(`engine ${E.__engineSha}  SIMS=${SIMS}  PHASE=${PHASE}  train ${train.length} / holdout ${hold.length} races`)
+console.log(`engine ${E.__engineSha}  SERIES=${SERIES}  SIMS=${SIMS}  PHASE=${PHASE}  train ${train.length} / holdout ${hold.length} races`)
 const beta = fitBeta(train)
 console.log('beta (TRAIN 2025, least squares of residual on last_fp-0.5):', JSON.stringify(beta))
-fs.writeFileSync(D('start-v4-fit.json'), JSON.stringify({ beta, fitOn: '2025 cup', registered: '2026-09-03' }))
+fs.writeFileSync(D(SERIES === 'cup' ? 'start-v4-fit.json' : `start-v4-fit-${SERIES}.json`), JSON.stringify({ beta, fitOn: '2025 ' + SERIES, registered: '2026-09-03' }))
 reportM1('TRAIN 2025 (in-sample)', train, beta, ['CONTROL', 'F'])
 if (PHASE !== 'train') {
   reportM1('HOLDOUT 2026 (read once)', hold, beta, ['CONTROL', 'F'])
