@@ -3195,3 +3195,9 @@ uploaded without lap rows (cup 2025 Las Vegas, Phoenix; 2026 COTA, Martinsville,
 Watkins Glen) plus <5-lap drivers. Sanity: no best5 below best_lap. Effect: live boards were
 already correct from mid-July on; the win is that holdout-practice.txt can now be regenerated
 with best5 so the practice-weight-by-track-group study runs on the sim's real input.
+
+## 2026-09-05 — Start projection v4 extended to O'Reilly (e41e491 / pushed 24bae4a)
+Operator: the O'Reilly order is set by the same metric. Registered as a series-separate extension
+(no cup constant reused; ties excluded from the share gate in advance), fit on 2025, judged once on
+2026: pooled 6.00->5.73, INT 6.43->5.68 (7/7), live-race share 13/17. Shipped via a per-series beta
+table in the projection block; trucks still have no term. Harness takes SERIES=oreilly.
