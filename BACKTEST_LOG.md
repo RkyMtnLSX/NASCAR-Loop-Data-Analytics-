@@ -103,6 +103,16 @@ concave tire age sqrt .522 / log .504; seconds-based z-score composite instead o
 .520; per-driver falloff slope shrunk to pool (k=60) .447 — a clear trap, the driver's own
 practice slope is fuel/traffic/setup noise. The pooled linear slope and rank scaling both stand.
 
+**Measured, NOT shipped (operator decision 2026-09-05): grade x trailing-rating blend.** 103 sessions
+(cup 47 / O'Reilly 27 / trucks 29), leak-free age-weighted trailing driver-rating prior (>=3 races,
+same series), 50/50 rank blend chosen before the full run. rho vs race-day rating: cup .513 -> .634
+(prior alone .610; blend > grade 39/8, > prior 27/18); O'Reilly .779 -> .837 (.799; 21/4, 21/5);
+trucks .681 -> .781 (.777; 26/3, 17/12). Best-rated driver's card rank cup 6.7 -> 4.9. DECISION: the
+practice card grades practice - a prior from a different track type (Daytona -> Darlington) hurts a
+driver who practiced well, and track-type conditioning is the SIM's job, which it already does. Do
+not add a blended column to the card. The number is recorded because it is the size of the
+information practice does NOT carry, which is what the sim's practice weight is fighting.
+
 **Ships with it.** `tire_allocations` table (cup 2026 full season from the sheet; O'Reilly R25 = 2)
 defaults the new Tire sets field on the practice uploader; practice_sessions.tire_sets is stamped at
 upload (was hand-edited after the fact); report card shows runs-by-set. 22 cup 2026 sessions
