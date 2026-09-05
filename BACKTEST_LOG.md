@@ -72,6 +72,33 @@ FORM (frozen before any data is read):
   sim A/B (driver prior input) queues behind the replay ledger. A tie or loss closes the line; a
   loss on one group only is recorded as a group-specific note, not a partial ship.
 
+RESULT (run immediately after registration; 16,130 rated driver-races 2022-26, 167 cup / 153
+O'Reilly / 107 trucks target races; rho = per-race Spearman vs race-day driver_rating, finish in
+parentheses; k = 4 unless noted):
+
+  cup ALL          pooled .603 -> cond .637 (+.034)  W107/L41 = 2.6:1   finish .386 -> .406   PASS
+    Intermediate   .682 -> .693 (+.011)  W36/L20               finish .410 -> .414
+    Short & Flat   .663 -> .690 (+.027)  W29/L9                finish .519 -> .543
+    Road Course    .485 -> .598 (+.113)  W22/L3                finish .331 -> .410
+    Superspeedway  .458 -> .480 (+.022)  W19/L9                finish .186 -> .179 (finish slightly WORSE)
+  O'Reilly ALL     .779 -> .789 (+.010)  W85/L47 = 1.8:1       finish .510 -> .518   PASS (marginal)
+    Intermediate   +.002 W27/L21 | Short & Flat +.001 W15/L14 | Road Course +.037 W28/L2 | SS +.012 W15/L10
+  trucks ALL       .761 -> .763 (+.002)  W44/L41               finish .549 -> .550   NO EFFECT
+    Intermediate   +.006 W24/L12 | Short & Flat -.005 W8/L17 | Road Course +.025 (n=13) | SS -.016 (n=12)
+  k sensitivity: k=2 / k=8 within +-.003 of k=4 everywhere; shrinkage strength is not the story.
+
+READING. Conditioning helps, and the decision rule passes on cup — but the effect is concentrated
+where the car/driver skill set differs most from the pooled picture: road courses (+.11 cup, +.04
+O'Reilly, +.03 trucks) and cup short/flat (+.03). At INTERMEDIATES — the largest group and the one
+Darlington sits in — the gain is +.011 cup and nil in the other two series: pooled history already
+describes an intermediate driver well. Superspeedways: rating improves a little, finish does not
+(the SS finish lottery, known). Trucks show nothing overall and go the wrong way on short/flat.
+Per the registration: sim A/B on the driver-prior input QUEUES behind the replay ledger, CUP first,
+with the road-course and short/flat groups as the expected carriers and intermediates as the
+null-ish check; O'Reilly follows only if cup ships; trucks stay pooled. This is NOT a fix for the
+"Daytona says nothing about Darlington" objection specifically — at an intermediate the conditioned
+prior barely moves — it is a road-course/short-track finding.
+
 ## 2026-09-05 — v6.4-sets: cumulative tire age for 1-SET sessions (gate passed); K>=2 detector FAILED its gate
 
 **Trigger.** Darlington O'Reilly practice (first watcher sheet with pit laps as numbered laps): Alfredo
