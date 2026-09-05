@@ -661,6 +661,22 @@ before stating n.
       the page and was reverted - see pitboard.md 2026-08-23).
 
 ## Open experiments (ledgers)
+- **[OPEN 2026-09-05] GPP ceiling mode concentrates the cheapest fat-tail punt (Cram 45% of a
+  20-lineup Darlington O'Reilly build; Optimal% only 10.8%).** Diagnosis, not a bug: E[max] set
+  selection buys the cheapest lottery ticket that frees salary for the studs, and the greedy set
+  builder reuses it because it does not know Cram / Reen / Gase / Perez are the same bet (p98 57 /
+  56 / 59; Cram >=40 DK in 16.9% of draws vs history 14.2% of P35+ starters gaining 15+ spots — tail
+  is a little rich, not fantasy). Operator control today: per-driver max (20-25%) or global max ~40%,
+  which shifts the punt slot to the near-identical cars = the diversification wanted. CANDIDATE FIX
+  (not built): treat exchangeable punts as one bucket in the set objective — cap the SUM of floor-car
+  exposure per lineup slot, or add a correlation-aware duplicate penalty for drivers whose draw
+  distributions are within a tolerance of each other. Judge on the replay ledger (best-of-20 field
+  percentile), not eyeball. Related: floor-car projections run ~4 DK pts rich because sim DNF spread
+  (7-13%) is flat vs 23.5% observed for P35-38 starters (O'Reilly ovals 2025-26, avg finish 29.9 vs
+  sim 27.4) — that inflates ALL punts together; DNF-by-tier is a CLOSED line (six versions hurt the
+  finishing order), so any fix here is a DFS-layer haircut on floor-car draws, not a sim change.
+- **DFS Value column redefined 2026-09-05** (marginal pts per $1K above the salary floor; floor cars
+  = PUNT). Display only. Watch: does the sort order now match what the operator would pay up for?
 - v6.3-st session-time correction: LEDGER 2-1 (wk1 trucks +.026, wk2 cup -.099, wk3 cup NH +.028 CORRECTED WINS, protocol target rho .624 v .596 n=36). POOLED mean delta -0.0150, sem 0.0420 over 3 sessions - indistinguishable from zero, dominated by wk2. Verdict deferred to 8-10 sessions per the 2026-08-23 protocol correction; emergency stop (single week worse than -0.15 rho) never approached. Wk3 was the FIRST CLEAN test (A/B groups gone, gc correction self-disabled). BLOCKER unchanged: truck sessions still upload with no captured_at, so the pool fills at half rate - fix the watcher for truck practice.
 - DFS replay ledger: **SUPERSEDED 2026-08-30 - the 6-race 4-1-1 does not reproduce.** All 8 replayable races re-run through the product's own solvers: GPP 3 wins, 2 ties, 3 losses; mean best-of-20 field percentile cash 40.6 v GPP 39.0. The cup NH R25 entry above is WRONG - both modes build the identical lineup and score 171.30, a tie, so 'GPP faded Blaney' is not a finding. Seven of the eight ran on pre-08-29 draws (engine_era stamped in dfs_replays), so as evidence about today's engine this is n=1. Ledger rebuilds from here through Admin -> DFS Replay.
 - DK FPTS decomposition (9 post boards, 2026-08-24): NO broken component - finish .605, place .573, laps led .461 (weakest, but only 7% of variance), fastest laps .665 (strongest), TOTAL .475; 45% of variance is covariance between terms. Errors compound: total ranks below the component average by -0.101 in 7 of 9 races. CORRECTION to the earlier 2-slate claim: DK salary does NOT generally out-predict us (we win 4, salary 5, one a tie; means .480 v .499). The surviving signal is TRUCKS-ONLY - salary wins all 3 truck races, mean gap -.070, n=3. Watch for a 4th/5th truck race; if it holds, consider a market anchor on truck DK projections.

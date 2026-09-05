@@ -3227,3 +3227,17 @@ own column count. Top 10 is now recognised as a DK column (the cup page's third 
 dropped); the Top 10 box uses the same parser with a one-column default. Single-page weeks parse
 exactly as before. WORKFLOW: paste every DK page into the DK box one after the other, each with its
 header row. Book-side layout changes are a recurring class (see the 08-14 HR header rename).
+
+## 2026-09-05 (evening) — Darlington O'Reilly race-week session (Fable)
+Shipped: DFS post-board-only rule (5913515/4ddc283, dfs_sim_samples.stage); beta tester access
+(Admin -> Beta Access, admin RPCs, 4e5270c); grader parseStints pit-lap split (38b1b14); practice
+sheet page 1 on original lap numbers + Car # column (script in NascarDataScrapperV3); upload race-#
+guard return-visit path + 2026 O'Reilly/Trucks/Cup-R27 schedule seeded (9532da0); grader v6.4-sets
+cumulative tire age for 1-set sessions, K>=2 detector pulled to display-only after failing its gate
+(f94ca01/a8405a9); tire_allocations table + cup 2026 backfill; sim corrHistory shrunk toward pooled
+rating k=4, operator-directed no A/B (d881cda); (C) playoff marker stripping after the O'Reilly sim
+showed 25 cars (f291ae2); DFS Expo column moved next to driver (2cdd196); DFS Value redefined as
+marginal pts/$1K above floor (1847f7c). Tested and NOT shipped: concave tire age, z-score composite,
+per-driver falloff slope, age-band grader, grade x prior blend (card grades practice - operator).
+OPEN: GPP punt concentration (Cram 45%) + flat-DNF floor-car richness — STATE "Open experiments".
+

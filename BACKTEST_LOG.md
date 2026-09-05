@@ -48,6 +48,24 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-05 — DFS: punt exposure in GPP ceiling mode + floor-car projection audit (evidence only, nothing shipped)
+
+Trigger: first 20-lineup GPP build on the Darlington O'Reilly post board put Dawson Cram ($5,000,
+P38) in 45% of lineups; Optimal% (single-lineup, per draw) was 10.8%.
+
+Draws (dfs_sim_samples, 10,000, post board 09-05 16:28): Cram mean 25.0 / p50 24 / p90 45 / p98 57,
+>=40 DK in 16.9%, <10 in 16.0%. Reen 24.5 / 23 / 44 / 56 (17.7% >=40). Gase 25.0 / 23 / 46 / 59
+(20.6%). Allgaier 53.7 / 63 / 80 / 83 (77.7%). Kvapil 33.4 / 41 / 65 / 77.
+History (loop_data O'Reilly ovals 2025-26, start >= 35, n=106): gain >=15 spots 14.2%, finish
+top-15 7.5%, top-20 13.2%. By start bracket (7 short/INT tracks): 1-5 avg fin 11.0 DNF 3.1%;
+25-29 22.5 / 9.2%; 30-34 25.9 / 7.7%; 35-38 29.9 / 23.5%. Sim for Cram: proj fin 27.4, DNF 12.9%.
+READING: (1) the >=40 tail (16.9%) is close to the observed big-gain rate (14.2%) — the ceiling
+draws are not fantasy; (2) the MEAN is rich by ~4 DK pts because sim DNF is flat across the field
+(7-13%) while P35-38 starters DNF/park at 23.5%; (3) 45% exposure is the E[max] objective
+concentrating the cheapest fat tail — it does not know Cram/Reen/Gase/Perez are exchangeable.
+NOT SHIPPED. Operator control = per-driver max / global max. Candidate fix and the DNF caveat are
+logged in STATE "Open experiments". DNF-by-tier stays CLOSED (BACKTEST_LOG 2026-08-31).
+
 ## 2026-09-05 — REGISTRATION: track-type-conditioned driver prior (pre-test, loop data only; no sim change)
 
 Queued 2026-08-09, never run. Trigger today: the grade x prior blend (above, not shipped) showed
