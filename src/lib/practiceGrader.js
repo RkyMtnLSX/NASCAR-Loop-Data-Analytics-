@@ -4,6 +4,7 @@
 // v6-tc: all five ranked inputs are TIRE-CORRECTED copies (see gradePracticeSession).
 // v6.1: pace half ranks overallTC (all corrected clean laps) - no stint-count artifact.
 // v6.2: speed half ranks RAW best5/bestLap - corrected laps barred from the speed half.
+// v6.4-sets (2026-09-05): tire age = cumulative laps on the assigned tire SET when the allotment is known.
 // Composite = pace*.40 + speed*.40 + longRun*.20
 //   pace   : avgPace rank (per-stint cleaned averages; overallAvg fallback)
 //   speed  : best5 rank (5 fastest laps; bestLap fallback) — shipped 2026-07-17
@@ -56,6 +57,47 @@ export function parseStints(lapData) {
   }
   if (current.length) stints.push(current)
   return stints
+}
+
+
+// ── Tire-set assignment (v6.4-sets, 2026-09-05) ──────────────────────────────
+// Lap-in-stint was the tire-age proxy: every stint break reset age to 0, which is only right
+// when the break is a tire change. With a known allotment K (practice_sessions.tire_sets,
+// defaulted from tire_allocations), stints are assigned to sets and age is CUMULATIVE laps on
+// the set. Stint 1 is set 1. A later break is a set change when the car comes back faster than
+// it left - laps 2-4 of the new run vs the last 3 laps of the old run - by more than thr x the
+// driver's median lap (2% = ~0.65s at Darlington; real changes there ran -1.2 to -3.2s, scuff
+// restarts -0.6 to +1.9s). At most K-1 breaks qualify (the biggest drops). A drop with no stop
+// behind it cannot occur: a stint break IS a stop in this data.
+// Backtest (36 labeled 1-set cup sessions 2024-26, K=1 = pure cumulative age, no inference):
+// rho vs race-day driver rating .503 -> .531, W19/L12/T5. See BACKTEST_LOG 2026-09-05.
+export function assignTireSets(lapData, K, thr) {
+  const T = thr == null ? 0.02 : thr
+  const st = parseStints(lapData || {})
+  const age = {}
+  if (!st.length) return { age, sets: [], changes: [] }
+  const k = Math.max(1, parseInt(K) || 1)
+  const sig = st.map((s, i) => {
+    if (i === 0) return null
+    const p = st[i - 1]
+    if (p.length < 3 || s.length < 4) return null
+    const tail = p.slice(-3).reduce((a, x) => a + x[1], 0) / 3
+    const head = s.slice(1, 4).reduce((a, x) => a + x[1], 0) / 3
+    return head - tail
+  })
+  const v = Object.values(lapData || {}).map(Number).filter(x => x > 10 && x < 1200).sort((a, b) => a - b)
+  const med = v.length ? v[Math.floor(v.length / 2)] : 0
+  const changes = sig.map((x, i) => ({ x, i })).filter(o => o.x != null && med > 0 && o.x < -T * med)
+    .sort((a, b) => a.x - b.x).slice(0, k - 1).map(o => o.i).sort((a, b) => a - b)
+  const chg = new Set(changes)
+  let a = 0, setNo = 1
+  const sets = []
+  st.forEach((s, i) => {
+    if (chg.has(i)) { a = 0; setNo++ }
+    s.forEach(x => { a++; age[x[0]] = a })
+    sets.push({ set: setNo, laps: s.length })
+  })
+  return { age, sets, changes }
 }
 
 // ── Internal helpers ──────────────────────────────────────────
@@ -161,8 +203,15 @@ export function trendLabel(slope) {
 // ── Main grading function ─────────────────────────────────────
 // Input:  array of { driver, start, lapData: { '1': 53.4, '2': 53.6, ... } }
 // Output: array sorted by composite score, each driver has rank + grade
-export function gradePracticeSession(drivers, priorRatings) {
+export function gradePracticeSession(drivers, priorRatings, opts) {
   const MIN_LAPS = 3
+  // v6.4-sets (2026-09-05): when the session's tire allotment is known, tire age is cumulative
+  // laps on the assigned set (assignTireSets) instead of lap-in-stint. opts.tireSets null/undefined
+  // = legacy behaviour (every stint fresh), so unlabeled historical sessions grade exactly as before.
+  const __K = opts && opts.tireSets != null ? Math.max(1, parseInt(opts.tireSets) || 1) : null
+  const __setInfo = new Map()
+  if (__K != null) drivers.forEach(dr => { if (!dr.lapAge) { const r = assignTireSets(dr.lapData, __K); dr.lapAge = r.age; __setInfo.set(dr, r.sets) } })
+  const __age = (dr, x, i) => (dr && dr.lapAge && dr.lapAge[x[0]] != null) ? dr.lapAge[x[0]] : i + 1
   const wavg = (arr, vf, wf) => { let sv = 0, sw = 0; arr.forEach(r => { const v = vf(r); if (v == null) return; const w = wf(r); sv += v * w; sw += w }); return sw ? sv / sw : null }
   const rnd = (x, p) => x == null ? null : Math.round(x * p) / p
 
@@ -181,7 +230,7 @@ export function gradePracticeSession(drivers, priorRatings) {
       const srt = [...times].sort((a, b) => a - b)
       const med = srt[Math.floor(srt.length / 2)]
       const pts = []
-      st.forEach((x, i) => { if (x[1] <= med * 1.06) pts.push([Math.min(i + 1, 40), x[1]]) })
+      st.forEach((x, i) => { if (x[1] <= med * 1.06) pts.push([Math.min(__age(dr, x, i), 40), x[1]]) })
       if (pts.length < 4) return
       const mx = pts.reduce((a, p) => a + p[0], 0) / pts.length
       const my = pts.reduce((a, p) => a + p[1], 0) / pts.length
@@ -223,7 +272,7 @@ export function gradePracticeSession(drivers, priorRatings) {
             if (isNaN(ms)) return
             nTs++
             if (g0[gk] == null || ms < g0[gk]) g0[gk] = ms
-            drvLaps.push({ gk, ms, y: x[1] - __tcBeta * (Math.min(i + 1, 40) - 5), dr })
+            drvLaps.push({ gk, ms, y: x[1] - __tcBeta * (Math.min(__age(dr, x, i), 40) - 5), dr })
           })
         })
       })
@@ -284,7 +333,7 @@ export function gradePracticeSession(drivers, priorRatings) {
       const cl = []
       st.forEach((x, i) => {
         if (x[1] > med * 1.06) return
-        cl.push(x[1] - __tcBeta * (Math.min(i + 1, 40) - 5) - f(x[0]))
+        cl.push(x[1] - __tcBeta * (Math.min(__age(dr, x, i), 40) - 5) - f(x[0]))
         rawAdj.push(x[1] - f(x[0]))
       })
       if (cl.length) paceCl.push(cl)
@@ -302,14 +351,14 @@ export function gradePracticeSession(drivers, priorRatings) {
       bestLapST: rawAdj.length ? rawAdj[0] : null,
     }
   }
-  const __tcMet = (stints) => {
+  const __tcMet = (stints, dr) => {
     const stClean = []
     stints.forEach(st => {
       const times = st.map(x => x[1])
       const srt = [...times].sort((a, b) => a - b)
       const med = srt[Math.floor(srt.length / 2)]
       const cl = []
-      st.forEach((x, i) => { if (x[1] <= med * 1.06) cl.push(x[1] - __tcBeta * (Math.min(i + 1, 40) - 5)) })
+      st.forEach((x, i) => { if (x[1] <= med * 1.06) cl.push(x[1] - __tcBeta * (Math.min(__age(dr, x, i), 40) - 5)) })
       if (cl.length) stClean.push(cl)
     })
     const av = (a) => a.reduce((x, y) => x + y, 0) / a.length
@@ -379,9 +428,9 @@ export function gradePracticeSession(drivers, priorRatings) {
       overallAvg: rnd(overallAvg, 1000), lateRunAvg: rnd(lateRunAvg, 1000), bestLap: rnd(bestLap, 1000), best5: rnd(best5, 1000),
       trendSlope: rnd(falloff, 10000), consistency: rnd(consistency, 1000),
       avgPace: rnd(avgPace, 1000), bestStint: rnd(bestStint, 1000), longRun: rnd(longRun, 1000),
-      ...__tcMet(stints),
+      ...__tcMet(stints, dr),
       ...__stcMet(dr, stints),
-      notes: JSON.stringify({ gl: __graded, fr: __fresh }), inc: false }
+      notes: JSON.stringify(__setInfo.has(dr) ? { gl: __graded, fr: __fresh, sets: __setInfo.get(dr).map(q => 'S' + q.set + ':' + q.laps).join(' ') } : { gl: __graded, fr: __fresh }), inc: false }
   })
 
   const gradable = parsed.filter(d => !d.inc)

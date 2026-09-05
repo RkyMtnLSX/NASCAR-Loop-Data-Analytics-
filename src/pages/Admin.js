@@ -2063,6 +2063,18 @@ export default function Admin() {
   const [year, setYear] = useState(new Date().getFullYear())
   const [sessionNum, setSessionNum] = useState(1)
   const [practiceRaceNum, setPracticeRaceNum] = useState('')
+  // v6.4-sets (2026-09-05): practice tire allotment -> grader tire age + practice_sessions.tire_sets.
+  // Defaults from tire_allocations (NASCAR event tire sheets); operator can override per upload.
+  const [tireSets, setTireSets] = useState('')
+  const [tireSetsAuto, setTireSetsAuto] = useState(null)
+  useEffect(() => {
+    let alive = true
+    const rn = parseInt(practiceRaceNum)
+    if (!rn) { setTireSetsAuto(null); return }
+    supabase.from('tire_allocations').select('practice_sets').eq('series', series).eq('year', parseInt(year)).eq('race_number', rn).limit(1)
+      .then(({ data }) => { if (!alive) return; const v = data && data[0] ? data[0].practice_sets : null; setTireSetsAuto(v); setTireSets(v != null ? String(Math.max(1, v)) : '') })
+    return () => { alive = false }
+  }, [series, year, practiceRaceNum])
   useWeekendRaceNum(series, setPracticeRaceNum)
   const [trackList, setTrackList] = useState([])
 
@@ -2130,7 +2142,7 @@ export default function Admin() {
           }
         }
       } catch (gcErr) { gcPriors = null }
-      const graded = gradePracticeSession(parsed.drivers, gcPriors)
+      const graded = gradePracticeSession(parsed.drivers, gcPriors, { tireSets: tireSets === '' ? null : parseInt(tireSets) })
       setPreview({ parsed, graded })
     } catch (err) {
       setUploadStatus({ type: 'error', message: err.message })
@@ -2260,6 +2272,7 @@ export default function Admin() {
         qualifying_position: d.start,
         car_number: d.carNumber || null,
         practice_group: d.group || null,
+        tire_sets: tireSets === '' ? null : parseInt(tireSets),   // v6.4-sets: stamped at upload (was hand-edited after the fact)
         total_laps: d.totalLaps,
         best_lap: d.bestLap,
         best5: d.best5 != null ? d.best5 : null,
@@ -2429,6 +2442,12 @@ export default function Admin() {
           <div>
             <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: 6 }}>Race #</label>
             <input type="number" min="1" value={practiceRaceNum} onChange={e => setPracticeRaceNum(parseInt(e.target.value) || 1)}
+              style={{ width: '100%', padding: '8px 10px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', fontSize: '0.875rem', outline: 'none' }} />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: 6 }}>Tire sets (practice){tireSetsAuto != null ? ' - sheet: ' + tireSetsAuto : ''}</label>
+            <input type="number" min="1" max="8" value={tireSets} onChange={e => setTireSets(e.target.value)} placeholder="unknown"
+              title="Practice tire allotment from the NASCAR event tire sheet. Drives tire age in the grader: with K sets a run is on new tires at most K-1 times. Blank = legacy grading (every run treated as fresh). Re-select the file after changing."
               style={{ width: '100%', padding: '8px 10px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', fontSize: '0.875rem', outline: 'none' }} />
           </div>
         </div>

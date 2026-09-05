@@ -48,6 +48,49 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-05 — v6.4-sets: tire age = cumulative laps on the assigned tire SET (gate passed, shipped)
+
+**Trigger.** Darlington O'Reilly practice (first watcher sheet with pit laps as numbered laps): Alfredo
+A+ over Allgaier/Creed/Gray. Operator disagreed; investigation showed the grade was carried by his
+41-lap second-set run, but exposed that lap-in-stint resets tire age at EVERY stint break — right only
+when the break is a tire change. The 2026 O'Reilly session had 2 sets; Alfredo's 8-lap scuff run at
+11:42 was graded as fresh tires. v6-tc's own LIMITATION note (2026-08-08) named this.
+
+**Form (stated before the run, in chat; written here after — protocol deviation noted).** With a
+known allotment K, assign stints to sets: stint 1 = set 1; a later break is a change when laps 2-4
+of the new run beat the last 3 laps of the old run by > 2% of the driver's median lap; at most K-1
+breaks qualify (largest drops). Tire age = cumulative laps on the set, cap 40 (unchanged). All five
+ranked inputs recomputed on the new age; stored/display metrics stay raw (doctrine). Legacy path
+(tire_sets null) unchanged.
+
+**Gate: the K=1 case needs NO inference** — every stint shares one set, age simply accumulates
+across breaks. If cumulative age beats reset-per-stint on labeled 1-set sessions, the mechanism is
+real. Sample: every cup session with practice_sessions.tire_sets = 1 that has practice_laps and a
+loop_data driver_rating (36 sessions: 10x2024, 14x2025, 12x2026; labels from the NASCAR Event
+Tire Allocation sheets, 2026 = REV E 7/22/2026). Ranked within practice_group, no gc priors.
+Metric: per-session Spearman, grade rank vs race-day driver rating (v6-tc's confirmation target).
+
+**Result.** rhoSpeed .503 -> .531 (+.028), W19/L12/T5 (sign p~.14 two-sided). Cap-60 variant
+.504 -> .534, W20/L12/T4 (not adopted - one look, same answer). Big movers both ways: 2025 R25
+Richmond -.18 -> +.19, 2025 R7 Martinsville +.22, 2025 R8 Darlington -.16, 2026 R21 N. Wilkesboro
+-.16. Gain is v6-tc-sized (+.035 there on 97 races) on a third of the sample. Winner-rank not
+scored (rating is the target). SHIPPED on the gate + construct: the K=1 case is physically
+unambiguous and the K>=2 inference is the same mechanism with a constraint, judged forward.
+
+**K=2 sanity on the trigger session** (the inference path): every top car gets exactly one change
+detected and it is the run everyone can see (Alfredo 11:56, Creed 11:57, Gray 12:01, Mayer 12:02,
+Hill 12:09); change signatures -1.2 to -3.2 s, scuff restarts -0.6 to +1.9 s; Allgaier and Smith
+never used set 2. Regrade: Allgaier 1, Alfredo 2, Day 3 (was Alfredo 1, Creed 2, Allgaier 3).
+
+**Ships with it.** `tire_allocations` table (cup 2026 full season from the sheet; O'Reilly R25 = 2)
+defaults the new Tire sets field on the practice uploader; practice_sessions.tire_sets is stamped at
+upload (was hand-edited after the fact); report card shows runs-by-set. 22 cup 2026 sessions
+backfilled from the sheet (San Diego corrected 1 -> 3). Harness: scripts/backtest-tire-sets.mjs.
+Forward ledger: same weekly rho-vs-rating check as v6.3-st; K>=2 sessions are the ones to watch.
+Open: 0-set (superspeedway) and 6-set (Daytona 500) allotments are passed as-is (0 -> 1); the
+signature ignores session-time evolution (magnitudes made that safe at Darlington, re-check at a
+low-falloff track like Bristol).
+
 ## 2026-08-03 — stage fields defined as published stage END laps (e8361b9f + 32dc9817)
 
 Operator caught label ambiguity setting up Iowa (Stages 70/210/350): Admin's 'Stage 1/2 Laps' fields implied LENGTHS but the natural entry (and what was entered) is NASCAR's published stage END laps — stage 2 'laps: 210' is really end-lap 210, length 140. Official semantic is now END LAPS, matching the broadcast format: Admin labels 'Stage 1/2 Ends (Lap)', SimulationCenter race-length card shows 'S1 ends / S2 ends' with hint 'published stage END laps (e.g. Stages 70/210/350 -> enter 70 and 210)'. No stored data changes (existing values were already end laps); DB columns stage1_laps/stage2_laps and payload keys stage1Laps/stage2Laps keep their names but now unambiguously hold end laps — any future caution/pit layer must read them as such. Nothing computes with them yet. Verified live.

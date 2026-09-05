@@ -322,7 +322,7 @@ export default function PracticeReportCard({ isSubscriber }) {
                        <td style={{ fontFamily: 'var(--font-mono)', color: '#f0f0f0', background: heatBg(d.best30, 'best30') }}>{d.best30 ? d.best30.toFixed(2) : '-'}</td>
                       <td style={{ fontFamily: 'var(--font-mono)' }}>{(() => { let n = null; try { n = JSON.parse(d.notes || 'null') } catch (e) { n = null }
                         const gl = n && n.gl != null ? n.gl : null
-                        return <span>{gl != null ? gl + '/' : ''}{d.total_laps ?? '-'}</span> })()}</td>
+                        return <span title={n && n.sets ? 'Runs by tire set: ' + n.sets : undefined}>{gl != null ? gl + '/' : ''}{d.total_laps ?? '-'}{n && n.sets ? <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', marginLeft: 4 }}>{n.sets}</span> : null}</span> })()}</td>
                     </tr>
                   )
                 })}

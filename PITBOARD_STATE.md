@@ -14,6 +14,16 @@ Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2
   only same-stage draws so a later PRE publish cannot wipe POST draws; DFSPage and DfsReplay use
   post draws only. Until the Darlington Post boards are published the DFS page is blocked for all
   three series (trucks' newest board is NH R18) — expected.
+- **Practice grader v6.4-sets** (later same day): tire age is cumulative laps on the assigned tire
+  set when the allotment is known. Gate passed on 36 labeled 1-set cup sessions (rho vs driver
+  rating .503 -> .531, W19/L12/T5). `tire_allocations` seeded for cup 2026 (NASCAR REV E sheet)
+  + O'Reilly R25; uploader has a Tire sets field that defaults from it. ACTION: re-upload the
+  Darlington O'Reilly R25 practice sheet with Tire sets = 2 to regrade (Allgaier 1 / Alfredo 2 /
+  Day 3 expected). Forward ledger on K>=2 sessions. BACKTEST_LOG 2026-09-05.
+- Same day: grader `parseStints` ends a stint at any lap > 1.2x median (watcher sheets carry pit
+  laps as numbered laps); practice sheet page 1 on original lap numbers with `--` at pit laps;
+  upload race-# guard handles return visits; 2026 O'Reilly R25-R33 / Trucks R19-R25 / Cup R27
+  seeded in `races`.
 - **Beta testers** (operator choice: admin-panel tool, default through end of 2026 season).
   Migration `beta_access_admin_rpcs`; new Admin tab "Beta Access" (`src/pages/BetaAccessAdmin.js`);
   Account/Subscribe beta wording, no billing portal for beta rows. Flow: tester signs up on
