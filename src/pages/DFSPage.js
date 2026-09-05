@@ -328,18 +328,23 @@ export default function DFSPage() {
       // starting positions. A 'pre' board (published before practice + qualifying) carries the sim's
       // projected grid; only a 'post' board carries the real qualified / DK-listed starts. Until a
       // post board exists for the series we show a blocked state instead of falling back to 'pre'.
-      const { data, error: __be } = await supabase.from('sim_results').select('track_name,race_year,race_number,results,stage,published_at').eq('series', series).eq('stage', 'post').order('published_at', { ascending: false }).limit(1)   // FIX 2026-07-23: id is a UUID — ordering by it is RANDOM, served stale boards
+      // Step 1: the newest board of ANY stage tells us which race is current.
+      const { data: __anyB, error: __be } = await supabase.from('sim_results').select('track_name,race_year,race_number,stage,published_at').eq('series', series).order('published_at', { ascending: false }).limit(1)   // FIX 2026-07-23: id is a UUID — ordering by it is RANDOM, served stale boards
       if (!alive) return
       // Surface read errors (2026-09-05): a network/RLS failure used to render as 'No published
       // simulation found', which is a different problem with a different fix.
       if (__be) { setNote('Could not load the board: ' + __be.message); setDrivers([]); setRace(null); setLoading(false); return }
-      const row = data && data[0]
-      // Tell the user what the newest board of ANY stage is, so a 'pre'-only week reads as
-      // "publish the Post board" rather than "nothing is published".
-      const { data: __anyB } = await supabase.from('sim_results').select('track_name,race_year,race_number,stage,published_at').eq('series', series).order('published_at', { ascending: false }).limit(1)
-      if (!alive) return
       const __newest = __anyB && __anyB[0]
       setNewestBoard(__newest ? { track: __newest.track_name, year: __newest.race_year, rn: __newest.race_number, stage: __newest.stage, at: __newest.published_at } : null)
+      if (!__newest) { setDrivers([]); setRace(null); setLoading(false); return }
+      // Step 2: the POST board for THAT race - never a pre board, and never an older race's post
+      // board (a stale past-race board is as wrong for a customer as a projected one).
+      let bq = supabase.from('sim_results').select('track_name,race_year,race_number,results,stage,published_at').eq('series', series).eq('stage', 'post').eq('race_year', __newest.race_year)
+      bq = __newest.race_number != null ? bq.eq('race_number', __newest.race_number) : bq.is('race_number', null)
+      const { data, error: __be2 } = await bq.order('published_at', { ascending: false }).limit(1)
+      if (!alive) return
+      if (__be2) { setNote('Could not load the board: ' + __be2.message); setDrivers([]); setRace(null); setLoading(false); return }
+      const row = data && data[0]
       if (!row) { setDrivers([]); setRace(null); setLoading(false); return }
       const r = { track: row.track_name, year: row.race_year, rn: row.race_number, stage: row.stage, at: row.published_at }
       setRace(r)
@@ -692,7 +697,7 @@ export default function DFSPage() {
         <div style={{ fontWeight: 700, marginBottom: 6 }}>No post-practice / post-qualifying board is published for this series.</div>
         <div style={{ fontSize: 13, color: 'var(--text-secondary,#9aa0aa)' }}>
           The optimizer only builds on boards whose starting positions come from practice + qualifying. It never uses a projected lineup.
-          {newestBoard && newestBoard.stage !== 'post' && <> The newest board for this series is a <b>PRE</b> board ({newestBoard.track} &middot; {newestBoard.year} &middot; Race {newestBoard.rn}, published {new Date(newestBoard.at).toLocaleString()}) — publish the <b>Post</b> board from the Simulation Center once qualifying is set.</>}
+          {newestBoard && <> The newest board for this series is a <b>PRE</b> board ({newestBoard.track} &middot; {newestBoard.year} &middot; Race {newestBoard.rn}, published {new Date(newestBoard.at).toLocaleString()}) — publish the <b>Post</b> board from the Simulation Center once qualifying is set.</>}
           {!newestBoard && <> Nothing has been published for this series yet.</>}
         </div>
       </div>}
