@@ -45,6 +45,7 @@ export default function OptimalLineups() {
   const [opt, setOpt] = useState([])
   const [fields, setFields] = useState({})
   const [loading, setLoading] = useState(true)
+  const [err, setErr] = useState(null)   // 2026-09-05: read errors used to render as 'no optimals'
   const [series, setSeries] = useState('all')
   const [open, setOpen] = useState(() => new Set())
   const [sortBy, setSortBy] = useState('sal')
@@ -60,6 +61,7 @@ export default function OptimalLineups() {
       supabase.from('dfs_race_field').select('series, race_year, race_number, field'),
     ]).then(([o, f]) => {
       if (!alive) return
+      if (o.error || f.error) setErr('Could not load: ' + ((o.error && o.error.message) || (f.error && f.error.message)))
       const rows = (o.data || []).slice().sort(
         (a, b) => b.race_year - a.race_year || b.race_number - a.race_number
       )
@@ -129,6 +131,7 @@ export default function OptimalLineups() {
       )}
 
       {loading && <div style={{ color: 'var(--text-secondary, #9aa0aa)' }}>Loading archive…</div>}
+      {err && <div style={{ padding: '10px 14px', background: '#922B2120', border: '1px solid #922B2140', borderRadius: 8, color: '#E74C3C', fontSize: '0.8125rem', marginBottom: 12 }}>{err}</div>}
       {!loading && !shown.length && <div style={card}>No races recorded yet for this series.</div>}
 
       {!loading && shown.map((r) => {

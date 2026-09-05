@@ -46,6 +46,7 @@ export default function DfsOptimals() {
   const [weekend, setWeekend] = useState({})
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
+  const [err, setErr] = useState(null)   // 2026-09-05: read errors used to render as 'no optimals'
 
   useEffect(() => {
     let alive = true
@@ -53,8 +54,9 @@ export default function DfsOptimals() {
     supabase
       .from('featured_weekend')
       .select('series, track_name')
-      .then(({ data }) => {
+      .then(({ data, error }) => {
         if (!alive) return
+        if (error) { setErr('Could not load the featured weekend: ' + error.message); setLoading(false); return }
         const wk = {}
         ;(data || []).forEach((w) => { wk[w.series] = w.track_name })
         setWeekend(wk)
@@ -65,8 +67,9 @@ export default function DfsOptimals() {
           .select('series, race_year, race_number, track_name, lineup, score, salary, race_seq, race_cnt')
           .eq('kind', 'perfect')
           .in('track_name', tracks)
-          .then(({ data: d2 }) => {
+          .then(({ data: d2, error: e2 }) => {
             if (!alive) return
+            if (e2) setErr('Could not load optimal history: ' + e2.message)
             setRows(d2 || [])
             setLoading(false)
           })
@@ -92,6 +95,7 @@ export default function DfsOptimals() {
       </p>
 
       {loading && <div style={{ color: 'var(--text-secondary, #9aa0aa)' }}>Loading…</div>}
+      {err && <div style={{ padding: '10px 14px', background: '#922B2120', border: '1px solid #922B2140', borderRadius: 8, color: '#E74C3C', fontSize: '0.8125rem', marginBottom: 12 }}>{err}</div>}
 
       {!loading && SERIES.map((s) => {
         const track = weekend[s.v]

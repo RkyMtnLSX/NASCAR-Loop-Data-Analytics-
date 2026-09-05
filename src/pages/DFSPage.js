@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 
 const SERIES = [{ v: 'cup', label: 'Cup' }, { v: 'oreilly', label: "O'Reilly" }, { v: 'trucks', label: 'Trucks' }]
@@ -313,13 +313,21 @@ export default function DFSPage() {
   const [entFile, setEntFile] = useState(null) // 2026-08-20: parsed DK entries file awaiting contest selection
   const [sortKey, setSortKey] = useState('value')
   const [sortDir, setSortDir] = useState('desc')
+  // BUILD CANCELLATION (2026-09-05 review fix). buildGpp/step2 run across many setTimeout ticks and
+  // closed over the OLD series' rows/samples; switching series mid-build used to land last series'
+  // lineups on the new board. Every build takes a token; a stale token stops at the next tick.
+  const buildIdRef = useRef(0)
 
   useEffect(() => {
     let alive = true
+    buildIdRef.current++; setBuilding(false)
     setLoading(true); setLineups([]); setOptPct({}); setSimCands(null); setLocks(new Set()); setExcludes(new Set()); setExpo({}); setSalaries({}); setSamples(null); setNote('')
     ;(async () => {
-      const { data } = await supabase.from('sim_results').select('track_name,race_year,race_number,results').eq('series', series).order('published_at', { ascending: false }).limit(1)   // FIX 2026-07-23: id is a UUID — ordering by it is RANDOM, served stale boards
+      const { data, error: __be } = await supabase.from('sim_results').select('track_name,race_year,race_number,results').eq('series', series).order('published_at', { ascending: false }).limit(1)   // FIX 2026-07-23: id is a UUID — ordering by it is RANDOM, served stale boards
       if (!alive) return
+      // Surface read errors (2026-09-05): a network/RLS failure used to render as 'No published
+      // simulation found', which is a different problem with a different fix.
+      if (__be) { setNote('Could not load the board: ' + __be.message); setDrivers([]); setRace(null); setLoading(false); return }
       const row = data && data[0]
       if (!row) { setDrivers([]); setRace(null); setLoading(false); return }
       const r = { track: row.track_name, year: row.race_year, rn: row.race_number }
@@ -337,12 +345,14 @@ export default function DFSPage() {
       setDrivers(ds)
       let q = supabase.from('dfs_salaries').select('salaries').eq('series', series).eq('race_year', r.year)
       q = r.rn != null ? q.eq('race_number', r.rn) : q.is('race_number', null)
-      const { data: sd } = await q.order('updated_at', { ascending: false }).limit(1)
+      const { data: sd, error: __se } = await q.order('updated_at', { ascending: false }).limit(1)
+      if (alive && __se) setNote('Could not load DK salaries: ' + __se.message)
       if (alive && sd && sd[0] && sd[0].salaries) setSalaries(sd[0].salaries)
       try {
         let sq = supabase.from('dfs_sim_samples').select('drivers,samples').eq('series', series).eq('race_year', r.year)
         sq = r.rn != null ? sq.eq('race_number', r.rn) : sq.is('race_number', null)
-        const { data: samp } = await sq.order('created_at', { ascending: false }).limit(1)
+        const { data: samp, error: __pe } = await sq.order('created_at', { ascending: false }).limit(1)
+        if (alive && __pe) setNote(n0 => (n0 ? n0 + ' ' : '') + 'Could not load sim draws (GPP mode unavailable): ' + __pe.message)
         if (alive && samp && samp[0] && samp[0].drivers) setSamples({ drivers: samp[0].drivers, rows: samp[0].samples || [] })
       } catch (e) { /* samples table optional */ }
       if (alive) setLoading(false)
@@ -442,7 +452,8 @@ export default function DFSPage() {
   // LAZY GREEDY: gains only ever shrink as the set grows (submodularity), so a stale gain is an
   // upper bound - refresh the leader, accept it if it still leads. 150 entries takes ~47k gain
   // evaluations instead of 600k.
-  const buildGpp = () => {
+  const buildGpp = (myBuild) => {
+    if (myBuild !== buildIdRef.current) return
     const nmIdx = {}
     samples.drivers.forEach((nm, ix) => { nmIdx[nm] = ix })
     const salByN = {}, carByN = {}, projByN = {}
@@ -494,6 +505,7 @@ export default function DFSPage() {
     const sel = makeEmaxSelector(nC, nD, Smat, want, cands2, capOf)
     const chosen = sel.chosen
     const step2 = () => {
+      if (myBuild !== buildIdRef.current) return   // series/mode changed underneath us - drop this build
       const done = sel.step(60)
       setNote('Building set... ' + chosen.length + ' of ' + want + ' lineups')
       if (!done) { setTimeout(step2, 0); return }
@@ -519,9 +531,11 @@ export default function DFSPage() {
     step2()
   }
   const build = () => {
+    const myBuild = ++buildIdRef.current
     setBuilding(true); setLineups([]); setNote('')
-    if (mode === 'gpp' && samples && samples.drivers && samples.rows && samples.rows.length) { setTimeout(buildGpp, 30); return }
+    if (mode === 'gpp' && samples && samples.drivers && samples.rows && samples.rows.length) { setTimeout(() => buildGpp(myBuild), 30); return }
     setTimeout(() => {
+      if (myBuild !== buildIdRef.current) return
       const pool = rows.map(r => ({ name: r.name, car: r.car, sal: r.sal, projDK: r.projDK }))
       const K = Math.min(1500, Math.max(numLineups * 20, 200))   // deeper pool so exposure caps can actually fill the request
       const res = optimize(pool, locks, excludes, K)

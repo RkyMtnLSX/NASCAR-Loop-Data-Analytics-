@@ -233,9 +233,19 @@ export default function DfsReplay() {
       const { data: conRows } = await eqRace(supabase.from('dfs_contests').select('entries,winner_score,median_score,scores_sample,contest_type').eq('series', sr).eq('race_year', year))
         .order('entries', { ascending: false }).limit(1)
       const contest = conRows && conRows[0]
-      const { data: ownRows } = await eqRace(supabase.from('dfs_ownership').select('driver_name,own_pct').eq('series', sr).eq('race_year', year))
-      const ownByN = {}
-      ;(ownRows || []).forEach(o => { ownByN[o.driver_name] = +o.own_pct })
+      // 2026-09-05 review fix: (a) ownership rows carry contest_type and both GPP and cash can be
+      // banked for one race - the join used to take whichever arrived last, so rho(ownership) could
+      // be against the wrong contest. Filter to the contest being graded when it has a type.
+      // (b) dfs_ownership.fpts is DK's OFFICIAL score per driver (stored since ingest v2, 08-14) and
+      // was never read; grading used the hand DK formula off loop_data, which the manual itself
+      // notes runs ~1pt/driver hot. Official FPTS now wins wherever it exists.
+      const { data: ownRows } = await eqRace(supabase.from('dfs_ownership').select('driver_name,own_pct,fpts,contest_type').eq('series', sr).eq('race_year', year))
+      const __ct = contest && contest.contest_type
+      const __ownAll = ownRows || []
+      const __ownTyped = __ct ? __ownAll.filter(o => o.contest_type === __ct) : __ownAll
+      const __ownUse = __ownTyped.length ? __ownTyped : __ownAll
+      const ownByN = {}, fptsByN = {}
+      __ownUse.forEach(o => { ownByN[o.driver_name] = +o.own_pct; if (o.fpts != null && isFinite(+o.fpts)) fptsByN[o.driver_name] = +o.fpts })
       const __actFor = __resolver(Object.keys(actByN))
       const __ownFor = __resolver(Object.keys(ownByN))
 
@@ -248,6 +258,7 @@ export default function DfsReplay() {
       const nD = draws.length
       const meanOf = (i) => { let s = 0; for (let k = 0; k < nD; k++) s += draws[k][i] || 0; return s / nD }
       const pool = [], unmatched = []
+      let __nOfficial = 0
       names.forEach((n, i) => {
         const sal = outSet.has(n) ? 0 : (salaries[n] || 0)
         if (!(sal > 0)) return
@@ -255,7 +266,9 @@ export default function DfsReplay() {
         const a = ak == null ? null : actByN[ak]
         if (!a || a.pts == null) { unmatched.push(n); return }
         const ok = __ownFor(n)
-        pool.push({ name: n, idx: i, sal, projDK: projByName[n] != null ? projByName[n] : meanOf(i), actual: a.pts, fin: a.fin, start: a.start, own: ok != null && ownByN[ok] != null ? ownByN[ok] : null })
+        const __official = ok != null && fptsByN[ok] != null ? fptsByN[ok] : null
+        if (__official != null) __nOfficial++
+        pool.push({ name: n, idx: i, sal, projDK: projByName[n] != null ? projByName[n] : meanOf(i), actual: __official != null ? __official : a.pts, fin: a.fin, start: a.start, own: ok != null && ownByN[ok] != null ? ownByN[ok] : null })
       })
       if (pool.length < DFS_ROSTER) { setMsg('Only ' + pool.length + ' drivers have both a salary and a result — cannot build a lineup.'); setBusy(false); return }
 
@@ -376,7 +389,8 @@ export default function DfsReplay() {
       setProg('')
       setMsg('Done. ' + cands.length.toLocaleString() + ' candidates, ' + nS.toLocaleString() +
         ' draws; GPP set of ' + setIdx.length + ' using ' + setUniq.size + ' unique drivers.' +
-        (same ? ' Its best lineup is the cash lineup.' : ''))
+        (same ? ' Its best lineup is the cash lineup.' : '') +
+        (__nOfficial ? ' Scored with official DK FPTS for ' + __nOfficial + ' of ' + pool.length + ' drivers' + (__ct ? ' (' + __ct + ' contest)' : '') + '.' : ' Scored with the hand DK formula (no official FPTS stored for this race).'))
     } catch (e) {
       setMsg('Replay failed: ' + (e.message || e))
       setProg('')

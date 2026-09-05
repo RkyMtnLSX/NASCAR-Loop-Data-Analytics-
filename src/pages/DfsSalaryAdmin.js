@@ -187,11 +187,19 @@ export default function DfsSalaryAdmin() {
     if (!race) return
     setSaveMsg('Saving\u2026')
     try {
+      // ORDER MATTERS (2026-09-05 review fix). This was delete-then-insert with the delete's error
+      // ignored: a failed insert after a successful delete left the public DFS Center with NO
+      // salaries and this screen saying 'Save failed'. Now: insert the new row first, and only then
+      // remove the older rows for the same race. The DFS page reads newest-by-updated_at, so the
+      // new row is live the instant it lands and a failed cleanup leaves duplicates, not a hole.
+      const { data: ins, error } = await supabase.from('dfs_salaries').insert({ series, race_year: race.year, race_number: race.rn, track_name: race.track, salaries }).select('id')
+      if (error) { setSaveMsg('Save failed: ' + error.message); return }
+      const newId = ins && ins[0] && ins[0].id
       let del = supabase.from('dfs_salaries').delete().eq('series', series).eq('race_year', race.year)
       del = race.rn != null ? del.eq('race_number', race.rn) : del.is('race_number', null)
-      await del
-      const { error } = await supabase.from('dfs_salaries').insert({ series, race_year: race.year, race_number: race.rn, track_name: race.track, salaries })
-      if (error) setSaveMsg('Save failed: ' + error.message)
+      if (newId != null) del = del.neq('id', newId)
+      const { error: delErr } = await del
+      if (delErr) setSaveMsg('Saved ' + salCount + ' salaries (live), but could not remove the previous version: ' + delErr.message)
       else setSaveMsg('Saved ' + salCount + ' salaries \u2014 live on the DFS Center for everyone.')
     } catch (e) { setSaveMsg('Save failed: ' + (e.message || e)) }
   }
