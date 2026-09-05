@@ -676,7 +676,7 @@ export default function DFSPage() {
   const card = { background: 'var(--card,#16181d)', border: '1px solid var(--border,#2a2d34)', borderRadius: 10, padding: 16, marginBottom: 16 }
 
   return (
-    <div className="page" style={{ maxWidth: 1180, margin: '0 auto', padding: '18px 16px 60px' }}>
+    <div className="page" style={{ maxWidth: 1320, margin: '0 auto', padding: '18px 16px 60px' }}>
       <h1 style={{ margin: '0 0 4px' }}>DFS Center</h1>
       <div style={{ color: 'var(--text-secondary,#9aa0aa)', marginBottom: 16, fontSize: 14 }}>
         DraftKings Classic projections from the latest published simulation. Build optimal lineups against the posted salaries.
@@ -776,9 +776,10 @@ export default function DFSPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead><tr style={{ color: 'var(--text-secondary,#9aa0aa)' }}>
                 <th style={{ padding: '7px 8px', textAlign: 'left' }}>Lock/Excl · Min/Max %</th>
-                {th('name', 'Driver', 'left')}{th('startPos', 'Start')}{th('sal', 'Salary')}{th('projDK', 'Proj DK')}{th('ceil', 'Ceiling')}{th('value', 'Value')}{th('opt', 'Optimal%')}{th('pOwn', 'Proj Own%')}
+                {th('name', 'Driver', 'left')}
+                <th style={{ padding: '7px 8px', textAlign: 'right' }} title="Share of the built lineups this driver is in">Expo</th>
+                {th('startPos', 'Start')}{th('sal', 'Salary')}{th('projDK', 'Proj DK')}{th('ceil', 'Ceiling')}{th('value', 'Value')}{th('opt', 'Optimal%')}{th('pOwn', 'Proj Own%')}
                 {th('winPct', 'Win%')}{th('lapsLed', 'Laps Led')}{th('avgFast', 'Fast Laps')}{th('projFinish', 'Proj Fin')}
-                <th style={{ padding: '7px 8px', textAlign: 'right' }}>Exposure</th>
               </tr></thead>
               <tbody>
                 {sorted.map(d => {
@@ -800,6 +801,8 @@ export default function DFSPage() {
                           style={{ width: 44, marginLeft: 4, background: 'var(--bg,#0e0f13)', color: expo[d.name] && expo[d.name].max != null && expo[d.name].max < 100 ? '#e8b923' : 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 5, padding: '2px 4px', fontSize: 12 }} />
                       </td>
                       <td style={{ padding: '4px 8px', textAlign: 'left', whiteSpace: 'nowrap' }}><CarNum car={d.car} series={series} />{d.name}</td>
+                      {/* 2026-09-05: exposure moved next to the driver - it sat last and was off-screen at 1180px */}
+                      <td style={{ padding: '4px 8px', textAlign: 'right', fontWeight: 700, color: exposure[d.name] ? '#e8b923' : 'var(--text-secondary,#9aa0aa)' }}>{exposure[d.name] ? Math.round(exposure[d.name] / (lineups.length || 1) * 100) + '%' : (lineups.length ? '0%' : '')}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right', fontWeight: 600 }}>{d.startPos ? 'P' + d.startPos : '\u2014'}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right' }}>{d.out ? <span style={{ fontSize: 10, fontWeight: 800, color: '#ff5148', border: '1px solid #ff5148', borderRadius: 4, padding: '1px 5px' }}>OUT</span> : d.sal ? '$' + d.sal.toLocaleString() : '\u2014'}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right', fontWeight: 600 }}>{d.projDK.toFixed(1)}</td>
@@ -811,7 +814,6 @@ export default function DFSPage() {
                       <td style={{ padding: '4px 8px', textAlign: 'right' }}>{d.lapsLed.toFixed(0)}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right' }}>{d.avgFast.toFixed(0)}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right' }}>{d.projFinish.toFixed(1)}</td>
-                      <td style={{ padding: '4px 8px', textAlign: 'right', color: 'var(--text-secondary,#9aa0aa)' }}>{exposure[d.name] ? Math.round(exposure[d.name] / (lineups.length || 1) * 100) + '%' : ''}</td>
                     </tr>
                   )
                 })}
