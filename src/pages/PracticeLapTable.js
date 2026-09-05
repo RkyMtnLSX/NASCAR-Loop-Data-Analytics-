@@ -149,9 +149,14 @@ export default function PracticeLapTable({ isSubscriber }) {
 
   const normalizeTime = (t) => Math.min(1, Math.max(0, (t - globalMin) / Math.max(globalMax - globalMin, 0.001)))
 
+  // PIT LAPS (2026-09-05): watcher-built sheets keep pit / in-out laps as numbered laps (a
+  // Darlington pit visit is a 200-300s 'lap'); the old third-party sheets left them blank. A lap
+  // over 1.2x the driver's median is a pit lap: shown muted as 'pit', excluded from Avg Lap and
+  // from the sort - same cut as the grader's parseStints and the sheet script's page 1.
+  const isPitLap = (d, t) => { const med = d.__med != null ? d.__med : (d.__med = (() => { const v = Object.values(d.lapTimes).sort((a, b) => a - b); return v.length ? v[Math.floor(v.length / 2)] : 0 })()); return med > 0 && t > med * 1.2 }
   const avgLap = (d) => {
-    const times = Object.values(d.lapTimes)
-    return times.reduce((s, t) => s + t, 0) / times.length
+    const times = Object.values(d.lapTimes).filter(t => !isPitLap(d, t))
+    return times.length ? times.reduce((s, t) => s + t, 0) / times.length : 0
   }
 
   const displayedDrivers = useMemo(() => {
@@ -235,22 +240,24 @@ export default function PracticeLapTable({ isSubscriber }) {
           )}
 
           {!loading && displayedDrivers.length > 0 && (
-            <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid var(--border)' }}>
+            // 2026-09-05: the wrapper is the scroll container in BOTH axes (maxHeight) so the lap-number
+            // header row can stick to its top while the Start/Car/Driver columns stick to its left.
+            <div style={{ overflow: 'auto', maxHeight: 'calc(100vh - 120px)', borderRadius: 10, border: '1px solid var(--border)' }}>
               <table style={{ borderCollapse: 'collapse', fontSize: '0.87rem', whiteSpace: 'nowrap', minWidth: '100%' }}>
                 <thead>
                   <tr style={{ background: 'var(--bg-elevated)', borderBottom: '2px solid var(--border)' }}>
-                    <th style={stickyTh(0)}>Start</th>
-                    <th style={stickyTh(52)}>Car</th>
-                    <th style={stickyTh(104, 160)}>Driver</th>
+                    <th style={{ ...stickyTh(0), top: 0, zIndex: 4 }}>Start</th>
+                    <th style={{ ...stickyTh(52), top: 0, zIndex: 4 }}>Car</th>
+                    <th style={{ ...stickyTh(104, 160), top: 0, zIndex: 4 }}>Driver</th>
                     <th
                       onClick={handleAvgSort}
-                      style={{ ...th, textAlign: 'right', paddingRight: 12, borderRight: '1px solid var(--border)', cursor: 'pointer', userSelect: 'none', color: sortByAvg ? 'var(--accent-text)' : 'var(--text-secondary)' }}
+                      style={{ ...th, position: 'sticky', top: 0, zIndex: 3, background: 'var(--bg-elevated)', textAlign: 'right', paddingRight: 12, borderRight: '1px solid var(--border)', cursor: 'pointer', userSelect: 'none', color: sortByAvg ? 'var(--accent-text)' : 'var(--text-secondary)' }}
                       title="Click to sort by Avg Lap"
                     >
                       Avg Lap {sortByAvg ? (sortAscAvg ? '▲' : '▼') : '⇅'}
                     </th>
                     {lapNumbers.map(n => (
-                      <th key={n} style={{ ...th, textAlign: 'center', minWidth: 64 }}>{n}</th>
+                      <th key={n} style={{ ...th, position: 'sticky', top: 0, zIndex: 3, background: 'var(--bg-elevated)', textAlign: 'center', minWidth: 64 }}>{n}</th>
                     ))}
                   </tr>
                 </thead>
@@ -280,6 +287,9 @@ export default function PracticeLapTable({ isSubscriber }) {
                           const t = d.lapTimes[n]
                           if (t == null) {
                             return <td key={n} style={{ padding: '4px 0', textAlign: 'center', color: 'var(--text-muted)', opacity: 0.3 }}>—</td>
+                          }
+                          if (isPitLap(d, t)) {
+                            return <td key={n} title={`Lap ${n}: pit / in-out lap (${fmtTime(t)}) - not in Avg Lap`} style={{ padding: '4px 0', textAlign: 'center', color: 'var(--text-muted)', opacity: 0.55, fontSize: '0.72rem', letterSpacing: '.04em' }}>PIT</td>
                           }
                           const norm = normalizeTime(t)
                           const { bg, text } = heatColor(norm)
