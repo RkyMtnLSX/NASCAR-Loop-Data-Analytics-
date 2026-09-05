@@ -286,6 +286,7 @@ function projectOwnership(list) {
 export default function DFSPage() {
   const [series, setSeries] = useState('cup')
   const [race, setRace] = useState(null)
+  const [newestBoard, setNewestBoard] = useState(null)   // newest board of any stage - only used for the blocked-state message
   const [drivers, setDrivers] = useState([])
   const [salaries, setSalaries] = useState({})
   const [samples, setSamples] = useState(null)
@@ -323,14 +324,24 @@ export default function DFSPage() {
     buildIdRef.current++; setBuilding(false)
     setLoading(true); setLineups([]); setOptPct({}); setSimCands(null); setLocks(new Set()); setExcludes(new Set()); setExpo({}); setSalaries({}); setSamples(null); setNote('')
     ;(async () => {
-      const { data, error: __be } = await supabase.from('sim_results').select('track_name,race_year,race_number,results').eq('series', series).order('published_at', { ascending: false }).limit(1)   // FIX 2026-07-23: id is a UUID — ordering by it is RANDOM, served stale boards
+      // POST BOARDS ONLY (2026-09-05, owner rule): the optimizer must never build on projected
+      // starting positions. A 'pre' board (published before practice + qualifying) carries the sim's
+      // projected grid; only a 'post' board carries the real qualified / DK-listed starts. Until a
+      // post board exists for the series we show a blocked state instead of falling back to 'pre'.
+      const { data, error: __be } = await supabase.from('sim_results').select('track_name,race_year,race_number,results,stage,published_at').eq('series', series).eq('stage', 'post').order('published_at', { ascending: false }).limit(1)   // FIX 2026-07-23: id is a UUID — ordering by it is RANDOM, served stale boards
       if (!alive) return
       // Surface read errors (2026-09-05): a network/RLS failure used to render as 'No published
       // simulation found', which is a different problem with a different fix.
       if (__be) { setNote('Could not load the board: ' + __be.message); setDrivers([]); setRace(null); setLoading(false); return }
       const row = data && data[0]
+      // Tell the user what the newest board of ANY stage is, so a 'pre'-only week reads as
+      // "publish the Post board" rather than "nothing is published".
+      const { data: __anyB } = await supabase.from('sim_results').select('track_name,race_year,race_number,stage,published_at').eq('series', series).order('published_at', { ascending: false }).limit(1)
+      if (!alive) return
+      const __newest = __anyB && __anyB[0]
+      setNewestBoard(__newest ? { track: __newest.track_name, year: __newest.race_year, rn: __newest.race_number, stage: __newest.stage, at: __newest.published_at } : null)
       if (!row) { setDrivers([]); setRace(null); setLoading(false); return }
-      const r = { track: row.track_name, year: row.race_year, rn: row.race_number }
+      const r = { track: row.track_name, year: row.race_year, rn: row.race_number, stage: row.stage, at: row.published_at }
       setRace(r)
       const ds = (row.results || []).map(d => ({
         name: d.driver_name, car: d.car_number, mfr: d.manufacturer,
@@ -349,11 +360,16 @@ export default function DFSPage() {
       if (alive && __se) setNote('Could not load DK salaries: ' + __se.message)
       if (alive && sd && sd[0] && sd[0].salaries) setSalaries(sd[0].salaries)
       try {
-        let sq = supabase.from('dfs_sim_samples').select('drivers,samples').eq('series', series).eq('race_year', r.year)
+        // Draws must come from the SAME post board (2026-09-05): rows are tagged with the stage
+        // that produced them; legacy untagged rows are accepted only if written within 10 min of
+        // this board's publish. Pre-stage draws are never used for GPP E[max].
+        let sq = supabase.from('dfs_sim_samples').select('drivers,samples,stage,created_at').eq('series', series).eq('race_year', r.year)
         sq = r.rn != null ? sq.eq('race_number', r.rn) : sq.is('race_number', null)
-        const { data: samp, error: __pe } = await sq.order('created_at', { ascending: false }).limit(1)
+        const { data: samp, error: __pe } = await sq.order('created_at', { ascending: false }).limit(3)
         if (alive && __pe) setNote(n0 => (n0 ? n0 + ' ' : '') + 'Could not load sim draws (GPP mode unavailable): ' + __pe.message)
-        if (alive && samp && samp[0] && samp[0].drivers) setSamples({ drivers: samp[0].drivers, rows: samp[0].samples || [] })
+        const __ok = (samp || []).find(x => x && x.drivers && (x.stage === 'post' || (x.stage == null && r.at && Math.abs(new Date(x.created_at) - new Date(r.at)) < 600000)))
+        if (alive && __ok) setSamples({ drivers: __ok.drivers, rows: __ok.samples || [] })
+        else if (alive && samp && samp.length) setNote(n0 => (n0 ? n0 + ' ' : '') + 'Stored sim draws are from a PRE board — GPP mode unavailable until the Post board is republished with draws.')
       } catch (e) { /* samples table optional */ }
       if (alive) setLoading(false)
     })()
@@ -668,11 +684,18 @@ export default function DFSPage() {
             {s.label}
           </button>
         ))}
-        {race && <span style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 13 }}>{race.track} &middot; {race.year} &middot; Race {race.rn}</span>}
+        {race && <span style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 13 }}>{race.track} &middot; {race.year} &middot; Race {race.rn} &middot; <span style={{ color: '#4caf50', fontWeight: 700 }} title="Post-practice / post-qualifying board: starting positions are the real qualified or DK-listed starts, never projected.">POST board</span>{race.at ? ' \u00b7 published ' + new Date(race.at).toLocaleString() : ''}</span>}
       </div>
 
       {loading && <div style={{ color: 'var(--text-secondary,#9aa0aa)' }}>Loading projections\u2026</div>}
-      {!loading && !drivers.length && <div style={card}>No published simulation found for this series yet.</div>}
+      {!loading && !drivers.length && <div style={{ ...card, borderLeft: '4px solid #e8b923' }}>
+        <div style={{ fontWeight: 700, marginBottom: 6 }}>No post-practice / post-qualifying board is published for this series.</div>
+        <div style={{ fontSize: 13, color: 'var(--text-secondary,#9aa0aa)' }}>
+          The optimizer only builds on boards whose starting positions come from practice + qualifying. It never uses a projected lineup.
+          {newestBoard && newestBoard.stage !== 'post' && <> The newest board for this series is a <b>PRE</b> board ({newestBoard.track} &middot; {newestBoard.year} &middot; Race {newestBoard.rn}, published {new Date(newestBoard.at).toLocaleString()}) — publish the <b>Post</b> board from the Simulation Center once qualifying is set.</>}
+          {!newestBoard && <> Nothing has been published for this series yet.</>}
+        </div>
+      </div>}
 
       {!loading && drivers.length > 0 && <>
         {/* 2026-08-14: lineups render ABOVE the driver pool - post-build result first */}

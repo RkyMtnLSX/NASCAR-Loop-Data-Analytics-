@@ -1035,8 +1035,10 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
       try {
         const __samp = simResults.__dkSamples, __sdrv = simResults.__sampleDrivers
         if (__samp && __samp.length && __sdrv) {
-          await supabase.from('dfs_sim_samples').delete().eq('series', series).eq('race_year', payload.race_year).eq('race_number', payload.race_number)
-          await supabase.from('dfs_sim_samples').insert({ series, race_year: payload.race_year, race_number: payload.race_number, track_name: payload.track_name, drivers: __sdrv, samples: __samp })
+          // 2026-09-05: draws are tagged with the stage that produced them and only same-stage rows are
+          // replaced, so a later PRE republish can never overwrite the POST draws the DFS optimizer uses.
+          await supabase.from('dfs_sim_samples').delete().eq('series', series).eq('race_year', payload.race_year).eq('race_number', payload.race_number).eq('stage', simStage)
+          await supabase.from('dfs_sim_samples').insert({ series, race_year: payload.race_year, race_number: payload.race_number, track_name: payload.track_name, stage: simStage, drivers: __sdrv, samples: __samp })
         }
       } catch (e) {}
       try {

@@ -171,7 +171,7 @@ export default function DfsReplay() {
     .limit(50).then(({ data }) => setLedger(data || []))
 
   useEffect(() => {
-    supabase.from('dfs_sim_samples').select('series,race_year,race_number,track_name,created_at')
+    supabase.from('dfs_sim_samples').select('series,race_year,race_number,track_name,created_at').eq('stage', 'post')   // 2026-09-05: post-board draws only
       .order('race_year', { ascending: false }).order('race_number', { ascending: false, nullsFirst: false })
       .limit(60)
       .then(({ data }) => {
@@ -190,7 +190,8 @@ export default function DfsReplay() {
       const eqRace = (q) => (race == null ? q.is('race_number', null) : q.eq('race_number', race))
 
       // ---- samples (the pre-lock draws)
-      const { data: sampRows } = await eqRace(supabase.from('dfs_sim_samples').select('drivers,samples,track_name,created_at').eq('series', sr).eq('race_year', year))
+      // 2026-09-05: replay grades what the optimizer would have used, so only POST-board draws qualify.
+      const { data: sampRows } = await eqRace(supabase.from('dfs_sim_samples').select('drivers,samples,track_name,created_at').eq('series', sr).eq('race_year', year).eq('stage', 'post'))
         .order('created_at', { ascending: false }).limit(1)
       const samp = sampRows && sampRows[0]
       if (!samp || !samp.drivers || !samp.samples || !samp.samples.length) { setMsg('No stored sim samples for that race — the board has to be published with samples to be replayable.'); setBusy(false); return }
