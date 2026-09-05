@@ -62,10 +62,12 @@ export default function Subscribe() {
       {status !== 'success' && !isSubscriber && (user && row ? (
         <div className="card" style={{ borderColor: 'var(--series-cup)', marginBottom: 16 }}>
           <div style={{ fontWeight: 800, color: '#ff5148', letterSpacing: '.02em', marginBottom: 4 }}>
-            {row.plan === 'week' ? 'YOUR RACE WEEK PASS HAS ENDED' : 'YOUR MEMBERSHIP IS INACTIVE'}
+            {row.plan === 'beta' ? 'YOUR BETA ACCESS HAS ENDED' : row.plan === 'week' ? 'YOUR RACE WEEK PASS HAS ENDED' : 'YOUR MEMBERSHIP IS INACTIVE'}
           </div>
           <div style={{ color: 'var(--text-muted)' }}>
-            {row.plan === 'week'
+            {row.plan === 'beta'
+              ? 'Thanks for testing PitBoard. Pick a plan below to keep going, or ask Aaron to extend your beta.'
+              : row.plan === 'week'
               ? 'Grab a new week pass below, or lock in the founding monthly rate before it goes up.'
               : 'Renew below to get back to every board, flag and tool.'}
           </div>
@@ -106,7 +108,9 @@ export default function Subscribe() {
         <div className="card">
           <b style={{ color: '#22c55e' }}>Membership active</b>
           <div style={{ marginTop: 8, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-            {row && row.plan === 'week'
+            {row && row.plan === 'beta'
+              ? 'Beta tester - free access through ' + (row.access_until ? new Date(row.access_until).toLocaleDateString() : '-') + '.'
+              : row && row.plan === 'week'
               ? 'Week pass - access until ' + (row.access_until ? new Date(row.access_until).toLocaleString() : '-')
               : 'Founding monthly - $24.99/mo, locked in for life.'}
           </div>
