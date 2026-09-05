@@ -6368,8 +6368,12 @@ pre-vs-post-quali delta, now with an order-known stage in between.
 
 ## 2026-09-05 — PRE-REGISTERED: START PROJECTION v4 for O'REILLY — same form, refit on O'Reilly, judged on its own 2026. Written before any fit. DO NOT MODIFY.
 
-Operator: the O'Reilly qualifying order is set by the same metric as Cup (70% previous-race
-finish, 30% owner points, worst first). The cup v4 term (BACKTEST_LOG 2026-09-03) is gated to cup
+Operator: the O'Reilly qualifying order is set by the same metric as Cup. ATTRIBUTION, corrected
+2026-09-05 at the operator's prompting: the operator said only that a metric sets the order and
+that O'Reilly's is the same one; the 70% previous-race finish / 30% owner points / worst-first
+formula came from published sources (Jayski's 2026 qualifying procedures page; Beyond the Flag's
+metric breakdown) and was confirmed empirically on the seven loaded cup orders (-0.95 with
+previous-race finish). It is not an operator statement. The cup v4 term (BACKTEST_LOG 2026-09-03) is gated to cup
 because it was measured on cup; nothing about the mechanism is cup-specific if the order rule is
 the same. This registration extends it, series-separately — no cup constant is reused.
 SCOPE. O'Reilly, 2025-2026. TRAIN = 2025 (fit beta per group), HOLDOUT = 2026, read once. Trailing
