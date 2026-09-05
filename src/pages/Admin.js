@@ -27,7 +27,7 @@ import { LoadRaceFromFeed, FeedBackfill } from './NascarFeedAdmin'
 // are removed; anything interior is left alone.
 export function stripRosterMarkers(name) {
   var s = String(name == null ? '' : name)
-  s = s.replace(/\((?:i|P)\)/gi, ' ')
+  s = s.replace(/\((?:i|P|C|R)\)/gi, ' ')   // (C) = playoff/chase marker (2026-09-05: first O'Reilly playoff practice put 13 drivers into practice_sessions as 'Name (C)'; the sim could not match them to the entry list and its DNQ filter dropped them -> 25-car field)
   s = s.replace(/^[#*\s]+/, '').replace(/[#*\s]+$/, '')
   return s.replace(/\s+/g, ' ').trim()
 }

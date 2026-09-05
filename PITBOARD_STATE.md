@@ -33,6 +33,7 @@ Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2
   group improves except cup road courses (tie); superspeedways gain most. Drivers with no group
   rows now enter at their pooled rating. sim-smoke ALL PASS. Replay ledger judges forward;
   Darlington boards published after this deploy carry it.
+- **O'Reilly sim showed 25 cars (2026-09-05 evening).** Cause: first O'Reilly PLAYOFF practice - the feed tags chase drivers 'Name (C)'; stripRosterMarkers knew only (i)/(P)/#/*, so 13 drivers landed in practice_sessions as 'Austin Hill (C)', the sim's name match to entry_list failed, and the DNQ filter (>=20 real starts -> drop the rest) removed exactly the playoff field. Fixed: rows renamed in practice_sessions/practice_laps; stripRosterMarkers + simEngine normalizeName now strip (C)/(R). Not caused by the day's other changes. Trucks playoffs will carry the same tag - covered.
 - Report card number badges were missing for EVERY watcher-sheet upload (all series since 08-08): the sheet had no Car # column, so practice_sessions.car_number was null. Fixed in pitboard_practice_sheet.py (Car # from the feed); 2026 cup R22-25 + O'Reilly R22/23/25 backfilled from entry_list (Stenhouse by hand). Older sessions before 08-08 came from Lap Raptor sheets and already had numbers.
 - **Beta testers** (operator choice: admin-panel tool, default through end of 2026 season).
   Migration `beta_access_admin_rpcs`; new Admin tab "Beta Access" (`src/pages/BetaAccessAdmin.js`);
