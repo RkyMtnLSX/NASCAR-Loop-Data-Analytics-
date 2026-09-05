@@ -6365,3 +6365,26 @@ Reads only columns the page already fetched plus finish_position / draw_order.
 OPERATOR: re-run + republish the cup Darlington pre board. Its Jayski order is already loaded
 (33 drivers), so the board moves straight to the order-known stage. Judge forward: the routine
 pre-vs-post-quali delta, now with an order-known stage in between.
+
+## 2026-09-05 — PRE-REGISTERED: START PROJECTION v4 for O'REILLY — same form, refit on O'Reilly, judged on its own 2026. Written before any fit. DO NOT MODIFY.
+
+Operator: the O'Reilly qualifying order is set by the same metric as Cup (70% previous-race
+finish, 30% owner points, worst first). The cup v4 term (BACKTEST_LOG 2026-09-03) is gated to cup
+because it was measured on cup; nothing about the mechanism is cup-specific if the order rule is
+the same. This registration extends it, series-separately — no cup constant is reused.
+SCOPE. O'Reilly, 2025-2026. TRAIN = 2025 (fit beta per group), HOLDOUT = 2026, read once. Trailing
+history leak-free per production rules, reaching into 2024. Form, arms, metrics, gates and decision
+rule EXACTLY as the cup v4 registration, with these series-specific points fixed now:
+  - ROAD beta fixed at 0 (group qualifying), as cup.
+  - No ARM O: qualifying_results carries no O'Reilly draw_order rows; the order-known stage is
+    judged forward once the operator loads O'Reilly Jayski PDFs.
+  - Pooled-count gate: "improves in >= 55% of races WHERE THE TERM IS LIVE" (road-course ties
+    excluded from the denominator) — the tie ambiguity the cup run exposed is closed here, in
+    advance, in the stricter-of-the-two sensible readings' spirit (ties neither help nor hurt).
+  - M2 rail uses the O'Reilly boards in holdout.txt (57 lines, cup+minor mixed file; O'Reilly
+    subset). The reconstruction is a weaker instrument for O'Reilly (08-31: 0/3 favourites
+    matched) — so M2 is a not-worse rail only, never an argument for shipping.
+  - Per-series rule: ships as an O'Reilly-only gate in SimulationCenter (series === 'oreilly')
+    with its own betas; cup untouched; trucks unmeasured and unchanged.
+DECISION RULE: ship if HOLDOUT M1 pooled improves, live-race share >= 55%, no fitted group worse
+by > 0.10, M2 win/top5/top10 not worse than control by more than the null floor, M3 no overshoot.
