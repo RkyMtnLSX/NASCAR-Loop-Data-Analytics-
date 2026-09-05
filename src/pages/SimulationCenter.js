@@ -454,6 +454,28 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
             loopByDriver[normN].push({ sr: r.series, fin, rating: isNaN(rating) ? null : rating, qp: isNaN(qp) ? null : qp, yr, car: (r.car_number || '').trim() || null })
           }
         })
+        // POOLED-SERIES PRIOR for shrinkage (2026-09-05, operator-directed ship, no sim A/B — see
+        // BACKTEST_LOG 2026-09-05 "track-type-conditioned driver prior"). corrHistory rates a driver
+        // from correlation-GROUP rows only. On 427 races (2022-26, all series) shrinking that group
+        // rating toward the driver's ALL-TRACK rating with prior weight k=4 (in yrWt units) beat the
+        // pure group rating in every series (cup .632->.639 W68/L36, O'Reilly .777->.789 W82/L22,
+        // trucks .749->.766 W57/L17) and in every group but cup road courses (tie); largest at
+        // superspeedways (cup +.034, trucks +.06) where group samples are thinnest. Drivers with
+        // NO group rows now enter corrAvgMap at their pooled rating (n: 0) instead of nothing.
+        const __CORR_SHRINK_K = 4
+        const __yrWtP = yr => { const dd = ((cfg && cfg.race_year) || new Date().getFullYear()) - yr; return dd <= 0 ? (s === 'cup' ? 2.0 : 3.0) : dd === 1 ? 1.3 : dd === 2 ? 0.9 : dd === 3 ? 0.6 : 0.4 }
+        const __pooledMap = {}
+        try {
+          const { data: __pl } = await fetchAllRows(() => __noEx(supabase.from('loop_data').select('driver_name, driver_rating, year').eq('series', s)))
+          const __pa = {}
+          ;(__pl || []).forEach(r => {
+            const nm = normalizeName((r.driver_name || '').trim()); const rt = parseFloat(r.driver_rating); const yr = parseInt(r.year) || 0
+            if (!nm || isNaN(rt)) return
+            if (__teamCutoff[nm.toLowerCase()] && yr < __teamCutoff[nm.toLowerCase()]) return
+            const w = __yrWtP(yr); const a = (__pa[nm] = __pa[nm] || { s: 0, w: 0, n: 0 }); a.s += w * rt; a.w += w; a.n++
+          })
+          Object.keys(__pa).forEach(nm => { if (__pa[nm].n >= 3) __pooledMap[nm] = __pa[nm].s / __pa[nm].w })
+        } catch (e) {}
         const corrAvgMap = new Map(
           Object.entries(loopByDriver).map(([name, rows]) => {
             // 2026-07-18: relative-age weights (matches backtest harness; frozen-2026 ladder would break in 2027).
@@ -471,6 +493,8 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
             const winConv = baseRows.length ? (winConvConf * (baseRows.reduce((a, r) => a + (r.fin === 1 ? 1 : 0) * yrWt(r.yr), 0) / wsum(baseRows)) + (1 - winConvConf) * 0.026) : null
             const rRows = baseRows.filter(r => r.rating !== null)
             let avgRating = rRows.length > 0 ? rRows.reduce((a, r) => a + r.rating * yrWt(r.yr), 0) / wsum(rRows) : null
+            // shrink the group rating toward the pooled all-track rating (k=4 in yrWt units)
+            if (__pooledMap[name] != null) { const __wg = rRows.length ? wsum(rRows) : 0; avgRating = avgRating == null ? __pooledMap[name] : (avgRating * __wg + __CORR_SHRINK_K * __pooledMap[name]) / (__wg + __CORR_SHRINK_K) }
             const bw = __borrowMap[name]
             const __pmE = __pairMap[name]
             const __carNow = __entCarMap[name]
@@ -513,6 +537,9 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
             return [name, { avg: avgFin, avgRating, winConv, n: baseRows.length, modalCar, carMatched: __carMatchedF }]
           })
         )
+
+        // drivers with a pooled rating but no correlation-group rows: enter at the pooled rating (k=4 form)
+        Object.keys(__pooledMap).forEach(nm => { if (!corrAvgMap.has(nm)) corrAvgMap.set(nm, { avg: null, avgRating: __pooledMap[nm], winConv: null, n: 0, modalCar: null, carMatched: false }) })
 
         // EQUIPMENT PRIOR (task 118, 2026-07-09): pooled rating BY CAR NUMBER, same-series only.
         // Backtest: thin-driver corr(input,finish) 0.433 -> 0.518 (test split +0.117); ride-change

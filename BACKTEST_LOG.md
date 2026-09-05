@@ -87,7 +87,31 @@ parentheses; k = 4 unless noted):
     Intermediate   +.006 W24/L12 | Short & Flat -.005 W8/L17 | Road Course +.025 (n=13) | SS -.016 (n=12)
   k sensitivity: k=2 / k=8 within +-.003 of k=4 everywhere; shrinkage strength is not the story.
 
-READING. Conditioning helps, and the decision rule passes on cup — but the effect is concentrated
+CORRECTION BEFORE ACTING (same session). The sim's corrHistory term ALREADY rates drivers from
+correlation-GROUP rows only (`.in('track_name', corrNames)`, pure group, no shrinkage) — the
+"pooled" arm above is NOT what the sim does. Re-run with the sim's own yrWt ladder (2.0/3.0 current,
+1.3/.9/.6/.4) and the sim's form as the baseline (k=0 = pure group, pooled fallback only with zero
+group rows):
+
+  cup ALL      k=0 .632  k=1 .636  k=2 .638  k=4 .639  k=8 .638  pooled .605   k=4 vs k=0 W68/L36
+    Intermediate .694->.697 W21/L5 | Short&Flat .687->.692 W19/L14 | Road .604->.601 W10/L10 (tie) | SS .444->.478 W18/L6
+  O'Reilly ALL k=0 .777  k=4 .789  k=8 .791  pooled .780   W82/L22
+    Intermediate .819->.823 | Short&Flat .809->.823 W21/L4 | Road .735->.751 W18/L7 | SS .692->.716 W18/L2
+  trucks ALL   k=0 .749  k=4 .766  k=8 .767  pooled .765   W57/L17
+    Intermediate .788->.794 | Short&Flat .806->.816 W21/L6 | Road .702->.732 (n=13) | SS .497->.559 W11/L1
+
+So the actual finding is SHRINKAGE: the sim's pure-group rating over-trusts thin group samples,
+worst at superspeedways (2-3 races a year) and in the minor series. Shrinking toward the driver's
+all-track rating with k=4 wins in every series and every group except cup road courses (tie).
+
+SHIPPED DIRECTLY, no sim A/B, by operator decision 2026-09-05 ("send that change to the simulation
+now"). Change: corrAvgMap.avgRating = (sum_w x group + 4 x pooled) / (sum_w + 4), pooled = same
+yrWt over all own-series loop_data rows (team cutoff respected, >=3 races); drivers with a pooled
+rating but no group rows enter corrAvgMap at the pooled rating (n:0) instead of nothing. avgFin,
+winConv, modalCar, equipment prior, borrows and pairing unchanged. sim-smoke ALL PASS (engine
+untouched - this is the input layer). The replay ledger judges it forward from here.
+
+READING (original, superseded by the correction above). Conditioning helps, and the decision rule passes on cup — but the effect is concentrated
 where the car/driver skill set differs most from the pooled picture: road courses (+.11 cup, +.04
 O'Reilly, +.03 trucks) and cup short/flat (+.03). At INTERMEDIATES — the largest group and the one
 Darlington sits in — the gain is +.011 cup and nil in the other two series: pooled history already

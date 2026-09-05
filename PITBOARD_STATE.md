@@ -26,11 +26,13 @@ Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2
   laps as numbered laps); practice sheet page 1 on original lap numbers with `--` at pit laps;
   upload race-# guard handles return visits; 2026 O'Reilly R25-R33 / Trucks R19-R25 / Cup R27
   seeded in `races`.
-- **Track-type-conditioned driver prior — pre-test PASSED on cup** (BACKTEST_LOG 2026-09-05,
-  registered before run): rho vs race-day rating .603 -> .637, W107/L41; carried by road courses
-  (+.11) and short/flat (+.03); intermediates +.01; O'Reilly marginal (+.01, road courses only);
-  trucks no effect. QUEUED: sim A/B on the driver-prior input, cup first, behind the replay
-  ledger. Not a Darlington fix — intermediates barely move.
+- **SIM CHANGE — corrHistory rating shrunk toward the pooled all-track rating (k=4)**, shipped
+  by operator decision without a sim A/B (BACKTEST_LOG 2026-09-05). The pre-test first compared
+  pooled vs conditioned and "passed" — then I found the sim was ALREADY pure-group; the re-run
+  against the sim's real form shows the win is SHRINKAGE of thin group samples: every series and
+  group improves except cup road courses (tie); superspeedways gain most. Drivers with no group
+  rows now enter at their pooled rating. sim-smoke ALL PASS. Replay ledger judges forward;
+  Darlington boards published after this deploy carry it.
 - **Beta testers** (operator choice: admin-panel tool, default through end of 2026 season).
   Migration `beta_access_admin_rpcs`; new Admin tab "Beta Access" (`src/pages/BetaAccessAdmin.js`);
   Account/Subscribe beta wording, no billing portal for beta rows. Flow: tester signs up on
