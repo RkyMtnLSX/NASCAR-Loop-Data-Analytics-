@@ -696,7 +696,7 @@ before stating n.
 - corrHistory has never been swept at its post-8/20 effective share (33.7% → 37.2%; the startPos
   cut changed wTotal and renormalized every term). Sweep result stands, but 0.30 is the arm that
   restores the validated share — queue candidate behind the ownership overlay.
-- [OWED TO FABLE] practice sheet page 1 renumbers laps (pit gaps invisible) while LAPS_RAW keeps
+- ~~[OWED TO FABLE] practice sheet page 1 renumbers laps~~ DONE 2026-09-05: page 1 on original lap numbers with `--` at pit/in-out laps, verified cell-for-cell against the old-method Darlington sheet (only the 4 feed-stall pairs differ). Same day: grader `parseStints` ends a stint at any lap > 1.2x median. Original note: practice sheet page 1 renumbers laps (pit gaps invisible) while LAPS_RAW keeps
   original numbering. QA-only - DB, grader and the live Lap By Lap page are all correct (NH cup
   mean 2.75 runs/driver, zero single-run drivers) - but page 1 is the tab eyeballed before upload,
   so it is the one view that hides dropped laps and over-long runs. Fix in pitboard_practice_sheet.py:

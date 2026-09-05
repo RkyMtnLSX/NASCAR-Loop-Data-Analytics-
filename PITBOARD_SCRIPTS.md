@@ -190,8 +190,10 @@ Output: `{YYYYMMDD}_{series}_{track}_{run}_laps_FULL.csv` in the script folder.
 
 ### `pitboard_practice_sheet.py` — capture CSV → practice sheet
 Converts a `*_laps_FULL.csv` into `POS | Driver | AVG LAP | LAP 1..N`. Flying laps only (drops laps
-> 1.2× that driver's median, and anything outside 5-300s), laps renumbered sequentially, drivers
-sorted by AVG LAP. Writes .xlsx when openpyxl is present, else .csv — the site parser reads both.
+> 1.2× that driver's median, and anything outside 5-300s). Since 2026-09-05 page 1 keeps ORIGINAL
+lap numbers: a filtered pit / in-out lap shows as `--` in its column and rows are padded with `--`,
+exactly like the old-method sheet, so pit visits and over-long runs are visible before upload
+(laps were renumbered sequentially before that). Drivers sorted by AVG LAP. Writes .xlsx when openpyxl is present, else .csv — the site parser reads both.
 A second worksheet `LAPS_RAW` carries every sane lap with ORIGINAL lap numbers plus `captured_at`
 timestamps; the site parser prefers it when present.
 
