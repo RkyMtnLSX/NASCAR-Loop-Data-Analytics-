@@ -35,17 +35,26 @@ export function parseStints(lapData) {
   if (laps.length === 0) return []
   laps.sort((a, b) => a[0] - b[0])
 
+  // PIT LAPS AS STINT BOUNDARIES (2026-09-05). Watcher-built LAPS_RAW sheets keep every lap
+  // under 300s, so a pit visit at a short track arrives as a NUMBERED 40-300s lap instead of a
+  // gap in the numbering (Darlington O'Reilly practice: 40 such laps; cup NH R25 already in the
+  // DB with 10). Splitting only on numbering gaps then glued run-pit-run into one stint: the
+  // tire-age counter ran on through the pit and the long-run term saw one run instead of two.
+  // A lap over PIT_LAP_RATIO x the driver median (6+ s slow at Darlington) is a pit or in-out lap: it ends the stint
+  // and is dropped. Old-method sheets ('--' at the pit) are unchanged - they were gaps already.
+  const PIT_LAP_RATIO = 1.2   // matches pitboard_practice_sheet.py page-1 flying-lap cut; the 40-57s in/out laps at Darlington sit at 1.21-1.72x
+  const srtT = laps.map(x => x[1]).sort((a, b) => a - b)
+  const medT = srtT[Math.floor(srtT.length / 2)]
+  const isPit = (t) => medT > 0 && t > medT * PIT_LAP_RATIO
+
   const stints = []
-  let current = [laps[0]]
-  for (let i = 1; i < laps.length; i++) {
-    if (laps[i][0] === laps[i - 1][0] + 1) {
-      current.push(laps[i])
-    } else {
-      stints.push(current)
-      current = [laps[i]]
-    }
+  let current = []
+  for (let i = 0; i < laps.length; i++) {
+    if (isPit(laps[i][1])) { if (current.length) stints.push(current); current = []; continue }
+    if (current.length && laps[i][0] !== current[current.length - 1][0] + 1) { stints.push(current); current = [] }
+    current.push(laps[i])
   }
-  stints.push(current)
+  if (current.length) stints.push(current)
   return stints
 }
 
