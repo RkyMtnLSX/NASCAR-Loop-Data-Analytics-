@@ -14,12 +14,14 @@ Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2
   only same-stage draws so a later PRE publish cannot wipe POST draws; DFSPage and DfsReplay use
   post draws only. Until the Darlington Post boards are published the DFS page is blocked for all
   three series (trucks' newest board is NH R18) — expected.
-- **Practice grader v6.4-sets** (later same day): tire age is cumulative laps on the assigned tire
-  set when the allotment is known. Gate passed on 36 labeled 1-set cup sessions (rho vs driver
-  rating .503 -> .531, W19/L12/T5). `tire_allocations` seeded for cup 2026 (NASCAR REV E sheet)
-  + O'Reilly R25; uploader has a Tire sets field that defaults from it. ACTION: re-upload the
-  Darlington O'Reilly R25 practice sheet with Tire sets = 2 to regrade (Allgaier 1 / Alfredo 2 /
-  Day 3 expected). Forward ledger on K>=2 sessions. BACKTEST_LOG 2026-09-05.
+- **Practice grader v6.4-sets** (later same day): cumulative tire age across stints for 1-SET
+  sessions (gate passed: 36 labeled cup sessions, rho vs driver rating .503 -> .531, W19/L12/T5).
+  The K>=2 set-change detector FAILED its gate (7 labeled multi-set sessions: legacy .583 vs
+  detector .534, no threshold wins) and was pulled back to display-only the same day — 2-set
+  sessions (Darlington O'Reilly, Cup Darlington) grade exactly as before. `tire_allocations`
+  seeded for cup 2026 + O'Reilly R25; uploader Tire sets field defaults from it and stamps
+  practice_sessions.tire_sets. Three other grader ideas tested and rejected (BACKTEST_LOG).
+  No re-upload needed for Darlington O'Reilly (2 sets = legacy grading).
 - Same day: grader `parseStints` ends a stint at any lap > 1.2x median (watcher sheets carry pit
   laps as numbered laps); practice sheet page 1 on original lap numbers with `--` at pit laps;
   upload race-# guard handles return visits; 2026 O'Reilly R25-R33 / Trucks R19-R25 / Cup R27

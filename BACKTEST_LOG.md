@@ -48,7 +48,7 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
-## 2026-09-05 — v6.4-sets: tire age = cumulative laps on the assigned tire SET (gate passed, shipped)
+## 2026-09-05 — v6.4-sets: cumulative tire age for 1-SET sessions (gate passed); K>=2 detector FAILED its gate
 
 **Trigger.** Darlington O'Reilly practice (first watcher sheet with pit laps as numbered laps): Alfredo
 A+ over Allgaier/Creed/Gray. Operator disagreed; investigation showed the grade was carried by his
@@ -81,6 +81,27 @@ unambiguous and the K>=2 inference is the same mechanism with a constraint, judg
 detected and it is the run everyone can see (Alfredo 11:56, Creed 11:57, Gray 12:01, Mayer 12:02,
 Hill 12:09); change signatures -1.2 to -3.2 s, scuff restarts -0.6 to +1.9 s; Allgaier and Smith
 never used set 2. Regrade: Allgaier 1, Alfredo 2, Day 3 (was Alfredo 1, Creed 2, Allgaier 3).
+
+**K>=2 GATE — FAILED (same day, run after the ship; reverted to legacy for K>=2).** Two tests.
+(a) Race pit stops with tire labels (pit_stops x 2026 race lap archives, 4 cup races, 1,025 usable
+stops; signature = first 3 clean green laps after the stop vs last 3 before, / driver median):
+green 4-tire stops median -6.5%, 80% below -2% — but 301 of 307 are Richmond, and the 9 green
+0-tire stops ALSO came back faster (median -2.3%). Caution stops are contaminated by restart
+traffic (4-tire median +0.2%). Verdict: proves the signature exists at a high-falloff track, says
+nothing about specificity. (b) Outcomes on the 7 labeled multi-set cup sessions (2024 R4 Phoenix x3,
+2025 R22 Indy x3, 2025 R36 Phoenix x2, 2026 R19 Chicagoland x3, R22 Indy x3, R23 Iowa x2, R25
+Loudon x2; Dover All-Star excluded — shares R11 with Texas in practice_laps): rho vs rating
+legacy .583 / K=1 cumulative .553 / detector 1% .536 / 2% .534 / 3% .495 / 5% .548. Legacy wins
+6 of 7 vs the shipped 2% detector. CONCLUSION: cumulative age is validated for 1-set sessions
+ONLY; for 2+ sets the reset-per-stint proxy stays. Grader now applies set-aware age only when
+tire_sets = 1; for K>=2 the set assignment is display-only (Laps column). Re-open only with a
+detector that beats .583 on these 7 (n is small — a forward ledger on K>=2 sessions is the
+better judge, and the 1-set result stands on its own 36).
+
+**Also tested and REJECTED (36 1-set sessions, set-aware linear as baseline .531, one run each):**
+concave tire age sqrt .522 / log .504; seconds-based z-score composite instead of rank scaling
+.520; per-driver falloff slope shrunk to pool (k=60) .447 — a clear trap, the driver's own
+practice slope is fuel/traffic/setup noise. The pooled linear slope and rank scaling both stand.
 
 **Ships with it.** `tire_allocations` table (cup 2026 full season from the sheet; O'Reilly R25 = 2)
 defaults the new Tire sets field on the practice uploader; practice_sessions.tire_sets is stamped at

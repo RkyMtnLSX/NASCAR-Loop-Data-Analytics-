@@ -4,7 +4,7 @@
 // v6-tc: all five ranked inputs are TIRE-CORRECTED copies (see gradePracticeSession).
 // v6.1: pace half ranks overallTC (all corrected clean laps) - no stint-count artifact.
 // v6.2: speed half ranks RAW best5/bestLap - corrected laps barred from the speed half.
-// v6.4-sets (2026-09-05): tire age = cumulative laps on the assigned tire SET when the allotment is known.
+// v6.4-sets (2026-09-05): tire age = cumulative laps across stints when the allotment is ONE set (validated); K>=2 keeps reset-per-stint (detector lost its gate).
 // Composite = pace*.40 + speed*.40 + longRun*.20
 //   pace   : avgPace rank (per-stint cleaned averages; overallAvg fallback)
 //   speed  : best5 rank (5 fastest laps; bestLap fallback) — shipped 2026-07-17
@@ -208,9 +208,14 @@ export function gradePracticeSession(drivers, priorRatings, opts) {
   // v6.4-sets (2026-09-05): when the session's tire allotment is known, tire age is cumulative
   // laps on the assigned set (assignTireSets) instead of lap-in-stint. opts.tireSets null/undefined
   // = legacy behaviour (every stint fresh), so unlabeled historical sessions grade exactly as before.
+  // GATE RESULTS (BACKTEST_LOG 2026-09-05): K=1 cumulative age WINS (36 sessions, .503 -> .531).
+  // K>=2 with the change detector LOSES to reset-per-stint on the 7 labeled multi-set sessions
+  // (.583 legacy vs .534 detector at 2%, no threshold wins). So cumulative age is applied ONLY
+  // when K=1; for K>=2 the legacy proxy (every break = fresh) stays in force and the set
+  // assignment is computed for DISPLAY only (notes.sets). Do not widen this without beating .583.
   const __K = opts && opts.tireSets != null ? Math.max(1, parseInt(opts.tireSets) || 1) : null
   const __setInfo = new Map()
-  if (__K != null) drivers.forEach(dr => { if (!dr.lapAge) { const r = assignTireSets(dr.lapData, __K); dr.lapAge = r.age; __setInfo.set(dr, r.sets) } })
+  if (__K != null) drivers.forEach(dr => { const r = assignTireSets(dr.lapData, __K); __setInfo.set(dr, r.sets); if (!dr.lapAge && __K === 1) dr.lapAge = r.age })
   const __age = (dr, x, i) => (dr && dr.lapAge && dr.lapAge[x[0]] != null) ? dr.lapAge[x[0]] : i + 1
   const wavg = (arr, vf, wf) => { let sv = 0, sw = 0; arr.forEach(r => { const v = vf(r); if (v == null) return; const w = wf(r); sv += v * w; sw += w }); return sw ? sv / sw : null }
   const rnd = (x, p) => x == null ? null : Math.round(x * p) / p
