@@ -76,6 +76,17 @@ needs an ownership proxy the product does not have (leverage line closed 08-30; 
 is derived from our own proj) - but the crowd chased practice speed (Retzlaff 30.300, 41% owned,
 proj 22.2 -> 10.9) and the tool already disagreed with the crowd on him.
 CAVEAT: n=1, and it is exactly the race this construction wins (JRM cars under, JGR/HMS/Haas 1-2-3).
+ALL THREE CONTESTS (standings files, same night): A (060) best 1st, 12/20 top-50, 18/20 above field
+median, mean pctile 86, Allgaier 0%. B (057, 1,107 entries) best 170th, 0 top-50, 7/20 above median,
+mean pctile 38, Allgaier 95%. C (059, 1,189) best 252nd, 0 top-50, 7/20 above median, mean pctile 36,
+Allgaier 85%. Portfolio across 60: Allgaier 60%, Creed 37%, Kvapil/Smith/Jones/Hill 30%, Day 28%,
+Crews/Bilicki 27%, Sawalich/Mayer 25%. The operator's recollection (Allgaier capped 50% in B and C)
+was wrong - 95/85. B and C look like the product's own GPP output plus a tilt (Allgaier, Mayer,
+Sawalich, Finch, Cram/Gase/Maggio punts) and finished like it (product replay best 217.4; B 221.5,
+C 215.0). A was hand-built (Creed 80 / Day 65 / Crews 60 / Smith 55 / Hill 50; Crews at 9% owned)
+and is the only leg that won. READING: the evidence is for rules 2-4 (tier-two concentration,
+mid-priced rotating punts, cap spent), not for any chalk stance - 0/95/85 is two-thirds of the
+bankroll on one car, rescued by the third leg; 0/50/50 was the intended and better schedule.
 PROPOSED: 'Operator' build preset encoding rules 2-4, plus a PORTFOLIO builder - N contests x 20
 with a chalk-stance schedule across sets (the tool builds one contest in isolation today and has no
 notion of cross-contest exposure) - run inside DFS Replay every week alongside GPP/cash so the
