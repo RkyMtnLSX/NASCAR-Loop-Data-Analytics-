@@ -154,12 +154,12 @@ export default function DfsOptimals() {
                       </span>
                     </div>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, tableLayout: 'fixed' }}>
-                      <colgroup><col /><col style={{ width: 66 }} /><col style={{ width: 96 }} /><col style={{ width: 54 }} /></colgroup>
+                      <colgroup><col /><col style={{ width: 66 }} /><col style={{ width: 112 }} /><col style={{ width: 54 }} /></colgroup>
                       <thead>
                         <tr style={{ color: 'var(--text-muted, #6b7078)', fontSize: 11.5, textTransform: 'uppercase', letterSpacing: 0.4 }}>
                           <th style={{ padding: '2px 4px 5px', textAlign: 'left', fontWeight: 600 }}>Driver</th>
                           <th style={{ padding: '2px 4px 5px', textAlign: 'right', fontWeight: 600 }}>Salary</th>
-                          <th style={{ padding: '2px 4px 5px', textAlign: 'right', fontWeight: 600, whiteSpace: 'nowrap' }}>Start → Fin</th>
+                          <th style={{ padding: '2px 4px 5px', textAlign: 'right', fontWeight: 600, whiteSpace: 'nowrap' }}>Start → Finish</th>
                           <th style={{ padding: '2px 4px 5px', textAlign: 'right', fontWeight: 600 }}>Score</th>
                         </tr>
                       </thead>
