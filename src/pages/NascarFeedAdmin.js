@@ -133,7 +133,10 @@ export function LoadRaceFromFeed() {
         .order('id', { ascending: true })
       const stubId = stubs && stubs.length ? stubs[0].id : null
 
-      const fields = { ...race, racing_reference_id: rrId }
+      // weekendAvailable is a mapper flag, not a races column (added 2026-09-05 for the bulk path; the
+      // single-race Load spread it into the write and PostgREST refused: 'Could not find the weekendAvailable column').
+      const { weekendAvailable: __wkFlag, ...__raceCols } = race
+      const fields = { ...__raceCols, racing_reference_id: rrId }
       const { data: raceRow, error: raceErr } = stubId
         ? await supabase.from('races').update(fields).eq('id', stubId).select('id').single()
         : await supabase.from('races').insert(fields).select('id').single()
