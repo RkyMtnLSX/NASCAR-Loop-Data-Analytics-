@@ -48,6 +48,38 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-06 — RESULT: corrected pace in seconds (arms C / D) — CLOSED, both fail the primary
+
+Same harness as the composite test (91 boards, 20k sims / race / arm). Arm C = grader overallSTC/
+overallTC in seconds; arm D = best5TC (cup/trucks) / overallSTC-TC (O'Reilly). Baseline A = raw.
+  C run 1  ALL rhoFin .541 -> .541 (W/L 51/39)  t10 Brier .14649 -> .14622 (50/37)  winLL 54/35  t5LL 47/41
+  C run 2  ALL rhoFin .541 -> .541 (50/40)      t10 Brier .14657 -> .14619 (48/38)  winLL 52/30  t5LL 47/42
+           INT 44: rhoFin .528 -> .530 (25/18) / .529 -> .531 (25/19); SHORT 39: flat (24/15, 25/14);
+           ROAD 8: .417 -> .408 (2/6, 0/7). cup 23/15, oreilly 14/11, trucks 14/13 (run 1).
+  D        ALL rhoFin .541 -> .539 (48/43)      t10 Brier .14658 -> .14638 (52/39)  winLL 46/41  t5LL 45/45
+           INT 22/22, SHORT 25/14, ROAD 1/7; cup 18/20, oreilly 14/11, trucks 16/12.
+  Control (7 stored-score boards, IDENTICAL inputs both arms): rhoFin 3/4 and 1/6 - that is the
+  per-race noise floor of a 20k-sim pair; W/L inside ~40/50 is not signal.
+  SECONDARY DK (2026 replay races with practice, 6): C .458 -> .516 (5/1), run 2 5/1; D .466 -> .495
+  (5/1). Does not lose - it is the one place the corrections clearly help.
+VERDICT: C mean finish-order rho FLAT (.541 -> .541) on both runs, W/L 51/39 and 50/40 = 1.3:1,
+below the 1.5:1 bar and no mean gain -> FAILS. D mean down, 48/43 -> FAILS. CLOSED. Nothing ships.
+Per-group: INT is the only cell that leans positive for C (25/18, 25/19, Brier 24/19, 25/18) and
+it does not reach the bar on its own either; ROAD loses in every arm tested tonight (2/6, 0/7, 1/7)
+- the road-course practice metric is a separate question (8 races, fewer laps, long-run pace is
+not what a road course rewards).
+WHAT THREE CLOSED FORMS SAY TOGETHER: rank composite (B), corrected seconds (C), same-slot
+corrected (D) all leave finish-order rho within noise of production (.537-.541 vs .541) while all
+three lift the win / top-10 probability metrics and the DK-points correlation on the 2026 replay
+races (B 4/2, C 5/1, D 5/1). The sim's ORDERING is not improved by a better practice number at
+the 0.15 weight; what improves is the tail (who wins, who scores DK points). The residual
+diagnostic's .385 -> .414 was a LINEAR fit in DK-rank space with the pre board and the grade as
+free inputs - the sim cannot reproduce that by swapping one input at a fixed weight. A weight
+sweep is exactly what the operator ruled out ("no A/B bullshit"), and 230-race sweeps have
+already placed longRunPace at 0.15. OPEN, not tonight's registration: a DK-points-scored
+objective for the post board (the sim is graded on finish order; DFS pays on DK points, and every
+practice form tested tonight helped DK while leaving finish order alone).
+
 ## 2026-09-06 — REGISTRATION: grader-CORRECTED pace IN SECONDS as the sim's practice input
 
 Follows the closed composite test above. Same harness (91 joined practice boards, grades recomputed

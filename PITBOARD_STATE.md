@@ -678,8 +678,14 @@ before stating n.
   overall_avg).** 91-board holdout, two 20k-sim runs: finish-order rho .541 -> .538 / .537, W/L
   42/49 and 39/51 - fails the registered primary. Win / top-5 / top-10 probability metrics improved
   ~55-58 W vs 30-35 L both runs (INT strongest); DK secondary 4/2. Reading: rank-scaling loses the
-  lap-gap magnitudes. OPEN NEXT: the grader's tire+session-corrected pace IN SECONDS as the lrpTime
-  input (keeps magnitudes, adds the corrections) - needs its own registration. BACKTEST_LOG 09-06.
+  lap-gap magnitudes. ALSO CLOSED same night: corrected pace in seconds (arm C overallSTC/TC: rho flat .541 ->
+  .541, W/L 51/39 and 50/40 = 1.3:1, below the bar; arm D best5TC: .541 -> .539, 48/43). Control
+  boards with identical inputs show 3/4 and 1/6, so ~45/45 is the noise floor. All three practice
+  forms lifted win/top-10 probability metrics and DK-points rho on the 2026 replay races (5/1)
+  while leaving finish order alone. READ: a better practice number at the fixed 0.15 weight does
+  not move the sim's ORDERING; it moves the TAIL. ROAD loses in every arm (0/7 - 2/6; n=8).
+  OPEN: the post board is graded on finish order but DFS pays DK points - a DK-scored objective
+  for the post board is the un-run question. BACKTEST_LOG 09-06 (three entries).
 - **[RESOLVED 2026-09-06] Cram 45% in a 20-lineup GPP build was NOT E[max] — it was the TOP-UP filler.**
   Registered replay (BACKTEST_LOG 09-06): a floor-car cap inside E[max] never binds (floor cars are 5%
   of roster slots uncapped, max single floor car 30%) and a P35+ attrition haircut is a coin flip
