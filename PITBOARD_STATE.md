@@ -716,6 +716,12 @@ before stating n.
   5.9%. Ledger watches it; one bad race (trucks NH 92.6 -> 73.7) shows a single lineup can swing a
   race's number either way. Floor-car projections still run rich vs 23.5% observed P35-38 DNF —
   the haircut did not help, so leave it.
+- **[OPEN 2026-09-06] Projected ownership is systematically LOW on the chalk.** Most-owned driver per
+  race averages 52% actual vs 37% from the rank-only model (low 9 of 9; Blaney Iowa 72.5 vs 43).
+  v2 features test (magnitude + $/pt + start + practice) CLOSED - MAE worse; magnitude-only fixes the
+  chalk level 7/2 with MAE flat but missed the bar. The shape (exp of rank pctile) has a flat top;
+  next registration is a top-end form, one parameter, no sweep. Crowd signal that is real: PRACTICE
+  (+0.85), not the pole (-0.36 given projection). Consumer: Portfolio chalk definition. BACKTEST_LOG 09-06.
 - **DFS Value column redefined 2026-09-05** (marginal pts per $1K above the salary floor; floor cars
   = PUNT). Display only. Watch: does the sort order now match what the operator would pay up for?
 - v6.3-st session-time correction: LEDGER 2-1 (wk1 trucks +.026, wk2 cup -.099, wk3 cup NH +.028 CORRECTED WINS, protocol target rho .624 v .596 n=36). POOLED mean delta -0.0150, sem 0.0420 over 3 sessions - indistinguishable from zero, dominated by wk2. Verdict deferred to 8-10 sessions per the 2026-08-23 protocol correction; emergency stop (single week worse than -0.15 rho) never approached. Wk3 was the FIRST CLEAN test (A/B groups gone, gc correction self-disabled). BLOCKER unchanged: truck sessions still upload with no captured_at, so the pool fills at half rate - fix the watcher for truck practice.

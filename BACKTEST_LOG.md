@@ -48,6 +48,25 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-06 — RESULT: projected ownership v2 — CLOSED (candidate fails; chalk level is a shape problem)
+
+9 races LORO, ~330 rows. MAE / rho / top-3 chalk error (mean |pred - actual| on the three most-owned):
+  A rank-only k=2.2 (shipped)               6.35 / .745 / 12.1
+  B rank+z+ptsPerK+start+practice           6.42 / .754 / 11.8   MAE W/L 3/6, top-3 6/3  -> FAILS
+  ref rank + magnitude (z) only             6.36 / .745 / 11.1   MAE 5/4 (wash), top-3 7/2
+  ref rank + crowd signals only             6.44 / .753 / 12.3   3/6, 5/4
+  ref rank refit (k free)                   6.37 / .745 / 11.6
+VERDICT: B fails (MAE worse). Magnitude-only improves the chalk level 7/2 with MAE flat - does not
+clear the registered bar (MAE must improve in mean). NOT shipped; rank-only stays.
+FINDINGS: (1) the LEVEL is the problem, operator was right by more than he bet: the most-owned driver
+each week averaged 52% actual vs 37% modelled, low in 9 of 9 (Blaney Iowa 72.5 actual / 43 model;
+Allgaier Richmond 57 / 36). exp(k x rank pctile) has a flat top; even B only lifts Blaney to 54. A
+functional-form change (extra mass at the top by projection gap) is the next registration, one
+form, one parameter from the LORO fit, no sweep. (2) The crowd chases PRACTICE, not the pole: practice
+pctile coefficient +0.85 (largest), start pctile -0.36 once projection is in (the projection already
+credits the pole). The Retzlaff pattern in the data. (3) A better own% is a better field model, not an
+edge - 08-30 rule stands; the Portfolio chalk definition (>35%) is the consumer.
+
 ## 2026-09-06 — REGISTRATION: projected ownership v2 — magnitude and crowd signals on top of rank
 
 Trigger: operator, Darlington Cup board, Reddick on the pole at 36.4% projected: "I'm willing to bet
