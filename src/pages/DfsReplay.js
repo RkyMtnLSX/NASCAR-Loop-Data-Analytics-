@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { optimize, bestLineup, makeEmaxSelector, DFS_ROSTER } from './DFSPage'
+import { optimize, bestLineup, makeEmaxSelector, topUpLineups, enforceMinExposure, dfsCapFor, DFS_ROSTER, DFS_CAP } from './DFSPage'
+import { buildPortfolio, portfolioRulesDefault } from '../lib/dfsPortfolio'
 
 // DFS REPLAY (2026-08-30, operator: "should this be an admin tool that I can run instead of having
 // you do it everytime? ... I always upload the contest after the race").
@@ -166,7 +167,7 @@ export default function DfsReplay() {
   const [entries, setEntries] = useState(20)
 
   const loadLedger = () => supabase.from('dfs_replays')
-    .select('series,race_year,race_number,track_name,cash_actual,cash_rank,gpp_actual,gpp_rank,perfect_actual,contest_entries,contest_median,rho_model,rho_salary,rho_own,verdict,engine_era,created_at')
+    .select('series,race_year,race_number,track_name,cash_actual,cash_rank,gpp_actual,gpp_rank,perfect_actual,contest_entries,contest_median,rho_model,rho_salary,rho_own,verdict,engine_era,created_at,portfolio_prize,portfolio_base_prize,portfolio_legs')
     .order('race_year', { ascending: false }).order('race_number', { ascending: false, nullsFirst: false })
     .limit(50).then(({ data }) => setLedger(data || []))
 
@@ -370,6 +371,30 @@ export default function DfsReplay() {
       const gpp = decorate(bestOfN.names.map(n => byName[n]), ceilOf[bestOfN.names.join('|')])
       const alt = setLus.slice(1, 3).map(s2 => ({ names: s2.names, ceil: ceilOf[s2.names.join('|')], actual: s2.actual }))
 
+      // ---- PORTFOLIO row (2026-09-06, BACKTEST_LOG): legs x N through src/lib/dfsPortfolio with the
+      // series-default rules, scored as REALISED PRIZE on the real ladder with a fixed DK-like payout
+      // curve (top 20% cash, prize ~ r^-0.75, entry-fee units) against legs x the plain E[max] set.
+      // The curve is synthetic - fine for comparing two methods, not for reading the number as money.
+      let portfolio = null
+      try {
+        const __E = ent || 0
+        const __prize = (() => { const R = Math.floor(0.2 * __E); let Z = 0; for (let r = 1; r <= R; r++) Z += Math.pow(r, -0.75); return r => (__E && r >= 1 && r <= R) ? __E * Math.pow(r, -0.75) / Z : 0 })()
+        const __own = (() => { const n = pool.length; const order = pool.slice().sort((a, b) => a.projDK - b.projDK); const pct = {}; order.forEach((d, i) => { pct[d.name] = i / (n - 1) }); let sum = 0; pool.forEach(d => { sum += Math.exp(2.2 * pct[d.name]) }); const o = {}; pool.forEach(d => { o[d.name] = DFS_ROSTER * 100 * Math.exp(2.2 * pct[d.name]) / sum }); return o })()
+        const __legs = 3, __N = selN
+        const __rulesOn = portfolioRulesDefault(sr)
+        const __pf = buildPortfolio(
+          { optimize, bestLineup, makeEmaxSelector, topUpLineups, enforceMinExposure, capFor: dfsCapFor, ROSTER: DFS_ROSTER, CAP: DFS_CAP },
+          { rows: pool.map(d => ({ name: d.name, sal: d.sal, projDK: d.projDK })), samples: { drivers: names, rows: draws }, simCands: cands, legs: __legs, want: __N,
+            rulesOn: __rulesOn, schedule: 'all50', locks: new Set(), excludes: new Set(), userExpo: {}, projOwn: __own })
+        const __score = (lus) => lus.reduce((s, ns) => { const a = ns.reduce((t, n) => t + byName[n].actual, 0); const p = placeIn(ladder, __E, a); return s + (p.rank ? __prize(p.rank) : 0) }, 0)
+        const __pfLegs = __pf.legs.map(l => l.lineups.map(lu => lu.drivers.map(d => d.name)))
+        const __pfPrize = __pfLegs.reduce((s, lus) => s + __score(lus), 0)
+        const __basePrize = __legs * __score(setIdx.map(c2 => cands[c2]))
+        const __pfBest = Math.max.apply(null, __pfLegs.flat().map(ns => placeIn(ladder, __E, ns.reduce((t, n) => t + byName[n].actual, 0)).pct || 0))
+        portfolio = { legs: __legs, n: __N, rulesOn: __rulesOn, prize: __pfPrize, basePrize: __basePrize, bestPct: __pfBest, entries: __pf.total,
+          exposure: Object.entries(__pf.exposure).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([n, c]) => ({ name: n, pct: Math.round(100 * c / Math.max(1, __pf.total)) })), chalk: __pf.cls.chalk, t2: __pf.cls.t2 }
+      } catch (e) { portfolio = { error: String((e && e.message) || e) } }
+
       // ---- calibration
       const withOwn = pool.filter(d => d.own != null)
       const cal = {
@@ -385,7 +410,7 @@ export default function DfsReplay() {
         series: sr, year, race, track: trk, samplesAt: samp.created_at, boardAt: board && board.published_at, stage: board && board.stage,
         nDraws: nD, nPool: pool.length, nCands: cands.length, nScoreDraws: nS,
         cash, gpp, alt, perfect, contest, cal, verdict, unmatched, same,
-        setN: setIdx.length, setUniq: setUniq.size, setEmax: sel.emax(), wantN: selN,
+        setN: setIdx.length, setUniq: setUniq.size, setEmax: sel.emax(), wantN: selN, portfolio,
       })
       setProg('')
       setMsg('Done. ' + cands.length.toLocaleString() + ' candidates, ' + nS.toLocaleString() +
@@ -420,6 +445,10 @@ export default function DfsReplay() {
       engine_era: (res.samplesAt && new Date(res.samplesAt) >= new Date('2026-08-29T00:00:00Z')) ? 'post-0829' : 'pre-0829',
       unmatched: res.unmatched.length ? res.unmatched : null,
       notes: res.same ? 'GPP #1 == cash lineup' : null,
+      portfolio_prize: res.portfolio && res.portfolio.prize != null ? +res.portfolio.prize.toFixed(3) : null,
+      portfolio_base_prize: res.portfolio && res.portfolio.basePrize != null ? +res.portfolio.basePrize.toFixed(3) : null,
+      portfolio_legs: res.portfolio && res.portfolio.legs != null ? res.portfolio.legs : null,
+      portfolio_json: res.portfolio || null,
     }
     const { error } = await supabase.from('dfs_replays').upsert(row, { onConflict: 'series,race_year,race_number' })
     if (error) setMsg('Save failed: ' + error.message)
@@ -498,6 +527,13 @@ export default function DfsReplay() {
             <div><div style={lbl}>ρ DK salary</div>{res.cal.salary == null ? '—' : res.cal.salary.toFixed(3)}</div>
             <div><div style={lbl}>ρ ownership</div>{res.cal.own == null ? '— (no upload)' : res.cal.own.toFixed(3) + ' (n=' + res.cal.nOwn + ')'}</div>
           </div>
+          {res.portfolio && !res.portfolio.error && (
+            <div style={{ fontSize: 12.5, color: 'var(--text-secondary, #9aa0aa)', marginBottom: 12, padding: '8px 10px', border: '1px solid var(--border, #1c1f25)', borderRadius: 8 }}>
+              <strong style={{ color: 'var(--text-primary, #e8eaed)' }}>Portfolio</strong> {res.portfolio.legs} legs x {res.portfolio.n}, rules {res.portfolio.rulesOn ? 'ON' : 'OFF (trucks default)'}: realised prize <strong style={{ color: res.portfolio.prize > res.portfolio.basePrize ? '#4ade80' : res.portfolio.prize < res.portfolio.basePrize ? '#f5a623' : 'inherit' }}>{res.portfolio.prize.toFixed(1)}</strong> vs {res.portfolio.basePrize.toFixed(1)} for {res.portfolio.legs} x the E[max] set (entry-fee units, DK-like curve) · best entry pctile {res.portfolio.bestPct.toFixed(1)}
+              <div>Chalk: {res.portfolio.chalk.join(', ') || 'none'} · tier-two: {res.portfolio.t2.join(', ') || 'none'} · exposure: {res.portfolio.exposure.map(e => e.name.split(' ').pop() + ' ' + e.pct + '%').join(', ')}</div>
+            </div>
+          )}
+          {res.portfolio && res.portfolio.error && <div style={{ fontSize: 12, color: '#f5a623', marginBottom: 10 }}>Portfolio row failed: {res.portfolio.error}</div>}
           <div style={{ ...lbl, marginBottom: 14 }}>ρ = Spearman of each ranking against actual DK points. Ownership above the model means the crowd out-ranked us.</div>
         </div>
       )}
@@ -522,6 +558,7 @@ export default function DfsReplay() {
                 <th style={{ padding: '5px 6px' }}>Cash</th><th style={{ padding: '5px 6px' }}>GPP</th>
                 <th style={{ padding: '5px 6px' }}>Median</th><th style={{ padding: '5px 6px' }}>Perfect</th>
                 <th style={{ padding: '5px 6px' }}>ρ model</th><th style={{ padding: '5px 6px' }}>ρ sal</th><th style={{ padding: '5px 6px' }}>ρ own</th>
+                <th style={{ padding: '5px 6px' }} title="Portfolio realised prize vs legs x E[max] set (entry-fee units, DK-like curve)">Portfolio</th>
                 <th style={{ padding: '5px 6px' }}>Engine</th>
                 <th style={{ padding: '5px 6px' }}>Verdict</th>
               </tr>
@@ -539,6 +576,7 @@ export default function DfsReplay() {
                   <td style={{ padding: '5px 6px' }}>{r.rho_model == null ? '—' : (+r.rho_model).toFixed(3)}</td>
                   <td style={{ padding: '5px 6px' }}>{r.rho_salary == null ? '—' : (+r.rho_salary).toFixed(3)}</td>
                   <td style={{ padding: '5px 6px' }}>{r.rho_own == null ? '—' : (+r.rho_own).toFixed(3)}</td>
+                  <td style={{ padding: '5px 6px', color: r.portfolio_prize == null ? 'var(--text-muted, #6b7078)' : +r.portfolio_prize > +r.portfolio_base_prize ? '#4ade80' : +r.portfolio_prize < +r.portfolio_base_prize ? '#f5a623' : 'inherit' }}>{r.portfolio_prize == null ? '—' : (+r.portfolio_prize).toFixed(1) + ' / ' + (+r.portfolio_base_prize).toFixed(1)}</td>
                   <td style={{ padding: '5px 6px', color: r.engine_era === 'post-0829' ? 'var(--text-primary, #e8eaed)' : 'var(--text-muted, #6b7078)' }}>{r.engine_era === 'post-0829' ? 'current' : r.engine_era ? 'old' : '—'}</td>
                   <td style={{ padding: '5px 6px', fontWeight: 700, color: r.verdict === 'gpp' ? '#4ade80' : r.verdict === 'cash' ? '#f5a623' : 'var(--text-secondary, #9aa0aa)' }}>{(r.verdict || '').toUpperCase()}</td>
                 </tr>

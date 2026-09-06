@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { supabase } from '../lib/supabase'
+import { buildPortfolio, portfolioRulesDefault, CHALK_SCHEDULES, PORTFOLIO_RULES } from '../lib/dfsPortfolio'
 
 const SERIES = [{ v: 'cup', label: 'Cup' }, { v: 'oreilly', label: "O'Reilly" }, { v: 'trucks', label: 'Trucks' }]
 const SERIES_COLOR = { cup: 'var(--series-cup)', oreilly: 'var(--series-oreilly)', trucks: 'var(--series-trucks)' }
@@ -19,6 +20,7 @@ const ROSTER = 6
 // through the SAME code the product builds with. Do not fork copies into the replay page - a
 // forked solver would silently stop replaying what DFS Center actually does.
 export { CAP as DFS_CAP, ROSTER as DFS_ROSTER }
+export { __capFor as dfsCapFor }   // 2026-09-06: DfsReplay's Portfolio row builds through the same exposure math
 
 export function optimize(pool, locks, excludes, K) {
   const usable = pool.filter(d => d.sal > 0 && d.projDK > 0 && !excludes.has(d.name))
@@ -311,6 +313,15 @@ export default function DFSPage() {
   const [note, setNote] = useState('')
   const [mode, setMode] = useState('gpp') // 2026-08-14: GPP ceiling default
   const [simCands, setSimCands] = useState(null)
+  // PORTFOLIO (2026-09-06, BACKTEST_LOG same date): N legs x M entries on one board, Operator rules per
+  // leg (tier-two studs 50-80%, floor cars <= 10%, mid punts <= 25%, <= 2 punts, cap spent), no lineup
+  // reused across legs, 60% portfolio cap. Rules ON by default for cup / O'Reilly (+14%, 7/2 on the 9
+  // replay races), OFF for trucks (0/2). Chalk schedule is optional and high-variance. See src/lib/dfsPortfolio.js.
+  const [portLegs, setPortLegs] = useState(3)
+  const [portRules, setPortRules] = useState(null)      // null = series default
+  const [portSchedule, setPortSchedule] = useState('all50')
+  const [portfolio, setPortfolio] = useState(null)
+  const [portLeg, setPortLeg] = useState(0)
   const [entFile, setEntFile] = useState(null) // 2026-08-20: parsed DK entries file awaiting contest selection
   const [sortKey, setSortKey] = useState('value')
   const [sortDir, setSortDir] = useState('desc')
@@ -594,9 +605,27 @@ export default function DFSPage() {
     }
     step2()
   }
+  const buildPortfolioUI = (myBuild) => {
+    if (myBuild !== buildIdRef.current) return
+    if (!samples || !samples.drivers || !samples.rows || !samples.rows.length) { setNote('Portfolio needs the stored sim draws (post board) - none loaded.'); setBuilding(false); return }
+    const rulesOn = portRules == null ? portfolioRulesDefault(series) : portRules
+    const res = buildPortfolio(
+      { optimize, bestLineup, makeEmaxSelector, topUpLineups, enforceMinExposure, capFor: __capFor, ROSTER, CAP },
+      { rows: rowsOwn.map(r => ({ name: r.name, car: r.car, sal: r.sal, projDK: r.projDK })), samples, simCands, legs: Math.max(1, Math.min(6, portLegs)), want: numLineups,
+        rulesOn, schedule: portSchedule, locks, excludes, userExpo: expo, projOwn: ownMap })
+    if (myBuild !== buildIdRef.current) return
+    setPortfolio({ ...res, rulesOn })
+    setPortLeg(0)
+    setLineups(res.legs[0] ? res.legs[0].lineups : [])
+    const short = res.legs.map((l, i) => l.short ? 'leg ' + (i + 1) + ' delivered ' + l.lineups.length + ' of ' + numLineups : null).filter(Boolean)
+    setNote('PORTFOLIO: ' + res.legs.length + ' legs x ' + numLineups + ' (' + res.total + ' entries), rules ' + (rulesOn ? 'ON' : 'OFF') + ', chalk ' + (CHALK_SCHEDULES[portSchedule] ? CHALK_SCHEDULES[portSchedule].label.split(' (')[0] : portSchedule) +
+      '. Chalk: ' + (res.cls.chalk.length ? res.cls.chalk.join(', ') : 'none over ' + PORTFOLIO_RULES.chalkOwnPct + '%') + '. Tier-two: ' + (res.cls.t2.join(', ') || 'none') + '.' + (short.length ? ' SHORT - ' + short.join('; ') + '.' : '') + ' Export each leg to its own contest.')
+    setBuilding(false)
+  }
   const build = () => {
     const myBuild = ++buildIdRef.current
     setBuilding(true); setLineups([]); setNote('')
+    if (mode === 'portfolio') { setPortfolio(null); setTimeout(() => buildPortfolioUI(myBuild), 30); return }
     if (mode === 'gpp' && samples && samples.drivers && samples.rows && samples.rows.length) { setTimeout(() => buildGpp(myBuild), 30); return }
     setTimeout(() => {
       if (myBuild !== buildIdRef.current) return
@@ -706,7 +735,7 @@ export default function DFSPage() {
     // 2026-08-14: filename carries race + mode so the file is findable at DK upload time
     const __trk = race && race.track ? String(race.track).replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_+|_+$/g, '') : 'race'
     const __tag = (race && race.year ? race.year + '_' : '') + (race && race.rn != null ? 'R' + race.rn + '_' : '') + __trk
-    a.download = 'PitBoard_DK_' + series + '_' + __tag + '_' + (lineups[0] && lineups[0].ceil != null ? 'GPP' : 'cash') + '_lineups.csv'
+    a.download = 'PitBoard_DK_' + series + '_' + __tag + '_' + (mode === 'portfolio' && portfolio ? 'PORTFOLIO_leg' + (portLeg + 1) : (lineups[0] && lineups[0].ceil != null ? 'GPP' : 'cash')) + '_lineups.csv'
     a.click(); URL.revokeObjectURL(a.href)
     setNote(missing.size ? 'CSV exported - WARNING: no DK ID for ' + missing.size + ' driver(s) (re-paste the full DK salary CSV in Salary Admin to capture IDs; DK upload needs them)' : 'CSV exported - DK upload ready (' + lineups.length + ' lineups)')
   }
@@ -747,6 +776,24 @@ export default function DFSPage() {
 
       {!loading && drivers.length > 0 && <>
         {/* 2026-08-14: lineups render ABOVE the driver pool - post-build result first */}
+        {mode === 'portfolio' && portfolio && <div style={{ ...card, borderLeft: '4px solid #4caf50' }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 }}>
+            <strong>Portfolio</strong>
+            {portfolio.legs.map((l, i) => (
+              <button key={i} onClick={() => { setPortLeg(i); setLineups(l.lineups) }} style={{ padding: '5px 12px', borderRadius: 8, cursor: 'pointer', border: '1px solid ' + (portLeg === i ? '#4caf50' : 'var(--border,#2a2d34)'), background: portLeg === i ? 'rgba(76,175,80,0.18)' : 'transparent', color: 'var(--text,#e8eaed)', fontWeight: portLeg === i ? 700 : 400 }}>
+                Leg {i + 1} &middot; {l.lineups.length}{l.short ? ' (short)' : ''}
+              </button>
+            ))}
+            <span style={{ fontSize: 12, color: 'var(--text-secondary,#9aa0aa)' }}>Select a leg, then Export CSV - one file per contest. Rules {portfolio.rulesOn ? 'ON' : 'OFF'}.</span>
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text-secondary,#9aa0aa)', marginBottom: 6 }}>
+            Chalk (proj own &gt; {PORTFOLIO_RULES.chalkOwnPct}%): {portfolio.cls.chalk.length ? portfolio.cls.chalk.join(', ') : 'none'} &middot; Tier-two studs: {portfolio.cls.t2.join(', ') || 'none'} &middot; Floor cars: {portfolio.cls.floor.join(', ') || 'none'}
+          </div>
+          <div style={{ fontSize: 12 }}>
+            <span style={{ color: 'var(--text-secondary,#9aa0aa)' }}>Portfolio exposure ({portfolio.total} entries): </span>
+            {Object.entries(portfolio.exposure).sort((a, b) => b[1] - a[1]).slice(0, 16).map(([n, c]) => <span key={n} style={{ marginRight: 10, whiteSpace: 'nowrap', fontWeight: c / portfolio.total >= 0.5 ? 700 : 400 }}>{n} {Math.round(100 * c / portfolio.total)}%</span>)}
+          </div>
+        </div>}
         {lineups.length > 0 && <div style={card}>
           <div style={{ marginBottom: 10 }}><strong>{lineups.length} lineup{lineups.length === 1 ? '' : 's'}</strong> <span style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 13 }}>{lineups[0] && lineups[0].ceil != null ? 'ranked by 90th-percentile total across sim draws' : 'ranked by projected DK points'}</span></div>
           <div style={{ overflowX: 'auto' }}>
@@ -782,8 +829,16 @@ export default function DFSPage() {
               onChange={e => { const v = Math.max(10, Math.min(100, +e.target.value || 100)); setMaxExp(v / 100) }}
               style={{ marginTop: 4, width: 72, background: 'var(--bg,#0e0f13)', color: 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 6, padding: '5px 7px' }} /></label>
             <label style={{ fontSize: 13 }}>Mode<br /><select value={mode} onChange={e => setMode(e.target.value)} style={{ marginTop: 4, background: 'var(--bg,#0e0f13)', color: 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 6, padding: '5px 7px' }}>
-              <option value="gpp">GPP (ceiling)</option><option value="cash">Cash (average)</option>
+              <option value="gpp">GPP (ceiling)</option><option value="cash">Cash (average)</option><option value="portfolio">Portfolio (N contests)</option>
             </select></label>
+            {mode === 'portfolio' && <>
+              <label style={{ fontSize: 13 }}>Legs<br /><input type="number" value={portLegs} min={1} max={6} onChange={e => setPortLegs(Math.max(1, Math.min(6, +e.target.value || 1)))} style={{ width: 56, marginTop: 4, background: 'var(--bg,#0e0f13)', color: 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 6, padding: '5px 7px' }} /></label>
+              <label style={{ fontSize: 13 }} title="Tier-two studs 50-80% per leg, floor cars <= 10%, mid punts <= 25%, at most 2 punts per lineup, salary >= $48,800, no lineup reused across legs, 60% portfolio cap. Backtested +14% (7/2) on cup + O'Reilly; lost both truck races, so trucks default OFF.">Operator rules<br />
+                <input type="checkbox" checked={portRules == null ? portfolioRulesDefault(series) : portRules} onChange={e => setPortRules(e.target.checked)} style={{ marginTop: 8 }} /> {(portRules == null ? portfolioRulesDefault(series) : portRules) ? 'on' : 'off'}{portRules == null ? ' (series default)' : ''}</label>
+              <label style={{ fontSize: 13 }} title="Max exposure to any driver projected over 35% owned, per leg. The fade schedule finds a higher peak (best-of-60 pctile 89 -> 94) and returned zero in 5 of 9 races - high variance by design.">Chalk stance<br /><select value={portSchedule} onChange={e => setPortSchedule(e.target.value)} style={{ marginTop: 4, background: 'var(--bg,#0e0f13)', color: 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 6, padding: '5px 7px' }}>
+                {Object.keys(CHALK_SCHEDULES).map(k => <option key={k} value={k}>{CHALK_SCHEDULES[k].label}</option>)}
+              </select></label>
+            </>}
             <button onClick={build} disabled={building || !canBuild} style={{ padding: '8px 18px', borderRadius: 8, cursor: building || !canBuild ? 'not-allowed' : 'pointer', border: 'none', background: !canBuild ? 'var(--border,#2a2d34)' : 'var(--accent,#e11d2a)', color: '#fff', fontWeight: 600 }}>
               {building ? 'Building\u2026' : 'Build lineups'}
             </button>

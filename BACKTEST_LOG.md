@@ -48,6 +48,27 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-06 — SHIPPED: Portfolio builder (rules on for cup / O'Reilly, off for trucks; chalk schedule optional)
+
+Operator, after the per-series breakdown (rules-only: cup 4/0, O'Reilly 3/0, trucks 0/2): "log it
+and ship." Shipped as src/lib/dfsPortfolio.js (pure module, backtested numbers as constants):
+  DFS Center -> Mode "Portfolio (N contests)": legs (default 3) x Lineups, Operator rules checkbox
+  (default = series: on for cup / O'Reilly, OFF for trucks), Chalk stance select (default all-50;
+  "0 / 50 / 50" offered as the high-variance mode with its zero-week warning). Legs render as tabs
+  over the lineup table; Export CSV exports the selected leg (filename _PORTFOLIO_legK). No lineup
+  reused across legs; 60% portfolio cap; user per-driver min/max and locks/excludes still win.
+  DFS Replay: a Portfolio row every replay - legs x N with the series-default rules, realised prize
+  on the real ladder (DK-like curve, entry-fee units) vs legs x the plain E[max] set; stored in
+  dfs_replays.portfolio_prize / portfolio_base_prize / portfolio_legs / portfolio_json (migration
+  dfs_replays_portfolio_cols) and shown as a ledger column. THIS is what decides trucks and the
+  schedule: the row accumulates; re-judge at 9 more races.
+  Headless smoke (cloud, same module): Darlington O'Reilly 20/20/18 (leg 3 short under tier-two
+  mins + portfolio cap), 58/58 unique, min salary $48,900; trucks Richmond (rules off) 60/60.
+Cross-leg duplicate fix found in smoke: top-up / min-exposure rebuilt lineups an earlier leg held
+(53/60 unique before) - now dropped and refilled with the dropped ones seeded into the dedupe.
+Not shipped: the 0/50/50 schedule as a default (5/4, fade leg zero in 5 of 9), any tuning of the
+rule numbers (none was done; they are the operator's Darlington construction as observed).
+
 ## 2026-09-06 — RESULT: portfolio builder — the CANDIDATE fails; the RULES-ONLY reference arm clears the bar
 
 9 races, 3 legs x 20, realised prize over 60 entries (entry-fee units, DK-like curve), vs 3 x the

@@ -661,6 +661,16 @@ before stating n.
       the page and was reverted - see pitboard.md 2026-08-23).
 
 ## Open experiments (ledgers)
+- **[SHIPPED 2026-09-06] PORTFOLIO BUILDER** (DFS Center mode "Portfolio", src/lib/dfsPortfolio.js;
+  Replay row + ledger column). Backtest 9 races, 3 x 20 vs 3 x E[max]: Operator RULES alone (tier-
+  two studs 50-80%, floor <= 10%, mid punts <= 25%, <= 2 punts, cap spent, no lineup reused, 60%
+  portfolio cap) 18.95 -> 21.57 entry-fees (+14%), 7/2: cup 4/0, O'Reilly 3/0, TRUCKS 0/2 -> rules
+  default ON for cup / O'Reilly, OFF for trucks. The 0/50/50 chalk schedule (the registered
+  candidate) FAILED (18.22, 5/4; fade leg zero in 5 of 9) and ships only as an optional high-
+  variance mode. Caveat: rules-only was a pre-specified reference arm, not the candidate - mild
+  forking-paths discount on the 7/2; the weekly Replay Portfolio row is the forward test. WATCH:
+  trucks (re-judge at ~9 more), leg-3 shortfalls under tier-two mins, and whether the +14% holds.
+  BACKTEST_LOG 09-06 (registration / result / shipped entries).
 - **[OPEN 2026-09-05] Operator construction beat both solvers at Darlington O'Reilly (1st of 1,189 vs product GPP ~268th, cash ~1,041st) on a board with rho .35.** Exposure table + implied rules in BACKTEST_LOG same date: this was 1 of 3 contests x 20 - the other two (Allgaier 95% / 85%, solver-like builds) finished BELOW the field median (mean pctile 38 / 36); only the hand-built set won (mean pctile 86); tier-two studs 50-80%, 1-2 mid-priced sub-10%-owned punts (never floor cars), full cap. PROPOSED 'Operator' build preset + weekly replay row so the ledger scores it (n=1 today). Replay ledger now GPP 4 / cash 3 / tie 2.
 - **[RULE 2026-09-06, operator] Betting odds are NEVER an input to the simulation or the DFS board.**
   "If we use odds as a signal then we are just baking the market into our product." The product is

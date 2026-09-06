@@ -3228,6 +3228,22 @@ dropped); the Top 10 box uses the same parser with a one-column default. Single-
 exactly as before. WORKFLOW: paste every DK page into the DK box one after the other, each with its
 header row. Book-side layout changes are a recurring class (see the 08-14 HR header rename).
 
+## 2026-09-06 (late) — Six registered tests, one ship: the Portfolio builder
+Ran, in order, all pre-registered in BACKTEST_LOG: (1) residual diagnostic (what explains our DK
+misses; step-1 design flaw corrected - regression to the mean; grade + pre board add beyond the post
+board in a linear fit); (2) grader composite as the sim's practice input - CLOSED; (3) corrected pace
+in seconds, arms C/D - CLOSED; (4) arm C scored on DK points over 91 boards - CLOSED, practice-input
+line closed (four forms: probabilities up slightly, ordering flat, DK flat); (5) payout-aware GPP
+objective (STATE top DFS item since 08-30) - CLOSED, loses on every metric, field model is the
+failure; (6) portfolio builder - registered candidate (chalk schedule + rules) FAILED 5/4, the
+rules-only reference arm +14% 7/2 (cup 4/0, O'Reilly 3/0, trucks 0/2) -> operator: "log it and
+ship." Shipped: src/lib/dfsPortfolio.js, DFS Center Portfolio mode, DFS Replay Portfolio row +
+migration dfs_replays_portfolio_cols. Rulings logged: odds are never a sim input for drivers we have
+data on; the thin-driver market anchor stays. Hard number: the product's E[max] 20-sets return ~6.3
+entry-fees per 20 across the 9 replays (~-68%) on a DK-like curve; construction, not the board, is
+where DFS money was found tonight. Harnesses in the cloud session (/tmp/dfs, /tmp/pg); the joined
+holdout-board -> practice-driver map and the loop_data DK-points fingerprint join are reusable.
+
 ## 2026-09-06 — DFS GPP builder: candidate diversification under caps (BACKTEST_LOG V4, shipped)
 Operator: "it really wants to overly own punts." Registered replay of a floor-car cap inside E[max]
 and a P35+ attrition haircut: both FAILED (cap never binds; haircut 2/2/5) - closed. Root cause was
