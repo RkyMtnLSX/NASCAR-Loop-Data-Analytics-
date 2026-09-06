@@ -154,11 +154,19 @@ export default function DfsOptimals() {
                       </span>
                     </div>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, tableLayout: 'fixed' }}>
-                      <colgroup><col /><col style={{ width: 66 }} /><col style={{ width: 92 }} /><col style={{ width: 52 }} /></colgroup>
+                      <colgroup><col /><col style={{ width: 66 }} /><col style={{ width: 96 }} /><col style={{ width: 54 }} /></colgroup>
+                      <thead>
+                        <tr style={{ color: 'var(--text-muted, #6b7078)', fontSize: 11.5, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                          <th style={{ padding: '2px 4px 5px', textAlign: 'left', fontWeight: 600 }}>Driver</th>
+                          <th style={{ padding: '2px 4px 5px', textAlign: 'right', fontWeight: 600 }}>Salary</th>
+                          <th style={{ padding: '2px 4px 5px', textAlign: 'right', fontWeight: 600, whiteSpace: 'nowrap' }}>Start → Fin</th>
+                          <th style={{ padding: '2px 4px 5px', textAlign: 'right', fontWeight: 600 }}>Score</th>
+                        </tr>
+                      </thead>
                       <tbody>
                         {lu.map((d, i) => (
                           <tr key={i} style={{ borderTop: i ? '1px solid var(--border, #1c1f25)' : 'none' }}>
-                            <td style={{ padding: '4px 4px', color: 'var(--text-primary, #e8eaed)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={d.name}>{d.name}</td>
+                            <td style={{ padding: '4px 4px', color: 'var(--text-primary, #e8eaed)', textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={d.name}>{d.name}</td>
                             <td style={{ padding: '4px 4px', textAlign: 'right', color: 'var(--text-secondary, #9aa0aa)', whiteSpace: 'nowrap' }}>
                               {money(d.sal)}
                             </td>
