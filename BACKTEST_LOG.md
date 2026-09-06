@@ -62,7 +62,13 @@ OPERATOR EXPOSURE (from the standings file): Creed 80% (29% owned) / Day 65% (33
 30% (35% owned) / R.Sieg 20% / Clements, K.Sieg, Love 15% / seven others 5-10%. ZERO: Allgaier
 (50% owned), Retzlaff (41%), Sawalich (39%), Finch (31%), Alfredo (24%). Salary 48.8-50.0k, exactly
 1 or 2 punts (<= $6.2k) per lineup, floor cars 2 lineups each.
-RULES IMPLIED: (1) fade the top-owned chalk to zero, cap the pole car ~30%; (2) tier-two studs
+CORRECTION (operator, same night): this set of 20 was ONE OF THREE contests x 20 entries. Allgaier was
+capped at 50% in the other two sets and faded to ZERO in this one on purpose - portfolio-level
+exposure across the 60 was ~33%, with each contest taking a different stance on the chalk. So rule
+(1) is NOT "fade the chalk"; it is DIVERSIFY THE CHALK STANCE ACROSS CONTESTS. This set is the leg
+that paid because Allgaier busted; the other two legs were the insurance if he had gone off.
+RULES IMPLIED: (1) vary the chalk stance per contest (0% / 50% / 50% on the top-projected car across
+three sets), pole car ~30%; (2) tier-two studs
 ($8.4-10k, proj 27-32, own 9-33%) at 50-80% each; (3) punts = small rotating set of mid-priced
 (5.5-5.8k) sub-10%-owned cars, 1-2 per lineup, never the $5,000 floor; (4) spend the cap.
 Rule 3 is the direct counter to the E[max] punt-concentration finding (STATE open item). Rule 1
@@ -70,8 +76,11 @@ needs an ownership proxy the product does not have (leverage line closed 08-30; 
 is derived from our own proj) - but the crowd chased practice speed (Retzlaff 30.300, 41% owned,
 proj 22.2 -> 10.9) and the tool already disagreed with the crowd on him.
 CAVEAT: n=1, and it is exactly the race this construction wins (JRM cars under, JGR/HMS/Haas 1-2-3).
-PROPOSED: 'Operator' build preset encoding rules 2-4 with the chalk fade as per-driver toggles,
-run inside DFS Replay every week alongside GPP/cash so the ledger scores the method. Not built.
+PROPOSED: 'Operator' build preset encoding rules 2-4, plus a PORTFOLIO builder - N contests x 20
+with a chalk-stance schedule across sets (the tool builds one contest in isolation today and has no
+notion of cross-contest exposure) - run inside DFS Replay every week alongside GPP/cash so the
+ledger scores the method. Not built. The other two Darlington sets' results are needed to score the
+portfolio as a whole, not just the leg that hit.
 
 ## 2026-09-05 — DFS: punt exposure in GPP ceiling mode + floor-car projection audit (evidence only, nothing shipped)
 

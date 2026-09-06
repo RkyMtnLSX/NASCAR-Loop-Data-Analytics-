@@ -661,7 +661,7 @@ before stating n.
       the page and was reverted - see pitboard.md 2026-08-23).
 
 ## Open experiments (ledgers)
-- **[OPEN 2026-09-05] Operator construction beat both solvers at Darlington O'Reilly (1st of 1,189 vs product GPP ~268th, cash ~1,041st) on a board with rho .35.** Exposure table + implied rules in BACKTEST_LOG same date: fade top-owned chalk to zero, tier-two studs 50-80%, 1-2 mid-priced sub-10%-owned punts (never floor cars), full cap. PROPOSED 'Operator' build preset + weekly replay row so the ledger scores it (n=1 today). Replay ledger now GPP 4 / cash 3 / tie 2.
+- **[OPEN 2026-09-05] Operator construction beat both solvers at Darlington O'Reilly (1st of 1,189 vs product GPP ~268th, cash ~1,041st) on a board with rho .35.** Exposure table + implied rules in BACKTEST_LOG same date: this was 1 of 3 contests x 20 - Allgaier 0% here, 50% in the other two (portfolio diversification of the chalk stance, NOT a fade); tier-two studs 50-80%, 1-2 mid-priced sub-10%-owned punts (never floor cars), full cap. PROPOSED 'Operator' build preset + weekly replay row so the ledger scores it (n=1 today). Replay ledger now GPP 4 / cash 3 / tie 2.
 - **[OPEN 2026-09-05] GPP ceiling mode concentrates the cheapest fat-tail punt (Cram 45% of a
   20-lineup Darlington O'Reilly build; Optimal% only 10.8%).** Diagnosis, not a bug: E[max] set
   selection buys the cheapest lottery ticket that frees salary for the studs, and the greedy set
