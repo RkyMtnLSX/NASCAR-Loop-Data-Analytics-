@@ -231,6 +231,12 @@ export function makeEmaxSelector(nC, nD, Smat, want, cands, capOf, roster) {
       return true
     },
     emax() { let e = 0; for (let d = 0; d < nD; d++) e += best[d]; return e / nD },
+    // 2026-09-06 (portfolio round-robin): one pick at a time, a cap refresh when the world outside
+    // this selector changed (another leg's picks moved the portfolio cap), and a ban so a lineup
+    // taken by another leg can never be chosen here. Pure additions - step() is untouched.
+    pick() { if (chosen.length >= want) return false; refreshOk(); return pickOne() },
+    refresh() { refreshOk() },
+    ban(c) { taken[c] = 1; ok[c] = 0 },
   }
 }
 
@@ -322,7 +328,8 @@ export default function DFSPage() {
   const [portSchedule, setPortSchedule] = useState('all50')
   const [portfolio, setPortfolio] = useState(null)
   const [portLeg, setPortLeg] = useState(0)
-  const [lineupsHidden, setLineupsHidden] = useState(false)   // 2026-09-06: collapse the built set so the pool is reachable
+  const [lineupsHidden, setLineupsHidden] = useState(false)
+  const [portRelax, setPortRelax] = useState({ portfolioMaxPct: null, t2MinOffLegs: [] })   // per-build relaxations chosen from the 'why short' buttons   // 2026-09-06: collapse the built set so the pool is reachable
   const [entFile, setEntFile] = useState(null) // 2026-08-20: parsed DK entries file awaiting contest selection
   const [sortKey, setSortKey] = useState('value')
   const [sortDir, setSortDir] = useState('desc')
@@ -606,22 +613,32 @@ export default function DFSPage() {
     }
     step2()
   }
-  const buildPortfolioUI = (myBuild) => {
+  const buildPortfolioUI = (myBuild, relaxArg) => {
+    const relax = relaxArg || portRelax
     if (myBuild !== buildIdRef.current) return
     if (!samples || !samples.drivers || !samples.rows || !samples.rows.length) { setNote('Portfolio needs the stored sim draws (post board) - none loaded.'); setBuilding(false); return }
     const rulesOn = portRules == null ? portfolioRulesDefault(series) : portRules
     const res = buildPortfolio(
       { optimize, bestLineup, makeEmaxSelector, topUpLineups, enforceMinExposure, capFor: __capFor, ROSTER, CAP },
       { rows: rowsOwn.map(r => ({ name: r.name, car: r.car, sal: r.sal, projDK: r.projDK })), samples, simCands, legs: Math.max(1, Math.min(6, portLegs)), want: numLineups,
-        rulesOn, schedule: portSchedule, locks, excludes, userExpo: expo, projOwn: ownMap })
+        rulesOn, schedule: portSchedule, locks, excludes, userExpo: expo, projOwn: ownMap,
+        rules: relax.portfolioMaxPct ? { portfolioMaxPct: relax.portfolioMaxPct } : {}, t2MinOffLegs: relax.t2MinOffLegs })
     if (myBuild !== buildIdRef.current) return
     setPortfolio({ ...res, rulesOn })
     setPortLeg(0)
     setLineups(res.legs[0] ? res.legs[0].lineups : [])
-    const short = res.legs.map((l, i) => l.short ? 'leg ' + (i + 1) + ' delivered ' + l.lineups.length + ' of ' + numLineups : null).filter(Boolean)
+    const short = res.legs.map((l, i) => l.short ? 'leg ' + (i + 1) + ' delivered ' + l.lineups.length + ' of ' + numLineups + ' (' + (l.why || []).join('; ') + ')' : null).filter(Boolean)
     setNote('PORTFOLIO: ' + res.legs.length + ' legs x ' + numLineups + ' (' + res.total + ' entries), rules ' + (rulesOn ? 'ON' : 'OFF') + ', chalk ' + (CHALK_SCHEDULES[portSchedule] ? CHALK_SCHEDULES[portSchedule].label.split(' (')[0] : portSchedule) +
       '. Chalk: ' + (res.cls.chalk.length ? res.cls.chalk.join(', ') : 'none over ' + PORTFOLIO_RULES.chalkOwnPct + '%') + '. Tier-two: ' + (res.cls.t2.join(', ') || 'none') + '.' + (short.length ? ' SHORT - ' + short.join('; ') + '.' : '') + ' Export each leg to its own contest.')
     setBuilding(false)
+  }
+  // Rebuild the portfolio with a relaxation chosen from the 'why short' buttons. The relax is passed
+  // explicitly because setState + setTimeout(build) would rebuild on the stale closure.
+  const rebuildPortfolio = (relax) => {
+    setPortRelax(relax)
+    const myBuild = ++buildIdRef.current
+    setBuilding(true); setLineups([]); setNote(''); setPortfolio(null)
+    setTimeout(() => buildPortfolioUI(myBuild, relax), 30)
   }
   const build = () => {
     const myBuild = ++buildIdRef.current
@@ -785,8 +802,19 @@ export default function DFSPage() {
                 Leg {i + 1} &middot; {l.lineups.length}{l.short ? ' (short)' : ''}
               </button>
             ))}
-            <span style={{ fontSize: 12, color: 'var(--text-secondary,#9aa0aa)' }}>Select a leg, then Export CSV - one file per contest. Rules {portfolio.rulesOn ? 'ON' : 'OFF'}.</span>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary,#9aa0aa)' }}>Select a leg, then Export CSV - one file per contest. Rules {portfolio.rulesOn ? 'ON' : 'OFF'}{portRelax.portfolioMaxPct ? ' · portfolio cap ' + portRelax.portfolioMaxPct + '%' : ''}{portRelax.t2MinOffLegs.length ? ' · tier-two min off for leg ' + portRelax.t2MinOffLegs.map(i => i + 1).join(', ') : ''}.</span>
           </div>
+          {portfolio.legs.some(l => l.short) && (
+            <div style={{ fontSize: 12, margin: '4px 0 8px', padding: '8px 10px', border: '1px solid #e8b923', borderRadius: 8 }}>
+              {portfolio.legs.map((l, i) => l.short ? <div key={i}><b>Leg {i + 1} is short ({l.lineups.length} of {numLineups}):</b> {(l.why || []).join('; ')}.</div> : null)}
+              <div style={{ marginTop: 6, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                <span style={{ color: 'var(--text-secondary,#9aa0aa)' }}>It will not pad with junk. Rebuild with:</span>
+                {[65, 70].map(pc => <button key={pc} onClick={() => rebuildPortfolio({ ...portRelax, portfolioMaxPct: pc })} disabled={building || portRelax.portfolioMaxPct === pc} style={{ padding: '4px 10px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: 'transparent', color: 'var(--text,#e8eaed)' }}>portfolio cap {pc}%</button>)}
+                {portfolio.rulesOn && portfolio.legs.map((l, i) => l.short && (l.why || []).some(w => w.indexOf('tier-two') === 0) && portRelax.t2MinOffLegs.indexOf(i) === -1 ? <button key={'t2' + i} onClick={() => rebuildPortfolio({ ...portRelax, t2MinOffLegs: portRelax.t2MinOffLegs.concat([i]) })} disabled={building} style={{ padding: '4px 10px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: 'transparent', color: 'var(--text,#e8eaed)' }}>drop tier-two minimum for leg {i + 1}</button> : null)}
+                {(portRelax.portfolioMaxPct || portRelax.t2MinOffLegs.length) ? <button onClick={() => rebuildPortfolio({ portfolioMaxPct: null, t2MinOffLegs: [] })} disabled={building} style={{ padding: '4px 10px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: 'transparent', color: 'var(--text-secondary,#9aa0aa)' }}>reset to defaults</button> : null}
+              </div>
+            </div>
+          )}
           <div style={{ fontSize: 12, color: 'var(--text-secondary,#9aa0aa)', marginBottom: 6 }}>
             Chalk (proj own &gt; {PORTFOLIO_RULES.chalkOwnPct}%): {portfolio.cls.chalk.length ? portfolio.cls.chalk.join(', ') : 'none'} &middot; Tier-two studs: {portfolio.cls.t2.join(', ') || 'none'} &middot; Floor cars: {portfolio.cls.floor.join(', ') || 'none'}
           </div>

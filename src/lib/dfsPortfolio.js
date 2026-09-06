@@ -78,61 +78,89 @@ export function buildPortfolio(deps, input) {
   const drawRows = []; for (let di = 0; di < input.samples.rows.length; di += strideS) drawRows.push(input.samples.rows[di])
   const nD = drawRows.length
   const stance = CHALK_SCHEDULES[input.schedule] ? CHALK_SCHEDULES[input.schedule].stance : CHALK_SCHEDULES.all50.stance
-  const used = new Set(), running = {}, legs = []
+  const t2Off = new Set(input.t2MinOffLegs || [])
+  const portMaxN = Math.floor(R.portfolioMaxPct / 100 * want * LEGS)
+  const running = {}
+  // ---- per-leg exposure (user settings win, then chalk stance, then rules). The portfolio cap is
+  // applied LIVE inside capOf below, not baked in here, because the legs are built together.
+  const legExpo = []
   for (let L = 0; L < LEGS; L++) {
-    // exposure for this leg: user settings win, then chalk stance, then rules, then the portfolio cap
     const expo = {}
     const u = input.userExpo || {}
     Object.keys(u).forEach(n => { if (u[n] && (u[n].max != null || u[n].min != null)) expo[n] = Object.assign({}, u[n]) })
     cls.chalk.forEach(n => { if (!expo[n]) expo[n] = { max: stance(L) } })
     if (input.rulesOn) {
-      cls.t2.forEach(n => { if (!expo[n]) expo[n] = { min: R.tier2MinPct, max: R.tier2MaxPct } })
+      cls.t2.forEach(n => { if (!expo[n]) expo[n] = t2Off.has(L) ? { max: R.tier2MaxPct } : { min: R.tier2MinPct, max: R.tier2MaxPct } })
       cls.floor.forEach(n => { if (!expo[n]) expo[n] = { max: R.floorMaxPct } })
       cls.midPunt.forEach(n => { if (!expo[n]) expo[n] = { max: R.puntMaxPct } })
     }
-    rows.forEach(r => {
-      if (input.locks && input.locks.has(r.name)) return
-      const room = Math.floor(R.portfolioMaxPct / 100 * want * LEGS) - (running[r.name] || 0)
-      const roomPct = Math.max(0, Math.floor(100 * room / want))
-      if (roomPct < 100) { const cur = expo[r.name] && expo[r.name].max != null ? expo[r.name].max : null; expo[r.name] = Object.assign({}, expo[r.name] || {}, { max: cur != null ? Math.min(cur, roomPct) : roomPct }) }
-    })
-    const zero = new Set(Object.keys(expo).filter(n => expo[n].max === 0))
-    let cands = universe.filter(ns => !used.has(ns.join('|')) && !ns.some(n => zero.has(n)))
-    let base = cands.slice(0, 2000)
-    // V4 diversification under caps
-    const cnt = {}; base.forEach(ns => ns.forEach(n => { cnt[n] = (cnt[n] || 0) + 1 }))
-    const seen = new Set(base.map(ns => ns.join('|')))
-    Object.keys(cnt).forEach(nm => {
-      if (input.locks && input.locks.has(nm)) return
-      const capN = capFor(nm, want, 1, expo)
-      if (!isFinite(capN) || cnt[nm] / base.length <= capN / want) return
-      let added = 0
-      for (const ns of cands) { if (added >= R.diversifyExtra) break; if (ns.indexOf(nm) !== -1) continue; const k = ns.join('|'); if (seen.has(k)) continue; seen.add(k); base.push(ns); added++ }
-    })
-    if (base.length < ROSTER) { legs.push({ lineups: [], short: true, expo }); continue }
-    const nC = base.length
-    const Smat = new Float32Array(nC * nD), cMean = new Float64Array(nC), cCeil = new Float64Array(nC), cFloor = new Float64Array(nC), tmp = new Float64Array(nD)
-    for (let c = 0; c < nC; c++) {
-      const ids = base[c].map(nm => nmIdx[nm]), off = c * nD; let mu = 0
-      for (let d = 0; d < nD; d++) { const rw = drawRows[d]; const v = rw[ids[0]] + rw[ids[1]] + rw[ids[2]] + rw[ids[3]] + rw[ids[4]] + rw[ids[5]]; Smat[off + d] = v; tmp[d] = v; mu += v }
-      cMean[c] = mu / nD; tmp.sort(); cCeil[c] = tmp[Math.min(nD - 1, Math.floor(0.9 * (nD - 1)))]; cFloor[c] = tmp[Math.min(nD - 1, Math.floor(0.25 * (nD - 1)))]
+    legExpo.push(expo)
+  }
+  // ---- ONE candidate base for all legs (2,000 by projection + V4 diversification against the
+  // tightest cap any leg puts on a driver), scored once.
+  const zeroAny = new Set(); legExpo.forEach(e => Object.keys(e).forEach(n => { if (e[n].max === 0) zeroAny.add(n) }))
+  const cands = universe.filter(ns => !ns.some(n => legExpo.every(e => e[n] && e[n].max === 0)))
+  let base = cands.slice(0, 2000)
+  const cnt = {}; base.forEach(ns => ns.forEach(n => { cnt[n] = (cnt[n] || 0) + 1 }))
+  const seen = new Set(base.map(ns => ns.join('|')))
+  Object.keys(cnt).forEach(nm => {
+    if (input.locks && input.locks.has(nm)) return
+    const capN = Math.min.apply(null, legExpo.map(e => capFor(nm, want, 1, e)).concat([portMaxN / LEGS]))
+    if (!isFinite(capN) || cnt[nm] / base.length <= capN / want) return
+    let added = 0
+    for (const ns of cands) { if (added >= R.diversifyExtra) break; if (ns.indexOf(nm) !== -1) continue; const k = ns.join('|'); if (seen.has(k)) continue; seen.add(k); base.push(ns); added++ }
+  })
+  if (base.length < ROSTER) return { legs: legExpo.map(expo => ({ lineups: [], short: true, expo, why: ['no cap-legal candidates'] })), exposure: {}, total: 0, cls }
+  const nC = base.length
+  const Smat = new Float32Array(nC * nD), cMean = new Float64Array(nC), cCeil = new Float64Array(nC), cFloor = new Float64Array(nC), tmp = new Float64Array(nD)
+  for (let c = 0; c < nC; c++) {
+    const ids = base[c].map(nm => nmIdx[nm]), off = c * nD; let mu = 0
+    for (let d = 0; d < nD; d++) { const rw = drawRows[d]; const v = rw[ids[0]] + rw[ids[1]] + rw[ids[2]] + rw[ids[3]] + rw[ids[4]] + rw[ids[5]]; Smat[off + d] = v; tmp[d] = v; mu += v }
+    cMean[c] = mu / nD; tmp.sort(); cCeil[c] = tmp[Math.min(nD - 1, Math.floor(0.9 * (nD - 1)))]; cFloor[c] = tmp[Math.min(nD - 1, Math.floor(0.25 * (nD - 1)))]
+  }
+  // ---- ROUND-ROBIN selection: one pick per leg per round, so no leg is built from another's
+  // leftovers and the portfolio cap bites all legs equally. A lineup picked by one leg is banned
+  // in the others; capOf reads the live cross-leg count.
+  const legCount = legExpo.map(() => ({}))
+  const sels = legExpo.map((expo, L) => makeEmaxSelector(nC, nD, Smat, want, base, nm => {
+    if (input.locks && input.locks.has(nm)) return Infinity
+    const legCap = capFor(nm, want, 1, expo)
+    const other = (running[nm] || 0) - (legCount[L][nm] || 0)
+    return Math.min(legCap, Math.max(0, portMaxN - other))
+  }, ROSTER))
+  const legIdx = legExpo.map(() => [])
+  let progress = true
+  while (progress) {
+    progress = false
+    for (let L = 0; L < LEGS; L++) {
+      const before = sels[L].chosen.length
+      if (before >= want) continue
+      if (!sels[L].pick()) continue
+      const c = sels[L].chosen[before]
+      legIdx[L].push(c); progress = true
+      base[c].forEach(nm => { running[nm] = (running[nm] || 0) + 1; legCount[L][nm] = (legCount[L][nm] || 0) + 1 })
+      sels.forEach((s2, L2) => { if (L2 !== L) s2.ban(c) })
     }
-    const capOf = nm => (input.locks && input.locks.has(nm) ? Infinity : capFor(nm, want, 1, expo))
-    const sel = makeEmaxSelector(nC, nD, Smat, want, base, capOf, ROSTER)
-    sel.step(0)
-    let picked = sel.chosen.map(c => ({
+  }
+  // ---- per-leg top-up / min exposure (mean optimizer), cross-leg dedupe, diagnostics
+  const used = new Set(); legIdx.forEach(ix => ix.forEach(c => used.add(base[c].join('|'))))
+  const keyOfLu = lu => lu.drivers.map(d => d.name).sort().join('|')
+  const legs = []
+  for (let L = 0; L < LEGS; L++) {
+    const expo = legExpo[L]
+    // fold the live portfolio cap into this leg's expo for the mean-optimizer passes
+    rows.forEach(r => { if (input.locks && input.locks.has(r.name)) return; const other = (running[r.name] || 0) - (legCount[L][r.name] || 0); const roomPct = Math.max(0, Math.floor(100 * (portMaxN - other) / want)); if (roomPct < 100) { const cur = expo[r.name] && expo[r.name].max != null ? expo[r.name].max : null; expo[r.name] = Object.assign({}, expo[r.name] || {}, { max: cur != null ? Math.min(cur, roomPct) : roomPct }) } })
+    const zero = new Set(Object.keys(expo).filter(n => expo[n].max === 0))
+    let picked = legIdx[L].map(c => ({
       drivers: base[c].map(nm => ({ name: nm, car: byName[nm].car, sal: byName[nm].sal, projDK: byName[nm].projDK })),
       salary: base[c].reduce((a, nm) => a + byName[nm].sal, 0), proj: cMean[c], ceil: cCeil[c], floor: cFloor[c],
     }))
+    picked.forEach(lu => used.delete(keyOfLu(lu)))   // this leg's own picks are not "reused"
     const ex = new Set(zero)
     const poolL = pool2.filter(d => !zero.has(d.name))
+    const before = picked.length
     picked = topUpLineups(picked, want, 1, input.locks || new Set(), poolL, ex, expo)
     picked = enforceMinExposure(picked, want, 1, input.locks || new Set(), poolL, ex, expo)
-    // NO LINEUP REUSED ACROSS LEGS: top-up / min-exposure construct from the mean optimizer and can
-    // rebuild a lineup an earlier leg already holds. Drop those, then top up again with the dropped
-    // ones seeded in so topUpLineups' own dedupe blocks them (their drivers count toward caps for
-    // that pass - conservative), and strip them at the end. Two passes, then accept short.
-    const keyOfLu = lu => lu.drivers.map(d => d.name).sort().join('|')
     for (let pass = 0; pass < 2; pass++) {
       const dups = picked.filter(lu => used.has(keyOfLu(lu)))
       if (!dups.length) break
@@ -141,10 +169,23 @@ export function buildPortfolio(deps, input) {
       picked = refilled.filter(lu => !used.has(keyOfLu(lu))).slice(0, want)
     }
     picked = picked.filter(lu => !used.has(keyOfLu(lu)))
-    // top-ups have no draw stats: score them
+    // recount this leg after top-up (running was built from the selector picks only)
+    const cntL = {}; picked.forEach(lu => lu.drivers.forEach(d => { cntL[d.name] = (cntL[d.name] || 0) + 1 }))
+    Object.keys(legCount[L]).forEach(n => { running[n] -= legCount[L][n] }); legCount[L] = cntL; Object.keys(cntL).forEach(n => { running[n] = (running[n] || 0) + cntL[n] })
     picked.forEach(lu => { if (lu.ceil == null) { const ids = lu.drivers.map(d => nmIdx[d.name]); let mu = 0; for (let d = 0; d < nD; d++) { const rw = drawRows[d]; const v = rw[ids[0]] + rw[ids[1]] + rw[ids[2]] + rw[ids[3]] + rw[ids[4]] + rw[ids[5]]; tmp[d] = v; mu += v } lu.proj = mu / nD; const t2s = tmp.slice(0, nD).sort(); lu.ceil = t2s[Math.floor(0.9 * (nD - 1))]; lu.floor = t2s[Math.floor(0.25 * (nD - 1))] } })
-    picked.forEach(lu => { used.add(lu.drivers.map(d => d.name).sort().join('|')); lu.drivers.forEach(d => { running[d.name] = (running[d.name] || 0) + 1 }) })
-    legs.push({ lineups: picked, short: picked.length < want, expo })
+    picked.forEach(lu => used.add(keyOfLu(lu)))
+    // WHY SHORT: name the binding constraint instead of padding
+    const why = []
+    if (picked.length < want) {
+      const atPort = rows.filter(r => (running[r.name] || 0) >= portMaxN).map(r => r.name)
+      if (atPort.length) why.push('portfolio cap ' + R.portfolioMaxPct + '% reached on ' + atPort.join(', '))
+      const t2Under = input.rulesOn && !t2Off.has(L) ? cls.t2.filter(n => (cntL[n] || 0) < Math.ceil(want * R.tier2MinPct / 100)) : []
+      if (t2Under.length) why.push('tier-two minimum ' + R.tier2MinPct + '% not reachable for ' + t2Under.join(', '))
+      const left = cands.filter(ns => !used.has(ns.join('|')) && !ns.some(n => zero.has(n))).length
+      if (left < want - picked.length) why.push('candidate pool exhausted (' + left + ' unused cap-legal lineups left)')
+      if (!why.length) why.push('per-leg exposure caps leave no legal lineup')
+    }
+    legs.push({ lineups: picked, short: picked.length < want, expo, why, selectorPicks: before })
   }
   const total = legs.reduce((s, l) => s + l.lineups.length, 0)
   return { legs, exposure: running, total, cls }

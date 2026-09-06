@@ -68,6 +68,15 @@ Cross-leg duplicate fix found in smoke: top-up / min-exposure rebuilt lineups an
 (53/60 unique before) - now dropped and refilled with the dropped ones seeded into the dedupe.
 Not shipped: the 0/50/50 schedule as a default (5/4, fade leg zero in 5 of 9), any tuning of the
 rule numbers (none was done; they are the operator's Darlington construction as observed).
+FOLLOW-UP same night (operator: 60 x 3 build came up 60/60/58; "how do you propose we fix it?"):
+legs are now built ROUND-ROBIN (one E[max] pick per leg per round, cross-leg ban on taken lineups,
+portfolio cap read live), so no leg is another's leftovers and the shortfall no longer lands on
+leg 3. Darlington O'Reilly 20 x 3: 20/20/18 sequential -> 20/20/20 round-robin; 60 x 3: the
+tier-two minimums bind (60/57/52) and the card now NAMES the binding constraint (portfolio cap on
+whom / tier-two minimum unreachable for whom / candidate pool exhausted) with rebuild buttons:
+portfolio cap 65 / 70%, or drop the tier-two minimum for that leg. It never pads: a padded slot
+would be the mean optimizer's leftovers with no chalk and no studs - the 09-06 top-up failure again.
+makeEmaxSelector gained pick() / refresh() / ban(); step() untouched.
 
 ## 2026-09-06 — RESULT: portfolio builder — the CANDIDATE fails; the RULES-ONLY reference arm clears the bar
 
