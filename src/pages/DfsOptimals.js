@@ -89,9 +89,8 @@ export default function DfsOptimals() {
   return (
     <div className="page" style={{ maxWidth: 1100, margin: '0 auto', padding: '24px 16px 60px' }}>
       <h1 style={{ color: 'var(--text-primary, #e8eaed)', marginBottom: 4 }}>Optimal Lineups</h1>
-      <p style={{ color: 'var(--text-secondary, #9aa0aa)', fontSize: 14, marginTop: 0, marginBottom: 22 }}>
-        The last five DraftKings optimal lineups at this weekend's track, for each series — the
-        highest-scoring cap-legal roster and its DK points.
+      <p style={{ color: 'var(--text-secondary, #9aa0aa)', fontSize: 15.5, marginTop: 0, marginBottom: 22 }}>
+        The last five DraftKings optimal lineups at this weekend's track, for each series.
       </p>
 
       {loading && <div style={{ color: 'var(--text-secondary, #9aa0aa)' }}>Loading…</div>}
@@ -104,28 +103,28 @@ export default function DfsOptimals() {
           <div key={s.v} style={card}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
               <span style={{
-                fontSize: 11, fontWeight: 700, letterSpacing: 0.4, padding: '3px 8px',
+                fontSize: 12, fontWeight: 700, letterSpacing: 0.4, padding: '3px 8px',
                 borderRadius: 5, color: '#fff', background: SERIES_COLOR[s.v],
               }}>
                 {s.label.toUpperCase()}
               </span>
-              <strong style={{ color: 'var(--text-primary, #e8eaed)', fontSize: 16 }}>
+              <strong style={{ color: 'var(--text-primary, #e8eaed)', fontSize: 18 }}>
                 {track || 'No weekend configured'}
               </strong>
               {!!list.length && (
-                <span style={{ color: 'var(--text-muted, #6b7078)', fontSize: 12 }}>
+                <span style={{ color: 'var(--text-muted, #6b7078)', fontSize: 13.5 }}>
                   last {list.length} {list.length === 1 ? 'race' : 'races'} here
                 </span>
               )}
             </div>
 
             {!track && (
-              <div style={{ color: 'var(--text-secondary, #9aa0aa)', fontSize: 13 }}>
+              <div style={{ color: 'var(--text-secondary, #9aa0aa)', fontSize: 14.5 }}>
                 No track set for this series in the weekend configuration.
               </div>
             )}
             {track && !list.length && (
-              <div style={{ color: 'var(--text-secondary, #9aa0aa)', fontSize: 13 }}>
+              <div style={{ color: 'var(--text-secondary, #9aa0aa)', fontSize: 14.5 }}>
                 No optimal lineups recorded at {shortTrack(track)} for this series yet.
               </div>
             )}
@@ -141,20 +140,20 @@ export default function DfsOptimals() {
                       background: 'var(--bg, #0e0f13)',
                     }}>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
-                      <strong style={{ color: 'var(--text-primary, #e8eaed)', fontSize: 14 }}>
+                      <strong style={{ color: 'var(--text-primary, #e8eaed)', fontSize: 15.5 }}>
                         {raceLabel(r)}
                       </strong>
-                      <span style={{ color: 'var(--text-muted, #6b7078)', fontSize: 12 }}>{r.race_year}</span>
+                      <span style={{ color: 'var(--text-muted, #6b7078)', fontSize: 13.5 }}>{r.race_year}</span>
                       <span style={{ marginLeft: 'auto', display: 'flex', gap: 10, alignItems: 'baseline' }}>
-                        <span style={{ color: 'var(--text-secondary, #9aa0aa)', fontSize: 11 }}>
+                        <span style={{ color: 'var(--text-secondary, #9aa0aa)', fontSize: 12.5 }}>
                           {money(r.salary)}
                         </span>
-                        <strong style={{ color: 'var(--accent, #e11d2a)', fontSize: 15 }}>
+                        <strong style={{ color: 'var(--accent, #e11d2a)', fontSize: 17 }}>
                           {one(r.score)}
                         </strong>
                       </span>
                     </div>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
                       <tbody>
                         {lu.map((d, i) => (
                           <tr key={i} style={{ borderTop: i ? '1px solid var(--border, #1c1f25)' : 'none' }}>
@@ -182,12 +181,7 @@ export default function DfsOptimals() {
         )
       })}
 
-      <p style={{ color: 'var(--text-muted, #6b7078)', fontSize: 12, marginTop: 8, lineHeight: 1.6 }}>
-        Tracks follow the weekend configuration — each series shows its own configured track. Where a
-        track hosts a series twice in a year the races are numbered in calendar order (Daytona 1,
-        Daytona 2). Scoring is DraftKings classic: finish points, place differential, 0.25 per lap
-        led, 0.45 per fastest lap. Full archive under DFS → Optimal Archive.
-      </p>
+      {/* 2026-09-06 (operator): the configuration / scoring footnote is internal - kept in PITBOARD_MANUAL, not shown to users. */}
     </div>
   )
 }
