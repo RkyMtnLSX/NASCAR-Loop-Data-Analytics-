@@ -48,6 +48,24 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-06 — REGISTRATION: grader-CORRECTED pace IN SECONDS as the sim's practice input
+
+Follows the closed composite test above. Same harness (91 joined practice boards, grades recomputed
+from practice_laps with grader v6.4-sets, 20,000 sims / race / arm, two runs), same metrics, same
+decision rule: adopt if finish-order Spearman improves in mean AND W/L >= 1.5:1, AND t10 Brier
+does not lose, AND the DK secondary does not lose. Per track group reported; per-group ship only.
+FORM (frozen before data is read). Two pre-specified arms, each judged on its own, no tuning:
+  C = the grader's own pace metric in seconds: overallSTC (tire + session-time corrected overall
+      pace) where the session-time correction was active, overallTC otherwise. Same slot as
+      lrpTime, same weights. All three series.
+  D = the same-slot analog: best5TC for cup/trucks (the sim uses best5 raw), overallSTC/TC for
+      O'Reilly (the sim uses overall_avg raw). I.e. production's metric with the grader's tire
+      (and session) correction applied to it.
+  A = production (raw best5 / overall_avg) is the baseline for both.
+Drivers without a recomputed grade fall to null (neutral / market fill), as in arm A when the raw
+metric is missing. Stored-score-only boards (7) are run but cannot carry C/D (no laps) - they
+receive the raw metric in every arm and are reported separately as a control.
+
 ## 2026-09-06 — RESULT: grader composite as the sim's practice input — CLOSED (primary fails; probabilities improve)
 
 Harness: 91 of the 94 practice holdout boards joined to practice_sessions by exact lap-metric match
