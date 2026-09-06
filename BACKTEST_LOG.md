@@ -48,6 +48,36 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-06 — REGISTRATION: payout-aware GPP objective (STATE top DFS item since 08-30)
+
+Claim under test: E[max] picks the set to maximise OUR best score; a tournament pays by RANK
+against the field, so the set should maximise expected PAYOUT, which (a) rewards beating the
+field's likely lineups rather than a high absolute score and (b) is split when our lineup is
+duplicated in the field. Ownership here is the product's own proj-rank projection (k = 2.2,
+08-30) - it models DUPLICATION and where the field is, never "the field is wrong" (leverage
+closed 08-30).
+FORM (frozen before data is read). 9 replay races, full 10k post draws (stride to 2,000),
+product candidates (per-draw optima + optimize(300), 2,000 by projection), N = 20, no caps.
+  Field model: F = 1,000 field lineups per race sampled from projected ownership (6 distinct
+  drivers without replacement, probability proportional to own%, accepted if salary within
+  [cap - $3,000, cap]). Each field lineup is scored on the same draws as ours.
+  Payout function (fixed, DK-like, entry-fee units): top 20% of E entries cash; prize(r) =
+  E * r^-0.75 / sum_{r<=0.2E} r^-0.75 (1st ~8% of the pool, min-cash ~1.5x). Rank of a lineup
+  in draw d = 1 + number of field lineups scoring above it, scaled from F to E.
+  Duplication: a candidate's prize in every draw is divided by (1 + expected field duplicates),
+  expected duplicates = E * (exact-duplicate count in the F sample) / F.
+  Objective: expected prize per lineup over the draws is ADDITIVE across a set (each entry is
+  paid on its own rank), so the payout set = the top 20 candidates by expected prize. No
+  interaction term, no tuning.
+  Baseline: the product's E[max] set on the same candidates and draws.
+  Reference (reported, not shippable): the same objective with ACTUAL ownership as the field
+  model - the ceiling if we knew where the field was.
+METRICS per race: realised prize of the 20 (sum, entry-fee units) placed on the real contest
+ladder with the same payout function; best-of-20 field pctile; mean pctile of the 20.
+DECISION: adopt if mean realised prize improves AND W/L >= 1.5:1 over the 9; guard: best-of-20
+pctile not worse than 40/50-style noise. If it passes it ships as a GPP objective option in DFS
+Center ("Payout" vs "Ceiling") with the ledger scoring both weekly; not as a silent replacement.
+
 ## 2026-09-06 — RESULT: DK-points-scored test of arm C — CLOSED; the practice-input line is done
 
 91 boards, DK pts from loop_data (92/92 fingerprint-matched), 20k sims / race / arm.
