@@ -135,7 +135,7 @@ export default function DfsOptimals() {
                 return (
                   <div key={r.race_year + '-' + r.race_number}
                     style={{
-                      flex: '1 1 320px', minWidth: 300,
+                      flex: '1 1 360px', minWidth: 340, overflow: 'hidden',
                       border: '1px solid var(--border, #22252b)', borderRadius: 10, padding: 12,
                       background: 'var(--bg, #0e0f13)',
                     }}>
@@ -153,20 +153,21 @@ export default function DfsOptimals() {
                         </strong>
                       </span>
                     </div>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, tableLayout: 'fixed' }}>
+                      <colgroup><col /><col style={{ width: 66 }} /><col style={{ width: 92 }} /><col style={{ width: 52 }} /></colgroup>
                       <tbody>
                         {lu.map((d, i) => (
                           <tr key={i} style={{ borderTop: i ? '1px solid var(--border, #1c1f25)' : 'none' }}>
-                            <td style={{ padding: '4px 4px', color: 'var(--text-primary, #e8eaed)' }}>{d.name}</td>
-                            <td style={{ padding: '4px 4px', textAlign: 'right', color: 'var(--text-secondary, #9aa0aa)' }}>
+                            <td style={{ padding: '4px 4px', color: 'var(--text-primary, #e8eaed)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={d.name}>{d.name}</td>
+                            <td style={{ padding: '4px 4px', textAlign: 'right', color: 'var(--text-secondary, #9aa0aa)', whiteSpace: 'nowrap' }}>
                               {money(d.sal)}
                             </td>
-                            <td style={{ padding: '4px 4px', textAlign: 'right', color: 'var(--text-muted, #6b7078)' }}>
+                            <td style={{ padding: '4px 4px', textAlign: 'right', color: 'var(--text-muted, #6b7078)', whiteSpace: 'nowrap' }}>
                               {d.start == null ? '—' : 'P' + Math.round(d.start)}
                               {' → '}
                               {d.fin == null ? '—' : 'P' + Math.round(d.fin)}
                             </td>
-                            <td style={{ padding: '4px 4px', textAlign: 'right', fontWeight: 600 }}>
+                            <td style={{ padding: '4px 4px', textAlign: 'right', fontWeight: 600, whiteSpace: 'nowrap' }}>
                               {one(d.pts)}
                             </td>
                           </tr>
