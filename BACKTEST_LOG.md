@@ -48,6 +48,37 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-06 — REGISTRATION: portfolio builder (3 legs x 20, chalk-stance schedule + Operator rules)
+
+The one construction that won (Darlington 09-05) was cross-contest: three sets with different
+chalk stances, tier-two studs heavy, mid-priced punts rotating, cap spent. The product builds one
+contest in isolation. This registers the portfolio as a METHOD and scores it before any page code.
+FORM (frozen before data is read). 9 replay races, product candidates (per-draw optima +
+optimize(300), 2,000 by projection, diversified under caps per 09-06 V4), full post draws stride
+2,000, E[max] selector per leg, N = 20 per leg, 3 legs.
+  Chalk := drivers with PROJECTED ownership (proj-rank, k = 2.2) > 35%. Stance schedule on every
+  chalk driver: leg 1 max 0%, leg 2 max 50%, leg 3 max 50%.
+  Rules, every leg: tier-two studs := projection rank 3-8 AND salary $8,400-$10,000 (rank window
+  relaxed to 3-10 if fewer than 3 qualify): min 50% / max 80% each. Floor cars (salary <= floor +
+  $500): max 10%. Mid punts (floor + $500 < salary <= $6,200): max 25% each; at most 2 punts of
+  either kind per lineup (candidate filter). Salary floor: candidates under $48,800 discarded
+  (cap $50,000). Min exposure enforced by enforceMinExposure, max by the selector's capOf and
+  topUpLineups, as in the product.
+  Cross-leg: a lineup used in one leg is removed from the candidate pool of the next. Portfolio
+  cap 60% on any driver across the 60 (leg 3 built against the running total).
+  Baseline: 3 x the product's uncapped E[max] 20-set (identical legs, i.e. what entering the
+  same set in three contests is).
+  Reference arms (reported, not decision): (i) rules without the stance schedule (all legs 50%
+  chalk) - separates diversification from the rules; (ii) schedule without the rules.
+METRICS per race: realised prize summed over the 60 entries on the real ladder with the 09-06
+DK-like payout (top 20%, r^-0.75, entry-fee units); best leg's best-of-20 pctile; portfolio
+exposure table (top 12 drivers). Note the ladder is one contest's; three legs are scored against
+it three times, which is the same approximation for both arms.
+DECISION: adopt if mean realised prize improves AND W/L >= 1.5:1 over the 9. If it passes, it
+ships as a Portfolio tab in DFS Center (legs, stances, editable rule numbers, cross-leg exposure)
+plus a Portfolio row in DFS Replay scored weekly. If it fails, the method is logged as
+Darlington-only and the tab is not built.
+
 ## 2026-09-06 — RESULT: payout-aware GPP objective — CLOSED, loses to E[max] on every metric
 
 9 races, product candidates and draws, N = 20, projected-ownership field (F = 1,000), DK-like
