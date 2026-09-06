@@ -84,7 +84,10 @@ Crews/Bilicki 27%, Sawalich/Mayer 25%. The operator's recollection (Allgaier cap
 was wrong - 95/85. B and C look like the product's own GPP output plus a tilt (Allgaier, Mayer,
 Sawalich, Finch, Cram/Gase/Maggio punts) and finished like it (product replay best 217.4; B 221.5,
 C 215.0). A was hand-built (Creed 80 / Day 65 / Crews 60 / Smith 55 / Hill 50; Crews at 9% owned)
-and is the only leg that won. READING: the evidence is for rules 2-4 (tier-two concentration,
+and is the only leg that won. Single-entry contest (587, 294 entries, $12): 241.55, 21st (top 7%), paid $35 - Allgaier / Creed /
+Sawalich / Sanchez / Alfredo / K.Sieg. Night total: 61 entries across four contests; one leg won
+the tournament outright, one single-entry cashed, two 20-lineup legs ran below the field median.
+READING: the evidence is for rules 2-4 (tier-two concentration,
 mid-priced rotating punts, cap spent), not for any chalk stance - 0/95/85 is two-thirds of the
 bankroll on one car, rescued by the third leg; 0/50/50 was the intended and better schedule.
 PROPOSED: 'Operator' build preset encoding rules 2-4, plus a PORTFOLIO builder - N contests x 20
