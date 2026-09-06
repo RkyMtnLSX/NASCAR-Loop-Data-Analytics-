@@ -511,9 +511,32 @@ export default function DFSPage() {
     if (!cands2.length) { setNote('No cap-legal candidate lineups under current locks/excludes.'); setBuilding(false); return }
     // candidate pool scales with the request - 150 entries needs more to choose from than 20
     const CAND_MAX = Math.min(6000, Math.max(2000, numLineups * 25))
-    if (cands2.length > CAND_MAX) {
-      cands2 = cands2.map(n3 => [n3, n3.reduce((a3, nm) => a3 + (projByN[nm] || 0), 0)])
-        .sort((x3, y3) => y3[1] - x3[1]).slice(0, CAND_MAX).map(x3 => x3[0])
+    const __allByProj = cands2.map(n3 => [n3, n3.reduce((a3, nm) => a3 + (projByN[nm] || 0), 0)]).sort((x3, y3) => y3[1] - x3[1])
+    if (cands2.length > CAND_MAX) cands2 = __allByProj.slice(0, CAND_MAX).map(x3 => x3[0])
+    // CANDIDATE DIVERSIFICATION UNDER CAPS (2026-09-06, BACKTEST_LOG V4). The projection cut is
+    // chalk-dominated (a top car sits in 70-100% of the top 2,000), so any cap on him STARVES the
+    // E[max] selector (Darlington: 10 of 20 delivered at 50%) and topUpLineups fills the rest with
+    // the mean optimizer minus the chalk - which drops straight to the $5k cars (Cram 45%). For every
+    // driver whose share of the candidates exceeds his cap, append the top 1,500 candidates by
+    // projection that EXCLUDE him so the selector fills the set itself. Measured 9 races @ 50% cap:
+    // best-of-20 pctile 87.0 -> 87.7, W/L/T 4/2/3, floor slots 7.2% -> 5.9%.
+    {
+      const __cnt = {}
+      cands2.forEach(n3 => n3.forEach(nm => { __cnt[nm] = (__cnt[nm] || 0) + 1 }))
+      const __seen = new Set(cands2.map(n3 => n3.slice().sort().join('|')))
+      Object.keys(__cnt).forEach(nm => {
+        if (locks.has(nm)) return
+        const capN = __capFor(nm, numLineups, maxExp, expo)
+        if (!isFinite(capN) || __cnt[nm] / cands2.length <= capN / numLineups) return
+        let added = 0
+        for (const x3 of __allByProj) {
+          if (added >= 1500) break
+          if (x3[0].indexOf(nm) !== -1) continue
+          const k3 = x3[0].slice().sort().join('|')
+          if (__seen.has(k3)) continue
+          __seen.add(k3); cands2.push(x3[0]); added++
+        }
+      })
     }
     const DRAW_TARGET = cands2.length > 4000 ? 1500 : 2000
     const strideS = Math.max(1, Math.floor(samples.rows.length / DRAW_TARGET))
@@ -553,7 +576,11 @@ export default function DFSPage() {
       }))
       // A tight cap can starve the candidate set before `want` is reached (measured: 20 requested,
       // 18.1 delivered at a 50% cap). Construct the remainder the same way the cash path does.
-      picked = topUpLineups(picked, want, maxExp, locks, pool2, excludes, expo)
+      // Top-up is the mean optimizer with the capped drivers excluded, which lands on the floor cars;
+      // it now treats floor-salary punts as capped at 25% (V4). User per-driver settings still win.
+      const __expoTU = { ...(expo || {}) }
+      rows.forEach(r2 => { if (r2.punt && !(__expoTU[r2.name] && __expoTU[r2.name].max != null)) __expoTU[r2.name] = { ...(__expoTU[r2.name] || {}), max: 25 } })
+      picked = topUpLineups(picked, want, maxExp, locks, pool2, excludes, __expoTU)
       picked = enforceMinExposure(picked, want, maxExp, locks, pool2, excludes, expo)
       setLineups(picked)
       const em = sel.emax()

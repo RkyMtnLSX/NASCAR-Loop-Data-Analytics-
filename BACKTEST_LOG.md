@@ -48,6 +48,69 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-06 — RESULT: V4 candidate diversification PASSED and SHIPPED
+
+9 races, global 50% cap, N=20, product pipeline on the full 10,000-draw post boards. Best-of-20
+field pctile, V0 product (selector + top-up) -> V4; "filled" = lineups the selector delivered before
+top-up:
+  cup Iowa R23 (Blaney in 99% of cands)  V0 15/20 70.3 -> V4 18/20 76.1
+  cup Richmond R24 (Blaney 79%)          V0 17/20 93.0 -> 20/20 93.0
+  cup NH R25 (Byron 72%)                 V0 20 83.4 -> 20 92.1
+  cup Daytona R26 (Bell 72%)             V0 20 90.7 -> 20 94.6
+  ore Iowa R23 (Creed 72%)               V0 20 92.0 -> 20 89.5
+  ore Richmond R24 (Jankowiak 83%)       V0 18/20 84.8 -> 19/20 84.8
+  ore Darlington R25 (Allgaier 100%)     V0 10/20 80.6 -> 20 89.9   (Cram 45% -> 20%)
+  trk Richmond R17 (Honeycutt 97%)       V0 13/20 95.3 -> 18/20 95.3
+  trk NH R18 (Nemechek 75%)              V0 20 92.6 -> 20 73.7
+MEANS best-of-20 87.0 -> 87.7, W/L/T 4/2/3 (2:1, rule was 1.5:1). Mean pctile of the 20: 45.0 ->
+44.4 (W/L 5/4, wash). Above-median lineups 8.4 -> 8.3 of 20. Floor-car roster slots 7.2% -> 5.9%;
+biggest single floor car 18% -> 14% (mean over races). Selector starvation at a 50% cap: 5 of 9
+races under the product, 3 of 9 (all 18-19/20) under V4.
+READING: three of the four wins are the starved races - the mechanism, not luck. The trucks NH loss
+is a different candidate mix changing which of 20 lineups happened to hit; one lineup swings a race.
+PASSED the registered rule -> SHIPPED in DFSPage buildGpp (diversify when a driver's candidate share
+exceeds his cap; top-up caps floor punts at 25%, user per-driver max wins). Ledger watches it.
+NOTE on the harness: V1/V2 above were run on the stride-4 (2,500) draws for candidates as well as
+scoring; V4 was run on the full 10,000 draws for candidates (the product's path). That is why V0's
+Darlington number differs between the two entries (86.3 vs 80.6): the first is uncapped E[max] on
+2,500 draws, the second is the product's capped build on 10,000.
+
+## 2026-09-06 — RESULT: punt handling V1/V2 CLOSED; root cause found in top-up; REGISTRATION V4
+
+RESULT of the registration above (9 races, N=20, product replay pipeline on the stride-4 post draws,
+official DK FPTS, contest ladder). Best-of-20 field pctile, V0 / V1 cap / V2 haircut / V3 both:
+  cup Iowa R23 85.3/85.3/85.3/85.3 | cup Richmond R24 90.9 x4 | cup NH R25 74.5/74.5/91.6/91.6 |
+  cup Daytona R26 94.7/90.5/92.3/92.3 | ore Iowa R23 98.0/98.0/95.0/95.0 | ore Richmond R24 95.3 x4 |
+  ore Darlington R25 86.3/86.3/90.4/90.4 | trk Richmond R17 95.9 x4 | trk NH R18 90.4 x4.
+  MEANS 90.1 / 89.7 / 91.9 / 91.9. W/L/T vs V0: V1 0/1/8, V2 2/2/5, V3 2/2/5. Mean pctile of the 20:
+  45.5 / 45.6 / 45.5 / 45.2 (V2 loses 2/5 on depth). Floor-car roster slots: 5.0% in V0 already; max
+  single floor car 30% (Daytona Dillon/Dye), Darlington Cram 20-25%.
+VERDICT: both FAIL the registered rule. V1 never binds - E[max] alone does NOT over-own punts. V2 is a
+coin flip. CLOSED, nothing shipped.
+
+ROOT CAUSE of the 45% Cram build (reproduced on the real 10,000-draw Darlington O'Reilly board):
+Allgaier is in 100% of the top-2,000 candidates by projection. Any cap on him (global 50% or per-
+driver) starves makeEmaxSelector at 10 lineups; topUpLineups then builds the other 10 with the MEAN
+optimizer with the capped driver excluded, which drops straight to the $5,000 cars. Global 50% cap
+reproduces the operator's build exactly: Cram 45%, Gase 30%, Reen 25%. Uncapped: Cram 20%.
+One-race check on Darlington actuals: product capped build best-of-20 p80.6 (floor slots 18%);
+same cap with candidates diversified so the selector fills all 20 itself: p89.9 (floor slots 12%).
+n=1 -> registration, not a result.
+
+REGISTRATION V4 - candidate diversification under exposure caps (form frozen before data is read).
+Setting: global max exposure 50% (the operator's setting), N=20, product build pipeline exactly:
+candidates = per-draw exact optima over ALL post draws + optimize(300), cut to 2,000 by projection;
+scoring draws = stride to 2,000; makeEmaxSelector with capOf; topUpLineups if short. Official DK
+FPTS, contest ladder, all 9 replayable races.
+  V0 product: as shipped (selector + top-up).
+  V4: after the 2,000 cut, for every driver appearing in more than the cap share of those candidates,
+      append the top 1,500 candidates by projection that EXCLUDE him (deduped). Selector as before.
+      Top-up only if still short, and top-up also treats floor cars (salary <= floor + $500) as
+      capped at 25% of N.
+METRICS: best-of-20 actual + field pctile; mean pctile of the 20; floor-car roster slots.
+DECISION: adopt if mean best-of-20 pctile improves AND W/L >= 1.5:1 over the 9. No sweep of the
+1,500 or the 25%.
+
 ## 2026-09-06 — REGISTRATION: punt handling in the GPP set builder (replay of the 9 ledger races)
 
 Trigger: Cram 45% of a 20-lineup build; operator: "it really wants to overly own punts... you want

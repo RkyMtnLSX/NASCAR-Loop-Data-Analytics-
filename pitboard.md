@@ -3228,6 +3228,17 @@ dropped); the Top 10 box uses the same parser with a one-column default. Single-
 exactly as before. WORKFLOW: paste every DK page into the DK box one after the other, each with its
 header row. Book-side layout changes are a recurring class (see the 08-14 HR header rename).
 
+## 2026-09-06 — DFS GPP builder: candidate diversification under caps (BACKTEST_LOG V4, shipped)
+Operator: "it really wants to overly own punts." Registered replay of a floor-car cap inside E[max]
+and a P35+ attrition haircut: both FAILED (cap never binds; haircut 2/2/5) - closed. Root cause was
+the TOP-UP filler: the projection-ranked candidate cut is chalk-dominated, a 50% cap starves the
+selector (Darlington 10 of 20), and topUpLineups fills with the mean optimizer minus the chalk = the
+$5k cars (Cram 45% reproduced exactly). Registered V4 (append top-1,500 candidates excluding any
+driver whose candidate share exceeds his cap; top-up caps punts at 25%): 9 races @ 50% cap best-of-20
+pctile 87.0 -> 87.7, W/L/T 4/2/3 -> passed, shipped in DFSPage buildGpp. STATE open item resolved;
+MANUAL DFS section updated. Harness ran in the cloud (solvers extracted from DFSPage, replay
+pipeline from DfsReplay, data via Supabase SQL).
+
 ## 2026-09-05 (evening) — Darlington O'Reilly race-week session (Fable)
 Shipped: DFS post-board-only rule (5913515/4ddc283, dfs_sim_samples.stage); beta tester access
 (Admin -> Beta Access, admin RPCs, 4e5270c); grader parseStints pit-lap split (38b1b14); practice

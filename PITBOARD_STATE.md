@@ -662,20 +662,20 @@ before stating n.
 
 ## Open experiments (ledgers)
 - **[OPEN 2026-09-05] Operator construction beat both solvers at Darlington O'Reilly (1st of 1,189 vs product GPP ~268th, cash ~1,041st) on a board with rho .35.** Exposure table + implied rules in BACKTEST_LOG same date: this was 1 of 3 contests x 20 - the other two (Allgaier 95% / 85%, solver-like builds) finished BELOW the field median (mean pctile 38 / 36); only the hand-built set won (mean pctile 86); tier-two studs 50-80%, 1-2 mid-priced sub-10%-owned punts (never floor cars), full cap. PROPOSED 'Operator' build preset + weekly replay row so the ledger scores it (n=1 today). Replay ledger now GPP 4 / cash 3 / tie 2.
-- **[OPEN 2026-09-05] GPP ceiling mode concentrates the cheapest fat-tail punt (Cram 45% of a
-  20-lineup Darlington O'Reilly build; Optimal% only 10.8%).** Diagnosis, not a bug: E[max] set
-  selection buys the cheapest lottery ticket that frees salary for the studs, and the greedy set
-  builder reuses it because it does not know Cram / Reen / Gase / Perez are the same bet (p98 57 /
-  56 / 59; Cram >=40 DK in 16.9% of draws vs history 14.2% of P35+ starters gaining 15+ spots — tail
-  is a little rich, not fantasy). Operator control today: per-driver max (20-25%) or global max ~40%,
-  which shifts the punt slot to the near-identical cars = the diversification wanted. CANDIDATE FIX
-  (not built): treat exchangeable punts as one bucket in the set objective — cap the SUM of floor-car
-  exposure per lineup slot, or add a correlation-aware duplicate penalty for drivers whose draw
-  distributions are within a tolerance of each other. Judge on the replay ledger (best-of-20 field
-  percentile), not eyeball. Related: floor-car projections run ~4 DK pts rich because sim DNF spread
-  (7-13%) is flat vs 23.5% observed for P35-38 starters (O'Reilly ovals 2025-26, avg finish 29.9 vs
-  sim 27.4) — that inflates ALL punts together; DNF-by-tier is a CLOSED line (six versions hurt the
-  finishing order), so any fix here is a DFS-layer haircut on floor-car draws, not a sim change.
+- **[RESOLVED 2026-09-06] Cram 45% in a 20-lineup GPP build was NOT E[max] — it was the TOP-UP filler.**
+  Registered replay (BACKTEST_LOG 09-06): a floor-car cap inside E[max] never binds (floor cars are 5%
+  of roster slots uncapped, max single floor car 30%) and a P35+ attrition haircut is a coin flip
+  (2/2/5) — both CLOSED. Root cause reproduced on the real 10k-draw Darlington board: the top-2,000
+  candidate cut is chalk-dominated (Allgaier in 100%), so a 50% cap starves the selector at 10 of 20
+  and topUpLineups fills the rest with the mean optimizer minus the chalk = the $5k cars (Cram 45 /
+  Gase 30 / Reen 25, exactly the operator's build). Starvation hits 5 of 9 races at a 50% cap.
+  SHIPPED (V4, passed the registered rule): when a driver's candidate share exceeds his cap, the top
+  1,500 candidates that exclude him are appended so the selector fills the set itself; top-up caps
+  floor-salary punts at 25% (user per-driver settings still win). 9 races @ 50% cap: best-of-20
+  pctile 87.0 -> 87.7, W/L/T 4/2/3, mean pctile of the 20 45.0 -> 44.4 (wash), floor slots 7.2% ->
+  5.9%. Ledger watches it; one bad race (trucks NH 92.6 -> 73.7) shows a single lineup can swing a
+  race's number either way. Floor-car projections still run rich vs 23.5% observed P35-38 DNF —
+  the haircut did not help, so leave it.
 - **DFS Value column redefined 2026-09-05** (marginal pts per $1K above the salary floor; floor cars
   = PUNT). Display only. Watch: does the sort order now match what the operator would pay up for?
 - v6.3-st session-time correction: LEDGER 2-1 (wk1 trucks +.026, wk2 cup -.099, wk3 cup NH +.028 CORRECTED WINS, protocol target rho .624 v .596 n=36). POOLED mean delta -0.0150, sem 0.0420 over 3 sessions - indistinguishable from zero, dominated by wk2. Verdict deferred to 8-10 sessions per the 2026-08-23 protocol correction; emergency stop (single week worse than -0.15 rho) never approached. Wk3 was the FIRST CLEAN test (A/B groups gone, gc correction self-disabled). BLOCKER unchanged: truck sessions still upload with no captured_at, so the pool fills at half rate - fix the watcher for truck practice.
