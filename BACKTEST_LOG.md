@@ -48,6 +48,31 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-05 — DFS Darlington O'Reilly R25: operator construction WON the contest; both solvers did not
+
+Contest (DK GPP, 1,189 entries, median 181.8): operator's 20 finished 1-2-4-6-7-10, 12 of 20 in the
+top 50, best 303.5 (field p99 278.1). Replay of the product on the same board/salaries/draws:
+cash 144.0 (~1,041st), GPP best-of-20 217.4 (~268th), perfect 324.4. Board was WRONG this race:
+rho model .346 < rho own .463 < rho salary .532 (Allgaier proj 53.4 -> 35.9, Kvapil 33.1 -> 30.9,
+Creed 30.7 -> 77.9, Day 28.4 -> 60.1, Alfredo 21.7 -> 50.3, Crews 29.3 -> 50.05). Ledger GPP 4 /
+cash 3 / tie 2 (2 rows on the current engine).
+
+OPERATOR EXPOSURE (from the standings file): Creed 80% (29% owned) / Day 65% (33%) / Crews 60% (9%)
+/ S.Smith 55% (26%) / Bilicki 55% (8%) / Hill 50% (10%) / Smithley 45% (9%) / B.Jones 35% / Kvapil
+30% (35% owned) / R.Sieg 20% / Clements, K.Sieg, Love 15% / seven others 5-10%. ZERO: Allgaier
+(50% owned), Retzlaff (41%), Sawalich (39%), Finch (31%), Alfredo (24%). Salary 48.8-50.0k, exactly
+1 or 2 punts (<= $6.2k) per lineup, floor cars 2 lineups each.
+RULES IMPLIED: (1) fade the top-owned chalk to zero, cap the pole car ~30%; (2) tier-two studs
+($8.4-10k, proj 27-32, own 9-33%) at 50-80% each; (3) punts = small rotating set of mid-priced
+(5.5-5.8k) sub-10%-owned cars, 1-2 per lineup, never the $5,000 floor; (4) spend the cap.
+Rule 3 is the direct counter to the E[max] punt-concentration finding (STATE open item). Rule 1
+needs an ownership proxy the product does not have (leverage line closed 08-30; our projected own
+is derived from our own proj) - but the crowd chased practice speed (Retzlaff 30.300, 41% owned,
+proj 22.2 -> 10.9) and the tool already disagreed with the crowd on him.
+CAVEAT: n=1, and it is exactly the race this construction wins (JRM cars under, JGR/HMS/Haas 1-2-3).
+PROPOSED: 'Operator' build preset encoding rules 2-4 with the chalk fade as per-driver toggles,
+run inside DFS Replay every week alongside GPP/cash so the ledger scores the method. Not built.
+
 ## 2026-09-05 — DFS: punt exposure in GPP ceiling mode + floor-car projection audit (evidence only, nothing shipped)
 
 Trigger: first 20-lineup GPP build on the Darlington O'Reilly post board put Dawson Cram ($5,000,
