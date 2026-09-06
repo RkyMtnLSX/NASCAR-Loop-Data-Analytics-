@@ -48,6 +48,39 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-06 — RESULT: payout-aware GPP objective — CLOSED, loses to E[max] on every metric
+
+9 races, product candidates and draws, N = 20, projected-ownership field (F = 1,000), DK-like
+payout (top 20%, r^-0.75). Realised prize of the 20, entry-fee units, on the real ladder:
+  race        entries  E[max] prize / best pct   PAYOUT prize / best pct   ref actual-own prize
+  cup Iowa      1417      0.0 / 76.1                0.0 / 75.0               0.0
+  cup Richmond 14268      5.7 / 93.0                4.7 / 90.9               0.0
+  cup NH       14268      1.6 / 83.4                0.0 / 74.5               0.0
+  cup Daytona  14268     11.1 / 94.6                1.8 / 85.5               2.5
+  ore Iowa      4756     13.0 / 92.0                6.2 / 94.2               9.4
+  ore Richmond   925      2.0 / 84.8               10.6 / 95.3               0.0
+  ore Darlington 1189     2.9 / 90.8                0.0 / 45.4               0.0
+  trk Richmond  2378     17.3 / 95.3               18.0 / 90.1               7.1
+  trk NH        2378      3.2 / 92.6                0.0 / 57.4               0.0
+  MEAN prize 6.32 -> 4.59 (W/L/T 2/6/1); best-of-20 pctile 89.2 -> 78.7 (2/7); mean pctile of the
+  20 46.2 -> 42.7 (3/6); cashed 2.3 -> 1.9 of 20. With ACTUAL ownership as the field model
+  (post-hoc ceiling) it is WORSE still: 2.11.
+VERDICT: FAILS. CLOSED. The STATE top DFS item is closed on this evidence.
+WHY: the objective's own EV said the payout set was far better (Darlington 46 -> 56, trucks
+Richmond 80 -> 136 entry-fees) and reality said the opposite - the FIELD MODEL is wrong.
+Sampling cap-feasible lineups from ownership produces a field that scores far below real DK
+entrants, who optimise; "beat the simulated field" then rewards HIGH-FLOOR lineups that beat
+weak opponents instead of high-ceiling lineups that reach the top of a real one. Actual
+ownership does not fix it because the error is the sampling, not the own%. Set overlap with
+E[max] was 0-6 of 20; the payout set also has no diversification (additive objective picks 20
+near-clones of the top-EV lineup). A field model good enough to make this work needs real
+contest lineups, which DK does not publish. Line closed; do not re-open on a better payout curve
+- the payout curve was not the failure.
+HARD NUMBER FOR THE OPERATOR: on this payout curve the product's E[max] 20-lineup sets return
+6.3 entry-fees per 20 entered across the 9 races (about -68%); the one hand-built set at
+Darlington returned the tournament. Construction across contests (portfolio builder, chalk
+stance schedule) is what is left, and it is what the evidence has pointed at since 09-05.
+
 ## 2026-09-06 — REGISTRATION: payout-aware GPP objective (STATE top DFS item since 08-30)
 
 Claim under test: E[max] picks the set to maximise OUR best score; a tournament pays by RANK
