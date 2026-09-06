@@ -684,8 +684,11 @@ before stating n.
   forms lifted win/top-10 probability metrics and DK-points rho on the 2026 replay races (5/1)
   while leaving finish order alone. READ: a better practice number at the fixed 0.15 weight does
   not move the sim's ORDERING; it moves the TAIL. ROAD loses in every arm (0/7 - 2/6; n=8).
-  OPEN: the post board is graded on finish order but DFS pays DK points - a DK-scored objective
-  for the post board is the un-run question. BACKTEST_LOG 09-06 (three entries).
+  ALSO CLOSED same night: arm C scored on DK points from loop_data over all 91 boards: .365 ->
+  .363 (48/43). The six-race 5/1 was the sample, not the effect. PRACTICE-INPUT LINE CLOSED (four
+  forms). The grader stays a report card + EDGE gate. What is left for DFS does not touch the
+  board: payout-aware objective, cross-contest portfolio builder, Operator preset. BACKTEST_LOG
+  09-06 (four entries).
 - **[RESOLVED 2026-09-06] Cram 45% in a 20-lineup GPP build was NOT E[max] — it was the TOP-UP filler.**
   Registered replay (BACKTEST_LOG 09-06): a floor-car cap inside E[max] never binds (floor cars are 5%
   of roster slots uncapped, max single floor car 30%) and a P35+ attrition haircut is a coin flip

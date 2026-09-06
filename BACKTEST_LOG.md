@@ -48,6 +48,29 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-06 — RESULT: DK-points-scored test of arm C — CLOSED; the practice-input line is done
+
+91 boards, DK pts from loop_data (92/92 fingerprint-matched), 20k sims / race / arm.
+  PRIMARY rho(projDK, DK pts): ALL .365 -> .363 (W/L 48/43). INT .379 -> .378 (22/22); SHORT .382
+  -> .380 (21/18); ROAD .205 -> .202 (5/3). cup .353 -> .364 (25/13); oreilly .385 -> .376 (11/14);
+  trucks .364 -> .352 (12/16). Laps-graded boards 43/41; control boards 5/2.
+  Guards (same run): rhoFin .541 -> .542 (48/43); t10 Brier 47/42; winLL 51/40; t5LL 46/44.
+VERDICT: FAILS the primary (mean down, 48/43 = noise). CLOSED - no second run needed, there is
+nothing to confirm. Nothing ships; practice_sessions.pace_tc is NOT added.
+WHY THE SIX-RACE SIGNAL DID NOT HOLD: the 5/1 on the 2026 replay races was scored on official DK
+FPTS over six races; over 91 races on the hand DK formula it is .365 -> .363. Six races was the
+sample, not the effect. Cup alone leans positive (25/13, .353 -> .364) and would be the only
+place to look again, with a cup-only registration, IF a new reason appears; not on this evidence.
+LINE CLOSED (four forms, 2026-09-06): rank composite (B), corrected seconds (C), corrected best5
+(D), and C scored on DK points. A better practice number in the sim's practice slot does not
+improve finishing order, DK points, or (beyond noise) the win/top-10 probabilities, at the
+validated 0.15 weight. The grader stays what it is: a practice report card and the EDGE gate.
+The residual diagnostic's .385 -> .414 stands as a description of a linear fit, not a sim change.
+WHAT IS LEFT FOR DFS, in order of evidence: (1) the payout-aware objective (E[max] maximises our
+own score; a tournament pays for beating the field - STATE top DFS item, needs registration);
+(2) the portfolio builder across contests with a chalk-stance schedule (the construction that
+actually won at Darlington); (3) the Operator preset (rules 2-4). None of these touch the board.
+
 ## 2026-09-06 — REGISTRATION: DK-points-scored test of the grader-corrected practice input (post board)
 
 Operator: "do what you wanna do with the post board for DFS." Reasoning: three practice forms
