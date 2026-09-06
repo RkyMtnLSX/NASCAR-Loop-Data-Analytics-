@@ -48,6 +48,18 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-06 — REGISTRATION: projected ownership v3 — one top-end term (the single form)
+
+FORM (frozen before data is read). Shipped curve kept exactly (k = 2.2 on rank percentile) plus ONE
+term that adds mass only at the top of the slate by projection GAP:
+    own_i = 600% x exp(2.2 x pct_i + c x max(0, z_i - 1)) / sum
+  z_i = within-slate z-score of projected DK pts; the hinge at z = 1 is FIXED (roughly the top sixth
+  of a slate); c is the ONLY free parameter, fitted leave-one-race-out by least squares on
+  log(actual own) with k held at 2.2. No sweep of k or of the hinge. Reference: the same fit with the
+  hinge at z = 1.5 is reported for context only, not for decision.
+METRICS / DECISION as v2: MAE improves in mean with W/L >= 1.5:1 AND top-3 chalk error improves in
+mean. Passing ships as projectOwnership with c frozen in code.
+
 ## 2026-09-06 — RESULT: projected ownership v2 — CLOSED (candidate fails; chalk level is a shape problem)
 
 9 races LORO, ~330 rows. MAE / rho / top-3 chalk error (mean |pred - actual| on the three most-owned):
