@@ -3228,6 +3228,13 @@ dropped); the Top 10 box uses the same parser with a one-column default. Single-
 exactly as before. WORKFLOW: paste every DK page into the DK box one after the other, each with its
 header row. Book-side layout changes are a recurring class (see the 08-14 HR header rename).
 
+## 2026-09-06 (late-late) — Optimal Lineups polish; projected ownership v3 shipped
+Optimal Lineups page: one-line subtitle, internal footnote off the page, text +1.5px, fixed table
+layout (no overflow), column headers Driver / Salary / Start -> Finish / Score. Ownership: operator
+challenged Reddick 36.4% on the pole. v2 (magnitude + $/pt + start + practice) registered and
+CLOSED (MAE worse; crowd chases practice +0.85, not the pole); v3 single hinge term registered, tie
+on MAE / 7-2 on chalk error, operator shipped on the tie. projectOwnership exported; Replay uses it.
+
 ## 2026-09-06 (later) — Portfolio follow-ups, beta grant fix, DFS nav rename
 Portfolio: exposure line wraps in the card + Hide/Show lineups toggle (d313732); legs now built
 ROUND-ROBIN with named 'why short' diagnostics and rebuild buttons (cap 65/70%, drop tier-two min

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { optimize, bestLineup, makeEmaxSelector, topUpLineups, enforceMinExposure, dfsCapFor, DFS_ROSTER, DFS_CAP } from './DFSPage'
+import { optimize, bestLineup, makeEmaxSelector, topUpLineups, enforceMinExposure, dfsCapFor, projectOwnership, DFS_ROSTER, DFS_CAP } from './DFSPage'
 import { buildPortfolio, portfolioRulesDefault } from '../lib/dfsPortfolio'
 
 // DFS REPLAY (2026-08-30, operator: "should this be an admin tool that I can run instead of having
@@ -379,7 +379,7 @@ export default function DfsReplay() {
       try {
         const __E = ent || 0
         const __prize = (() => { const R = Math.floor(0.2 * __E); let Z = 0; for (let r = 1; r <= R; r++) Z += Math.pow(r, -0.75); return r => (__E && r >= 1 && r <= R) ? __E * Math.pow(r, -0.75) / Z : 0 })()
-        const __own = (() => { const n = pool.length; const order = pool.slice().sort((a, b) => a.projDK - b.projDK); const pct = {}; order.forEach((d, i) => { pct[d.name] = i / (n - 1) }); let sum = 0; pool.forEach(d => { sum += Math.exp(2.2 * pct[d.name]) }); const o = {}; pool.forEach(d => { o[d.name] = DFS_ROSTER * 100 * Math.exp(2.2 * pct[d.name]) / sum }); return o })()
+        const __own = projectOwnership(pool)   // same model as the product (v3 top-end term, 09-06)
         const __legs = 3, __N = selN
         const __rulesOn = portfolioRulesDefault(sr)
         const __pf = buildPortfolio(

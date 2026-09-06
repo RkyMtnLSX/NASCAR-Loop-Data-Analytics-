@@ -276,7 +276,16 @@ export function bestLineup(pool) {
 // would only restate our own projection error as a market inefficiency. Display it, do not bet on
 // the difference. See BACKTEST_LOG 2026-08-30.
 const OWN_K = 2.2
-function projectOwnership(list) {
+// v3 TOP-END TERM (2026-09-06, BACKTEST_LOG same date, operator: "I'm willing to bet Reddick might be
+// owned more than 36.4%"). The rank curve has a flat top: the most-owned driver per race averaged 52%
+// actual vs 37% modelled, low 9 of 9. One hinge on the within-slate z-score of projected points adds
+// mass only above z = 1 (top ~sixth of the slate). c fitted LORO on 9 races (0.08-0.14 per fold,
+// 0.115 full-sample); MAE 6.349 -> 6.350 (a tie, 5/3), top-3 chalk error 12.1 -> 11.5 (7/2). Blaney
+// Iowa 43 -> 51 (actual 72). Shipped as a no-cost fix of the level; still derived from our own
+// projection, so still not leverage. The hinge (1.0) and k are NOT tuning knobs.
+const OWN_C = 0.115
+const OWN_HINGE = 1.0
+export function projectOwnership(list) {
   const usable = list.filter(d => d.sal > 0 && d.projDK > 0)
   const n = usable.length
   const out = {}
@@ -284,10 +293,14 @@ function projectOwnership(list) {
   const order = usable.slice().sort((a, b) => a.projDK - b.projDK)
   const pct = {}
   order.forEach((d, i) => { pct[d.name] = i / (n - 1) })
+  const mean = usable.reduce((a, d) => a + d.projDK, 0) / n
+  const sd = Math.sqrt(usable.reduce((a, d) => a + (d.projDK - mean) * (d.projDK - mean), 0) / Math.max(1, n - 1)) || 1
+  const w = {}
+  usable.forEach(d => { const z = (d.projDK - mean) / sd; w[d.name] = Math.exp(OWN_K * pct[d.name] + OWN_C * Math.max(0, z - OWN_HINGE)) })
   const total = ROSTER * 100
   let sum = 0
-  usable.forEach(d => { sum += Math.exp(OWN_K * pct[d.name]) })
-  usable.forEach(d => { out[d.name] = total * Math.exp(OWN_K * pct[d.name]) / sum })
+  usable.forEach(d => { sum += w[d.name] })
+  usable.forEach(d => { out[d.name] = total * w[d.name] / sum })
   return out
 }
 

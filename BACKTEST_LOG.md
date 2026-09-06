@@ -48,6 +48,21 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-06 — RESULT + SHIPPED: projected ownership v3 (one top-end hinge term)
+
+9 races LORO: MAE 6.349 -> 6.350 (tie; W/L 5/3), rho .745 -> .745, top-3 chalk error 12.13 -> 11.50
+(7/2). c per fold 0.08-0.14, full-sample 0.115; hinge z = 1 fixed. Ref hinge z = 1.5: MAE 6.33
+(6/3), top-3 11.99 (5/4) - reported only. Chalk check (actual / A / v3): Blaney Iowa 72.5 / 43 / 51,
+Blaney Richmond 53 / 42 / 50, Logano NH 38 / 38 / 40, Bell Daytona 47 / 40 / 43, Hill ore Iowa
+43.5 / 18 / 17 (z = 0.4 - the crowd loved a driver we did not rank near the top; no shape fixes
+that), Allgaier ore Richmond 57 / 36 / 38, Allgaier Darlington 50 / 40 / 53, Majeski 56 / 38 / 44,
+Nemechek 49 / 38 / 43.
+By the registered letter it misses (MAE must improve in mean; it is 0.0007 worse). Operator ruled
+on the tie: "Ship it." Shipped: DFSPage.projectOwnership = 600% x exp(2.2 pct + 0.115 max(0, z-1)) /
+sum, exported; DfsReplay's Portfolio field model now calls it (was an inline copy of the rank
+curve). The Portfolio chalk definition (> 35%) inherits it - Reddick-on-the-pole weeks now read
+chalkier. Still derived from our projection: not leverage (08-30 rule).
+
 ## 2026-09-06 — REGISTRATION: projected ownership v3 — one top-end term (the single form)
 
 FORM (frozen before data is read). Shipped curve kept exactly (k = 2.2 on rank percentile) plus ONE
