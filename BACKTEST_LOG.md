@@ -48,6 +48,30 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-06 — REGISTRATION: DK-points-scored test of the grader-corrected practice input (post board)
+
+Operator: "do what you wanna do with the post board for DFS." Reasoning: three practice forms
+left finish-order rho flat and lifted the DK-points correlation on the six 2026 replay races (5/1)
+plus the win / top-10 probability metrics (the betting product's own markets). Finish-order
+Spearman was the wrong primary for a change whose value is in the tail. n=6 DK races is thin, so:
+FORM (frozen before data is read). Same 91-board practice harness, arm A (raw) vs arm C (grader
+overallSTC/overallTC in seconds, same slot, same weights, tilt untouched). DK points for every
+driver on all 91 boards computed from loop_data (finish table dkFinishPts + place differential +
+0.25 laps led + 0.45 fastest laps; boards matched to loop_data by exact start:finish fingerprint,
+92/92 matched). The hand formula runs ~1 pt hot on levels; irrelevant to a rank correlation.
+  PRIMARY: per-race Spearman(projDK, DK pts). Adopt if mean improves AND W/L >= 1.5:1.
+  GUARDS (must hold or no ship): finish-order rho within noise (W/L not worse than 40/50);
+  win log-loss and t10 Brier not losing (W/L >= 1:1). Reported per track group and per series;
+  ROAD (n=8) reported and, if it loses, carved out (raw metric stays at road courses).
+  20,000 sims / race / arm, two runs.
+  Arms B (rank composite) and D (best5TC) are reported on the same DK metric as REFERENCE from
+  their existing runs; only C is the candidate.
+IF IT PASSES, WHAT SHIPS: one sim run, not two. practice_sessions gains a stored `pace_tc`
+(overallSTC ?? overallTC, written by the grader at upload; backfilled from practice_laps for
+every session that has laps); SimulationCenter's post-stage lrpTime reads pace_tc when present
+and falls back to best5 / overall_avg. Betting board and DFS board come from the same run - the
+guards above are what make that acceptable. Grader version is noted in config.practiceMetric.
+
 ## 2026-09-06 — RESULT: corrected pace in seconds (arms C / D) — CLOSED, both fail the primary
 
 Same harness as the composite test (91 boards, 20k sims / race / arm). Arm C = grader overallSTC/
