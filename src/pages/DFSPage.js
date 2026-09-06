@@ -322,6 +322,7 @@ export default function DFSPage() {
   const [portSchedule, setPortSchedule] = useState('all50')
   const [portfolio, setPortfolio] = useState(null)
   const [portLeg, setPortLeg] = useState(0)
+  const [lineupsHidden, setLineupsHidden] = useState(false)   // 2026-09-06: collapse the built set so the pool is reachable
   const [entFile, setEntFile] = useState(null) // 2026-08-20: parsed DK entries file awaiting contest selection
   const [sortKey, setSortKey] = useState('value')
   const [sortDir, setSortDir] = useState('desc')
@@ -789,14 +790,19 @@ export default function DFSPage() {
           <div style={{ fontSize: 12, color: 'var(--text-secondary,#9aa0aa)', marginBottom: 6 }}>
             Chalk (proj own &gt; {PORTFOLIO_RULES.chalkOwnPct}%): {portfolio.cls.chalk.length ? portfolio.cls.chalk.join(', ') : 'none'} &middot; Tier-two studs: {portfolio.cls.t2.join(', ') || 'none'} &middot; Floor cars: {portfolio.cls.floor.join(', ') || 'none'}
           </div>
-          <div style={{ fontSize: 12 }}>
-            <span style={{ color: 'var(--text-secondary,#9aa0aa)' }}>Portfolio exposure ({portfolio.total} entries): </span>
-            {Object.entries(portfolio.exposure).sort((a, b) => b[1] - a[1]).slice(0, 16).map(([n, c]) => <span key={n} style={{ marginRight: 10, whiteSpace: 'nowrap', fontWeight: c / portfolio.total >= 0.5 ? 700 : 400 }}>{n} {Math.round(100 * c / portfolio.total)}%</span>)}
+          <div style={{ fontSize: 12, display: 'flex', flexWrap: 'wrap', gap: '4px 12px', alignItems: 'baseline' }}>
+            <span style={{ color: 'var(--text-secondary,#9aa0aa)' }}>Portfolio exposure ({portfolio.total} entries):</span>
+            {Object.entries(portfolio.exposure).sort((a, b) => b[1] - a[1]).map(([n, c]) => <span key={n} style={{ whiteSpace: 'nowrap', fontWeight: c / portfolio.total >= 0.5 ? 700 : 400 }}>{n} {Math.round(100 * c / portfolio.total)}%</span>)}
           </div>
         </div>}
         {lineups.length > 0 && <div style={card}>
-          <div style={{ marginBottom: 10 }}><strong>{lineups.length} lineup{lineups.length === 1 ? '' : 's'}</strong> <span style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 13 }}>{lineups[0] && lineups[0].ceil != null ? 'ranked by 90th-percentile total across sim draws' : 'ranked by projected DK points'}</span></div>
-          <div style={{ overflowX: 'auto' }}>
+          <div style={{ marginBottom: 10, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <span><strong>{lineups.length} lineup{lineups.length === 1 ? '' : 's'}</strong> <span style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 13 }}>{lineups[0] && lineups[0].ceil != null ? 'ranked by 90th-percentile total across sim draws' : 'ranked by projected DK points'}</span></span>
+            <button onClick={() => setLineupsHidden(h => !h)} style={{ padding: '4px 12px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: 'transparent', color: 'var(--text,#e8eaed)', fontSize: 12 }}>
+              {lineupsHidden ? 'Show lineups' : 'Hide lineups'}
+            </button>
+          </div>
+          <div style={{ overflowX: 'auto', display: lineupsHidden ? 'none' : 'block' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead><tr style={{ color: 'var(--text-secondary,#9aa0aa)' }}>
                 <th style={{ padding: '6px 8px', textAlign: 'left' }}>#</th>
