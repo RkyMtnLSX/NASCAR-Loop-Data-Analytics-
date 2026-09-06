@@ -48,6 +48,48 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-06 — REGISTRATION: sim post stage takes practice from the GRADER, not the raw lap metric
+
+WHAT THE POST STAGE DOES TODAY (read from SimulationCenter.js + simEngine.js, 2026-09-06):
+practice enters speedScore as `lrpTime` = best5 lap time (cup/trucks) or overall_avg (O'Reilly),
+min-max normalised across the field (normalizeArr, lower = better), weight longRunPace 0.15
+(0.25 road, 0.00 superspeedway, trucks short 0.15), after an A/B practice-group offset fitted
+on corrAvgRating (SimulationCenter ~L1744). The same lrpTime percentile drives the dominator
+tilt (`__spdPct`, task #71). The GRADER'S composite (practice_score: tire-corrected pace 40 /
+raw best5 40 / long-run 20, session-time corrected, rank-scaled, group-corrected) is NOT a sim
+input anywhere - it only gates the EDGE flags and the thin-driver definition. So the residual
+diagnostic's finding (grade adds beyond the post board; post-minus-pre shift correlates .14 with
+the grade) has a mechanical explanation: the board consumes ONE raw lap number, the grade is a
+corrected composite of the whole session, and the two disagree.
+
+FORM (frozen before data is read).
+  Change under test: `lrpTime` input to speedScore replaced by the grader composite (rank-scaled
+  0-100, higher = better; normalizeArr direction flipped accordingly), same weight per track group,
+  practice-group offset step SKIPPED for the grade (the grader already group-corrects). `__spdPct`
+  (dominator tilt) UNCHANGED - stays on raw lrpTime - so the change is isolated to speedScore.
+  No weight sweep: longRunPace stays 0.15 / 0.25 / 0.00.
+  Data: the 94-race practice holdout (scripts/backtest-data/holdout-practice.txt, 2024-26, all
+  three series, ratings + start + finish + lrpTime per driver) with the grade joined by exact
+  match of each row's lrpTime to practice_sessions.best5 / overall_avg for that race; grades
+  RECOMPUTED with the current grader (v6.4-sets) from practice_laps where laps exist, stored
+  practice_score otherwise (grader version noted per race). Races where < 60% of the field joins
+  are dropped and listed.
+  Arms: A = production (raw lrpTime), B = grade input. Same seed, SIMS = 12,000, same DNF /
+  caution / tilt / start config.
+  METRICS (the sim's own, per race): Spearman(proj_finish, actual finish); top-10 Brier; win and
+  top-5 log-loss. SECONDARY (the motivating one, must not lose): Spearman(proj_dk, actual DK
+  FPTS) on the 9 replay races that have practice (7).
+  DECISION: adopt if finish-order Spearman improves in mean AND W/L >= 1.5:1 over the joined
+  races, AND t10 Brier does not lose (W/L >= 1:1), AND the DK secondary does not lose 0/7-style.
+  Report per track group (INT / SHORT / ROAD) - a group that loses on its own is reported, not
+  hidden, and a win carried by one group is a per-group ship, not a global one.
+  If A wins or ties: CLOSED; the grade stays a display/gate. No second form.
+
+NOTE surfaced while reading (operator to rule on): the thin-driver MARKET ANCHOR (v1.1,
+2026-07-22) ALREADY uses the de-vigged win-odds percentile as the ignorance fill for drivers with
+< 5 group races and no practice score (simEngine.js ~L462: corr, track and lrp fills). That is
+odds in the sim, scoped to data-thin drivers only. Conflicts with the 09-06 rule as written.
+
 ## 2026-09-06 — RESULT: residual diagnostic — the POST board wastes the practice grade (lead, not a result)
 
 322 driver-rows, 9 races (practice present in 7). CORRECTION to the registered step 1: a raw

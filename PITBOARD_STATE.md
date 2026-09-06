@@ -668,6 +668,11 @@ before stating n.
   in the ledger only (rho_salary / rho_own / residual diagnostics), never fitted, never shipped.
   Same status as the closed leverage overlay. Any future "blend with the market" proposal is closed
   on sight.
+  EXCEPTION ON THE BOOKS, operator to rule: the thin-driver market anchor (v1.1, 2026-07-22)
+  fills corr / track / practice ignorance for drivers with < 5 group races and no practice grade
+  from the de-vigged win-odds percentile (simEngine ~L462). Scoped to data-thin drivers only;
+  surfaced 2026-09-06 while reading the post-stage practice code. Stands until the operator says
+  otherwise.
 - **[RESOLVED 2026-09-06] Cram 45% in a 20-lineup GPP build was NOT E[max] — it was the TOP-UP filler.**
   Registered replay (BACKTEST_LOG 09-06): a floor-car cap inside E[max] never binds (floor cars are 5%
   of roster slots uncapped, max single floor car 30%) and a P35+ attrition haircut is a coin flip
