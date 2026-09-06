@@ -90,8 +90,8 @@ export default function DfsOptimals() {
     <div className="page" style={{ maxWidth: 1100, margin: '0 auto', padding: '24px 16px 60px' }}>
       <h1 style={{ color: 'var(--text-primary, #e8eaed)', marginBottom: 4 }}>Optimal Lineups</h1>
       <p style={{ color: 'var(--text-secondary, #9aa0aa)', fontSize: 14, marginTop: 0, marginBottom: 22 }}>
-        The last five DraftKings optimal lineups at this weekend's track, for each series — what
-        the perfect $50,000 roster was, and what it paid.
+        The last five DraftKings optimal lineups at this weekend's track, for each series — the
+        highest-scoring cap-legal roster and its DK points.
       </p>
 
       {loading && <div style={{ color: 'var(--text-secondary, #9aa0aa)' }}>Loading…</div>}
