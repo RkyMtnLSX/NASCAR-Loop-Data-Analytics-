@@ -48,6 +48,30 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-06 — REGISTRATION: projected ownership v2 — magnitude and crowd signals on top of rank
+
+Trigger: operator, Darlington Cup board, Reddick on the pole at 36.4% projected: "I'm willing to bet
+Reddick might be owned more than 36.4%." The shipped model (08-30) is RANK-ONLY: own = 600% x
+exp(2.2 x proj percentile) / sum. The top rank gets the same ~36-40% every week whatever the gap;
+it cannot say "this week's chalk is chalkier" (Allgaier 09-05: model ~40, actual 50). The 08-30 fit
+only tried OTHER RANKINGS (salary, value, optimal%) as additions - never magnitude, never the crowd
+signals (start position, practice speed).
+FORM (frozen before data is read). 9 races with banked DK GPP ownership (~330 driver-rows).
+  Baseline A: rank-only, k = 2.2 (shipped).
+  Candidate B: log-linear in the same normalised-to-600% form:
+    own ~ exp(b1 x pctile + b2 x z_proj + b3 x ptsPerK_pctile + b4 x start_pctile + b5 x practice_pctile)
+    where z_proj = within-slate z-score of projected DK pts (the magnitude), ptsPerK = proj / (sal/1000),
+    start_pctile = 1 - (start-1)/(n-1) (pole = 1), practice_pctile = grade percentile (0.5 when no
+    practice). Fitted by least squares on log(actual own) leave-one-race-out; features standardised.
+  Reference arms (reported, not decision): B without start/practice (magnitude only); B without
+    z_proj (crowd signals only).
+METRICS per race: MAE (ownership points) and Spearman vs actual; TOP-3 error = mean |pred - actual|
+on the three most-owned drivers in the actual data (the chalk level, where rank-only is guaranteed
+low). DECISION: adopt if MAE improves in mean with W/L >= 1.5:1 AND top-3 error improves in mean.
+If it passes it replaces projectOwnership in DFSPage (the chalk definition in the Portfolio builder
+inherits it) with the fitted coefficients frozen in code and the fit date noted.
+Caveat stated up front: a better own% is a better FIELD MODEL, not an edge (08-30 rule stands).
+
 ## 2026-09-06 — SHIPPED: Portfolio builder (rules on for cup / O'Reilly, off for trucks; chalk schedule optional)
 
 Operator, after the per-series breakdown (rules-only: cup 4/0, O'Reilly 3/0, trucks 0/2): "log it
