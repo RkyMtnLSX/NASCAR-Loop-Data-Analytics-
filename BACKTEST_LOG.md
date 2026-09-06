@@ -48,6 +48,29 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-06 — REGISTRATION: punt handling in the GPP set builder (replay of the 9 ledger races)
+
+Trigger: Cram 45% of a 20-lineup build; operator: "it really wants to overly own punts... you want
+light exposure across your portfolio to punts." Evidence stack: E[max] concentrates the cheapest fat
+tail; sim DNF for P35-38 starters 12.9% vs 23.5% observed; floor cars scored 7 / 1 / 10.9 at
+Darlington while the winning hand-built set used mid-priced punts, 1-2 per lineup.
+
+FORM (frozen before data is read). Product replay pipeline exactly (per-draw exact optima -> 2,000
+candidates -> E[max] lazy-greedy set of N=20 over 2,500 stride draws), official DK FPTS, contest
+ladder placement. Floor car := salary <= min posted salary + $500. Deep starter := DK start >= 35.
+  V0 baseline: capOf = Infinity (shipped behaviour).
+  V1 punt cap: candidates with > 2 floor cars discarded; floor-car set exposure capped at 25% of N
+     (capOf = ceil(0.25 N) for floor cars, Infinity otherwise).
+  V2 attrition haircut (DFS layer only, sim untouched): for deep starters, each draw is replaced
+     with prob q = 0.106 (23.5% - 12.9%) by a parked score (finish pts for ~33rd + place diff from
+     the DK start, ~= 8 + (start - 33)); deterministic by (driver, draw) hash. Candidates rebuilt.
+  V3 = V1 + V2.
+METRICS per race: best-of-20 actual and its field percentile (what a tournament pays); mean field
+percentile of the 20 (portfolio quality); floor-car exposure of the set. DECISION: a variant is
+adopted if mean best-of-20 percentile improves AND W/L >= 1.5:1 over the 9, judged on the 9 with
+no threshold sweep (q and the 25% cap are fixed above). n=9 is thin; a pass ships with the ledger
+watching, a loss closes it.
+
 ## 2026-09-05 — DFS Darlington O'Reilly R25: operator construction WON the contest; both solvers did not
 
 Contest (DK GPP, 1,189 entries, median 181.8): operator's 20 finished 1-2-4-6-7-10, 12 of 20 in the
