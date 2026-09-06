@@ -662,6 +662,12 @@ before stating n.
 
 ## Open experiments (ledgers)
 - **[OPEN 2026-09-05] Operator construction beat both solvers at Darlington O'Reilly (1st of 1,189 vs product GPP ~268th, cash ~1,041st) on a board with rho .35.** Exposure table + implied rules in BACKTEST_LOG same date: this was 1 of 3 contests x 20 - the other two (Allgaier 95% / 85%, solver-like builds) finished BELOW the field median (mean pctile 38 / 36); only the hand-built set won (mean pctile 86); tier-two studs 50-80%, 1-2 mid-priced sub-10%-owned punts (never floor cars), full cap. PROPOSED 'Operator' build preset + weekly replay row so the ledger scores it (n=1 today). Replay ledger now GPP 4 / cash 3 / tie 2.
+- **[RULE 2026-09-06, operator] Betting odds are NEVER an input to the simulation or the DFS board.**
+  "If we use odds as a signal then we are just baking the market into our product." The product is
+  an independent projection scored against the market; odds, DK salary and ownership are yardsticks
+  in the ledger only (rho_salary / rho_own / residual diagnostics), never fitted, never shipped.
+  Same status as the closed leverage overlay. Any future "blend with the market" proposal is closed
+  on sight.
 - **[RESOLVED 2026-09-06] Cram 45% in a 20-lineup GPP build was NOT E[max] — it was the TOP-UP filler.**
   Registered replay (BACKTEST_LOG 09-06): a floor-car cap inside E[max] never binds (floor cars are 5%
   of roster slots uncapped, max single floor car 30%) and a P35+ attrition haircut is a coin flip

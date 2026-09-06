@@ -48,6 +48,62 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-06 — RESULT: residual diagnostic — the POST board wastes the practice grade (lead, not a result)
+
+322 driver-rows, 9 races (practice present in 7). CORRECTION to the registered step 1: a raw
+residual (rank actual - rank proj) correlates NEGATIVELY with every signal, including ones that
+carry nothing, because the projection sits inside the residual with a minus sign (regression to
+the mean). Step 1 as registered is uninformative; replaced by PARTIAL correlation with actual rank
+controlling for the post-board rank, shuffle null permuting ACTUAL within race (keeps the signal-
+projection link). Partial rho / p95: ownership +.232/.112, salary +.192/.102, pre-minus-post
++.167/.105, odds +.159/.106, practice_score +.150/.123 (all CLEAR); qualifying +.046/.100 (noise).
+Step 2 (LORO, fit rank(actual) ~ rank(post) + signal rank; scored per race rho vs actual DK pts;
+yardsticks never fitted): post alone .385 | +practice .390 (3/3) | +qualifying .380 (2/3) | +pre
+board .355 (3/3) | pre alone .340 (5/4) | post + pre + practice .414 (5/1, unchanged x2 = no
+practice). COEFFICIENTS of the winning fit: pre .39, practice .17, post -.04 - given the pre board
+and the grader's grade, the post board adds NOTHING. Per race: cup Iowa .36->.40, cup Richmond
+.64->.64, cup NH .32->.43, ore Iowa .40->.31 (loss), ore Darlington .35->.42, trk Richmond .57->.59,
+trk NH .27->.37. corr(post rank - pre rank, practice rank) = .14; corr(pre, post) = .76.
+READING: story (b). Pre board is fine (history alone .34 = market level); the practice grader is
+fine (adds beyond the post board); the post STAGE's practice ingestion is the leak - it shifts the
+board only loosely in the grader's direction and the grader's version predicts better. Consistent
+with 08-xx finding "practice buys pace, not finish". Ownership still adds beyond all of it (.23) -
+the crowd's extra is partly practice, partly unknown.
+CAVEATS: 7 races with practice, one 3-variable fit, n=~240 rows. LEAD, not a result. NOTHING SHIPPED.
+NEXT (needs its own registration after reading SimulationCenter's post-stage practice code): post-
+stage practice adjustment driven by the grader composite (rank-scaled) instead of the sim's own
+lap read; pass rule = per-race rho vs actual DK pts AND finish-order metrics on the same 7 races,
+W/L >= 1.5:1, no weight sweep.
+
+## 2026-09-06 — REGISTRATION: residual diagnostic — what explains our DK-points misses? (nothing ships)
+
+Trigger: operator, "we have so much data, I don't understand how we aren't projecting better."
+Ledger context (dfs_replays, 9 races 2026): rank corr with actual DK pts — model .39, salary .38,
+crowd ownership .45; crowd beats us 7 of 9, we beat salary at the plates and lose at flat tracks.
+RULE (operator, same night): BETTING ODDS ARE NEVER AN INPUT TO THE SIM OR THE BOARD. The product's
+value is an independent projection scored against the market; odds in = edge columns compare the
+market to itself. Odds, salary and ownership are YARDSTICKS only (like the ledger's rho_own).
+
+FORM (frozen before data is read). Table: the 9 replayable races, one row per driver with a
+salary and official DK FPTS (~330 rows): proj_post (post board), proj_pre (pre board), actual
+(dfs_ownership.fpts), salary, win-odds implied prob (last odds_snapshots 'win' row before the
+race, best price, de-vigged within race), practice_score (practice_sessions, 7 of 9 races have
+it), qualifying position (sim start), actual own_pct. Target: residual = rank(actual) - rank(proj_post)
+within race (rank space so plate wrecks do not dominate).
+  Step 1: Spearman of the residual vs each signal, per race and pooled. Yardsticks (salary,
+    odds, own) locate the misses; OWN signals (practice_score, qualifying, proj_pre - proj_post)
+    are the only ones we would act on.
+  Step 2: leave-one-race-out linear fit of the residual on the own signals that pass step 3;
+    scored as per-race rank corr with actual DK pts, proj_post alone vs proj_post + fitted
+    residual. Yardsticks are NEVER fitted.
+  Step 3: shuffle test — permute the residual within race 500x; a signal counts only if its
+    pooled |rho| clears the 95th pctile of the shuffled distribution AND lifts the LORO mean.
+READ-OUT: which story the data supports — (a) odds/salary explain the misses = sim mis-reads
+specific drivers, go find why in our data; (b) practice/qualifying explain them = re-weight (new
+registered sim test); (c) only ownership explains them = the crowd has something not in the DB;
+(d) nothing clears the shuffle = misses are noise at this n; edge is construction, not projection.
+No code change from this run.
+
 ## 2026-09-06 — RESULT: V4 candidate diversification PASSED and SHIPPED
 
 9 races, global 50% cap, N=20, product pipeline on the full 10,000-draw post boards. Best-of-20
