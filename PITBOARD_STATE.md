@@ -671,8 +671,15 @@ before stating n.
   EXCEPTION ON THE BOOKS, operator to rule: the thin-driver market anchor (v1.1, 2026-07-22)
   fills corr / track / practice ignorance for drivers with < 5 group races and no practice grade
   from the de-vigged win-odds percentile (simEngine ~L462). Scoped to data-thin drivers only;
-  surfaced 2026-09-06 while reading the post-stage practice code. Stands until the operator says
-  otherwise.
+  surfaced 2026-09-06 while reading the post-stage practice code. OPERATOR RULED same night: it
+  STAYS - "nothing wrong with leaning on the market for drivers we know nothing about." The odds
+  rule applies to drivers we HAVE data on.
+- **[CLOSED 2026-09-06] Grader composite as the sim's practice input (replacing raw best5 /
+  overall_avg).** 91-board holdout, two 20k-sim runs: finish-order rho .541 -> .538 / .537, W/L
+  42/49 and 39/51 - fails the registered primary. Win / top-5 / top-10 probability metrics improved
+  ~55-58 W vs 30-35 L both runs (INT strongest); DK secondary 4/2. Reading: rank-scaling loses the
+  lap-gap magnitudes. OPEN NEXT: the grader's tire+session-corrected pace IN SECONDS as the lrpTime
+  input (keeps magnitudes, adds the corrections) - needs its own registration. BACKTEST_LOG 09-06.
 - **[RESOLVED 2026-09-06] Cram 45% in a 20-lineup GPP build was NOT E[max] — it was the TOP-UP filler.**
   Registered replay (BACKTEST_LOG 09-06): a floor-car cap inside E[max] never binds (floor cars are 5%
   of roster slots uncapped, max single floor car 30%) and a P35+ attrition haircut is a coin flip

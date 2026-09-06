@@ -48,6 +48,41 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-06 — RESULT: grader composite as the sim's practice input — CLOSED (primary fails; probabilities improve)
+
+Harness: 91 of the 94 practice holdout boards joined to practice_sessions by exact lap-metric match
+(93% of practice rows; 3 boards dropped: ore 2025 R9 <50% joined, trucks St. Pete 2026, cup Texas 2026
+duplicate line). Grades recomputed with the current grader (v6.4-sets, K from tire_sets) from
+practice_laps for 84 boards (2,531 rows), stored practice_score for 7 (536 rows). Arm A = raw lrpTime
+(best5 / overall_avg) as shipped; arm B = 100 - composite in the same slot, same weights, tilt untouched.
+20,000 sims / race / arm, run TWICE (Math.random, no seed) to size the noise.
+  ALL 91   rhoFin .541 -> .538 (W/L 42/49) | run 2: .541 -> .537 (39/51)
+           t10 Brier .14655 -> .14634 (55/34) | .14645 -> .14644 (53/37)
+           win logloss .0870 -> .0859 (53/33) | .0869 -> .0857 (58/29)
+           t5 logloss .2872 -> .2871 (56/34) | .2873 -> .2871 (55/34)
+  INT 44   rhoFin .527 -> .527 (21/23)  Brier 27/17  winLL 28/15  t5LL 27/16
+  SHORT 39 rhoFin .582 -> .577 (18/21)  Brier 22/15  winLL 21/15  t5LL 24/15
+  ROAD 8   rhoFin .414 -> .404 (3/5)    Brier 6/2    winLL 4/3    t5LL 5/3
+  cup 38 rhoFin 17/21 | oreilly 25 15/10 | trucks 28 10/18 (trucks lose the ordering: .556 -> .547)
+  Stored-score boards (7): rhoFin 1/6 - the old grader versions are worse than the raw lap; only the
+  laps-recomputed grade is even.
+  SECONDARY (rho projDK vs official DK FPTS, 2026 replay races with practice, harness sim without
+  pit crew / market anchor so levels differ from the stored boards): ore Iowa .405 -> .374, cup Iowa
+  .555 -> .506, trk Richmond .528 -> .638, cup Richmond .624 -> .723, trk NH .317 -> .367, cup NH
+  .335 -> .400. 4/2, mean .461 -> .501. Does not lose.
+VERDICT by the registered rule: FAILS the primary (finish-order Spearman down in mean, W/L 42/49 and
+39/51 on two runs). CLOSED. The grade does NOT replace the raw lap metric.
+WHAT THE SPLIT MEANS (not a result, a reading): the composite makes the PROBABILITIES a little better
+everywhere it was measured (win / top-5 / top-10, consistently ~55-58 W vs ~30-35 L on both runs,
+INT strongest) while making the mid-field ORDERING a little worse. The composite is rank-scaled
+0-100, so it throws away the SIZE of the lap-time gaps that the raw metric carries; the residual
+diagnostic saw the grade ADD to the board, never replace it. A form that keeps the raw metric and
+adds the grade's corrections (tire, session-time, long-run) in seconds - i.e. the grader's
+tire-corrected pace in TIME, not rank - is the obvious next registration; not run tonight.
+Operator ruling same night: the thin-driver market anchor STAYS ("nothing wrong with leaning on the
+market for drivers we know nothing about"). Harness in the cloud session (grades.mjs / harness.js);
+the joined board->driver map is the reusable piece.
+
 ## 2026-09-06 — REGISTRATION: sim post stage takes practice from the GRADER, not the raw lap metric
 
 WHAT THE POST STAGE DOES TODAY (read from SimulationCenter.js + simEngine.js, 2026-09-06):
