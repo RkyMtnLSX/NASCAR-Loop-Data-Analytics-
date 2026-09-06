@@ -3228,6 +3228,16 @@ dropped); the Top 10 box uses the same parser with a one-column default. Single-
 exactly as before. WORKFLOW: paste every DK page into the DK box one after the other, each with its
 header row. Book-side layout changes are a recurring class (see the 08-14 HR header rename).
 
+## 2026-09-06 (later) — Portfolio follow-ups, beta grant fix, DFS nav rename
+Portfolio: exposure line wraps in the card + Hide/Show lineups toggle (d313732); legs now built
+ROUND-ROBIN with named 'why short' diagnostics and rebuild buttons (cap 65/70%, drop tier-two min
+for a leg), never pads (fe21c1b; makeEmaxSelector gained pick/refresh/ban, step() untouched).
+Beta Access: first real grant failed "column reference user_id is ambiguous" - the RETURNS TABLE
+column names are plpgsql variables and shadowed `on conflict (user_id)`; fixed with
+`#variable_conflict use_column` (migration beta_access_grant_variable_conflict_fix, DB only).
+Nav (operator): dropdown "DFS" -> "DFS Center"; "DFS Center" page -> "Lineup Optimizer"; "Optimals" ->
+"Optimal Lineups"; "Optimal Archive" unchanged. Routes unchanged. Manual/STATE updated.
+
 ## 2026-09-06 (late) — Six registered tests, one ship: the Portfolio builder
 Ran, in order, all pre-registered in BACKTEST_LOG: (1) residual diagnostic (what explains our DK
 misses; step-1 design flaw corrected - regression to the mean; grade + pre board add beyond the post

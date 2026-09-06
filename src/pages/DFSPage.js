@@ -767,7 +767,7 @@ export default function DFSPage() {
 
   return (
     <div className="page" style={{ maxWidth: 1320, margin: '0 auto', padding: '18px 16px 60px' }}>
-      <h1 style={{ margin: '0 0 4px' }}>DFS Center</h1>
+      <h1 style={{ margin: '0 0 4px' }}>Lineup Optimizer</h1>
       <div style={{ color: 'var(--text-secondary,#9aa0aa)', marginBottom: 16, fontSize: 14 }}>
         DraftKings Classic projections from the latest published simulation. Build optimal lineups against the posted salaries.
       </div>

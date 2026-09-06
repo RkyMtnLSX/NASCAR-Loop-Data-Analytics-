@@ -19,8 +19,8 @@ const LOOP_LINKS = [
 ]
 
 const DFS_LINKS = [
-  { path: '/dfs',              label: 'DFS Center' },
-  { path: '/dfs-optimals',     label: 'Optimals' },
+  { path: '/dfs',              label: 'Lineup Optimizer' },   // 2026-09-06 (operator): named for what it is
+  { path: '/dfs-optimals',     label: 'Optimal Lineups' },
   { path: '/optimal-lineups',  label: 'Optimal Archive' },
 ]
 
@@ -153,7 +153,7 @@ export default function Nav({ isAdmin }) {
 
           <div style={{ position: 'relative' }} {...makeHover(setDfsOpen, dfsTimer)}>
             <button style={dropBtn(isDfsPage)}>
-              DFS
+              DFS Center
               <span style={{ fontSize: '0.55rem', opacity: 0.7, marginTop: 1 }}>▾</span>
             </button>
             <Dropdown links={DFS_LINKS} open={dfsOpen} />

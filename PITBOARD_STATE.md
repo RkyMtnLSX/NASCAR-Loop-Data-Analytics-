@@ -36,7 +36,7 @@ Volatile snapshot — REPLACE on change (git history is the archive). Updated: 2
 - **O'Reilly sim showed 25 cars (2026-09-05 evening).** Cause: first O'Reilly PLAYOFF practice - the feed tags chase drivers 'Name (C)'; stripRosterMarkers knew only (i)/(P)/#/*, so 13 drivers landed in practice_sessions as 'Austin Hill (C)', the sim's name match to entry_list failed, and the DNQ filter (>=20 real starts -> drop the rest) removed exactly the playoff field. Fixed: rows renamed in practice_sessions/practice_laps; stripRosterMarkers + simEngine normalizeName now strip (C)/(R). Not caused by the day's other changes. Trucks playoffs will carry the same tag - covered.
 - Report card number badges were missing for EVERY watcher-sheet upload (all series since 08-08): the sheet had no Car # column, so practice_sessions.car_number was null. Fixed in pitboard_practice_sheet.py (Car # from the feed); 2026 cup R22-25 + O'Reilly R22/23/25 backfilled from entry_list (Stenhouse by hand). Older sessions before 08-08 came from Lap Raptor sheets and already had numbers.
 - **Beta testers** (operator choice: admin-panel tool, default through end of 2026 season).
-  Migration `beta_access_admin_rpcs`; new Admin tab "Beta Access" (`src/pages/BetaAccessAdmin.js`);
+  Migration `beta_access_admin_rpcs` (+ `beta_access_grant_variable_conflict_fix` 09-06: first real grant hit "user_id is ambiguous", RETURNS TABLE names shadowed the columns - fixed with `#variable_conflict use_column`); new Admin tab "Beta Access" (`src/pages/BetaAccessAdmin.js`);
   Account/Subscribe beta wording, no billing portal for beta rows. Flow: tester signs up on
   /subscribe → appears under "Signed up, no access yet" → Grant. Verified anon EXECUTE denied.
   Email confirmation is ON in Supabase Auth (both existing users confirmed) — testers must click
@@ -670,7 +670,10 @@ before stating n.
   variance mode. Caveat: rules-only was a pre-specified reference arm, not the candidate - mild
   forking-paths discount on the 7/2; the weekly Replay Portfolio row is the forward test. WATCH:
   trucks (re-judge at ~9 more), leg-3 shortfalls under tier-two mins, and whether the +14% holds.
-  BACKTEST_LOG 09-06 (registration / result / shipped entries).
+  BACKTEST_LOG 09-06 (registration / result / shipped entries). Same night: legs built ROUND-ROBIN
+  with named 'why short' diagnostics + cap-65/70 / drop-tier-two-min rebuild buttons; never pads.
+  Nav renamed (operator): DFS -> "DFS Center"; page "DFS Center" -> "Lineup Optimizer"; "Optimals" ->
+  "Optimal Lineups". Routes unchanged (/dfs, /dfs-optimals, /optimal-lineups).
 - **[OPEN 2026-09-05] Operator construction beat both solvers at Darlington O'Reilly (1st of 1,189 vs product GPP ~268th, cash ~1,041st) on a board with rho .35.** Exposure table + implied rules in BACKTEST_LOG same date: this was 1 of 3 contests x 20 - the other two (Allgaier 95% / 85%, solver-like builds) finished BELOW the field median (mean pctile 38 / 36); only the hand-built set won (mean pctile 86); tier-two studs 50-80%, 1-2 mid-priced sub-10%-owned punts (never floor cars), full cap. PROPOSED 'Operator' build preset + weekly replay row so the ledger scores it (n=1 today). Replay ledger now GPP 4 / cash 3 / tie 2.
 - **[RULE 2026-09-06, operator] Betting odds are NEVER an input to the simulation or the DFS board.**
   "If we use odds as a signal then we are just baking the market into our product." The product is
