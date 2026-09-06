@@ -48,6 +48,43 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-06 — RESULT: portfolio builder — the CANDIDATE fails; the RULES-ONLY reference arm clears the bar
+
+9 races, 3 legs x 20, realised prize over 60 entries (entry-fee units, DK-like curve), vs 3 x the
+product's uncapped E[max] set:
+  race            3xE[max]  PORTFOLIO (legs)            rules-only  sched-only   chalk (proj own)
+  cup Iowa           0.0     7.3 (0 / 0 / 7.3)            13.4       109.2       Bell Logano Larson Blaney
+  cup Richmond      17.0    17.5 (6.8 / 5.7 / 4.9)        21.7        20.2       Hamlin Logano Blaney
+  cup NH             4.9     7.2 (0 / 2.9 / 4.3)           8.7         8.9       Bell Logano Blaney Byron
+  cup Daytona       33.4    35.6 (6.2 / 14.3 / 15.1)      42.5        28.8       Bell Gragson Gilliland
+  ore Iowa          39.1    30.7 (8.0 / 13.2 / 9.5)       41.0        20.9       Love Allgaier Chastain
+  ore Richmond       6.0     5.8 (0 / 3.6 / 2.2)           7.4         2.0       Jankowiak Hill Allgaier
+  ore Darlington     8.6    26.0 (21.6 / 2.7 / 1.7)        9.3        18.0       Kvapil Allgaier Jones
+  trk Richmond      51.9    27.1 (0 / 12.5 / 14.6)        41.5        27.3       Heim Honeycutt Majeski
+  trk NH             9.6     6.8 (0 / 2.8 / 4.0)           8.6         8.8       Smith Nemechek Riggs
+  MEAN             18.95   18.22  (W/L 5/4)               21.57 (7/2)  27.12 (4/5)
+  Best-of-60 pctile: 89.2 -> 94.0 (8/0/1) for the portfolio.
+VERDICT on the registered candidate (schedule + rules): FAILS - mean prize down, 5/4. The
+0%-chalk leg returned ZERO in 5 of 9 races; it pays only when the chalk busts (cup Iowa, ore
+Darlington) and those two races are the whole schedule-only mean (27.1 is 109 + 18 and losses
+elsewhere, 4/5). Diversification finds a higher peak every week (best pctile 8/0/1) and costs
+prize on average. Note the chalk definition fired on 3-4 drivers per race (projected ownership
+is flat, 35-43%), so leg 1 faded three or four cars at once - a far heavier fade than the one
+50%-owned car faded at Darlington.
+THE RULES ALONE (all legs 50% chalk; tier-two studs 50-80%, floor cars <= 10%, mid punts
+<= 25%, <= 2 punts, salary >= $48,800, no duplicate lineups across legs, 60% portfolio cap):
+mean 18.95 -> 21.57 (+14%), W/L 7/2 (3.5:1). This was a PRE-SPECIFIED REFERENCE ARM, not the
+registered candidate, and the harness is deterministic (no RNG) so a re-run reproduces the same
+numbers - re-registering it would be theatre, not evidence. It is reported as what it is: a
+reference arm that cleared the registered bar on the registered metric. Promoting it to shipped
+is the operator's call, and the honest caveat is that two reference arms were looked at, so the
+7/2 carries a mild forking-paths discount. Its losses: ore Iowa (41.0 vs 39.1 is a win; the two
+losses are trk Richmond 41.5 vs 51.9 and trk NH 8.6 vs 9.6 - the truck races where the plain
+E[max] set was already excellent).
+IF SHIPPED: Portfolio tab = legs with the rules on by default and the chalk stance an OPTIONAL
+schedule (default all-50, the schedule exposed as the operator's own high-variance mode with the
+0-leg warning), plus the Replay row scoring both weekly.
+
 ## 2026-09-06 — REGISTRATION: portfolio builder (3 legs x 20, chalk-stance schedule + Operator rules)
 
 The one construction that won (Darlington 09-05) was cross-contest: three sets with different
