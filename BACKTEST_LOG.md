@@ -48,6 +48,25 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-07 — REGISTRATION: ASYMMETRIC finish noise for the slower half (shrink the upside only)
+
+Why: symmetric shrink (closed 09-07) fixed the back-of-field calibration but concentrated win
+probability on the favourite and failed in cup (Brier 28/71 at n=101). The back of the field does
+not have LESS variance, it has ONE-SIDED variance: a P36 car has many ways to finish 38th and almost
+none to finish 15th.
+FORM (frozen before data is read). In runRaceSim, per driver per draw: eps = gaussNoise(); if the
+driver's speedScore percentile is below 0.5 AND eps > 0 (an upside draw), eps is scaled by
+(0.5 + spdPct) - i.e. the slowest car keeps half its upside, the median car all of it; downside draws
+and every car at or above median are untouched. The favourite's distribution is unchanged by
+construction. One form, no sweep. Harness: 256 races (holdout.txt 2022-24 + holdout-practice.txt
+2025-26), shipped vs the change, 20k sims / race / arm, two runs.
+METRICS as the noise test: finish rho, t10 Brier, win / t5 log-loss (means AND per-race W/L),
+per series / group; P26+ calibration and residual; elite-deep residual.
+DECISION: adopt if the P26+ residual shrinks AND finish rho does not lose (W/L not worse than
+45/55 of decided races) AND the MEAN win log-loss does not get worse in any series (the failure
+mode of the symmetric form) AND t10 Brier does not lose in mean. A per-series ship is allowed if a
+series fails the win-log-loss guard on its own.
+
 ## 2026-09-07 — RESULT (extended): speed-dependent noise on 256 races (2022-24 holdout + 2025-26 practice holdout)
 
 Same form, shipped vs noise x (0.5 + 0.5 x speed pctile), 20k sims, two runs. n=256 (cup 101 /
