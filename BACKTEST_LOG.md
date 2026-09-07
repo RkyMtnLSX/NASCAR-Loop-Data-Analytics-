@@ -48,6 +48,24 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-07 — REGISTRATION: speed-dependent finish noise (shrink the noise at the bottom)
+
+Hypothesis: the back of the field is over-projected not because the sim lacks a lapped state but
+because ONE noise width is used for every car; the slowest cars are the most predictable part of the
+field and the uniform noise lets a floor car land mid-pack in enough draws to average P28 instead of
+P33. The lapped-traffic test (closed 09-07) fixed the mean by ADDING randomness and lost finish
+order; this fixes the mean by REMOVING randomness that should not be there.
+FORM (frozen before data is read). In runRaceSim, per driver per draw: score noise = gaussNoise() x
+S.noiseWidth x (0.5 + 0.5 x spdPct_i), spdPct_i = speedScore percentile in the field (slowest 0.5x,
+fastest 1.0x, median 0.75x). Everything else untouched (DNF, wreck sets, tilt, dominance). One form,
+no sweep of the 0.5 floor. Harness: 91 practice holdout boards (SS boards included this time - the
+form applies everywhere), shipped vs the change, 20k sims / race / arm, two runs.
+METRICS: finish rho, t10 Brier, win / t5 log-loss, per group / series; the P26+ finish and DK
+residuals and the elite-deep residual; P26+ mean projected finish vs actual 25.1.
+DECISION: adopt if finish rho improves in mean with W/L >= 1.5:1 AND t10 Brier does not lose AND the
+P26+ residual shrinks. If it fixes calibration but not rho, it is the same trade as the lapped draw
+and closes; if it fixes both, it ships as the noise line in runRaceSim with the constant named.
+
 ## 2026-09-07 — RESULT: lapped-traffic mechanism — right direction, overshoots, ordering loses: CLOSED as registered
 
 Rate table (loop_data 2023+, running finishers laps down, bands P1-10 / 11-20 / 21-25 / 26-30 / 31+):
