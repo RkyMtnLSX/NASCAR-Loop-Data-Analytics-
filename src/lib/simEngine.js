@@ -430,6 +430,18 @@ function buildSpeedScores(drivers, weights) {
     ? (v => (v == null || isNaN(v)) ? null : Math.max(0, Math.min(100, (v - __crMn) / (__crMx - __crMn) * 100)))
     : null
 
+  // PER-CAR LAPS-DOWN PENALTY (2026-09-07, BACKTEST_LOG same date; SHIPPED for O'Reilly + trucks,
+  // OFF for cup - SimulationCenter only attaches d.lappedRate for those series). lappedRate = the
+  // driver's recency-weighted (0.85^races-back) share of prior same-series races finished RUNNING but
+  // laps down, >= 3 prior races else null (-> field median, no effect). Deterministic shift on the
+  // 0-100 score scale: speedScore -= LAP_PENALTY x (rate - median) x 100. LAMBDA fitted on 2022-24
+  // (rho tie .05-.15, P26+ residual tie-break -> 0.15), FROZEN, scored on 2025-26: rho .5397 -> .5418
+  // (56/38), Brier 53/37, win logloss 67/26, top-5 64/30; trucks rho 20/9, O'Reilly Brier 17/8 / win
+  // 20/5. Cup FAILED (its P26-34 already finish better than projected; only P35-40 are rich) - stays
+  // off. Cars that get lapped every week come down; a fast car from a bad grid spot is untouched.
+  const LAP_PENALTY = 0.15
+  const __lapVals = drivers.map(d => d.lappedRate).filter(v => v != null && !isNaN(v)).sort((a, b) => a - b)
+  const __lapMed = __lapVals.length >= 3 ? __lapVals[Math.floor(__lapVals.length / 2)] : null
   const wTotal = Object.values(weights).reduce((a, b) => a + b, 0) || 1
   const w = {
     corrHistory:  weights.corrHistory  / wTotal,
@@ -489,10 +501,12 @@ function buildSpeedScores(drivers, weights) {
       t   * w.trackHistory +
       wc  * w.winConversion +
       pit * w.pitCrew
+    const __lapPen = (__lapMed != null && d.lappedRate != null && !isNaN(d.lappedRate)) ? LAP_PENALTY * (d.lappedRate - __lapMed) * 100 : 0
 
     return {
       ...d,
-      speedScore,
+      speedScore: speedScore - __lapPen,
+      __lapPen,
       __spW: w.startPos,
       __spUsed: sp,
       scores: {

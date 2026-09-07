@@ -3228,6 +3228,16 @@ dropped); the Top 10 box uses the same parser with a one-column default. Single-
 exactly as before. WORKFLOW: paste every DK page into the DK box one after the other, each with its
 header row. Book-side layout changes are a recurring class (see the 08-14 HR header rename).
 
+## 2026-09-07 — Per-car laps-down penalty shipped (O'Reilly + trucks); cup back-of-field re-scoped
+loop_data pulled back to 2022 (438 races) and every holdout board matched to names by fingerprint
+(324/324). Feature = recency-weighted share of prior same-series races finished running but laps down;
+LAMBDA fitted on 2022-24 (rho tie .05-.15, P26+ tie-break -> 0.15), frozen, scored on 2025-26: rho
+.5397 -> .5418 (56/38), Brier 53/37, win 67/26, top-5 64/30; trucks and O'Reilly pass every guard,
+cup fails -> shipped for the two (SimulationCenter __lappedMap + simEngine LAP_PENALTY; config.
+lapFeature). Cup finding: P26-34 finish BETTER than projected, only P35-40 are rich - the "cup
+problem" is the bottom five (Finchum), sim-side line closed, DFS-layer floor haircut is the honest
+fix. O'Reilly / trucks still +2.5-3.5 at P31+ after both ships - the open sim item.
+
 ## 2026-09-07 — Back-of-field over-projection: six registered forms, one per-series ship
 Chain (all in BACKTEST_LOG): elite-deep diagnostic (deep non-elite starters +1.23 positions too good
 at n=1,059) -> start-weight shift for P16+ (CLOSED: fixes elite cell, worsens the back) -> lapped-

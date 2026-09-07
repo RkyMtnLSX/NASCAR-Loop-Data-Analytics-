@@ -48,6 +48,21 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-07 — SHIPPED: per-car laps-down penalty for O'Reilly + trucks (LAMBDA 0.15)
+
+Operator: "ship for O'Reilly, trucks." Shipped: SimulationCenter builds `__lappedMap` for non-cup
+series from loop_data (all races with >= 20 rows, most recent first, weight 0.85^(races back), running
+finishers only, laps_completed < race max = lapped, >= 3 prior races else null) and attaches
+`lappedRate` to each driver; simEngine.buildSpeedScores applies `speedScore -= 0.15 x (rate - field
+median) x 100` (LAP_PENALTY constant; `__lapPen` on the row for inspection). Cup never receives
+lappedRate, so the engine is a no-op there; backtest boards carry no lappedRate -> no-op unless the
+harness attaches it. Published boards carry config.lapFeature 'v1-0.15' / 'off'. sim:smoke ALL PASS,
+lint clean, build clean.
+What the two shipped changes do together for O'Reilly / trucks at ovals (held-out 2025-26, both on):
+rho .5397 -> .5418 pooled, trucks .555 -> .560; back-of-field residual P26+ 1.4-1.7 -> 1.2-1.5 -
+still over-projected at P31+ by 2.5-3.5 positions, so this line is not finished for those two
+series. Forward ledger: sim_grades.config.lapFeature identifies boards on this engine.
+
 ## 2026-09-07 — RESULT: per-car laps-down feature — passes on the 2025-26 holdout for O'Reilly + trucks; cup fails the rule and the "cup problem" is re-scoped
 
 Boards matched to names by fingerprint: 324 of 324 lines; 256 usable (162 train 2022-24, 94 test
