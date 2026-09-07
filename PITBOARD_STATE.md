@@ -716,7 +716,12 @@ before stating n.
   5.9%. Ledger watches it; one bad race (trucks NH 92.6 -> 73.7) shows a single lineup can swing a
   race's number either way. Floor-car projections still run rich vs 23.5% observed P35-38 DNF —
   the haircut did not help, so leave it.
-- **[OPEN 2026-09-07] Floor cars at laps-down tracks are projected ~20 DK pts rich.** Darlington Cup
+- **[OPEN 2026-09-07] Floor cars at laps-down tracks are projected ~20 DK pts rich.**
+  CONFIRMED at scale 09-07 (elite-deep diagnostic, 92 boards): non-elite starters P26+ finish 1.23
+  positions WORSE than projected [+0.76, +1.67], n=1,059, DK -3.3; elite deep starters ~1.6 BETTER
+  (CI crosses zero; O'Reilly clear). One mechanism: start position weighs too much vs car quality
+  for deep starters. Next registration: start weight 0.23 -> 0.13 for P16+ with the freed 0.10 to
+  corrHistory, per driver. BACKTEST_LOG 09-07. Darlington Cup
   R27: Finchum $4.5k proj 23.1 -> 3.0, Ware 21.4 -> 6.0, T.Dillon 17.6 -> 6.0. The sim credits a P38
   starter with place differential as if he finishes ~P28 on the lead lap; at Darlington he is lapped
   by lap 60. Not the DNF question (closed) - it is lapped traffic. E[max] put Finchum in 9/20; a 10%

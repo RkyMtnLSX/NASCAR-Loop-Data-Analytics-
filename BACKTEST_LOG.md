@@ -48,6 +48,34 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-07 — RESULT: elite-deep diagnostic — leans yes but not clear of zero; the DEEP NON-ELITE cell is the clear finding
+
+3,383 driver-rows, 92 boards, shipped engine, 20k sims. Finish residual = actual - projected
+(negative = beat the sim); bootstrap 95% CI.
+  elite / deep (start >= 16)   n=100    -1.59 [-3.56, +0.38]   DK resid -0.8   (proj P14.6, actual P13.0)
+  elite / front                n=360    -0.42 [-1.57, +0.63]
+  non-elite / deep             n=1,904  +0.48 [+0.10, +0.83]   DK resid -2.2
+  non-elite / front            n=1,019  -0.56 [-1.15, +0.04]
+  elite-deep by series: cup -1.08 (n=41, CI wide), O'REILLY -3.58 [-6.28, -0.28] (n=27), trucks -0.56.
+  elite by start band: 26-40 -3.06 [-6.69, +0.93] (n=26, proj P16.6 actual P13.5).
+  NON-ELITE start 26-40: +1.23 [+0.76, +1.67], n=1,059, DK resid -3.3 - the back of the field is
+  projected 1.2 positions and 3.3 DK pts too well, and that is the Finchum finding with 1,059 rows
+  behind it instead of three.
+READ-OUT by the registered rule: elite-deep is negative in mean (they beat the sim by ~1.6 spots)
+but the CI crosses zero at n=100 -> does NOT clear the bar on its own. O'Reilly elite-deep does
+(n=27). The cell that clears the bar is the one we did not register for: deep NON-elite starters
+finish WORSE than projected, and the effect is concentrated at P26+.
+WHAT THE TWO CELLS SAY TOGETHER: for deep starters the sim compresses the field toward the start
+position - the good car from P25 is under-projected, the bad car from P32 is over-projected. That
+is one mechanism (start position carrying too much weight relative to car quality for drivers
+starting deep), not two. The 08-20 sweep set startPos at 0.23 for EVERYONE and tested 0.23 vs
+0.33 vs 0.43; it never tested a start weight that depends on where you start.
+NEXT (needs its own registration, one form): for starters >= P16, shift weight from startPos to
+corrHistory (e.g. 0.23 -> 0.13, freed 0.10 to corrHistory), per driver inside buildSpeedScores;
+front starters unchanged. Judged on the sim's own metrics (finish rho, t10 Brier, win/t5 logloss)
+on the 91 boards plus the deep-cell residuals, same bar as the practice tests. Nothing ships from
+this run.
+
 ## 2026-09-07 — REGISTRATION: do elite cars starting mid-pack outrun the sim? (start-weight x car quality)
 
 Trigger: Darlington Cup R27 - Larson ($10,000, best car) projected P16 / 45 DK from P25 with a 3% win
