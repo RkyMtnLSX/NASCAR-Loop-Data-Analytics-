@@ -48,6 +48,24 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-07 — REGISTRATION: do elite cars starting mid-pack outrun the sim? (start-weight x car quality)
+
+Trigger: Darlington Cup R27 - Larson ($10,000, best car) projected P16 / 45 DK from P25 with a 3% win
+prob; won with 110. The 08-20 sweep set startPos at 0.23 for the AVERAGE driver; the question is
+whether the sim underrates elite cars that start deep.
+FORM (frozen before data is read). Data: the 91-board practice holdout (2025-26, all series) run
+through the shipped engine (arm A, 20k sims), per driver: projected finish, actual finish, DK pts
+(loop_data fingerprint join), start, corrAvgRating. Elite := top 5 corrAvgRating in the race
+(car/driver quality, not salary - the holdout has no salaries). Deep := start >= 16. Cells: elite-
+deep, elite-front, non-elite-deep, non-elite-front.
+  Metric: mean residual (actual finish - projected finish; negative = finished better than the sim
+  said) and mean DK-pts residual (actual - projected) per cell, with a 1,000-draw bootstrap CI on
+  the elite-deep cell. Per series reported.
+  READ-OUT: if elite-deep finish residual is negative with a CI clear of zero AND non-elite-deep is
+  not, the sim underweights start for elite cars -> register a sim change (start weight scaled by
+  rating percentile, one form). If elite-deep is not different from zero, Larson was Larson and the
+  line closes. Diagnostic only; nothing ships from this run.
+
 ## 2026-09-07 — DFS Cup Darlington R27 (Southern 500): replay + operator contests; floor cars projected 20 pts rich
 
 REPLAY (cloud harness, same solvers; ledger row written, portfolio columns included). Board post 09-06
