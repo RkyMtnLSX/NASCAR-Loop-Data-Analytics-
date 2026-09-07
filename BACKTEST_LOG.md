@@ -48,6 +48,34 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-07 — REGISTRATION: per-car LAPS-DOWN RATE as a speedScore feature (the cup back-of-field fix)
+
+Why: every noise-shaped fix for the P26+ non-elite over-projection (+1.23 positions, -3.3 DK, n=1,059)
+loses in cup because a cup field's slower half genuinely carries upside (slowest quarter actual top-10
+3.9% vs sim 4.6% - nearly honest). The over-projection is CAR-SPECIFIC: the cars that go laps down
+every week (66 / 51 / 77 type) are projected as if they stay on the lead lap. We own that record.
+FORM (frozen before data is read).
+  Feature: lappedRate_i = recency-weighted share of the driver's prior races in the SAME SERIES
+  (2022 onward, races BEFORE the board's race only - no leakage) in which he finished RUNNING but
+  laps down (laps_completed < winner's laps); weights 0.85^age (age in races), minimum 3 prior races
+  else the feature is neutral (field median). Computed from loop_data; holdout boards are matched to
+  loop_data by the (start:finish) fingerprint to recover names.
+  Entry: a deterministic penalty on speedScore, score_i -= LAMBDA x (lappedRate_i - fieldMedian) x
+  100, i.e. on the 0-100 score scale like every other component; no weight-table change, no noise
+  change, nothing else touched. LAMBDA is the ONLY parameter.
+  Fit / test: LAMBDA fitted on the 2022-24 holdout (162 races) by maximising finish-order rho with
+  the P26+ residual as tie-break, then FROZEN and scored on the 2025-26 practice holdout (94 races).
+  This is a train / holdout split, not a sweep on the test set. Both sets reported; the 2025-26
+  numbers are the decision.
+  METRICS: finish rho, t10 Brier, win / t5 log-loss (means and per-race W/L), per series; P26+
+  non-elite residual and elite-deep residual; slowest-quarter top-10 calibration (actual vs sim) - all
+  with CUP as the target series.
+  DECISION (cup): adopt if finish rho does not lose (W/L not worse than 45/55), t10 Brier does not
+  lose in mean, the P26+ residual shrinks AND the slowest-quarter top-10 calibration moves toward
+  actual without crossing below it. O'Reilly / trucks evaluated the same way ON TOP of the shipped
+  asymmetric noise; per-series ship allowed. If cup fails, the sim-side line for this problem is
+  CLOSED and the calibration layer is the fallback.
+
 ## 2026-09-07 — SHIPPED: asymmetric finish noise for O'Reilly + trucks at INT / SHORT ovals
 
 Operator, on the per-series recommendation: "Ship it for trucks and O'Reilly." Shipped in
