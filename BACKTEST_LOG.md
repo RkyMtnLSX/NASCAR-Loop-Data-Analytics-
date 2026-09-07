@@ -48,6 +48,39 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-07 — RESULT: per-car laps-down feature — passes on the 2025-26 holdout for O'Reilly + trucks; cup fails the rule and the "cup problem" is re-scoped
+
+Boards matched to names by fingerprint: 324 of 324 lines; 256 usable (162 train 2022-24, 94 test
+2025-26); feature coverage 95% of driver-rows (>= 3 prior same-series races).
+TRAIN (2022-24, 10k sims): rho by LAMBDA 0 / .05 / .10 / .15 / .20 / .30 = .4660 / .4671 / .4669 /
+.4669 / .4663 / .4639 - .05-.15 tied within sim noise; P26+ residual .97 / .89 / .82 / .75 / .70 / .63
+-> tie-break picks LAMBDA = 0.15. FROZEN.
+TEST (2025-26, 94 races, 20k sims, asymmetric noise on for O'Reilly/trucks in BOTH arms):
+  ALL      rho .5397 -> .5418 (56/38 = 1.47:1)  Brier .14656 -> .14583 (53/37)  winLL .0881 -> .0867 (67/26)
+           t5LL 64/30  P26+ non-elite resid +0.64 -> +0.45  elite-deep -1.60 -> -1.25
+  cup n=39     rho .4864 -> .4871 (24/15)  Brier .15004 -> .15016 (17/21, flat)  winLL .0881 -> .0867 (26/13)
+               P26+ne resid -0.50 -> -0.66 (AWAY from zero)  slowest-q top-10 actual 3.7% sim 4.1% -> 3.4% (crosses below)
+  oreilly n=26 rho .6026 -> .6041 (12/14)  Brier .1346 -> .1338 (17/8)  winLL .0832 -> .0817 (20/5)  t5LL 20/6
+               P26+ne +1.40 -> +1.20  slowest-q 2.9% -> 2.4% vs actual 1.2%
+  trucks n=29  rho .5548 -> .5596 (20/9)  Brier .1526 -> .1508 (19/8)  winLL .0926 -> .0913 (21/8)  t5LL 22/7
+               P26+ne +1.71 -> +1.47  slowest-q 4.0% -> 3.3% vs actual 1.4%
+  BACK OF FIELD BY START BAND (test set, non-elite, ovals; shipped -> feature):
+    cup     26-30 resid -1.02 -> -1.09 | 31-34 -0.85 -> -1.01 | 35-40 +0.90 -> +0.62
+    oreilly 26-30 -1.27 -> -1.40 | 31-34 +2.76 -> +2.49 | 35-40 +3.45 -> +3.26
+    trucks  26-30 +0.76 -> +0.36 | 31-34 +3.50 -> +3.43 | 35-40 +1.31 -> +1.21
+VERDICT: O'REILLY and TRUCKS pass every guard on the held-out years (the strongest sim result of the
+weekend: rho 1.47:1 overall, every probability metric up 2-3:1, on data the weight never saw).
+CUP fails: P26+ residual moves away from zero and the slowest-quarter calibration crosses below
+actual. Per the registration, the sim-side line for cup's back of the field is CLOSED.
+RE-SCOPING THE "CUP PROBLEM": cup's P26-34 starters finish about a position BETTER than projected
+(-1.0); only P35-40 are over-projected (+0.9) - the last five cars, the Darlington floor cars. It is
+not a back-of-field problem in cup, it is a bottom-five problem, and it is worth ~1 position and
+the floor-car DK miss. O'Reilly and trucks are the real over-projection (+2.5 to +3.5 at P31+) and
+still are after this feature; the feature takes a fraction of it.
+Recommendation: SHIP for O'Reilly + trucks (LAMBDA 0.15, on top of the asymmetric noise). Cup:
+the DFS-layer haircut on floor cars is now the honest fix for the Finchum case (no sim change
+passes). Operator ruling requested.
+
 ## 2026-09-07 — REGISTRATION: per-car LAPS-DOWN RATE as a speedScore feature (the cup back-of-field fix)
 
 Why: every noise-shaped fix for the P26+ non-elite over-projection (+1.23 positions, -3.3 DK, n=1,059)
