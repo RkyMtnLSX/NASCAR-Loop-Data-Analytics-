@@ -750,6 +750,20 @@ function runRaceSim(drivers, simConfig) {
       if (__ssSlots) __simStart = new Float64Array(n).fill(-1)
       ord2.forEach((ei, r2) => { const e = E[ei]; __adj[e.i] = startSampling.w * ((km > 1 ? (1 - r2 / (km - 1)) * 100 : 50) - e.fixed); if (__simStart) __simStart[e.i] = __ssSlots[r2] })
     }
+    // ASYMMETRIC FINISH NOISE (2026-09-07, BACKTEST_LOG same date; SHIPPED for O'Reilly + trucks at
+    // INT / SHORT ovals, OFF for cup and at SS / ROAD everywhere). The back of the field is projected
+    // ~1 position too well (P26+ residual +1.04, n=2,646 on 256 races) because one symmetric noise
+    // width lets a P36 car land mid-pack. A slow car's variance is one-sided: many ways to finish
+    // 38th, almost none to finish 15th. So below-median cars keep only (0.5 + speed pctile) of an
+    // UPSIDE draw; downside draws and every car at or above median are untouched - the favourite's
+    // distribution cannot change. 256 races: rho tie, t10 Brier .1516 -> .1512 (142/101), t5 logloss
+    // 197/58, P26+ residual +1.04 -> +0.68. Trucks passed every guard (Brier 50/18, win 51/11);
+    // O'Reilly Brier 54/25, top-5 72/11, win inside noise; CUP LOSES Brier (38/58 at n=101) - a cup
+    // field's slower half genuinely carries upside (parity), so cup stays symmetric. SS and ROAD lose
+    // under every noise form. Flag: simConfig.asymNoise (SimulationCenter sets it by series x group).
+    let __spd = null
+    if (simConfig.asymNoise) { const __o = drivers.map((d, x) => x).sort((a, b) => drivers[a].speedScore - drivers[b].speedScore); __spd = new Float64Array(n); __o.forEach((x, r) => { __spd[x] = n > 1 ? r / (n - 1) : 0.5 }) }
+    const __noise = (i) => { let e = gaussNoise(); if (__spd && __spd[i] < 0.5 && e > 0) e *= (0.5 + __spd[i]); return e }
     const scored = drivers.map((d, i) => {
       let effLap = 0
       const __ld = d.lapsDown || 0
@@ -760,7 +774,7 @@ function runRaceSim(drivers, simConfig) {
       }
       return {
         i,
-        score: d.speedScore + (__adj ? __adj[i] : 0) + gaussNoise() * S.noiseWidth,
+        score: d.speedScore + (__adj ? __adj[i] : 0) + __noise(i) * S.noiseWidth,
         dnf: S.wm ? false : (Math.random() < __effRate * __tilt[i]), dnfLap: 0,
         effLap,
       }

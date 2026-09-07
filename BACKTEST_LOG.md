@@ -48,6 +48,18 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-07 — SHIPPED: asymmetric finish noise for O'Reilly + trucks at INT / SHORT ovals
+
+Operator, on the per-series recommendation: "Ship it for trucks and O'Reilly." Shipped in
+src/lib/simEngine.js (runRaceSim, `simConfig.asymNoise`) and src/pages/SimulationCenter.js (flag =
+series !== 'cup' && group in INT/SHORT; published boards carry config.asymNoise 'v1-upside-0.5' /
+'off'). sim:smoke ALL PASS; lint clean. Cup, superspeedways and road courses unchanged. Backtest
+scripts get shipped-equivalent cup behaviour by default (flag off unless passed) - a future O'Reilly /
+trucks backtest must pass asymNoise:true to reproduce production.
+Forward ledger: first O'Reilly and trucks boards on this engine are the next races; sim_grades rows
+will show config.asymNoise. The O'Reilly win-log-loss guard was a coin flip between runs - that is the
+number to watch.
+
 ## 2026-09-07 — RESULT: asymmetric noise (upside-only shrink, slower half) — 256 races, two runs
 
   ALL     rho .4926 -> .4927 / .4929 (129/120, 123/126 - tie)   t10 Brier .15164 -> .15124 / .15122 (142/101,

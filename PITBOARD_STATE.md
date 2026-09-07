@@ -740,6 +740,17 @@ before stating n.
   Replay ledger note: the Cup Darlington `races` row was numbered 25 and the feed loader numbers
   loop_data from that row - fixed by hand to 27 (races + loop_data). Watch the registry number when
   a stub is created from the practice-upload guard.
+- **[SHIPPED 2026-09-07] Asymmetric finish noise — O'Reilly + Trucks at INT/SHORT ovals; OFF for cup, SS, ROAD.**
+  Six sim forms this weekend chased the back-of-field over-projection (P26+ starters +1.04 positions
+  too good, n=2,646 / 256 races): start-weight shift (closed), lapped-traffic draw (closed - fixed
+  calibration, scrambled order), symmetric noise shrink (closed - cup Brier 28/71: concentrates on the
+  favourite), ASYMMETRIC upside-only shrink (shipped per series). 256 races: rho tie, t10 Brier
+  .1516 -> .1512 (142/101), t5 logloss 197/58, P26+ residual +1.04 -> +0.68; trucks pass all guards,
+  O'Reilly pass Brier/top-5 (win inside noise), cup fails Brier both runs -> a cup field's slower half
+  carries real upside (parity). Operator shipped for the two series. WATCH: O'Reilly win log-loss
+  (flipped sign between runs), first live boards. STILL OPEN for cup: the fix must be car-specific -
+  per-car laps-down rate from loop_data (next registration); calibration layer after the sim is the
+  fallback. Backtest harnesses call runRaceSim without the flag -> shipped-equivalent for cup.
 - **[SHIPPED 2026-09-06] Projected ownership v3: one top-end hinge term.** The rank-only curve was
   low on the chalk 9 of 9 (most-owned driver 52% actual vs 37% modelled). v2 feature test CLOSED
   (MAE worse). v3 = same curve + 0.115 x max(0, z - 1) on the within-slate z of projected pts: MAE

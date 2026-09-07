@@ -3228,6 +3228,17 @@ dropped); the Top 10 box uses the same parser with a one-column default. Single-
 exactly as before. WORKFLOW: paste every DK page into the DK box one after the other, each with its
 header row. Book-side layout changes are a recurring class (see the 08-14 HR header rename).
 
+## 2026-09-07 — Back-of-field over-projection: six registered forms, one per-series ship
+Chain (all in BACKTEST_LOG): elite-deep diagnostic (deep non-elite starters +1.23 positions too good
+at n=1,059) -> start-weight shift for P16+ (CLOSED: fixes elite cell, worsens the back) -> lapped-
+traffic draw from loop_data rates (CLOSED: calibration right, order scrambled) -> symmetric noise
+shrink (CLOSED at 256 races: cup Brier 28/71, favourite over-confident) -> ASYMMETRIC upside-only
+shrink (256 races: rho tie, Brier .1516->.1512, t5 197/58, P26+ +1.04->+0.68; trucks pass all,
+O'Reilly pass Brier/top-5, cup fails) -> operator: ship for trucks + O'Reilly. Shipped with the
+flag by series x group in SimulationCenter; config.asymNoise on published boards; MANUAL/STATE
+updated. Harness extended to holdout.txt (2022-24) + practice holdout = 256 races. Cup's fix is
+still open and must be car-specific (per-car laps-down feature from loop_data).
+
 ## 2026-09-07 — Darlington Cup R27 rewind
 Contest file ingested (dfs_contests + dfs_ownership, 38 rows, "John H. Nemechek" -> "John Hunter
 Nemechek"); races/loop_data registry number fixed 25 -> 27 (operator could not pull it up in Replay);
