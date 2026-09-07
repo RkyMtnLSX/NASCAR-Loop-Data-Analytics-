@@ -48,6 +48,29 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-07 — RESULT: speed-dependent finish noise — ordering a tie, calibration halved, probabilities split by series
+
+91 boards, 20k sims, shipped vs noise x (0.5 + 0.5 x speed pctile), two runs.
+  ALL      rhoFin .5428 -> .5433 / .5433 (W/L 46/45, 47/45 - a tie)   t10 Brier .14637 -> .14580 / .14577
+           (mean better; per race 45/44, 47/45)   winLL .0875 -> .0869 / .0871 (69/23, 67/25)   t5LL 61/30, 59/32
+  P26+ projected finish 23.95 -> 24.54 vs actual 25.07 (half the gap, no overshoot); P26+ finish
+  residual +1.23 -> +0.61; P26+ DK residual -3.27 -> -1.80; elite-deep -1.60 -> -1.11.
+  BY SERIES (two runs):
+    O'Reilly n=26: rho .602 -> .603/.604 (15/11), Brier .1354 -> .1339 (15/10, 16/10), winLL 22/4 & 21/5, t5LL 20/6
+    trucks   n=28: rho .558 -> .560/.558 (14/13, 16/12), Brier .1531 -> .1511 (19/8, 18/10), winLL 22/6, t5LL 19/9
+    cup      n=38: rho .491 -> .490/.491 (17/21, 16/22), Brier .1490 -> .1500 (11/26, 13/25) WORSE, winLL
+             per race 25/13 but MEAN worse .0873 -> .0887 - a few big losses (a favourite made more
+             confident, then wrecked) outweigh many small wins.
+  Groups: INT Brier 23/20 & 26/18; SHORT 20/18 & 19/21; ROAD Brier 2/6 & 2/6 (n=8, loses).
+VERDICT by the registered rule: FAILS on the letter - finish rho is a tie (46/45), not 1.5:1.
+READING: this is the first form this weekend that moves the back-of-field calibration WITHOUT
+costing finish order, and it lifts the probability metrics the betting product actually sells
+(win / top-5 / top-10) decisively in O'Reilly and trucks. In cup it makes the favourites more
+confident and cup favourites wreck; the mean probability metrics get worse there even though
+more races improve than not. Per-series ship (O'Reilly + trucks on, cup off) is what the evidence
+supports; the registered rule did not anticipate a rho tie with a probability win, same as the
+ownership v3 tie. OPERATOR RULING REQUESTED. Nothing shipped yet.
+
 ## 2026-09-07 — REGISTRATION: speed-dependent finish noise (shrink the noise at the bottom)
 
 Hypothesis: the back of the field is over-projected not because the sim lacks a lapped state but
