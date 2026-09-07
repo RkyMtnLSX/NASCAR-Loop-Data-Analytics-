@@ -48,6 +48,25 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-07 — REGISTRATION: per-car CEILING — upside noise scaled by the driver's own laps-down rate
+
+Why: Finchum's 13 cup starts - 7 running finishes all laps down, 5 DNFs, best 28th - and the sim
+gives him a top-20 ceiling because noise width is the same for him as for a lead-lap car. Every
+group-level fix (slower half, all lapped rates) dragged cup's P26-34 cars, who finish BETTER than
+projected, along with him. This acts on the car, not the band.
+FORM (frozen before data is read). In runRaceSim, per driver per draw: eps = gaussNoise(); if eps > 0
+and d.lappedRate != null, eps *= max(0.1, 1 - lappedRate). Downside untouched, no mean shift, no
+parameter. lappedRate as shipped 09-07 (recency-weighted 0.85/race, running finishes laps down, >= 3
+prior same-series races else null -> untouched). Applies to ALL series including cup; REPLACES the
+speed-percentile asymmetric noise where it is on (O'Reilly / trucks INT+SHORT), i.e. arm B = laps-
+down feature + this, vs arm A = shipped (laps-down feature + speed-pctile asym noise for O'Reilly /
+trucks; nothing for cup). 256 races, 20k sims, two runs.
+METRICS: finish rho, t10 Brier, win / t5 log-loss (mean + per-race W/L) per series; P35-40 non-elite
+residual (the cup bottom-five cell), P26-34 residual (must not move away from zero), slowest-quarter
+top-10 calibration. DECISION (cup): adopt if rho does not lose, Brier does not lose in mean, the
+P35-40 residual shrinks AND P26-34 does not get worse. O'Reilly / trucks: adopt as the replacement
+only if it is not worse than the shipped speed-pctile form on rho and Brier.
+
 ## 2026-09-07 — SHIPPED: per-car laps-down penalty for O'Reilly + trucks (LAMBDA 0.15)
 
 Operator: "ship for O'Reilly, trucks." Shipped: SimulationCenter builds `__lappedMap` for non-cup
