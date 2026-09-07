@@ -48,6 +48,57 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-07 — RESULT: per-car DNF rate — PASSES TRUCKS, FAILS CUP and O'REILLY (over-corrects: k = 4 shrinks too little)
+
+256 races, 20k sims, one pass each; arm A re-run fresh on the shipped engine (carCeilFloor in).
+  cup n=101:  rho .4490 -> .4454 (47/54)  Brier .1549 -> .1557 (35/66)  winLL .0895 -> .0913  t5LL 38/63
+              P35-40 +1.23 -> +0.95  P26-34 -0.68 -> -0.78 (away from zero, > 0.05)
+              DNF Brier all .1052 -> .1073 (worse); own > 0.30 cell (n=260): .1514 -> .1518, sim 13.9% -> 24.7% vs 19.2% actual
+  oreilly n=83: rho .5293 -> .5290 (36/47)  Brier .1407 -> .1408 (39/44)  winLL .0825 -> .0822 (53/30)  t5LL 47/36
+              P35-40 +3.06 -> +2.96  P26-34 +0.16 -> +0.02
+              DNF Brier all .1175 -> .1199 (worse); own > 0.30 cell (n=371): .1310 -> .1499, sim 17.1% -> 29.8% vs 16.4% actual
+  trucks n=72: rho .5202 -> .5243 (42/30)  Brier .1554 -> .1550 (38/34)  winLL .0960 -> .0954 (41/31)  t5LL 45/27
+              P35-40 +1.81 -> +1.64  P26-34 +1.32 -> +1.07 (toward zero)
+              DNF Brier all .1371 -> .1366 (better); own > 0.30 cell (n=318): .2031 -> .1992, sim 16.9% -> 29.7% vs 26.1% actual
+VERDICT by the registered rule: TRUCKS PASS (DNF Brier better, rho better, Brier better, P26-34
+toward zero). CUP FAILS (rho and Brier lose, DNF Brier worse, P26-34 away from zero). O'REILLY
+FAILS (DNF Brier worse; finish metrics a wash). Ship trucks only on the operator's word.
+READING: the mechanism is right and the shrinkage is wrong. In every series the own > 0.30 cars DO
+retire more than the field - cup 19.2% vs ~14%, trucks 26.1% vs ~17% - but a history above 0.30
+regresses hard: cup lands at 19%, O'Reilly at 16% (the field rate!), trucks at 26%. With k = 4
+the multiplier carries most of the raw history through and overshoots cup by 5 points and O'Reilly
+by 13; trucks, where the history persists, is the one series it fits. The next registrable form is
+the same feature with k FITTED ON 2022-24 per series (a single scalar, DNF-Brier-minimizing) and
+scored on 2025-26 - the laps-down-penalty protocol - which is a new registration, not a re-run.
+Not a sweep on this data: this entry's k = 4 stands as scored.
+
+## 2026-09-07 — REGISTRATION: PER-CAR DNF RATE — attrition allocated by the driver's own retirement history
+
+Why: the sim retires every car at the field / tier rate (skill tilt is off by default). Finchum has 5
+DNFs in 13 cup starts (~38%) and draws ~14%; a lead-lap regular with 1 in 30 draws the same 14%.
+That is the second half of the floor-car ceiling: a car that retires twice as often as the field
+cannot have the field's finish distribution. The DNF-by-TIER line is closed (08-31); per-CAR
+attrition has never been registered.
+FORM (frozen before data is read). Per driver: ownDnf = recency-weighted (0.85^races-back, up to 30
+prior same-series races) share of prior races NOT finished running (loop_data finish_status);
+>= 3 prior races else null. Shrunk toward the board's field mean of available rates with a prior
+weight of k = 4 races: m_i = ((n_i x own_i + 4 x mean) / (n_i + 4)) / mean; null -> 1. Clamped to
+[0.5, 2.0], then RESCALED TO MEAN 1 over the field - the calibrated DNF budget is UNCHANGED, only
+its allocation moves (same principle as the tilt curve). m_i multiplies BOTH the accident-involvement
+probability and the mechanical draw (through the existing __tilt array). No parameter is fitted; k,
+the clamp and the 30-race window are fixed here. Flag simConfig.carDnf; all series.
+ARMS: A = shipped engine as of this entry (laps-down penalty + asymNoise for O'Reilly / trucks,
+carCeilFloor for all) - RE-RUN fresh because the engine changed today; D = A + carDnf. 256 races,
+20k sims, one pass each (a second pass if time allows).
+METRICS: finish rho, t10 Brier, win / t5 log-loss (mean + per-race W/L) per series; per-DRIVER DNF
+Brier (sim dnfPct vs actual non-running finish) per series, plus the DNF Brier on the subset of
+drivers with ownDnf > 0.30 (the cell this is for); P35-40 non-elite residual; P26-34 residual;
+slowest-quarter top-10 calibration.
+DECISION (each series on its own): adopt if DNF Brier improves in mean, rho does not lose, t10 Brier
+does not lose in mean, P26-34 does not move away from zero by more than 0.05. P35-40 shrinking is
+expected but not required. If cup passes and the minors fail (or the reverse), ship per series as
+before.
+
 ## 2026-09-07 — SHIPPED: per-car ceiling with floor — simConfig.carCeilFloor (CEIL_FLOOR 0.70), ALL series
 
 Operator: "ship it". simEngine __noise: eps > 0 and d.lappedRate > 0.70 -> eps *= max(0.1, 1 - rate);
