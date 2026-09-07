@@ -48,6 +48,32 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-07 — RESULT: asymmetric noise (upside-only shrink, slower half) — 256 races, two runs
+
+  ALL     rho .4926 -> .4927 / .4929 (129/120, 123/126 - tie)   t10 Brier .15164 -> .15124 / .15122 (142/101,
+          136/108 - the first overall Brier win of the weekend)   winLL .0894 -> .0897 / .0896 (141/90, 147/79)
+          t5LL .2978 -> .2969 / .2971 (197/58, 195/59)
+  calibration: P26+ proj 23.90 -> 24.25 (actual 24.82); non-elite P26+ residual +1.04 -> +0.68; elite-deep -0.99 -> -0.73
+  trucks  n=72: Brier .1584 -> .1570 (50/18, 53/18)  winLL .0958 -> .0946/.0947 (51/11, 55/13)  t5LL .3159 -> .3113 (60/11)  rho 30/37, 36/35
+  oreilly n=83: Brier .1420 -> .1413/.1412 (54/25, 52/27)  winLL .0839 -> .0859 / .0837 (47/31, 46/26 - mean flips sign
+          between runs = inside sim noise)  t5LL .2793 -> .2774 (72/11, 71/11)  rho 38/44, 39/41
+  cup     n=101: Brier .1548 -> .1553 (38/58, 31/63) worse  winLL .0894 -> .0894 / .0908  t5LL mean .3000 -> .3028 worse
+          (per race 65/36) - the fat-tail pattern again, milder than the symmetric form  rho 61/39, 48/50
+  groups: INT Brier 74/31, 73/33 better; SHORT 50/35, 46/38; SS 8/18, 7/19 worse; ROAD 10/17, 10/18 worse.
+VERDICT by the registered rule: rho holds (tie), Brier holds (better), P26+ residual shrinks (1.04 ->
+0.68); the win-log-loss guard FAILS in cup (run 2 mean worse) and is a coin flip in O'Reilly (one run
+each way). Per-series: TRUCKS passes every guard on both runs; O'REILLY passes Brier / top-5 / rho and
+is within noise on win; CUP fails Brier and top-5 means.
+READING: the asymmetric form is strictly better than the symmetric one - same direction on
+calibration (two-thirds of the symmetric gain), and the favourite is untouched so the cup damage is
+much smaller - but cup STILL loses on Brier, which says the lower half of a cup field genuinely
+carries upside (parity): shrinking it, even one-sided, is wrong there. Cup's back-of-field problem
+is specifically the P26+ NON-elite cars, not "the slow half", and the fix has to be car-specific
+(the per-car laps-down feature), not a noise shape. Superspeedways and road courses lose in every
+noise form - both should be carved out of any ship.
+RECOMMENDATION: ship the asymmetric form for TRUCKS and O'REILLY at ovals (INT + SHORT), off for
+cup, off at SS and ROAD everywhere. Operator ruling requested; nothing shipped.
+
 ## 2026-09-07 — REGISTRATION: ASYMMETRIC finish noise for the slower half (shrink the upside only)
 
 Why: symmetric shrink (closed 09-07) fixed the back-of-field calibration but concentrated win
