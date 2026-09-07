@@ -48,6 +48,33 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-07 — REGISTRATION: LAPPED-TRAFFIC mechanism in runRaceSim (the back-of-field over-projection)
+
+Evidence: non-elite P26+ starters finish 1.23 positions / 3.3 DK pts worse than projected (n=1,059,
+09-07); floor cars at Darlington projected 17-23, scored 3-6. loop_data 2023+ (all series, races
+with >= 25 rows): share of RUNNING finishers that ended laps down by start band - cup 12 / 20 / 27
+/ 31 / 39% for P1-10 / 11-20 / 21-25 / 26-30 / 31+; O'Reilly 11 / 17 / 27 / 31 / 38; trucks 15 / 22
+/ 33 / 42 / 43. The sim has no such state: a running P32 starter's finish is ordered purely by
+score noise, so he lands mid-pack as often as the score says.
+FORM (frozen before data is read). runRaceSim already carries `effLap` (laps-down from pre-race
+penalties) and sorts running cars by effLap before score. The mechanism adds, per draw, per
+running driver: lapped with probability p_i = p_band(series, trackGroup, startBand) x 2 x (1 -
+spdPct_i), where p_band is the loop_data 2023+ lapped-running rate for that series x track group
+(INT / SHORT / ROAD; superspeedways EXCLUDED - pack racing has no lapped traffic to speak of) x
+start band (1-10 / 11-20 / 21-25 / 26-30 / 31+), and spdPct_i is the driver's speedScore
+percentile in the field (fastest = 1 -> never lapped; median car in the band -> p_band; slowest
+-> 2 p_band, capped at 0.9). A lapped car gets effLap = 1 for that draw and finishes behind every
+lead-lap car, ordered by score among the lapped. The rate table is computed ONCE from loop_data
+and frozen as constants; no sweep of the 2x slope or the bands.
+Harness: 91 practice holdout boards (SS boards pass through unchanged), shipped engine vs the
+mechanism, 20k sims / race / arm, two runs. METRICS: finish rho, t10 Brier, win / t5 logloss; the
+two deep-cell residuals (elite-deep, non-elite P26+) and the P26+ DK residual, all of which must
+move toward zero; calibration check that the sim's mean finish for P26+ starters moves toward the
+observed 25.3 (cup). DECISION: adopt if finish rho improves in mean with W/L >= 1.5:1 AND t10 Brier
+does not lose AND the P26+ residual shrinks AND the elite-deep residual does not grow. Ships as a
+named block in runRaceSim with the table in simEngine constants and a config flag for backtests.
+After it ships, the deep-starter start-weight form (closed 09-07) is re-registered on top of it.
+
 ## 2026-09-07 — RESULT: deep-starter start weight — CLOSED (fixes the elite cell, worsens the back of the field)
 
 91 boards, 20k sims, two runs each. A = shipped, S = 0.10 of start weight moved to corrHistory for P16+.
