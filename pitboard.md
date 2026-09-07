@@ -3228,6 +3228,14 @@ dropped); the Top 10 box uses the same parser with a one-column default. Single-
 exactly as before. WORKFLOW: paste every DK page into the DK box one after the other, each with its
 header row. Book-side layout changes are a recurring class (see the 08-14 HR header rename).
 
+## 2026-09-07 — Darlington Cup R27 rewind
+Contest file ingested (dfs_contests + dfs_ownership, 38 rows, "John H. Nemechek" -> "John Hunter
+Nemechek"); races/loop_data registry number fixed 25 -> 27 (operator could not pull it up in Replay);
+replay computed in the cloud with the same solvers and written to dfs_replays incl. the first live
+Portfolio row (11.1 vs 0.0). GPP 297.45 ~301st, cash 177 ~1,077th, perfect 407; rho model .62 <
+salary .69 < own .70. Operator's 61 entries: best 11th of 713. Floor cars projected ~20 pts rich
+(Finchum 23 -> 3) - logged as an OPEN sim item (laps-down at Darlington), not a DFS-layer fix.
+
 ## 2026-09-06 (late-late) — Optimal Lineups polish; projected ownership v3 shipped
 Optimal Lineups page: one-line subtitle, internal footnote off the page, text +1.5px, fixed table
 layout (no overflow), column headers Driver / Salary / Start -> Finish / Score. Ownership: operator

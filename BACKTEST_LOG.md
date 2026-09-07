@@ -48,6 +48,37 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-07 — DFS Cup Darlington R27 (Southern 500): replay + operator contests; floor cars projected 20 pts rich
+
+REPLAY (cloud harness, same solvers; ledger row written, portfolio columns included). Board post 09-06
+16:28, 10k draws, 38 in pool, contest DK GPP 194919870 (1,189 entries, winner 387.25, median 257.95).
+  cash 177.05 (~1,077th, p9) - Allmendinger / Finchum / Buescher / Hamlin / Reddick / BYRON (-10.75)
+  GPP best-of-20 297.45 (~301st, p75) - Wallace / Finchum / Briscoe / Hamlin / Larson / Z.Smith;
+    set mean pctile 33, 6/20 above median; set exposure Reddick 75 / Hamlin 60 / Byron 55 / FINCHUM 45
+  perfect 407.15 - Wallace / Bell / Berry / Larson / Gilliland / Gibbs ($49,400)
+  rho model .623 < salary .688 < own .699 (model 3rd of 3 again; Larson 110 at 25% owned was the race)
+  PORTFOLIO row (3 x 20, rules on): prize 11.1 vs 0.0 for 3 x E[max]; legs 20/20/20; best entry p91.
+    First live row of the Portfolio ledger: portfolio 1 / plain 0.
+Verdict GPP. Ledger: GPP 5 / cash 3 / tie 2.
+
+OPERATOR (61 entries across three contests, exposures hand-set): A (713 entries) best 11th, 8/21
+above median; B (1,189) best 70th, 8/20; C (1,189) best 169th, 9/20. Portfolio across 61: Reddick 48
+/ Buescher 44 / Briscoe 43 / Hamlin 41 / Larson 34 / Bell 34 / Jones 34 / Byron 34 / Hocevar 28.
+Finchum 0 of 61. Byron (-10.75) at 34% and Buescher (38.5 at 43% owned) are what kept the sets under
+the median; Larson (110.3) at 34% is what put a lineup 11th. The winning field lineups were Larson +
+Bell + Gibbs + Hocevar + Jones + Allmendinger: three of the six under 20% owned.
+
+FLOOR CARS (operator: "Finchum a ton of laps down... super cheap cars need their own exposure
+setting"). All three $5,000-and-under cars were projected as if they finish ~P28: Finchum $4,500
+proj 23.1 -> 3.0, Ware $4,700 21.4 -> 6.0, Ty Dillon $5,000 17.6 -> 6.0. That is ~20 DK pts rich
+each, not the ~4 in STATE - at Darlington a back-marker goes laps down, and the sim's place-
+differential credit for a P38 starter assumes he stays on the lead lap. The E[max] set had Finchum in
+9 of 20 and 3 of its 3 best. WHAT-IF (not a registered test): floor cars capped at 10% -> best 302.0
+(p77), mean pctile 35, Finchum 10%; capped at 25% -> 297.4, mean 31. Helps this week, and the 09-06
+V1 test says it is neutral on average (0/1/8). So: a floor-car cap is a taste control, not an edge;
+the PROJECTION of floor cars at laps-down tracks is the real problem and belongs to the sim (open
+item in STATE; the closed DNF-by-tier line was about wrecks, this is lapped traffic).
+
 ## 2026-09-06 — RESULT + SHIPPED: projected ownership v3 (one top-end hinge term)
 
 9 races LORO: MAE 6.349 -> 6.350 (tie; W/L 5/3), rho .745 -> .745, top-3 chalk error 12.13 -> 11.50
