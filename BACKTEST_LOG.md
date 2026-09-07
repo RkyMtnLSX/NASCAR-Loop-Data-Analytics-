@@ -48,7 +48,15 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
-## 2026-09-07 — RESULT: per-car ceiling WITH FLOOR (rate > 0.70 only) — PASSES the cup rule on a Brier tie; awaiting ship call
+## 2026-09-07 — SHIPPED: per-car ceiling with floor — simConfig.carCeilFloor (CEIL_FLOOR 0.70), ALL series
+
+Operator: "ship it". simEngine __noise: eps > 0 and d.lappedRate > 0.70 -> eps *= max(0.1, 1 - rate);
+stacks before the O'Reilly / trucks speed-pctile scaling. SimulationCenter builds __lappedMap for
+every series now (was non-cup) and passes buildSpeedScores opts.lapPenalty = (series !== 'cup') so
+the 0.15 mean penalty stays where it was measured. config.carCeilFloor 'v1-0.70' on boards.
+sim-smoke ALL PASS. Harnesses: runRaceSim without the flag = pre-ship engine.
+
+## 2026-09-07 — RESULT: per-car ceiling WITH FLOOR (rate > 0.70 only) — PASSES the cup rule on a Brier tie; SHIPPED (entry above)
 
 256 races, 20k sims, one pass arm T vs the saved arm-A pass. Bands below are the harness's own
 definition (non-elite, start in band, non-SS) applied identically to both arms - the un-floored

@@ -716,6 +716,15 @@ before stating n.
   5.9%. Ledger watches it; one bad race (trucks NH 92.6 -> 73.7) shows a single lineup can swing a
   race's number either way. Floor-car projections still run rich vs 23.5% observed P35-38 DNF —
   the haircut did not help, so leave it.
+- **[SHIPPED 2026-09-07] Per-car upside ceiling with floor — ALL series (`simConfig.carCeilFloor`, cutoff 0.70).**
+  Cars whose lappedRate exceeds 0.70 (Finchum / Ware class) keep only (1 - rate) of an upside noise
+  draw; nobody else touched. The un-floored version failed cup (P26-34 lost real upside); the floored
+  one on 256 races: cup rho tie (51/50), Brier tie (55/46), P35-40 residual +1.48 -> +1.24, P26-34
+  unchanged, slowest-quartile sim top-10 4.6% -> 4.3% vs 3.9% actual; O'Reilly rho 46/37, trucks rho
+  41/31 + Brier 42/30, stacks on asymNoise. Size: a quarter position in the cup bottom-five cell -
+  the Finchum fix, not a step-change. SimulationCenter now attaches lappedRate for cup too; the
+  LAP_PENALTY mean shift stays O'Reilly / trucks (buildSpeedScores opts.lapPenalty). The sim-side cup
+  line is OPEN again on car-specific forms: next registered = per-car DNF rate (Finchum 5 of 13).
 - **[SHIPPED 2026-09-07] Per-car laps-down penalty — O'Reilly + Trucks (LAP_PENALTY 0.15); cup OFF.**
   lappedRate = recency-weighted share of a driver's prior same-series races finished running but laps
   down (loop_data, 0.85/race back, >= 3 races); deterministic shift on speedScore. Fitted on 2022-24,
@@ -728,8 +737,9 @@ before stating n.
   Six sim forms were tested for cup (start weight, lapped draw, symmetric noise, asymmetric noise,
   per-car laps-down x2 fits): none passed for cup, and the sim-side line is CLOSED per registration.
   The Finchum case (floor cars at Darlington 17-23 proj -> 3-6 actual) is real but confined to the last
-  five cars; the honest fix is a DFS-LAYER haircut on floor cars (registration pending) or the Portfolio
-  rules' 10% floor cap. O'REILLY and TRUCKS are the real over-projection (+2.5 to +3.5 at P31+) and
+  five cars; the operator chose to keep working it sim-side, car by car: floored ceiling SHIPPED
+  (above), per-car DNF rate registered next; the DFS-layer haircut / Portfolio 10% floor cap stay the
+  fallback. O'REILLY and TRUCKS are the real over-projection (+2.5 to +3.5 at P31+) and
   remain so after both ships - that is the open sim item now.
 - **Ledger 2026-09-07:** GPP 5 / cash 3 / tie 2. Portfolio row: 1 / 0 (Darlington Cup 11.1 vs 0.0).
   Replay ledger note: the Cup Darlington `races` row was numbered 25 and the feed loader numbers

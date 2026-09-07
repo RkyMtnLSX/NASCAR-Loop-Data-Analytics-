@@ -405,7 +405,8 @@ function __applyRainOut(w, on) {
   return Object.assign({}, w, { startPos: 0.12, corrHistory: (w.corrHistory || 0) + freed * 0.5, longRunPace: (w.longRunPace || 0) + freed * 0.5 });
 }
 
-function buildSpeedScores(drivers, weights) {
+function buildSpeedScores(drivers, weights, opts) {
+  const __lapPenOn = !(opts && opts.lapPenalty === false)
   if (!drivers.length) return drivers
 
   const corrRatingScores = normalizeArr(drivers.map(d => d.corrAvgRating), false) // higher = better
@@ -431,7 +432,8 @@ function buildSpeedScores(drivers, weights) {
     : null
 
   // PER-CAR LAPS-DOWN PENALTY (2026-09-07, BACKTEST_LOG same date; SHIPPED for O'Reilly + trucks,
-  // OFF for cup - SimulationCenter only attaches d.lappedRate for those series). lappedRate = the
+  // OFF for cup via opts.lapPenalty === false - SimulationCenter attaches d.lappedRate for every series
+  // since the 09-07 carCeilFloor ship, so the gate lives here now). lappedRate = the
   // driver's recency-weighted (0.85^races-back) share of prior same-series races finished RUNNING but
   // laps down, >= 3 prior races else null (-> field median, no effect). Deterministic shift on the
   // 0-100 score scale: speedScore -= LAP_PENALTY x (rate - median) x 100. LAMBDA fitted on 2022-24
@@ -440,7 +442,7 @@ function buildSpeedScores(drivers, weights) {
   // 20/5. Cup FAILED (its P26-34 already finish better than projected; only P35-40 are rich) - stays
   // off. Cars that get lapped every week come down; a fast car from a bad grid spot is untouched.
   const LAP_PENALTY = 0.15
-  const __lapVals = drivers.map(d => d.lappedRate).filter(v => v != null && !isNaN(v)).sort((a, b) => a - b)
+  const __lapVals = (__lapPenOn ? drivers : []).map(d => d.lappedRate).filter(v => v != null && !isNaN(v)).sort((a, b) => a - b)
   const __lapMed = __lapVals.length >= 3 ? __lapVals[Math.floor(__lapVals.length / 2)] : null
   const wTotal = Object.values(weights).reduce((a, b) => a + b, 0) || 1
   const w = {
@@ -777,7 +779,19 @@ function runRaceSim(drivers, simConfig) {
     // under every noise form. Flag: simConfig.asymNoise (SimulationCenter sets it by series x group).
     let __spd = null
     if (simConfig.asymNoise) { const __o = drivers.map((d, x) => x).sort((a, b) => drivers[a].speedScore - drivers[b].speedScore); __spd = new Float64Array(n); __o.forEach((x, r) => { __spd[x] = n > 1 ? r / (n - 1) : 0.5 }) }
-    const __noise = (i) => { let e = gaussNoise(); if (__spd && __spd[i] < 0.5 && e > 0) e *= (0.5 + __spd[i]); return e }
+    // PER-CAR CEILING WITH FLOOR (2026-09-07, BACKTEST_LOG same date; SHIPPED all series). A car
+    // that finishes laps down almost every week (lappedRate > 0.70 - the Finchum / Ware class) keeps
+    // only (1 - rate) of an UPSIDE draw; downside untouched, no mean shift, every car at or under
+    // 0.70 untouched. The un-floored form (all rates) failed cup: P26-34 cars at rate 0.3-0.5 finish
+    // BETTER than projected and lost a third of their upside. 256 races, floored: cup rho tie,
+    // Brier tie (55/46), P35-40 residual +1.48 -> +1.24, P26-34 unchanged, slowest-quartile sim
+    // top-10 4.6% -> 4.3% vs 3.9% actual; O'Reilly / trucks rho better, Brier tie / better, stacks
+    // on top of asymNoise. Flag: simConfig.carCeilFloor. Requires d.lappedRate (SimulationCenter
+    // attaches it for every series; buildSpeedScores' mean penalty stays O'Reilly / trucks only).
+    const CEIL_FLOOR = 0.70
+    const __noise = (i) => { let e = gaussNoise()
+      if (simConfig.carCeilFloor && e > 0) { const lr = drivers[i].lappedRate; if (lr != null && !isNaN(lr) && lr > CEIL_FLOOR) e *= Math.max(0.1, 1 - lr) }
+      if (__spd && __spd[i] < 0.5 && e > 0) e *= (0.5 + __spd[i]); return e }
     const scored = drivers.map((d, i) => {
       let effLap = 0
       const __ld = d.lapsDown || 0

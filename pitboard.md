@@ -3228,6 +3228,16 @@ dropped); the Top 10 box uses the same parser with a one-column default. Single-
 exactly as before. WORKFLOW: paste every DK page into the DK box one after the other, each with its
 header row. Book-side layout changes are a recurring class (see the 08-14 HR header rename).
 
+## 2026-09-07 — Per-car upside ceiling with floor shipped (all series); per-car DNF rate registered
+Operator refused the DFS-layer haircut ("there has to be a better way to fix cup than giving up").
+Two car-specific forms on 256 races: un-floored ceiling (upside x (1 - lappedRate), every car) CLOSED
+- fixed the bottom-five cell but cost cup P26-34 a third of real upside (Brier 36/64). Floored
+ceiling (rate > 0.70 only, cutoff fixed a priori) PASSED: cup rho / Brier tie, P35-40 +1.48 -> +1.24,
+P26-34 unchanged, calibration moves toward actual without crossing; O'Reilly / trucks rho better.
+Shipped as simConfig.carCeilFloor for all series; SimulationCenter builds lappedRate for cup now,
+buildSpeedScores takes opts.lapPenalty so the 0.15 mean shift stays O'Reilly / trucks. Next: per-car
+DNF rate (registered same day). Operator ruling: the PAT stays in use for pushes; stop raising it.
+
 ## 2026-09-07 — Per-car laps-down penalty shipped (O'Reilly + trucks); cup back-of-field re-scoped
 loop_data pulled back to 2022 (438 races) and every holdout board matched to names by fingerprint
 (324/324). Feature = recency-weighted share of prior same-series races finished running but laps down;
