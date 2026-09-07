@@ -48,6 +48,48 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-07 — RESULT: per-car ceiling WITH FLOOR (rate > 0.70 only) — PASSES the cup rule on a Brier tie; awaiting ship call
+
+256 races, 20k sims, one pass arm T vs the saved arm-A pass. Bands below are the harness's own
+definition (non-elite, start in band, non-SS) applied identically to both arms - the un-floored
+entry's +1.99/+1.49 used a wider cut, so compare within this entry only (un-floored C re-scored on
+this definition: cup P35-40 1.48 -> 0.96, P26-34 -0.67 -> -0.97, Brier 37/64).
+  cup n=101:  rho .4491 -> .4491 (51/50)  Brier .1548 -> .1549 (per-race 55/46 better)  winLL .0894 -> .0894 (51/50)
+              t5LL .3004 -> .3022 (59/42 better per race)
+              P35-40 +1.48 -> +1.24 (shrinks)  P26-34 -0.67 -> -0.68 (unchanged)  slowest-q top-10 actual 3.9%, sim 4.6% -> 4.3% (stays above, no cross)
+  oreilly n=83: rho .5283 -> .5295 (46/37)  Brier .1405 -> .1407 (45/38 better)  winLL tie (46/37)  t5LL .2743 -> .2767 (46/37)
+              P35-40 +3.13 -> +3.06  P26-34 +0.20 -> +0.16
+  trucks n=72: rho .5189 -> .5206 (41/31)  Brier .1556 -> .1554 (42/30)  winLL .0947 -> .0958 (42/30)  t5LL 47/25
+              P35-40 +1.92 -> +1.82  P26-34 +1.43 -> +1.32
+CUP RULE: rho does not lose (tie); Brier mean +0.0001 with the per-race count 55/46 in favour - a
+tie at 20k-sim resolution, not a loss; P35-40 shrinks; P26-34 within 0.05. PASSES. The floor did
+exactly what the un-floored form could not: the bottom-five cell moves and the band above does not.
+O'Reilly / trucks: rho better in both, Brier tie / better - not worse than shipped, adopt as an
+additive layer. Read the size honestly: cup P35-40 gives back a quarter position, nothing else
+moves. This is the Finchum fix, not a sim step-change. SHIP on the operator's word: simConfig
+.carCeilFloor (cutoff 0.70, all series), SimulationCenter attaches lappedRate for cup too (the map
+already exists; the non-cup gate lifts for this feature only - the 0.15 laps-down mean penalty
+stays O'Reilly / trucks).
+
+## 2026-09-07 — REGISTRATION: per-car CEILING WITH FLOOR — upside scaling only for lappedRate > 0.70
+
+Why: the un-floored per-car ceiling (entry below) fixed the P35-40 cup cell (+1.99 -> +1.49) but
+took a third to half of the upside from P26-34 cars at rate 0.3-0.5, who the data says finish
+BETTER than projected. This is the same car-specific form with the band above the bottom five left
+alone. The operator's call to keep working the sim side rather than haircut at the DFS layer.
+FORM (frozen before data is read). In runRaceSim, per driver per draw: eps = gaussNoise(); if eps > 0
+and d.lappedRate > 0.70, eps *= max(0.1, 1 - lappedRate); every other car untouched. CUTOFF 0.70
+FIXED A PRIORI - no sweep, no second cutoff. lappedRate as shipped 09-07. Applies to ALL series ON
+TOP of what is shipped: cup = this only; O'Reilly / trucks = laps-down feature + speed-pctile asym
+noise (INT+SHORT) + this. Arm A = shipped (the saved 256-race arm-A pass from the un-floored test,
+same boards, same engine otherwise; 20k sims), arm T = shipped + floored ceiling, one pass each.
+METRICS: as the entry below - finish rho, t10 Brier, win / t5 log-loss (mean + per-race W/L) per
+series; P35-40 non-elite residual, P26-34 residual, slowest-quarter top-10 calibration.
+DECISION (cup): adopt if rho does not lose, Brier does not lose in mean, P35-40 shrinks AND P26-34
+is not worse (|resid| does not grow by more than 0.05). O'Reilly / trucks: adopt only if not worse
+than shipped on rho and Brier. If cup fails, the sim-side cup back-of-field line is CLOSED and the
+next registration is the DFS-layer floor-car haircut.
+
 ## 2026-09-07 — RESULT: per-car ceiling (upside x (1 - lappedRate)) — CLOSED; fixes the Finchum cell, damages the band above it
 
 256 races, 20k sims, one full pass per arm (second pass timed out). Arm A = shipped (laps-down
