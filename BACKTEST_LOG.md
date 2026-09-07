@@ -48,6 +48,32 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-07 — RESULT (extended): speed-dependent noise on 256 races (2022-24 holdout + 2025-26 practice holdout)
+
+Same form, shipped vs noise x (0.5 + 0.5 x speed pctile), 20k sims, two runs. n=256 (cup 101 /
+O'Reilly 83 / trucks 72; INT 110 / SHORT 89 / SS 27 / ROAD 30).
+  ALL   rho .4926 -> .4930 / .4933 (126/124, 142/111)   t10 Brier .15164 -> .15141 / .15143 (129/123, 125/126)
+        winLL .0894 -> .0904 / .0912 - per race 189/65 and 190/65 BUT the MEAN is worse both runs
+        t5LL 158/97 (mean .2978 -> .2995, worse)
+  calibration: P26+ projected finish 23.90 -> 24.53 (actual 24.82); non-elite P26+ residual +1.04 ->
+        +0.38 (n=2,646); elite-deep -0.99 -> -0.43 (n=278). Both cells move toward zero.
+  cup     n=101: rho 51/46, 57/43 | Brier .1548 -> .1567 (28/71, 26/70) WORSE | winLL mean .0894 -> .0930/.0948 WORSE
+  oreilly n=83:  rho 43/38, 48/35 | Brier .1420 -> .1408 (49/33, 49/34) better | winLL mean .0839 -> .0847 (68/14 per race) | t5LL 61/22
+  trucks  n=72:  rho 32/40, 37/33 | Brier .1584 -> .1563 (52/19, 50/22) better | winLL mean .0958 -> .0933 better (56/15) | t5LL 47/25
+  SS n=27: Brier 9/17, 10/16 worse. ROAD n=30: Brier 8/22 worse. INT 66/42, 63/44 better. SHORT 46/42, 44/44 flat.
+VERDICT: the cup split from the 91-board run is REAL at n=101 (Brier 28/71 twice). Overall it is a
+rho tie with better calibration and a fatter tail: per race the probabilities improve 3-to-1, but the
+few races where a favourite busts get MORE wrong, enough to move the mean the wrong way in cup and
+in the pooled win / top-5 log-loss. Mechanism: shrinking the noise at the bottom removes the back-
+markers' lottery tickets, so win probability concentrates on the favourites; that is right in
+trucks and O'Reilly (where the favourite usually delivers) and wrong in cup and at plates / road
+courses (parity, wrecks). Registered rule: FAILS on the letter (rho tie). Per-series: TRUCKS passes
+every probability metric; O'REILLY passes Brier and top-5 and is a wash on win log-loss; CUP fails.
+RECOMMENDATION: ship for trucks; O'Reilly is the operator's call; cup stays. The back-of-field
+calibration problem in cup is still open - the fix there cannot be "less noise at the bottom"
+because cup favourites need the noise; it has to be something that lowers the back of the field
+WITHOUT raising the favourite (a per-car laps-down feature from loop_data is the next candidate).
+
 ## 2026-09-07 — RESULT: speed-dependent finish noise — ordering a tie, calibration halved, probabilities split by series
 
 91 boards, 20k sims, shipped vs noise x (0.5 + 0.5 x speed pctile), two runs.
