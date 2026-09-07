@@ -48,6 +48,27 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-07 — RESULT: per-car ceiling (upside x (1 - lappedRate)) — CLOSED; fixes the Finchum cell, damages the band above it
+
+256 races, 20k sims, one full pass per arm (second pass timed out). Arm A = shipped (laps-down
+penalty + speed-pctile asym noise for O'Reilly/trucks; nothing for cup). Arm C = laps-down penalty +
+per-car ceiling for all series, speed-pctile noise off.
+  cup n=101: rho .4491 -> .4487 (44/56)  Brier .1548 -> .1560 (36/64)  winLL .0894 -> .0895 (74/27 per race)
+             t5LL .3004 -> .3100 | P35-40 non-elite resid +1.99 -> +1.49 (better)  P26-34 -0.68 -> -0.98 (worse)
+             slowest-q top-10 actual 3.9%, sim 4.6% -> 2.8% (crosses below)
+  oreilly n=83: rho .5283 -> .5254 (31/50)  Brier .1405 -> .1414 (38/45)  winLL .0825 -> .0813 (68/15)  t5LL 54/29
+             P35-40 +3.30 -> +3.31  -> worse than the shipped speed-pctile form
+  trucks n=72: rho .5189 -> .5146 (30/42)  Brier .1557 -> .1558  winLL .0947 -> .0966  -> worse than shipped
+VERDICT: FAILS cup (rho and Brier lose, P26-34 moves away from zero, calibration crosses below);
+does not replace the speed-pctile form for O'Reilly / trucks. CLOSED.
+READING: it does what it was built to do - Finchum's cell drops half a position and the fake ceiling
+goes - but cup's lapped rate is not binary: the P26-34 cars sit at 0.3-0.5 and (1 - rate) takes a
+third to half of an upside the data says they have. A car-specific form that can work in cup must
+have a floor: touch only rate > 0.7 (Finchum, Ware - the bottom five) and nobody else. That is the
+eighth cup form and the last car-specific one; sim-side cup line is CLOSED per registration unless
+the operator re-opens it for that single form. Second leak noted, untested: per-car DNF rate
+(Finchum 5 of 13) - the DNF-by-tier line is closed, per-CAR attrition has never been registered.
+
 ## 2026-09-07 — REGISTRATION: per-car CEILING — upside noise scaled by the driver's own laps-down rate
 
 Why: Finchum's 13 cup starts - 7 running finishes all laps down, 5 DNFs, best 28th - and the sim
