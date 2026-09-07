@@ -3228,6 +3228,15 @@ dropped); the Top 10 box uses the same parser with a one-column default. Single-
 exactly as before. WORKFLOW: paste every DK page into the DK box one after the other, each with its
 header row. Book-side layout changes are a recurring class (see the 08-14 HR header rename).
 
+## 2026-09-07 — Per-car DNF rate: trucks pass, not shipped; series-gate finding; operator's bar
+Per-car DNF multiplier (own non-running rate, k = 4 prior, mean-1 rescale) on 256 races: trucks
+pass (rho .5202 -> .5243, DNF Brier better, high-history cell 16.9% -> 29.7% vs 26.1% actual), cup
+and O'Reilly over-corrected (sim 24.7% vs 19.2%, 29.8% vs 16.4%). Operator: log, don't ship.
+Finding logged: three series-gated mechanisms in one weekend is the wrong architecture - cup's
+three failures are one shrinkage fact, so the direction is one fitted k per series on shared
+mechanisms and the gates come out. Operator statement: still unhappy; without a simulation that is
+measurably better the product is not good. That is the bar going forward.
+
 ## 2026-09-07 — Per-car upside ceiling with floor shipped (all series); per-car DNF rate registered
 Operator refused the DFS-layer haircut ("there has to be a better way to fix cup than giving up").
 Two car-specific forms on 256 races: un-floored ceiling (upside x (1 - lappedRate), every car) CLOSED

@@ -48,6 +48,27 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-07 — RULING: per-car DNF rate NOT SHIPPED (trucks pass stands unshipped); series-gate finding logged
+
+Operator: "log the findings, don't ship." Reason as discussed: three mechanisms this weekend
+(asymNoise, laps-down penalty, per-car DNF) each passed in one or two series and failed cup, and
+each was shipped or proposed as an ON/OFF gate by series. The three cup failures are one fact
+three times - cup has more parity, so past weakness carries less information about this week than
+it does in trucks - and that is a SHRINKAGE CONSTANT per series, not a mechanism that exists in
+one series and not another. Series-gated mechanisms are patches; they break on the driver who moves
+up, the track we only measured for cup, the season the truck field deepens. Legitimate series
+differences are constants on a shared mechanism (market anchor, practice grader, start projection,
+caution mix already work that way).
+DIRECTION (registered as the line of work, no data read): every car-specific feature runs in every
+series through ONE per-series shrinkage constant k fitted on 2022-24 (single scalar per series,
+metric fixed per feature: DNF Brier for attrition, P26+ residual for the laps-down / ceiling
+family) and scored on 2025-26. First target: the DNF multiplier (k = 4 fixed here overshot cup by 5
+points and O'Reilly by 13). Then the laps-down penalty and the noise shrink get pointed at the same
+protocol, cup included, and the series ON/OFF gates come out - fewer switches, more constants, all
+fitted the same way. Shipped gates stay as they are until each is re-measured under that protocol.
+OPERATOR STATEMENT for the record: not satisfied with the simulation as it stands; without a
+simulation that is measurably better than the market the product is not good. That is the bar.
+
 ## 2026-09-07 — RESULT: per-car DNF rate — PASSES TRUCKS, FAILS CUP and O'REILLY (over-corrects: k = 4 shrinks too little)
 
 256 races, 20k sims, one pass each; arm A re-run fresh on the shipped engine (carCeilFloor in).

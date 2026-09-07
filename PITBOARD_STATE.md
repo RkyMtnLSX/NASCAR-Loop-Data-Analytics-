@@ -716,6 +716,16 @@ before stating n.
   5.9%. Ledger watches it; one bad race (trucks NH 92.6 -> 73.7) shows a single lineup can swing a
   race's number either way. Floor-car projections still run rich vs 23.5% observed P35-38 DNF —
   the haircut did not help, so leave it.
+- **[OPEN 2026-09-07 — THE SIM ITSELF] Operator: "I'm still unhappy; without simulation it's not a good product."**
+  Standing bar for every sim session from here. Weekend tally: eight cup forms, one shipped
+  (floored ceiling, a quarter position in the bottom-five cell); trucks / O'Reilly got three
+  series-gated mechanisms. FINDING: the series gates are the problem, not the answer - the three
+  cup failures are one fact (more parity -> past weakness carries less information) and belong in a
+  per-series shrinkage constant on a shared mechanism, not in on/off switches. Per-car DNF rate
+  PASSED trucks (rho 42/30, DNF Brier better) and was NOT shipped on that reasoning. Line of work,
+  registered in BACKTEST_LOG: one fitted k per series (train 2022-24 / test 2025-26) for each
+  car-specific feature, cup included, then remove the gates. Harness: /tmp/pg/lapfeat.js (cloud
+  session) - ARM A2/D, ownDnf feature, DNF Brier metrics; loop_all.json + board_match.json.
 - **[SHIPPED 2026-09-07] Per-car upside ceiling with floor — ALL series (`simConfig.carCeilFloor`, cutoff 0.70).**
   Cars whose lappedRate exceeds 0.70 (Finchum / Ware class) keep only (1 - rate) of an upside noise
   draw; nobody else touched. The un-floored version failed cup (P26-34 lost real upside); the floored
