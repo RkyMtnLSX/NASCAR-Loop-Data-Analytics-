@@ -48,6 +48,31 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-07 — RESULT: lapped-traffic mechanism — right direction, overshoots, ordering loses: CLOSED as registered
+
+Rate table (loop_data 2023+, running finishers laps down, bands P1-10 / 11-20 / 21-25 / 26-30 / 31+):
+cup INT .11/.19/.26/.32/.45, cup SHORT .22/.38/.53/.62/.78, cup ROAD .04/.07/.05/.10/.24; O'Reilly
+INT .14/.26/.40/.46/.59, SHORT .12/.21/.37/.46/.61, ROAD .06/.09/.14/.15/.17; trucks SHORT
+.17/.32/.51/.58/.76, INT .19/.24/.36/.56/.59, ROAD .08/.09/.15/.32/.36. (SS excluded.)
+91 boards, 20k sims, shipped vs mechanism (two runs):
+  rhoFin        .5435   ->  .5377 / .5385   (DOWN; SHORT .586 -> .574, INT .528 -> .525, ROAD .415 -> .427)
+  t10 Brier     .14638  ->  .14660 / .14666 (slightly worse)   winLL .0873 -> .0869 / .0871   t5LL .2867 -> .2860
+  P26+ mean projected finish 23.94 -> 25.83 vs ACTUAL 25.07  (was 1.1 too optimistic, now 0.8 too pessimistic)
+  non-elite P26+ finish residual +1.23 -> -0.67;  P26+ DK residual -3.28 -> +0.72  (the DFS miss is gone)
+  elite-deep residual -1.60 -> -1.39 (barely moves; it is a different problem, as 09-07 showed)
+VERDICT by the registered rule: FAILS (finish rho down both runs, Brier does not hold). CLOSED as
+registered. Nothing ships.
+READING: the mechanism is the right shape - it moves the back of the field from 1.1 positions too
+good to 0.8 too bad and takes the P26+ DK-points miss from -3.3 to +0.7 - but at full strength it
+overshoots, and the random lapped draw scrambles mid-pack ORDER enough to cost rho, most at short
+tracks where the table says half the field gets lapped. The 2x slope on speed percentile was
+fixed by the form; a half-strength version (p_i = p_band x (1 - spdPct), fastest never, median car
+half the band rate) is the obvious single follow-up and is NOT run here (no sweep). The sim's
+finish-order metric and the DFS-points calibration pull in different directions on this one:
+better calibration of WHERE the back of the field finishes costs a little on WHO beats whom in the
+middle. If the follow-up form also loses rho while fixing the DK residual, the honest home for the
+mechanism is the DFS layer (haircut on P26+ draws), not the betting sim.
+
 ## 2026-09-07 — REGISTRATION: LAPPED-TRAFFIC mechanism in runRaceSim (the back-of-field over-projection)
 
 Evidence: non-elite P26+ starters finish 1.23 positions / 3.3 DK pts worse than projected (n=1,059,

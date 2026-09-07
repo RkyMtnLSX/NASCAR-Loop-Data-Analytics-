@@ -723,8 +723,12 @@ before stating n.
   for deep starters - TESTED 09-07 (0.23 -> 0.13 for P16+, freed to corrHistory): CLOSED. Fixes the
   elite cell (-1.6 -> -0.6) but makes the back of the field WORSE (+1.23 -> +1.49) and rho drops.
   The two cells are different mechanisms: the back-of-field one is LAPPED TRAFFIC in runRaceSim
-  (finish distribution too compressed for P26+), not a weight. Next: a laps-down mechanism from
-  loop_data laps_completed by start band x track group; re-test the start weight after. BACKTEST_LOG 09-07. Darlington Cup
+  (finish distribution too compressed for P26+), not a weight. LAPPED-TRAFFIC mechanism TESTED
+  09-07 (rate table by series x group x start band, p = 2 x rate x (1 - speed pctile)): P26+ DK
+  residual -3.3 -> +0.7 and finish calibration 23.9 -> 25.8 (actual 25.1) - right shape, overshoots
+  - but finish rho .5435 -> .538 (SHORT hardest hit): CLOSED as registered. Next single form: half
+  strength (p = rate x (1 - pctile)). If that also trades rho for calibration, the mechanism belongs
+  in the DFS layer (P26+ draw haircut), not the betting sim. BACKTEST_LOG 09-07. Darlington Cup
   R27: Finchum $4.5k proj 23.1 -> 3.0, Ware 21.4 -> 6.0, T.Dillon 17.6 -> 6.0. The sim credits a P38
   starter with place differential as if he finishes ~P28 on the lead lap; at Darlington he is lapped
   by lap 60. Not the DNF question (closed) - it is lapped traffic. E[max] put Finchum in 9/20; a 10%
