@@ -48,6 +48,20 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-07 — REGISTRATION: deep-starter start weight (0.23 -> 0.13 for P16+, freed 0.10 to corrHistory)
+
+FORM (frozen before data is read). In buildSpeedScores, per driver: if startPos >= 16, the
+normalised start weight is reduced by 0.10 (of the pre-normalisation 0.23 -> 0.13) and corrHistory
+is raised by the same 0.10; front starters unchanged; superspeedway / road-course weight tables
+unchanged (their start weights are already 0.15). One form, no sweep of the cut (16) or the shift
+(0.10). Harness: the 91 practice holdout boards, shipped engine (arm A) vs the change (arm S), 20k
+sims / race / arm, run twice.
+METRICS: the sim's own - finish-order Spearman, t10 Brier, win / t5 log-loss - per race, per track
+group, per series; PLUS the two deep-cell residuals from the 09-07 diagnostic (elite-deep, non-
+elite P26+) which must both move toward zero. DECISION: adopt if finish rho improves in mean with
+W/L >= 1.5:1 AND t10 Brier does not lose AND both deep-cell residuals shrink. Ships as a per-driver
+rule in buildSpeedScores with the constants named.
+
 ## 2026-09-07 — RESULT: elite-deep diagnostic — leans yes but not clear of zero; the DEEP NON-ELITE cell is the clear finding
 
 3,383 driver-rows, 92 boards, shipped engine, 20k sims. Finish residual = actual - projected
