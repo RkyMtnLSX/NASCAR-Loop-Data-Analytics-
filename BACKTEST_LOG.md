@@ -48,6 +48,27 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-07 — RESULT: deep-starter start weight — CLOSED (fixes the elite cell, worsens the back of the field)
+
+91 boards, 20k sims, two runs each. A = shipped, S = 0.10 of start weight moved to corrHistory for P16+.
+  rhoFin       A .5432 / .5428    S .5421 / .5403   (down both runs)
+  t10 Brier    A .14640 / .14636  S .14605 / .14610 (slightly better)
+  winLL        A .0872 / .0873    S .0878 / .0877   (slightly worse)
+  elite-deep residual   A -1.61   S -0.56   (moves toward zero - the Larson cell is fixed)
+  non-elite P26+        A +1.23   S +1.49   (moves AWAY from zero - the Finchum cell gets worse)
+  INT rho flat, SHORT .584 -> .583 / .580, ROAD .418 -> .412.
+VERDICT: FAILS (rho down; one deep cell better, the other worse). CLOSED.
+WHAT IT MEANS: the two deep cells are NOT one mechanism after all. Moving weight from start to
+car quality lifts the good car from P25 (correct) but ALSO lifts the bad car from P32, because on
+the min-max rating scale a weak car's quality score is less pessimistic than its start score. The
+back-of-field over-projection is not a weighting problem; it is the race sim not knowing that P26+
+starters at most ovals get lapped (finish distribution too compressed toward the field). That is
+the laps-down item in STATE and it needs a mechanism in runRaceSim (laps-completed by start band x
+track group from loop_data), not a speedScore weight. The elite-deep case (Larson) is real but
+small (n=100) and cannot be fixed by this knob without breaking the other cell - park it until the
+laps-down mechanism exists, then re-test the start weight on top of it.
+Engine untouched; the test copy (simEngine_S.js) lives only in the cloud clone.
+
 ## 2026-09-07 — REGISTRATION: deep-starter start weight (0.23 -> 0.13 for P16+, freed 0.10 to corrHistory)
 
 FORM (frozen before data is read). In buildSpeedScores, per driver: if startPos >= 16, the

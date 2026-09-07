@@ -720,8 +720,11 @@ before stating n.
   CONFIRMED at scale 09-07 (elite-deep diagnostic, 92 boards): non-elite starters P26+ finish 1.23
   positions WORSE than projected [+0.76, +1.67], n=1,059, DK -3.3; elite deep starters ~1.6 BETTER
   (CI crosses zero; O'Reilly clear). One mechanism: start position weighs too much vs car quality
-  for deep starters. Next registration: start weight 0.23 -> 0.13 for P16+ with the freed 0.10 to
-  corrHistory, per driver. BACKTEST_LOG 09-07. Darlington Cup
+  for deep starters - TESTED 09-07 (0.23 -> 0.13 for P16+, freed to corrHistory): CLOSED. Fixes the
+  elite cell (-1.6 -> -0.6) but makes the back of the field WORSE (+1.23 -> +1.49) and rho drops.
+  The two cells are different mechanisms: the back-of-field one is LAPPED TRAFFIC in runRaceSim
+  (finish distribution too compressed for P26+), not a weight. Next: a laps-down mechanism from
+  loop_data laps_completed by start band x track group; re-test the start weight after. BACKTEST_LOG 09-07. Darlington Cup
   R27: Finchum $4.5k proj 23.1 -> 3.0, Ware 21.4 -> 6.0, T.Dillon 17.6 -> 6.0. The sim credits a P38
   starter with place differential as if he finishes ~P28 on the lead lap; at Darlington he is lapped
   by lap 60. Not the DNF question (closed) - it is lapped traffic. E[max] put Finchum in 9/20; a 10%
