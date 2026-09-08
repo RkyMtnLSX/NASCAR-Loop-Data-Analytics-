@@ -48,6 +48,73 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-08 — RESULT: MARKET BENCHMARK — the sim is within 2 rho points of the closing line; the line itself is at ~.49 in cup
+
+13 races (cup 6, O'Reilly 4, trucks 3), post boards vs closing consensus (median of 2-3 books,
+proportional devig). Per race:
+  race           n | rho: mkt   sim  (sim~mkt) | winLL mkt  sim | t5LL mkt   sim | t10 Brier mkt sim
+  cup R22 Indy  39 | .409 .450 (.908) | .1186 .1384 | .2868 .3120 | .1602 .1655
+  cup R23 Iowa  36 | .385 .373 (.884) | .1012 .1092 | .2698 .3049 | .1537 .1579
+  cup R24 Rich  37 | .774 .719 (.924) | .0924 .0893 | .2958 .3894 | .1314 .1404
+  cup R25 NH    36 | .576 .523 (.947) | .0770 .0706 | .2715 .2586 | .1354 .1440
+  cup R26 Dayt  40 | .094 .155 (.873) | .1091 .1160 | .3771 .3724 | .1933 .1883
+  cup R27 Darl  38 | .722 .612 (.895) | .0972 .1037 | .2653 .3061 | .1321 .1471
+  ore R22 Indy  37 | .906 .882 (.963) | .0929 .0922 | .2430 .2369
+  ore R23 Iowa  37 | .436 .414 (.929) | .0968 .0913 | .2862 .2457
+  ore R24 Dayt  37 | .173 .120 (.966) | .1307 .1671 | .3328 .3399
+  ore R25 Darl  38 | .711 .755 (.953) | .1003 .1185 | .2897 .3068
+  trk R16 IRP   35 | .632 .697 (.923) | .0493 .0561 | .2010 .1999 | .1326 .0999
+  trk R17 Rich  35 | .833 .743 (.918) | .0814 .0580 | .2340 .2247
+  trk R18 NH    36 | .649 .609 (.948) | .0729 .0730 | .2484 .2504
+MEANS. ALL 13: rho market .5615 / sim .5424, GAP +.019 (market better 9/4); win logloss .0938 /
+.0987 (8/5); t5 logloss .2770 / .2883 (7/6); cup t10 Brier .1484 / .1490 (5/2).
+  cup 6:     rho .493 / .472 (+.021, 4/2)  winLL .0993 / .1045 (4/2)  t5LL .294 / .324 (4/2)  t10 Brier .151 / .157 (5/1)
+  oreilly 4: rho .557 / .543 (+.014, 3/1)  winLL .105 / .117 (2/2)  t5LL .288 / .282 (2/2)
+  trucks 3:  rho .705 / .683 (+.022, 2/1)  winLL .068 / .062 (2/1)  t5LL .228 / .225 (1/2)
+Robustness order (mean of win/t3/t5 implied) .5574 - same answer. Sim-vs-market Spearman .87-.97:
+the board and the line carry nearly the same ordering.
+RULING BY THE REGISTERED RULE: gap < 0.05 on M1 and mixed on M2/M3 -> the sim is AT THE INFORMATION
+CEILING for the pre-race marginal. The next line of work is the PROCESS MODEL, judged on derived
+markets. The cup caveat is real and stays on the record: in cup the market is ahead on every
+metric (4/2, 4/2, 4/2, 5/1) by a small, consistent margin - about 2 rho points and 5% in win
+log-loss - which is the size of what inputs could still buy; it is not the seven points that would
+have put features first. And the number that matters most: THE CLOSING LINE ITSELF SCORES ~.49 IN
+CUP. Pre-race information is worth about half a rank correlation in a cup race; everything after
+that is the race. The 13-race sample is small; re-run as odds_snapshots grows (script /tmp/bm/
+bench.py in the cloud session; boards.json / odds.json pulled by SQL).
+
+## 2026-09-08 — REGISTRATION: MARKET BENCHMARK — how much pre-race information is the sim leaving on the table?
+
+Why: eight cup forms landed at finish rho ~.45 regardless of mechanism. Either the sim is at the
+ceiling of pre-race information (then the mean is done and the work is variance structure, derived
+markets and a process model) or it is not (then features come first). The closing line is the only
+external estimate of that ceiling we hold. The market is NOT an input here - operator rule stands -
+it is the yardstick. Written before any odds or result row is read.
+DATA. Every 2026 race with BOTH a published POST board in sim_results and odds_snapshots rows: cup
+R22-27, O'Reilly R22-25, trucks R16-18 (13 races; cup R21 has odds but no board -> excluded).
+Closing line = the LAST snapshot per (race, market, book) before the board's published_at + 6h
+(the board is republished up to green; the last capture is the close), consensus = median implied
+probability across books, devigged proportionally per market (win sums to 1, t3 to 3, t5 to 5,
+t10 to 10). Actual = loop_data finish for the same race_number. Drivers scored = intersection of
+board, odds and results.
+CAVEAT stated up front: the sim's thin-driver market anchor means the board is not independent of
+the line for drivers with no history; the benchmark still answers the question for the field.
+METRICS (per race, then mean and W/L over 13; per series where n allows):
+  M1 finish Spearman: MARKET order = devigged win probability rank, tie-broken by t5 then t10 (a
+     second market order = rank by mean of win/t3/t5 implied probs is reported as a robustness
+     line, not a decision line); SIM order = proj_finish.
+  M2 win log-loss: market devigged win prob vs sim win_pct.
+  M3 top-5 log-loss: market devigged t5 vs sim top5_pct (all 13). Top-10 Brier: cup only (t10 rows).
+  M4 sim-vs-market Spearman (descriptive: how different are the two orders).
+READING RULE (fixed now): the GAP = market M1 minus sim M1. If the market beats the sim on M1 by
+>= 0.05 AND on M2/M3 in mean, there is real pre-race information the sim is not extracting ->
+the next line of work is INPUTS (grader stint output, team/chassis identity, tire allocation,
+qualifying-vs-practice), measured as features under the train/test protocol. If the market is
+within 0.05 on M1 and mixed on M2/M3, the sim is at the information ceiling for the marginal ->
+the next line of work is the PROCESS MODEL (stages / cautions / restarts / pit cycles) judged on
+derived-market metrics. 13 races is small: the ruling is directional, and it is re-run every time
+the odds table grows.
+
 ## 2026-09-07 — RULING: per-car DNF rate NOT SHIPPED (trucks pass stands unshipped); series-gate finding logged
 
 Operator: "log the findings, don't ship." Reason as discussed: three mechanisms this weekend
