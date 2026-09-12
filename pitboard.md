@@ -3333,3 +3333,21 @@ marginal pts/$1K above floor (1847f7c). Tested and NOT shipped: concave tire age
 per-driver falloff slope, age-band grader, grade x prior blend (card grades practice - operator).
 OPEN: GPP punt concentration (Cram 45%) + flat-DNF floor-car richness — STATE "Open experiments".
 
+
+## 2026-09-12 — Entry list PDF parser: Jayski moved the team column ("Owner", after Sponsor) at Gateway (d79d3b7)
+Operator: the Gateway O'Reilly PDF parsed every team as the sponsor (the 09-05 import guard caught it
+and he cancelled). Jayski's usual columns are Veh# / Driver / Organization / Crew Chief / Veh Mfg /
+Sponsor and `parsePdf` took the item after the driver as the team; this week's list ran Driver /
+Sponsor / Owner / Veh Mfg. Fix in `parsePdf`: (1) the PDF header cells are read (shown in the
+"Found N drivers" status as "PDF columns: ..."); (2) each row's items are scanned for the first
+team-like item — a team this series has run in the last two seasons (entry_list) or a team-word match
+— and that beats the positional slot; (3) failing that, the header says which column is the team;
+(4) surname-wrap merging (the 08-19 JHN case) is checked against known driver names, and with a
+sponsor column right after the driver only a KNOWN merged name may merge (else "Nick Sanchez
+Gainbridge"). Normal layout parses byte-identically (checked on the Chicagoland PDF text). Light
+check: node harness over the normal, Owner-after-Sponsor, truck-wrap and cup-wrap item sequences.
+OPS NOTE: the device shell refused every command this session (folder mounts failed after a new
+folder grant), so this went up through GitHub's web upload in Chrome (file_upload into /upload/main/
+src/pages) — a working fallback when the patch/am route is dead. Near-miss: my cloud clone was a week
+stale and a root upload of pitboard.md/STATE would have wiped other sessions' entries; always
+`git fetch` + diff against origin BEFORE uploading whole files.
