@@ -3361,3 +3361,11 @@ anywhere in the row wins before the word regex is consulted. New `canonTeam`: an
 known team but whose fold minus its first token is the unique tail of exactly one known team takes
 that team's stored spelling ("R. Childress Racing" -> "Richard Childress Racing"), so entry_list keeps
 one name per team. Same on the cup list: Custer "Haas/Bonanza Wines" (haas) and McDowell "Delaware Life" (the bare `ware` pattern - now \bware\b). Operator re-uploads + re-imports Gateway in both series; the bulk upsert overwrites all 36 rows.
+
+## 2026-09-12 — Load Data: "last loaded per series" strip on the NASCAR-feed loader
+Operator: show the last race loaded for each series so a forgotten one is obvious. `LoadedStatus`
+(NascarFeedAdmin.js) above the form: per series, the highest race_number in `races` for the year
+(rows carrying a racing_reference_id — practice-uploader stubs have none) with track, date and count;
+plus NASCAR's schedule feed (one call, all three series): any scheduled race dated after the last
+loaded one and before today is listed as MISSING in red, else "up to date". Re-reads after every
+successful Load. Feed failure degrades to the DB half only.
