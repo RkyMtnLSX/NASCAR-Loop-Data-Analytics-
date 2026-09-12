@@ -3351,3 +3351,13 @@ folder grant), so this went up through GitHub's web upload in Chrome (file_uploa
 src/pages) — a working fallback when the patch/am route is dead. Near-miss: my cloud clone was a week
 stale and a root upload of pitboard.md/STATE would have wiped other sessions' entries; always
 `git fetch` + diff against origin BEFORE uploading whole files.
+
+## 2026-09-12 (later) — PDF parser follow-up: sponsor that passes the team-word regex; Jayski abbreviations
+Operator's Gateway import came back 32/36 clean and flagged four: Corey Day and Rajah Caruth got
+"HendrickCars.com" (the sponsor contains "hendrick", so the team-WORD regex accepted the positional
+slot before the row was ever scanned) and Love/Hill got "R. Childress Racing" (Jayski abbreviated).
+Fix: the row scan now runs whenever the positional slot is not a KNOWN team, and a known team
+anywhere in the row wins before the word regex is consulted. New `canonTeam`: an org that is not a
+known team but whose fold minus its first token is the unique tail of exactly one known team takes
+that team's stored spelling ("R. Childress Racing" -> "Richard Childress Racing"), so entry_list keeps
+one name per team. Same on the cup list: Custer "Haas/Bonanza Wines" (haas) and McDowell "Delaware Life" (the bare `ware` pattern - now \bware\b). Operator re-uploads + re-imports Gateway in both series; the bulk upsert overwrites all 36 rows.
