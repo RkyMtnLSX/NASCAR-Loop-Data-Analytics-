@@ -732,26 +732,37 @@ export default function DFSPage() {
     // the output (DK only edits rows present in the upload, so those entries stay untouched).
     // Re-using the same lineup across DIFFERENT contests remains fine and intended.
     let skipped = 0
+    // ONE LEG PER CONTEST (2026-09-12, operator: "60 lineups, 3 contests, why 180?"). In Portfolio
+    // mode the legs ARE the contests - leg k is built to be entered in contest k with its own chalk
+    // stance and no lineup shared across legs. Filling every selected contest from whichever leg
+    // happened to be selected put the same 60 lineups in all three. Now the k-th selected contest
+    // (file order) fills from leg k (wrapping if more contests than legs); other modes unchanged.
+    const __legs = mode === 'portfolio' && portfolio && portfolio.legs && portfolio.legs.length ? portfolio.legs.map(l => l.lineups) : null
+    const __legUsed = []
+    let __k = 0
     entFile.groups.forEach(g => {
       if (!entFile.sel.has(g.name)) return
+      const __src = __legs ? (__legs[__k % __legs.length] || []) : lineups
+      if (__legs) __legUsed.push(g.name.replace(/\s*\(.*$/, '') + ' <- leg ' + ((__k % __legs.length) + 1))
+      __k++
       let gi = 0
       g.rows.forEach(li => {
-        if (gi >= lineups.length) { skipped++; return }
+        if (gi >= __src.length) { skipped++; return }
         const cells = __csvParse(entFile.lines[li])
-        const lu = lineups[gi]
+        const lu = __src[gi]
         lu.drivers.forEach((d2, k2) => { const id = ids[d2.name]; if (!id) missing.add(d2.name); cells[entFile.dCols[k2]] = id ? d2.name + ' (' + id + ')' : d2.name })
         out.push(__csvSer(cells))
         gi++; filled++
       })
     })
     if (!filled) { setNote('No contests selected.'); return }
-    const skipMsg = skipped ? ' SKIPPED ' + skipped + ' entr' + (skipped === 1 ? 'y' : 'ies') + ' (only ' + lineups.length + ' unique lineups at the current exposure cap - no duplicates written; those entries are untouched on DK. Raise the cap or lineup count and re-run to fill them).' : ''
+    const skipMsg = skipped ? ' SKIPPED ' + skipped + ' entr' + (skipped === 1 ? 'y' : 'ies') + ' (only ' + (__legs ? 'that leg\'s ' : '') + lineups.length + ' unique lineups at the current exposure cap - no duplicates written; those entries are untouched on DK. Raise the cap or lineup count and re-run to fill them).' : ''
     const a = document.createElement('a')
     a.href = URL.createObjectURL(new Blob([out.join('\n')], { type: 'text/csv' }))
     const __trk2 = race && race.track ? String(race.track).replace(/[^a-zA-Z0-9]+/g, '_') : 'race'
     a.download = 'PitBoard_DK_ENTRIES_' + series + '_' + __trk2 + '_filled.csv'
     a.click(); URL.revokeObjectURL(a.href)
-    setNote('Filled ' + filled + ' entr' + (filled === 1 ? 'y' : 'ies') + ' across ' + entFile.sel.size + ' contest(s) - upload back on the DK Upload Lineups page. Unselected contests untouched.' + skipMsg + (missing.size ? ' WARNING: no DK ID for ' + [...missing].join(', ') : ''))
+    setNote('Filled ' + filled + ' entr' + (filled === 1 ? 'y' : 'ies') + ' across ' + entFile.sel.size + ' contest(s)' + (__legUsed.length ? ' [' + __legUsed.join('; ') + ']' : '') + ' - upload back on the DK Upload Lineups page. Unselected contests untouched.' + skipMsg + (missing.size ? ' WARNING: no DK ID for ' + [...missing].join(', ') : ''))
     setEntFile(null)
   }
 
@@ -870,7 +881,7 @@ export default function DFSPage() {
         </div>}
         <div style={card}>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 12 }}>
-            <label style={{ fontSize: 13 }}>Lineups<br /><input type="number" value={numLineups} min={1} max={150} onChange={e => setNumLineups(Math.max(1, Math.min(150, +e.target.value || 1)))} style={{ width: 70, marginTop: 4, background: 'var(--bg,#0e0f13)', color: 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 6, padding: '5px 7px' }} /></label>
+            <label style={{ fontSize: 13 }} title={mode === 'portfolio' ? 'Per leg. Legs are contests: set this to the largest contest\'s entry count; each contest is filled from its own leg.' : undefined}>{mode === 'portfolio' ? 'Lineups per leg' : 'Lineups'}<br /><input type="number" value={numLineups} min={1} max={150} onChange={e => setNumLineups(Math.max(1, Math.min(150, +e.target.value || 1)))} style={{ width: 70, marginTop: 4, background: 'var(--bg,#0e0f13)', color: 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 6, padding: '5px 7px' }} /></label>
             <label style={{ fontSize: 13 }}>Max exposure %<br /><input type="number" min={10} max={100} step={5}
               value={Math.round(maxExp * 100)}
               onChange={e => { const v = Math.max(10, Math.min(100, +e.target.value || 100)); setMaxExp(v / 100) }}
