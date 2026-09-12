@@ -167,11 +167,15 @@ export default function LapComparison({ isSubscriber }) {
         .eq('series', selectedSession.series)
         .eq('race_year', selectedSession.year)
         .eq('track_name', selectedSession.track_name)
+      // NAME KEY (2026-09-12): the entry-list lookup was an EXACT string match, so a practice
+      // sheet name carrying a roster marker - "Carson Kvapil (C)" for the Chase field at Gateway -
+      // never found "Carson Kvapil" and every marked driver lost the car-number art. Both sides
+      // now go through __nn, which also drops (i)/(P)/(C)/(R) markers, #/* flags and periods.
+      const __nn = s => String(s || '').replace(/\(\s*[A-Za-z]\s*\)/g, ' ').replace(/[#*]/g, ' ').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\./g, '').replace(/\s+/g, ' ').trim()
       const entryMap = {}
-      for (const e of (entryData || [])) { entryMap[e.driver_name] = e.car_number }
+      for (const e of (entryData || [])) { entryMap[__nn(e.driver_name)] = e.car_number }
       // CAR FALLBACK (2026-07-17): loop_data carries car numbers for completed races -- covers
       // sessions whose sheets lacked a Car column and weeks with no entry list loaded.
-      const __nn = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\./g, '').replace(/\s+/g, ' ').trim()
       const loopMap = {}
       const loopStart = {}
       try {
@@ -201,7 +205,7 @@ export default function LapComparison({ isSubscriber }) {
       const map = {}
       for (const row of (data || [])) {
         if (!map[row.driver_name]) {
-          map[row.driver_name] = { driver_name: row.driver_name, car_number: row.car_number || entryMap[row.driver_name] || loopMap[__nn(row.driver_name)] || null, starting_position: (row.starting_position != null ? row.starting_position : loopStart[__nn(row.driver_name)]), laps: [], practice_group: __grpMap[__nn(row.driver_name)] || null }
+          map[row.driver_name] = { driver_name: row.driver_name, car_number: row.car_number || entryMap[__nn(row.driver_name)] || loopMap[__nn(row.driver_name)] || null, starting_position: (row.starting_position != null ? row.starting_position : loopStart[__nn(row.driver_name)]), laps: [], practice_group: __grpMap[__nn(row.driver_name)] || null }
         }
         map[row.driver_name].laps.push({ lap: row.lap_number, time: row.lap_time })
       }

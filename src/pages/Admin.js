@@ -26,7 +26,9 @@ import { LoadRaceFromFeed, FeedBackfill } from './NascarFeedAdmin'
 // are removed; anything interior is left alone.
 export function stripRosterMarkers(name) {
   var s = String(name == null ? '' : name)
-  s = s.replace(/\((?:i|P)\)/gi, ' ')
+  // (i) ineligible, (P) playoff/provisional, (C) Chase, (R) rookie - any single-letter marker
+  // (2026-09-12: "(C)" survived into practice_sessions at Gateway and broke the car-art join).
+  s = s.replace(/\(\s*[A-Za-z]\s*\)/g, ' ')
   s = s.replace(/^[#*\s]+/, '').replace(/[#*\s]+$/, '')
   return s.replace(/\s+/g, ' ').trim()
 }
@@ -2278,6 +2280,18 @@ export default function Admin() {
         raceId = newRace.id
       }
 
+      // CAR NUMBER FALLBACK (2026-09-12): a sheet without a Car # column (Gateway O'Reilly: every
+      // row stored car_number NULL) leaves the report card without number badges and the
+      // comparison tool joining on names. Fill from this weekend's entry list by normalized name.
+      const __ck = n => String(n || '').replace(/\(\s*[A-Za-z]\s*\)/g, ' ').replace(/[#*.]/g, ' ').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim()
+      const __entryCar = {}
+      try {
+        const { data: __el } = await supabase.from('entry_list').select('driver_name, car_number')
+          .eq('series', series).eq('race_year', year).eq('track_name', trackName)
+        for (const e of (__el || [])) if (e.car_number) __entryCar[__ck(e.driver_name)] = String(e.car_number)
+      } catch (e) { /* best effort */ }
+      const __carFor = d => d.carNumber || __entryCar[__ck(d.driver)] || null
+
       // Delete and re-insert practice session summaries
       await supabase.from('practice_sessions').delete()
         .eq('race_id', raceId).eq('series', series).eq('session_number', sessionNum).eq('race_number', practiceRaceNum)
@@ -2290,7 +2304,7 @@ export default function Admin() {
         session_number: sessionNum,
         race_number: practiceRaceNum,
         qualifying_position: d.start,
-        car_number: d.carNumber || null,
+        car_number: __carFor(d),
         practice_group: d.group || null,
         total_laps: d.totalLaps,
         best_lap: d.bestLap,
@@ -2329,7 +2343,7 @@ export default function Admin() {
               series, year, track_name: trackName, session_number: sessionNum,
             race_number: practiceRaceNum,
               driver_name: stripRosterMarkers(d.driver),
-              car_number: d.carNumber || null,
+              car_number: __carFor(d),
               starting_position: d.start || null,
               lap_number: parseInt(lapNum),
               lap_time: t,
