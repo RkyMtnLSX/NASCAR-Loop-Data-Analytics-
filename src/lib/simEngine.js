@@ -395,7 +395,12 @@ function normalizeArr(values, lowerIsBetter = false) {
 const NAME_ALIASES = { 'nicholas sanchez': 'nick sanchez' } // entry-sheet name -> loop-data name. 2026-08-03 audit: only cross-source mismatch across all three series' current entries.
 function normalizeName(s) {
   if (!s) return ''
-  const n = s.replace(/\((?:i|P|C|R)\)/gi, ' ').replace(/([A-Za-z])\./g, '$1').normalize('NFD')   // roster markers (i)/(P)/(C)/(R) never distinguish drivers (2026-09-05).replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/gi, ' ').replace(/\s+/g, ' ').trim().toLowerCase()
+  // Roster markers (i)/(P)/(C)/(R) never distinguish drivers (2026-09-05). BUG FIXED 2026-09-12: that
+  // day's edit put a trailing comment in the MIDDLE of this chain, so everything after normalize('NFD')
+  // - accent strip, punctuation, whitespace collapse, trim, lowercase - was commented out for a week.
+  // "Carson Kvapil (C)" normalized to "Carson Kvapil  " (two trailing spaces) and never matched the
+  // entry-list "Carson Kvapil", NAME_ALIASES (lowercase keys) never hit, and accented names split.
+  const n = s.replace(/\((?:i|P|C|R)\)/gi, ' ').replace(/([A-Za-z])\./g, '$1').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/gi, ' ').replace(/\s+/g, ' ').trim().toLowerCase()
   return NAME_ALIASES[n] || n
 }
 
