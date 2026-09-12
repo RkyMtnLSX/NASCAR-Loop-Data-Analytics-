@@ -3369,3 +3369,13 @@ Operator: show the last race loaded for each series so a forgotten one is obviou
 plus NASCAR's schedule feed (one call, all three series): any scheduled race dated after the last
 loaded one and before today is listed as MISSING in red, else "up to date". Re-reads after every
 successful Load. Feed failure degrades to the DB half only.
+
+## 2026-09-12 — Qualifying PDF parser: "Time Trial Results" format drops owner-points cars
+Operator: Gateway O'Reilly qualifying PDF parsed 32 of 36 — his guess (the OP marker) was right. The
+"Time Trial Results" layout prints the qualifying-method flag (OP / PC / *) in its own column between
+Pos and Car, so the four owner-points rows read as car "OP" and were skipped; the "Starting Line Up
+by Row" layout (Atlanta file) instead writes "Owner Points" in the time column and always parsed.
+Fix in the Load Qualifying Results PDF path: skip any short marker token before the car number; and
+the time/speed pair is now the first adjacent pair with a plausible speed (50-250) rather than the
+last two decimals on the row — the Time Trial format carries Lap # / -Fastest / -Next after speed.
+Verified in node with the same row logic: Gateway 36/36, Atlanta lineup 38/38.
