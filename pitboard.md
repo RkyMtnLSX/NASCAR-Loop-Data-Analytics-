@@ -3379,3 +3379,25 @@ Fix in the Load Qualifying Results PDF path: skip any short marker token before 
 the time/speed pair is now the first adjacent pair with a plausible speed (50-250) rather than the
 last two decimals on the row — the Time Trial format carries Lap # / -Fastest / -Next after speed.
 Verified in node with the same row logic: Gateway 36/36, Atlanta lineup 38/38.
+
+## 2026-09-12 — DATA FIX (DB only): fastest_laps track names canonicalised
+Operator: Gateway absent from the cup track list on the Fastest Laps page. The four cup Gateway races
+(2022-25) sat under Lap Raptor's "World Wide Technology Raceway" while trucks/O'Reilly used
+"Gateway", so the dropdown listed it under W and every canonical-name lookup (sim track history,
+display groups) missed cup Gateway. Renamed via PostgREST as the operator (Supabase MCP down):
+World Wide Technology Raceway -> Gateway (144), Circuit of The Americas -> Circuit of the Americas
+(189), Chicago Street Race -> Chicago Street Course (116), Indianapolis Motor Speedway Road Course ->
+Indianapolis Grand Prix Circuit (77). Left alone on purpose: Los Angeles Memorial Coliseum (Clash,
+exhibition-filtered) and the two Bristol dirt spellings (no canonical dirt track; must not merge into
+concrete Bristol). Gateway now cup 144 / trucks 102 / O'Reilly 38.
+
+## 2026-09-12 — Practice Comparison: Chase-marked drivers lost their car-number art
+Operator: every "(C)" driver had no number PNG. Gateway O'Reilly practice rows were stored as
+"Carson Kvapil (C)" (the feed carries the Chase marker) with car_number NULL for all 36 (sheet had no
+Car # column), and LapComparison's entry-list fallback was an EXACT-string match, so marked drivers
+never found their car. Three fixes: (1) `stripRosterMarkers` now strips ANY single-letter marker
+(i)/(P)/(C)/(R) — it only knew (i)/(P) — so uploads store clean names everywhere it is used;
+(2) LapComparison keys the entry-list map by the normalized name (markers, #/*, periods dropped);
+(3) the practice uploader fills car_number from this weekend's entry list by normalized name when the
+sheet has none, so the report card gets its badges too. Operator re-uploads the Gateway practice
+sheet after deploy to rewrite this week's rows (delete + re-insert).
