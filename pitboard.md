@@ -3401,3 +3401,15 @@ never found their car. Three fixes: (1) `stripRosterMarkers` now strips ANY sing
 (3) the practice uploader fills car_number from this weekend's entry list by normalized name when the
 sheet has none, so the report card gets its badges too. Operator re-uploads the Gateway practice
 sheet after deploy to rewrite this week's rows (delete + re-insert).
+
+## 2026-09-12 — SIM BUG: normalizeName's chain was half commented-out since 09-05 (f291ae2)
+Found while answering "did the (C) issue affect the sim I ran". The 09-05 edit that added (C)/(R) to
+the roster-marker strip put its trailing comment in the MIDDLE of the chain, so everything after
+normalize('NFD') — accent strip, punctuation, whitespace collapse, trim, lowercase — was commented
+out. Effects for every board run 09-05 → 09-12: (1) a practice row "Carson Kvapil (C)" normalized to
+"Carson Kvapil  " and never matched the entry-list driver, so every Chase/marked driver ran WITHOUT
+practice (15% of speed score at cup/trucks via best5; O'Reilly per its weight set) — Darlington cup
+(09-06) and this week's Gateway boards; (2) NAME_ALIASES (lowercase keys) never hit; (3) accented
+names (Suárez) could split from their unaccented history rows; (4) the crossover-borrow map keyed
+the same way. Fixed 2026-09-12 (one line), node-verified, sim:smoke ALL PASS. OPERATOR ACTION:
+re-run + republish this weekend's boards after deploy.
