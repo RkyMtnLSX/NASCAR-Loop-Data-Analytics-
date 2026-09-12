@@ -3413,3 +3413,13 @@ practice (15% of speed score at cup/trucks via best5; O'Reilly per its weight se
 names (Suárez) could split from their unaccented history rows; (4) the crossover-borrow map keyed
 the same way. Fixed 2026-09-12 (one line), node-verified, sim:smoke ALL PASS. OPERATOR ACTION:
 re-run + republish this weekend's boards after deploy.
+
+## 2026-09-12 — DFS Portfolio: one leg per contest on "Fill reserved entries"; "Lineups" is per leg
+Operator: "60 lineups, 3 contests, why 180 entries?" The Lineups box is PER LEG and Legs = contests,
+so 3 x 60 = 180 by design (legs are built together: own chalk stance each, no lineup shared across
+legs, 60% portfolio cap). The real gap: "Fill reserved entries" filled every selected contest from
+whichever leg was selected, so all contests got the same lineups and the other legs went unused.
+Now the k-th selected contest (file order) fills from leg k (wraps if more contests than legs); the
+note names the mapping ("Dime Time <- leg 1; Quarter Jukebox <- leg 2"). Label reads "Lineups per
+leg" in Portfolio mode with a tooltip: set it to the largest contest's entry count. Non-portfolio
+modes unchanged.
