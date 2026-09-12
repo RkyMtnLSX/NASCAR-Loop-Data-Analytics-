@@ -1229,12 +1229,15 @@ function LoadQualifying() {
       const parsed = []
 
       for (const parts of rows) {
-        // Find two time-like values at the end
+        // Find the TIME / SPEED pair: the first adjacent pair of time-like values where the
+        // second is a plausible speed (50-250) and the first is smaller. The "Time Trial Results"
+        // format (2026-09-12, Gateway O'Reilly) carries Lap # / # Laps / -Fastest / -Next AFTER
+        // speed, so "last two matches" would read a 10s+ gap column as the speed.
         let speedIdx = -1, timeIdx = -1
-        for (let i = parts.length - 1; i >= 0; i--) {
-          if (timeRx.test(parts[i])) {
-            if (speedIdx === -1) speedIdx = i
-            else if (timeIdx === -1) { timeIdx = i; break }
+        for (let i = 0; i < parts.length - 1; i++) {
+          if (timeRx.test(parts[i]) && timeRx.test(parts[i + 1])) {
+            const t = parseFloat(parts[i]), sp = parseFloat(parts[i + 1])
+            if (sp >= 50 && sp <= 250 && t < sp) { timeIdx = i; speedIdx = i + 1; break }
           }
         }
         // time/speed optional: rain-out lineups have none (0.000)
@@ -1249,7 +1252,13 @@ function LoadQualifying() {
 
         const pos = parseInt(parts[si])
         if (isNaN(pos) || pos < 1 || pos > 60) continue
-        const car = parts[si + 1]
+        // QUALIFYING-METHOD MARKER (2026-09-12, Gateway O'Reilly): the "Time Trial Results" format
+        // prints OP / PC / * in its own column between Pos and Car ("33  OP  02  Ryan Ellis"), so
+        // the four owner-points cars parsed as car "OP" and were dropped (32 of 36). Skip any short
+        // all-caps / symbol marker before the car number.
+        let ci = si + 1
+        while (ci < parts.length && /^(\*|OP|PC|\(i\)|[A-Z*]{1,3})$/.test(parts[ci]) && !/^\d/.test(parts[ci])) ci++
+        const car = parts[ci]
         if (!car || !/^\d{1,3}[A-Z]?$/.test(car)) continue
 
         parsed.push({ pos, car, lapTime, speed })
