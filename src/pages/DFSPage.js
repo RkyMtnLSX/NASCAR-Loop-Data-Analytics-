@@ -344,6 +344,14 @@ export default function DFSPage() {
   const [lineupsHidden, setLineupsHidden] = useState(false)
   const [portRelax, setPortRelax] = useState({ portfolioMaxPct: null, t2MinOffLegs: [] })   // per-build relaxations chosen from the 'why short' buttons   // 2026-09-06: collapse the built set so the pool is reachable
   const [entFile, setEntFile] = useState(null) // 2026-08-20: parsed DK entries file awaiting contest selection
+  // CONTEST-FILE-FIRST (2026-09-12, operator). The DK entries file already says which contests are
+  // entered and how many entries each holds, so it is read FIRST and the build is derived from it:
+  // every GPP contest becomes a Portfolio leg sized to its entry count (legs ARE contests, 09-06),
+  // cash contests share one cash build sized to the largest, and Fill writes each contest from its
+  // own set. `plan` = { gpp: [contest names in file order], cash: [...], wants: [...] }; cashSet =
+  // the cash lineups built for the plan. Manual mode (no file) is unchanged.
+  const [plan, setPlan] = useState(null)
+  const [cashSet, setCashSet] = useState([])
   const [sortKey, setSortKey] = useState('value')
   const [sortDir, setSortDir] = useState('desc')
   // BUILD CANCELLATION (2026-09-05 review fix). buildGpp/step2 run across many setTimeout ticks and
@@ -354,7 +362,7 @@ export default function DFSPage() {
   useEffect(() => {
     let alive = true
     buildIdRef.current++; setBuilding(false)
-    setLoading(true); setLineups([]); setOptPct({}); setSimCands(null); setLocks(new Set()); setExcludes(new Set()); setExpo({}); setSalaries({}); setSamples(null); setNote('')
+    setLoading(true); setLineups([]); setOptPct({}); setSimCands(null); setLocks(new Set()); setExcludes(new Set()); setExpo({}); setSalaries({}); setSamples(null); setNote(''); setPlan(null); setCashSet([]); setPortfolio(null); setEntFile(null)
     ;(async () => {
       // POST BOARDS ONLY (2026-09-05, owner rule): the optimizer must never build on projected
       // starting positions. A 'pre' board (published before practice + qualifying) carries the sim's
@@ -626,22 +634,24 @@ export default function DFSPage() {
     }
     step2()
   }
-  const buildPortfolioUI = (myBuild, relaxArg) => {
+  const buildPortfolioUI = (myBuild, relaxArg, wantsArg) => {
     const relax = relaxArg || portRelax
+    const __wants = wantsArg || (plan && plan.wants && plan.wants.length ? plan.wants : null)
+    const __legsN = __wants ? __wants.length : Math.max(1, Math.min(6, portLegs))
     if (myBuild !== buildIdRef.current) return
     if (!samples || !samples.drivers || !samples.rows || !samples.rows.length) { setNote('Portfolio needs the stored sim draws (post board) - none loaded.'); setBuilding(false); return }
     const rulesOn = portRules == null ? portfolioRulesDefault(series) : portRules
     const res = buildPortfolio(
       { optimize, bestLineup, makeEmaxSelector, topUpLineups, enforceMinExposure, capFor: __capFor, ROSTER, CAP },
-      { rows: rowsOwn.map(r => ({ name: r.name, car: r.car, sal: r.sal, projDK: r.projDK })), samples, simCands, legs: Math.max(1, Math.min(6, portLegs)), want: numLineups,
+      { rows: rowsOwn.map(r => ({ name: r.name, car: r.car, sal: r.sal, projDK: r.projDK })), samples, simCands, legs: __legsN, want: __wants ? Math.max.apply(null, __wants) : numLineups, wants: __wants || undefined,
         rulesOn, schedule: portSchedule, locks, excludes, userExpo: expo, projOwn: ownMap,
         rules: relax.portfolioMaxPct ? { portfolioMaxPct: relax.portfolioMaxPct } : {}, t2MinOffLegs: relax.t2MinOffLegs })
     if (myBuild !== buildIdRef.current) return
     setPortfolio({ ...res, rulesOn })
     setPortLeg(0)
     setLineups(res.legs[0] ? res.legs[0].lineups : [])
-    const short = res.legs.map((l, i) => l.short ? 'leg ' + (i + 1) + ' delivered ' + l.lineups.length + ' of ' + numLineups + ' (' + (l.why || []).join('; ') + ')' : null).filter(Boolean)
-    setNote('PORTFOLIO: ' + res.legs.length + ' legs x ' + numLineups + ' (' + res.total + ' entries), rules ' + (rulesOn ? 'ON' : 'OFF') + ', chalk ' + (CHALK_SCHEDULES[portSchedule] ? CHALK_SCHEDULES[portSchedule].label.split(' (')[0] : portSchedule) +
+    const short = res.legs.map((l, i) => l.short ? 'leg ' + (i + 1) + ' delivered ' + l.lineups.length + ' of ' + (l.want || numLineups) + ' (' + (l.why || []).join('; ') + ')' : null).filter(Boolean)
+    setNote('PORTFOLIO: ' + res.legs.length + ' legs ' + (__wants ? '(' + __wants.join(' / ') + ')' : 'x ' + numLineups) + ' (' + res.total + ' entries), rules ' + (rulesOn ? 'ON' : 'OFF') + ', chalk ' + (CHALK_SCHEDULES[portSchedule] ? CHALK_SCHEDULES[portSchedule].label.split(' (')[0] : portSchedule) +
       '. Chalk: ' + (res.cls.chalk.length ? res.cls.chalk.join(', ') : 'none over ' + PORTFOLIO_RULES.chalkOwnPct + '%') + '. Tier-two: ' + (res.cls.t2.join(', ') || 'none') + '.' + (short.length ? ' SHORT - ' + short.join('; ') + '.' : '') + ' Export each leg to its own contest.')
     setBuilding(false)
   }
@@ -651,7 +661,7 @@ export default function DFSPage() {
     setPortRelax(relax)
     const myBuild = ++buildIdRef.current
     setBuilding(true); setLineups([]); setNote(''); setPortfolio(null)
-    setTimeout(() => buildPortfolioUI(myBuild, relax), 30)
+    setTimeout(() => buildPortfolioUI(myBuild, relax, plan && plan.wants && plan.wants.length ? plan.wants : null), 30)
   }
   const build = () => {
     const myBuild = ++buildIdRef.current
@@ -660,17 +670,47 @@ export default function DFSPage() {
     if (mode === 'gpp' && samples && samples.drivers && samples.rows && samples.rows.length) { setTimeout(() => buildGpp(myBuild), 30); return }
     setTimeout(() => {
       if (myBuild !== buildIdRef.current) return
-      const pool = rows.map(r => ({ name: r.name, car: r.car, sal: r.sal, projDK: r.projDK }))
-      const K = Math.min(1500, Math.max(numLineups * 20, 200))   // deeper pool so exposure caps can actually fill the request
-      const res = optimize(pool, locks, excludes, K)
-      if (res.error) { setNote(res.error); setBuilding(false); return }
-      let picked = applyExposure(res.lineups, numLineups, maxExp, locks, expo)
-      picked = topUpLineups(picked, numLineups, maxExp, locks, pool, excludes, expo)
-      picked = enforceMinExposure(picked, numLineups, maxExp, locks, pool, excludes, expo)
-      setLineups(picked)
-      const expMsg = picked.length < numLineups ? 'Exposure cap: only ' + picked.length + ' of ' + numLineups + ' lineups possible at ' + Math.round(maxExp * 100) + '% max exposure even after constructing fresh lineups (locked drivers exempt) - lock/exclude settings leave too few drivers.' : ''
-      setNote(expMsg)
+      const r2 = buildCashSet(numLineups)
+      if (r2.error) { setNote(r2.error); setBuilding(false); return }
+      setLineups(r2.picked)
+      setNote(r2.msg)
       setBuilding(false)
+    }, 30)
+  }
+  // Cash build (mean optimizer + exposure), shared by manual Cash mode and the contest plan.
+  const buildCashSet = (n) => {
+    const pool = rows.map(r => ({ name: r.name, car: r.car, sal: r.sal, projDK: r.projDK }))
+    const K = Math.min(1500, Math.max(n * 20, 200))   // deeper pool so exposure caps can actually fill the request
+    const res = optimize(pool, locks, excludes, K)
+    if (res.error) return { error: res.error }
+    let picked = applyExposure(res.lineups, n, maxExp, locks, expo)
+    picked = topUpLineups(picked, n, maxExp, locks, pool, excludes, expo)
+    picked = enforceMinExposure(picked, n, maxExp, locks, pool, excludes, expo)
+    const msg = picked.length < n ? 'Exposure cap: only ' + picked.length + ' of ' + n + ' lineups possible at ' + Math.round(maxExp * 100) + '% max exposure even after constructing fresh lineups (locked drivers exempt) - lock/exclude settings leave too few drivers.' : ''
+    return { picked, msg }
+  }
+  // CONTEST-FILE-FIRST build: derive everything from the selected contests in the entries file.
+  const buildForPlan = () => {
+    if (!entFile) return
+    const gpp = entFile.groups.filter(g => entFile.sel.has(g.name) && (entFile.types[g.name] || 'gpp') === 'gpp')
+    const cash = entFile.groups.filter(g => entFile.sel.has(g.name) && entFile.types[g.name] === 'cash')
+    if (!gpp.length && !cash.length) { setNote('Tick at least one contest.'); return }
+    if (gpp.length > 6) { setNote('At most 6 GPP contests per build (the portfolio builder caps legs at 6) - untick some and run the file again for the rest.'); return }
+    const wants = gpp.map(g => g.rows.length)
+    const newPlan = { gpp: gpp.map(g => g.name), cash: cash.map(g => g.name), wants, cashN: cash.length ? Math.max.apply(null, cash.map(g => g.rows.length)) : 0 }
+    setPlan(newPlan)
+    const myBuild = ++buildIdRef.current
+    setBuilding(true); setLineups([]); setNote(''); setPortfolio(null); setCashSet([])
+    setTimeout(() => {
+      if (myBuild !== buildIdRef.current) return
+      if (newPlan.cashN) {
+        const r2 = buildCashSet(newPlan.cashN)
+        if (r2.error) { setNote(r2.error); setBuilding(false); return }
+        setCashSet(r2.picked)
+        if (!wants.length) { setMode('cash'); setLineups(r2.picked); setNote('CASH: ' + r2.picked.length + ' lineups for ' + cash.length + ' contest(s). ' + r2.msg); setBuilding(false); return }
+      }
+      setMode('portfolio')
+      buildPortfolioUI(myBuild, null, wants)
     }, 30)
   }
 
@@ -682,7 +722,7 @@ export default function DFSPage() {
   const __csvParse = (line) => { const out = []; let cur = '', q = false; for (let i = 0; i < line.length; i++) { const ch = line[i]; if (q) { if (ch === '"') { if (line[i + 1] === '"') { cur += '"'; i++ } else q = false } else cur += ch } else { if (ch === '"') q = true; else if (ch === ',') { out.push(cur); cur = '' } else cur += ch } } out.push(cur); return out }
   const __csvSer = (cells) => cells.map(c => /[",]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c).join(',')
   const parseEntriesFile = (file) => {
-    if (!lineups.length || !file) return
+    if (!file) return
     const reader = new FileReader()
     reader.onload = (ev) => {
       try {
@@ -700,7 +740,13 @@ export default function DFSPage() {
             break
           }
         }
-        if (hdrIdx === -1 || dCols.length < ROSTER) { setNote('Could not find Entry ID / D columns. Get the right file from DraftKings: Lineups -> EDIT ENTRIES -> download CSV. (Not the entry-history export - that has Sport/Game_Type and no Entry ID.)'); return }
+        if (hdrIdx === -1 || dCols.length < ROSTER) {
+          // WRONG-FILE TRAP (bitten twice, 08-14 and 08-20): name the file the operator actually uploaded
+          const __head = lines.slice(0, 3).join('\n').toLowerCase()
+          if (/game_type|\bsport\b/.test(__head)) { setNote('That is the ENTRY-HISTORY export (Sport / Game_Type columns) - it has no Entry IDs. Use DraftKings Lineups -> EDIT ENTRIES -> download CSV.'); return }
+          if (/%drafted|fpts|player/.test(__head)) { setNote('That is a CONTEST-STANDINGS file (Player / %Drafted) - it is for the ownership upload, not entries. Use DraftKings Lineups -> EDIT ENTRIES -> download CSV.'); return }
+          setNote('Could not find Entry ID / D columns. Get the right file from DraftKings: Lineups -> EDIT ENTRIES -> download CSV. (Not the entry-history export - that has Sport/Game_Type and no Entry ID.)'); return
+        }
         const groups = {}
         for (let li = hdrIdx + 1; li < lines.length; li++) {
           if (!lines[li]) continue
@@ -712,14 +758,17 @@ export default function DFSPage() {
         }
         const glist = Object.keys(groups).map(n2 => ({ name: n2, rows: groups[n2] }))
         if (!glist.length) { setNote('No reserved entries found in that file.'); return }
-        setEntFile({ lines, hdrIdx, eCol, cCol, dCols, groups: glist, sel: new Set(glist.map(g => g.name)) })
+        // contest type from the name: DK's cash formats are Double Up / 50-50 / Triple Up / Head-to-Head / Booster; everything else GPP
+        const types = {}; glist.forEach(g => { types[g.name] = /double\s*up|50\s*\/\s*50|50-50|triple\s*up|head-?to-?head|\bh2h\b|booster|multiplier/i.test(g.name) ? 'cash' : 'gpp' })
+        setEntFile({ lines, hdrIdx, eCol, cCol, dCols, groups: glist, sel: new Set(glist.map(g => g.name)), types, fileName: file.name })
+        setPlan(null); setCashSet([])
         setNote('')
       } catch (err2) { setNote('Entries parse failed: ' + err2.message) }
     }
     reader.readAsText(file)
   }
   const applyEntriesFill = () => {
-    if (!entFile || !lineups.length) return
+    if (!entFile || (!lineups.length && !cashSet.length)) return
     const ids = (salaries && salaries.__ids) || {}
     const missing = new Set()
     const out = entFile.lines.slice(0, entFile.hdrIdx + 1)
@@ -742,9 +791,18 @@ export default function DFSPage() {
     let __k = 0
     entFile.groups.forEach(g => {
       if (!entFile.sel.has(g.name)) return
-      const __src = __legs ? (__legs[__k % __legs.length] || []) : lineups
-      if (__legs) __legUsed.push(g.name.replace(/\s*\(.*$/, '') + ' <- leg ' + ((__k % __legs.length) + 1))
-      __k++
+      let __src
+      if (plan && (plan.gpp.indexOf(g.name) !== -1 || plan.cash.indexOf(g.name) !== -1)) {
+        // contest plan: GPP contest -> its own leg; cash contest -> the cash set
+        const gi2 = plan.gpp.indexOf(g.name)
+        // fall back to the on-screen lineups if the plan's set was rebuilt by hand (manual Build after a plan)
+        __src = gi2 !== -1 ? ((portfolio && portfolio.legs && portfolio.legs[gi2]) ? portfolio.legs[gi2].lineups : lineups) : (cashSet.length ? cashSet : lineups)
+        __legUsed.push(g.name.replace(/\s*\(.*$/, '') + (gi2 !== -1 ? ' <- leg ' + (gi2 + 1) : ' <- cash set'))
+      } else {
+        __src = __legs ? (__legs[__k % __legs.length] || []) : lineups
+        if (__legs) __legUsed.push(g.name.replace(/\s*\(.*$/, '') + ' <- leg ' + ((__k % __legs.length) + 1))
+        __k++
+      }
       let gi = 0
       g.rows.forEach(li => {
         if (gi >= __src.length) { skipped++; return }
@@ -755,7 +813,7 @@ export default function DFSPage() {
         gi++; filled++
       })
     })
-    if (!filled) { setNote('No contests selected.'); return }
+    if (!filled) { setNote(plan ? 'Nothing to write - build for these contests first.' : 'No contests selected.'); return }
     const skipMsg = skipped ? ' SKIPPED ' + skipped + ' entr' + (skipped === 1 ? 'y' : 'ies') + ' (only ' + (__legs ? 'that leg\'s ' : '') + lineups.length + ' unique lineups at the current exposure cap - no duplicates written; those entries are untouched on DK. Raise the cap or lineup count and re-run to fill them).' : ''
     const a = document.createElement('a')
     a.href = URL.createObjectURL(new Blob([out.join('\n')], { type: 'text/csv' }))
@@ -763,7 +821,7 @@ export default function DFSPage() {
     a.download = 'PitBoard_DK_ENTRIES_' + series + '_' + __trk2 + '_filled.csv'
     a.click(); URL.revokeObjectURL(a.href)
     setNote('Filled ' + filled + ' entr' + (filled === 1 ? 'y' : 'ies') + ' across ' + entFile.sel.size + ' contest(s)' + (__legUsed.length ? ' [' + __legUsed.join('; ') + ']' : '') + ' - upload back on the DK Upload Lineups page. Unselected contests untouched.' + skipMsg + (missing.size ? ' WARNING: no DK ID for ' + [...missing].join(', ') : ''))
-    setEntFile(null)
+    if (!plan) setEntFile(null)   // with a contest plan the file IS the plan; keep it for a re-fill after a rebuild
   }
 
   const exportCsv = () => {
@@ -881,7 +939,7 @@ export default function DFSPage() {
         </div>}
         <div style={card}>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 12 }}>
-            <label style={{ fontSize: 13 }} title={mode === 'portfolio' ? 'Per leg. Legs are contests: set this to the largest contest\'s entry count; each contest is filled from its own leg.' : undefined}>{mode === 'portfolio' ? 'Lineups per leg' : 'Lineups'}<br /><input type="number" value={numLineups} min={1} max={150} onChange={e => setNumLineups(Math.max(1, Math.min(150, +e.target.value || 1)))} style={{ width: 70, marginTop: 4, background: 'var(--bg,#0e0f13)', color: 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 6, padding: '5px 7px' }} /></label>
+            <label style={{ fontSize: 13 }} title={mode === 'portfolio' ? 'Per leg. Legs are contests: set this to the largest contest\'s entry count; each contest is filled from its own leg.' : undefined}>{mode === 'portfolio' ? 'Lineups per leg' : 'Lineups'}{plan ? ' (from file)' : ''}<br /><input type="number" disabled={!!plan} value={plan && plan.wants.length ? Math.max.apply(null, plan.wants) : numLineups} min={1} max={150} onChange={e => setNumLineups(Math.max(1, Math.min(150, +e.target.value || 1)))} style={{ width: 70, marginTop: 4, background: 'var(--bg,#0e0f13)', color: 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 6, padding: '5px 7px' }} /></label>
             <label style={{ fontSize: 13 }}>Max exposure %<br /><input type="number" min={10} max={100} step={5}
               value={Math.round(maxExp * 100)}
               onChange={e => { const v = Math.max(10, Math.min(100, +e.target.value || 100)); setMaxExp(v / 100) }}
@@ -890,7 +948,7 @@ export default function DFSPage() {
               <option value="gpp">GPP (ceiling)</option><option value="cash">Cash (average)</option><option value="portfolio">Portfolio (N contests)</option>
             </select></label>
             {mode === 'portfolio' && <>
-              <label style={{ fontSize: 13 }}>Legs<br /><input type="number" value={portLegs} min={1} max={6} onChange={e => setPortLegs(Math.max(1, Math.min(6, +e.target.value || 1)))} style={{ width: 56, marginTop: 4, background: 'var(--bg,#0e0f13)', color: 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 6, padding: '5px 7px' }} /></label>
+              <label style={{ fontSize: 13 }}>Legs{plan ? ' (from file)' : ''}<br /><input type="number" disabled={!!plan} value={plan ? plan.wants.length : portLegs} min={1} max={6} onChange={e => setPortLegs(Math.max(1, Math.min(6, +e.target.value || 1)))} style={{ width: 56, marginTop: 4, background: 'var(--bg,#0e0f13)', color: 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 6, padding: '5px 7px' }} /></label>
               <label style={{ fontSize: 13 }} title="Tier-two studs 50-80% per leg, floor cars <= 10%, mid punts <= 25%, at most 2 punts per lineup, salary >= $48,800, no lineup reused across legs, 60% portfolio cap. Backtested +14% (7/2) on cup + O'Reilly; lost both truck races, so trucks default OFF.">Operator rules<br />
                 <input type="checkbox" checked={portRules == null ? portfolioRulesDefault(series) : portRules} onChange={e => setPortRules(e.target.checked)} style={{ marginTop: 8 }} /> {(portRules == null ? portfolioRulesDefault(series) : portRules) ? 'on' : 'off'}{portRules == null ? ' (series default)' : ''}</label>
               <label style={{ fontSize: 13 }} title="Max exposure to any driver projected over 35% owned, per leg. The fade schedule finds a higher peak (best-of-60 pctile 89 -> 94) and returned zero in 5 of 9 races - high variance by design.">Chalk stance<br /><select value={portSchedule} onChange={e => setPortSchedule(e.target.value)} style={{ marginTop: 4, background: 'var(--bg,#0e0f13)', color: 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 6, padding: '5px 7px' }}>
@@ -905,23 +963,44 @@ export default function DFSPage() {
                 Twice now a degenerate set has been uploaded and discovered too late (cup Richmond R24
                 seven-entries-one-thesis; NH trucks R18 exposure spiral). Also drops any staged
                 entries-fill file so a stale "Fill which contests?" panel cannot outlive the lineups. */}
-            {lineups.length > 0 && <button onClick={() => { setLineups([]); setEntFile(null); setNote('Lineups cleared - adjust locks, excludes, exposure or mode and build again.') }}
+            {lineups.length > 0 && <button onClick={() => { setLineups([]); setPortfolio(null); setCashSet([]); if (!plan) setEntFile(null); setNote('Lineups cleared - adjust locks, excludes, exposure or mode and build again.') }}
               style={{ padding: '8px 14px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: 'transparent', color: 'var(--text-muted,#9aa0a6)', fontWeight: 600 }}>Clear lineups</button>}
-            {lineups.length > 0 && <label style={{ padding: '8px 14px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--accent,#e11d2a)', color: 'var(--accent,#e11d2a)', fontWeight: 600, fontSize: 13 }}>
-              Fill reserved entries
+            <label style={{ padding: '8px 14px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--accent,#e11d2a)', color: 'var(--accent,#e11d2a)', fontWeight: 600, fontSize: 13 }} title="DraftKings -> Lineups -> EDIT ENTRIES -> download CSV. Upload it FIRST: the contests and entry counts in it decide the build.">
+              {entFile ? 'Replace DK entries file' : 'Load DK entries file'}
               <input type="file" accept=".csv,text/csv" style={{ display: 'none' }} onChange={e => { parseEntriesFile(e.target.files && e.target.files[0]); e.target.value = '' }} />
-            </label>}
-            {entFile && <div style={{ width: '100%', marginTop: 10, padding: '10px 12px', border: '1px solid var(--border,#2a2d34)', borderRadius: 8 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Fill which contests?</div>
-              {entFile.groups.map(g => (
-                <label key={g.name} style={{ display: 'block', fontSize: 13, marginBottom: 4, cursor: 'pointer' }}>
-                  <input type="checkbox" checked={entFile.sel.has(g.name)} onChange={() => setEntFile(p => { const sel = new Set(p.sel); if (sel.has(g.name)) sel.delete(g.name); else sel.add(g.name); return { ...p, sel } })} />{' '}
-                  {g.name} <span style={{ color: 'var(--text-secondary,#9aa0aa)' }}>({g.rows.length} entr{g.rows.length === 1 ? 'y' : 'ies'})</span>
-                </label>
-              ))}
-              <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
-                <button onClick={applyEntriesFill} style={{ padding: '6px 14px', borderRadius: 8, cursor: 'pointer', border: 'none', background: 'var(--accent,#E10600)', color: '#fff', fontWeight: 600 }}>Fill selected</button>
-                <button onClick={() => setEntFile(null)} style={{ padding: '6px 14px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: 'transparent', color: 'var(--text,#e8eaed)' }}>Cancel</button>
+            </label>
+            {entFile && <div style={{ width: '100%', marginTop: 10, padding: '10px 12px', border: '1px solid ' + (plan ? '#4caf50' : 'var(--border,#2a2d34)'), borderRadius: 8 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Contests in {entFile.fileName || 'the entries file'} <span style={{ color: 'var(--text-secondary,#9aa0aa)', fontWeight: 400 }}>- tick what to play, set GPP or Cash, then Build</span></div>
+              {entFile.groups.map(g => {
+                const t = entFile.types[g.name] || 'gpp'
+                const gi3 = plan ? plan.gpp.indexOf(g.name) : -1
+                const built = plan && (gi3 !== -1 ? (portfolio && portfolio.legs && portfolio.legs[gi3] ? portfolio.legs[gi3].lineups.length : null) : (plan.cash.indexOf(g.name) !== -1 ? cashSet.length : null))
+                return (
+                  <div key={g.name} style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 13, marginBottom: 4, flexWrap: 'wrap' }}>
+                    <label style={{ cursor: 'pointer', flex: '1 1 320px' }}>
+                      <input type="checkbox" checked={entFile.sel.has(g.name)} onChange={() => setEntFile(p => { const sel = new Set(p.sel); if (sel.has(g.name)) sel.delete(g.name); else sel.add(g.name); return { ...p, sel } })} />{' '}
+                      {g.name} <span style={{ color: 'var(--text-secondary,#9aa0aa)' }}>({g.rows.length} entr{g.rows.length === 1 ? 'y' : 'ies'})</span>
+                    </label>
+                    <select value={t} onChange={e => setEntFile(p => ({ ...p, types: { ...p.types, [g.name]: e.target.value } }))} style={{ background: 'var(--bg,#0e0f13)', color: 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 6, padding: '3px 6px', fontSize: 12 }}>
+                      <option value="gpp">GPP - its own portfolio leg</option><option value="cash">Cash - mean build</option>
+                    </select>
+                    {built != null && <span style={{ fontSize: 12, color: built >= g.rows.length ? '#4caf50' : '#e8b923' }}>{gi3 !== -1 ? 'leg ' + (gi3 + 1) + ': ' : 'cash: '}{built} of {g.rows.length} built{built < g.rows.length ? ' - short' : ''}</span>}
+                  </div>
+                )
+              })}
+              {(() => {
+                const gs = entFile.groups.filter(g => entFile.sel.has(g.name) && (entFile.types[g.name] || 'gpp') === 'gpp')
+                const cs = entFile.groups.filter(g => entFile.sel.has(g.name) && entFile.types[g.name] === 'cash')
+                return <div style={{ fontSize: 12, color: 'var(--text-secondary,#9aa0aa)', margin: '6px 0' }}>
+                  Plan: {gs.length ? 'Portfolio ' + gs.length + ' leg' + (gs.length === 1 ? '' : 's') + ' (' + gs.map(g => g.rows.length).join(' / ') + ' entries)' : 'no GPP contests'}{cs.length ? ' · Cash build of ' + Math.max.apply(null, cs.map(g => g.rows.length)) + ' for ' + cs.length + ' contest' + (cs.length === 1 ? '' : 's') : ''}
+                  {gs.length ? ' · rules ' + ((portRules == null ? portfolioRulesDefault(series) : portRules) ? 'ON' : 'OFF') + ', chalk ' + (CHALK_SCHEDULES[portSchedule] ? CHALK_SCHEDULES[portSchedule].label.split(' (')[0] : portSchedule) : ''}
+                </div>
+              })()}
+              <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button onClick={buildForPlan} disabled={building || !canBuild} style={{ padding: '6px 14px', borderRadius: 8, cursor: building || !canBuild ? 'not-allowed' : 'pointer', border: 'none', background: 'var(--accent,#E10600)', color: '#fff', fontWeight: 600 }}>{building ? 'Building\u2026' : 'Build for these contests'}</button>
+                {plan && (lineups.length > 0 || cashSet.length > 0) && <button onClick={applyEntriesFill} style={{ padding: '6px 14px', borderRadius: 8, cursor: 'pointer', border: '1px solid #4caf50', background: 'rgba(76,175,80,0.18)', color: 'var(--text,#e8eaed)', fontWeight: 600 }}>Fill selected contests &rarr; download CSV</button>}
+                {!plan && lineups.length > 0 && <button onClick={applyEntriesFill} style={{ padding: '6px 14px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: 'transparent', color: 'var(--text,#e8eaed)', fontWeight: 600 }} title="Write the lineups you built by hand (current mode / selected leg) into the ticked contests">Fill from current lineups</button>}
+                <button onClick={() => { setEntFile(null); setPlan(null); setCashSet([]) }} style={{ padding: '6px 14px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: 'transparent', color: 'var(--text,#e8eaed)' }}>Remove file</button>
               </div>
             </div>}
             <span style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 12 }}>{canBuild ? 'Cap $50,000 \u00b7 6 drivers \u00b7 Lock/Excl to steer' + (samples ? ' \u00b7 Optimal% from ' + samples.rows.length + ' sims \u00b7 Value = extra DK pts per extra $1K above the salary floor (what the money buys; floor cars = PUNT, compare on Proj DK) \u00b7 Ceiling = 90th-percentile DK score (tournament upside)' : '') : 'Salaries not posted yet'}</span>
