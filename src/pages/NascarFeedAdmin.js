@@ -48,6 +48,49 @@ const mono = { fontFamily: 'var(--font-mono, ui-monospace, monospace)', fontSize
 // LOAD ONE RACE
 // ===========================================================================
 
+// LAST LOADED PER SERIES (2026-09-12, operator: "show me the last race loaded for each series so
+// I'll know if I forgot one"). Reads `races` for the year (rows the loaders stamped with a
+// racing_reference_id - practice-uploader stubs have none) and, best-effort, NASCAR's schedule feed
+// for all three series in one call; any scheduled race dated after the last loaded one and before
+// today is listed as MISSING. The strip re-reads after every successful Load.
+function LoadedStatus({ year, tick }) {
+  const [rows, setRows] = useState(null)
+  const [sched, setSched] = useState(null)
+  useEffect(() => {
+    let live = true
+    setRows(null)
+    supabase.from('races').select('series, race_number, track_name, race_date')
+      .eq('year', parseInt(year, 10)).not('racing_reference_id', 'is', null)
+      .order('race_number', { ascending: false }).limit(200)
+      .then(({ data }) => { if (live) setRows(data || []) })
+    feed({ type: 'schedule', year }).then(j => { if (live) setSched(j.races || []) }).catch(() => { if (live) setSched([]) })
+    return () => { live = false }
+  }, [year, tick])
+  const today = new Date().toISOString().slice(0, 10)
+  const fmt = d => d ? new Date(d + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''
+  return (
+    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
+      {SERIES_OPTS.map(([v, l]) => {
+        const mine = (rows || []).filter(r => r.series === v)
+        const last = mine[0]
+        const missing = !sched ? null : sched.filter(r => r.series === v && r.race_date && r.race_date < today && (!last || !last.race_date || r.race_date > last.race_date))
+        const behind = missing && missing.length > 0
+        return (
+          <div key={v} style={{ flex: '1 1 200px', padding: '8px 12px', borderRadius: 8, border: '1px solid ' + (behind ? '#ef4444' : 'var(--border)'), background: behind ? 'rgba(239,68,68,0.08)' : 'var(--bg-surface)', fontSize: '0.78rem' }}>
+            <div style={{ ...labelStyle, marginBottom: 2 }}>{l} — last loaded</div>
+            {rows == null ? <div style={{ color: 'var(--text-muted)' }}>…</div>
+              : !last ? <div style={{ color: '#ef4444' }}>nothing loaded for {year}</div>
+              : <div><strong>R{last.race_number}</strong> {last.track_name}{last.race_date ? ' (' + fmt(last.race_date) + ')' : ''} · {mine.length} race{mine.length === 1 ? '' : 's'}</div>}
+            {sched == null ? null
+              : behind ? <div style={{ color: '#ef4444', marginTop: 2 }}>MISSING {missing.length}: {missing.map(m => m.track_name + ' (' + fmt(m.race_date) + ')').join(', ')}</div>
+              : rows != null && last ? <div style={{ color: '#22c55e', marginTop: 2 }}>up to date</div> : null}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 export function LoadRaceFromFeed() {
   const [series, setSeries] = useState('cup')
   const [year, setYear] = useState(String(new Date().getFullYear()))
@@ -60,6 +103,7 @@ export function LoadRaceFromFeed() {
   const [preview, setPreview] = useState(null)
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState(null)
+  const [loadedTick, setLoadedTick] = useState(0)
 
   useEffect(() => {
     supabase.from('tracks').select('name').order('name')
@@ -163,7 +207,7 @@ export function LoadRaceFromFeed() {
       }
 
       setStatus({ ok: `Loaded ${insertRows.length} drivers for ${race.track_name} ${year} — ${race.total_laps} actual laps (${race.scheduled_laps} scheduled), ${race.total_cautions} cautions.` })
-      setPreview(null)
+      setPreview(null); setLoadedTick(t => t + 1)
     } catch (e) { setStatus({ err: e.message }) } finally { setBusy(false) }
   }
 
@@ -175,6 +219,8 @@ export function LoadRaceFromFeed() {
         own loopstats and weekend feeds — the same numbers Racing Reference publishes,
         plus real finish statuses, actual (not scheduled) laps, and closing position.
       </p>
+
+      <LoadedStatus year={year} tick={loadedTick} />
 
       <div style={grid}>
         <div><label style={labelStyle}>Series</label>
