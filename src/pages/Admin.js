@@ -357,7 +357,17 @@ function EntryListManager() {
       // team-word match — and that wins over the positional slot. Name-wrap merging is checked
       // against known driver names the same way. Position remains the fallback for unknown teams.
       const __kt = cfg ? await loadKnownTeams() : { known: [], byDriver: new Map() }
-      const knownTeams = __kt.known, knownDrivers = __kt.byDriver
+      const knownTeams = __kt.known, knownDrivers = __kt.byDriver, teamSpelling = __kt.spelling || new Map()
+      // "R. Childress Racing" -> the known spelling "Richard Childress Racing": an org that is not a known
+      // team but whose fold minus its first token is the unique tail of exactly one known team takes that
+      // team's stored spelling, so entry_list keeps one name per team across Jayski's abbreviations.
+      const canonTeam = t => {
+        if (!t) return t
+        const f = foldTeam(t); if (knownTeams.includes(f)) return teamSpelling.get(f) || t
+        const tail = foldTeam(t.replace(/^\S+\s+/, '')); if (tail.length < 8) return t
+        const hits = knownTeams.filter(k => k.endsWith(tail) && k !== tail)
+        return hits.length === 1 ? (teamSpelling.get(hits[0]) || t) : t
+      }
       const headerCells = ne.slice(0, 40).filter(t => /^(entry|veh#|driver|organization|owner|team|crew chief|veh mfg|sponsor)$/i.test(t.trim()))
       const hIdx = re => headerCells.findIndex(t => re.test(t.trim()))
       const hDrv = hIdx(/^driver$/i), hOrg = hIdx(/^(organization|owner|team)$/i), hSpo = hIdx(/^sponsor$/i)
@@ -368,7 +378,7 @@ function EntryListManager() {
         if (/^\d{1,3}$/.test(s) && +s < 200) {
           let drv = ne[i+1] ? cleanName(ne[i+1]) : ''
           const isMfrOrInd = n => /^\([a-zA-Z]\)$/.test(n) || /^(chevrolet|chevy|ford|toyota|tundra|silverado|f-?150|ram|dodge)/i.test(n)
-          const isTeamName = t => /racing|motorsports|motor|penske|hendrick|gibbs|23xi|rfk|kaulig|haas|wood|trackhouse|spire|hyak|club|legacy|front row|ware/i.test(t)
+          const isTeamName = t => /racing|motorsports|motor|penske|hendrick|gibbs|23xi|rfk|kaulig|haas|wood|trackhouse|spire|hyak|club|legacy|front row|\bware\b/i.test(t)
           const teamLike = t => !!t && !isMfrOrInd(t) && (teamMatch(t, knownTeams) || isTeamName(t))
           // a wrapped surname is only merged when the merged name is a known driver, or the unmerged one is not
           // (with a sponsor column right after the driver, only a KNOWN merged name may merge - the
@@ -397,16 +407,18 @@ function EntryListManager() {
             }
           }
           // team-like item anywhere in the row beats the positional slot
-          if (!teamLike(org)) {
+          if (!(org && teamMatch(org, knownTeams))) {   // positional slot is not a KNOWN team -> look across the row
             const rowItems = []
             for (let k = i + 2; k < ne.length && k <= i + 8; k++) { const t = ne[k].trim(); if (/^\d{1,3}$/.test(t)) break; rowItems.push(t) }
-            const hit = rowItems.find(t => teamLike(t) && t !== drv)
+            // a KNOWN team anywhere in the row first (a sponsor like "HendrickCars.com" passes the team-word
+            // regex - 2026-09-12 Gateway, Corey Day / Rajah Caruth got the sponsor); the word regex second
+            const hit = rowItems.find(t => t !== drv && !isMfrOrInd(t) && teamMatch(t, knownTeams)) || rowItems.find(t => teamLike(t) && t !== drv)
             if (hit) org = hit
             else if (orgOffset >= 0 && rowItems[orgOffset] && !isMfrOrInd(rowItems[orgOffset])) org = rowItems[orgOffset]   // header says which column
           }
           if (drv && /[A-Z]/.test(drv) && drv.length > 3 && !/^\d/.test(drv)) {
             const carNum = (+s >= 101 && +s <= 199) ? String(+s - 100) : s
-            var mfr = ''; for (var mk = i + 2; mk < ne.length && mk <= i + 6; mk++) { if (/^\d{1,3}$/.test((ne[mk] || '').trim())) break; var mm = normMfr(ne[mk]); if (mm) { mfr = mm; break; } } rows.push(carNum + ',' + drv + ',' + org + ',' + mfr)
+            var mfr = ''; for (var mk = i + 2; mk < ne.length && mk <= i + 6; mk++) { if (/^\d{1,3}$/.test((ne[mk] || '').trim())) break; var mm = normMfr(ne[mk]); if (mm) { mfr = mm; break; } } rows.push(carNum + ',' + drv + ',' + canonTeam(org) + ',' + mfr)
           }
         }
       }
@@ -499,12 +511,12 @@ function EntryListManager() {
     const { data } = await supabase.from('entry_list').select('driver_name, organization, race_year, id')
       .eq('series', series).in('race_year', [yr, yr - 1]).not('organization', 'is', null)
       .order('id', { ascending: false }).limit(5000)
-    const known = new Set(), byDriver = new Map()
+    const known = new Set(), byDriver = new Map(), spelling = new Map()
     for (const r of data || []) {
-      const f = foldTeam(r.organization); if (f.length >= 4) known.add(f)
+      const f = foldTeam(r.organization); if (f.length >= 4) { known.add(f); if (!spelling.has(f)) spelling.set(f, r.organization.trim()) }   // newest spelling wins
       const d = foldTeam(stripRosterMarkers(r.driver_name)); if (d && !byDriver.has(d)) byDriver.set(d, r.organization)  // newest row first
     }
-    return { known: [...known], byDriver }
+    return { known: [...known], byDriver, spelling }
   }
   const bulkImport = async () => {
     if (!cfg || !bulkText.trim()) return
