@@ -3423,3 +3423,25 @@ Now the k-th selected contest (file order) fills from leg k (wraps if more conte
 note names the mapping ("Dime Time <- leg 1; Quarter Jukebox <- leg 2"). Label reads "Lineups per
 leg" in Portfolio mode with a tooltip: set it to the largest contest's entry count. Non-portfolio
 modes unchanged.
+
+## 2026-09-12 — Lineup Optimizer: CONTEST-FILE-FIRST workflow (after the md review)
+Operator asked for a product review, then "examine the md files about the whole DFS optimizer before
+we make any changes", then "fix the contest file first workflow". Read: MANUAL doctrine L245-250,
+STATE 09-05/09-06/09-07 DFS entries, BACKTEST_LOG 08-14 -> 09-07, pitboard.md history. Two of my
+review suggestions were withdrawn against that record (re-trimming exposure on the delivered set =
+the 08-21 death spiral; "which constraint bound" already exists as the 09-06 'why short' buttons).
+Contest-file-first is consistent with Fill v2 (08-20), "legs ARE contests" (09-06) and the one-leg-
+per-contest fill (earlier today). SHIPPED: (1) the DK entries file can be loaded BEFORE a build
+(button "Load DK entries file"); the panel lists contests with entries, a GPP/Cash type (cash formats
+auto-detected from the contest name, overridable) and a plan line ("Portfolio 3 legs (40 / 20 / 20)
+· Cash build of 20 for 1 contest · rules ON, chalk all-50"); (2) "Build for these contests" derives
+mode, legs and per-leg counts from the file — `buildPortfolio` gained `wants` (per-leg counts; the
+portfolio cap is now floor(60% x sum of wants), floored at 1 so a single-entry contest is buildable);
+cash contests share one cash build sized to the largest; (3) "Fill selected contests" writes GPP
+contest k from leg k and cash contests from the cash set, with per-contest "leg 1: 40 of 40 built"
+status in the panel; (4) the wrong-file trap now names the file it got (entry-history export,
+contest-standings). Lineups / Legs inputs read "(from file)" and are disabled while a plan is loaded;
+manual mode with no file is byte-identical. Node check on synthetic draws: wants [40,20,20] ->
+40/40, 20/20, 20/20, zero cross-leg duplicates; legacy 3x20 unchanged; 1-entry plan -> 1/1.
+Also: MANUAL L250 was stale (still described GPP as per-lineup p90) — corrected to E[max] set.
+Not touched: solvers, caps, chalk schedules, rules (all carry registered results).
