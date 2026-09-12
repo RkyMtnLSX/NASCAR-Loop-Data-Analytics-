@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { fetchAllRows } from '../lib/fetchAllRows'
 import DfsSalaryAdmin from './DfsSalaryAdmin'
-import BetaAccessAdmin from './BetaAccessAdmin'
 import FlaggedBetsAdmin from './FlaggedBetsAdmin'
 import MyBetsAdmin from './MyBetsAdmin'
 import useSubscriber from '../lib/useSubscriber'
@@ -27,7 +26,7 @@ import { LoadRaceFromFeed, FeedBackfill } from './NascarFeedAdmin'
 // are removed; anything interior is left alone.
 export function stripRosterMarkers(name) {
   var s = String(name == null ? '' : name)
-  s = s.replace(/\((?:i|P|C|R)\)/gi, ' ')   // (C) = playoff/chase marker (2026-09-05: first O'Reilly playoff practice put 13 drivers into practice_sessions as 'Name (C)'; the sim could not match them to the entry list and its DNQ filter dropped them -> 25-car field)
+  s = s.replace(/\((?:i|P)\)/gi, ' ')
   s = s.replace(/^[#*\s]+/, '').replace(/[#*\s]+$/, '')
   return s.replace(/\s+/g, ' ').trim()
 }
@@ -350,12 +349,31 @@ function EntryListManager() {
       const rows = []
       const ne = allItems.filter(s => s.trim())
       const cleanName = n => n.trim().replace(/\s*\([a-zA-Z]\)\s*$/, '').trim()
+      // COLUMN ORDER (2026-09-12): Jayski's usual columns are Veh# / Driver / Organization / Crew
+      // Chief / Veh Mfg / Sponsor, and this parser took the item after the driver as the team. The
+      // Gateway O'Reilly list put SPONSOR there and called the team column "Owner", so 36 sponsors
+      // came out as teams (caught by the import guard). Now each row's items are scanned for the
+      // first team-like item — a team this series has run (entry_list, last two seasons) or a
+      // team-word match — and that wins over the positional slot. Name-wrap merging is checked
+      // against known driver names the same way. Position remains the fallback for unknown teams.
+      const __kt = cfg ? await loadKnownTeams() : { known: [], byDriver: new Map() }
+      const knownTeams = __kt.known, knownDrivers = __kt.byDriver
+      const headerCells = ne.slice(0, 40).filter(t => /^(entry|veh#|driver|organization|owner|team|crew chief|veh mfg|sponsor)$/i.test(t.trim()))
+      const hIdx = re => headerCells.findIndex(t => re.test(t.trim()))
+      const hDrv = hIdx(/^driver$/i), hOrg = hIdx(/^(organization|owner|team)$/i), hSpo = hIdx(/^sponsor$/i)
+      const sponsorFirst = hSpo >= 0 && hOrg >= 0 && hSpo < hOrg   // sponsor column sits before the team column
+      const orgOffset = hDrv >= 0 && hOrg > hDrv ? hOrg - hDrv - 1 : -1   // team's index among the items after the driver
          for (let i = 0; i < ne.length - 2; i++) {
         const s = ne[i].trim()
         if (/^\d{1,3}$/.test(s) && +s < 200) {
           let drv = ne[i+1] ? cleanName(ne[i+1]) : ''
           const isMfrOrInd = n => /^\([a-zA-Z]\)$/.test(n) || /^(chevrolet|chevy|ford|toyota|tundra|silverado|f-?150|ram|dodge)/i.test(n)
           const isTeamName = t => /racing|motorsports|motor|penske|hendrick|gibbs|23xi|rfk|kaulig|haas|wood|trackhouse|spire|hyak|club|legacy|front row|ware/i.test(t)
+          const teamLike = t => !!t && !isMfrOrInd(t) && (teamMatch(t, knownTeams) || isTeamName(t))
+          // a wrapped surname is only merged when the merged name is a known driver, or the unmerged one is not
+          // (with a sponsor column right after the driver, only a KNOWN merged name may merge - the
+          // one-word sponsor would otherwise become a surname: "Nick Sanchez Gainbridge")
+          const mergeOK = frag => { const a = foldTeam(drv + ' ' + cleanName(frag)), b = foldTeam(drv); return knownDrivers.has(a) || (!sponsorFirst && !knownDrivers.has(b)) }
           let org
           if (series === 'trucks') {
             org = ne[i+2] ? ne[i+2].trim() : ''
@@ -363,20 +381,28 @@ function EntryListManager() {
             // 'John Hunter' / 'Nemechek (i)' / 'TRICON Garage' made JHN a brand-new driver.
             // A ONE-word fragment (optional (x) marker) in the org slot is the name's
             // continuation (real truck orgs are always 2+ words); shift org to the next item.
-            if (/^[A-Z][A-Za-z.'-]*\s*(\([a-zA-Z]\))?$/.test(org) && ne[i+3]) {
+            if (/^[A-Z][A-Za-z.'-]*\s*(\([a-zA-Z]\))?$/.test(org) && ne[i+3] && !teamLike(org) && mergeOK(org)) {
               drv = (drv + ' ' + cleanName(org)).trim()
               org = ne[i+3].trim()
             }
           } else {
             const rawOrg = ne[i+2] ? ne[i+2].trim() : ''
             // Detect surname continuation: PDF wraps "John Hunter" / "Nemechek" across lines
-            const isSurnameSuffix = !isMfrOrInd(rawOrg) && /^[A-Z][a-z]/.test(rawOrg) && !rawOrg.includes(' ') && ne[i+3] && isTeamName(ne[i+3])
+            const isSurnameSuffix = !isMfrOrInd(rawOrg) && /^[A-Z][a-z]/.test(rawOrg) && !rawOrg.includes(' ') && ne[i+3] && isTeamName(ne[i+3]) && mergeOK(rawOrg)
             if (isSurnameSuffix) {
               drv = drv + ' ' + rawOrg
               org = ne[i+3] ? ne[i+3].trim() : ''
             } else {
               org = isMfrOrInd(rawOrg) ? (ne[i+3] ? ne[i+3].trim() : '') : rawOrg
             }
+          }
+          // team-like item anywhere in the row beats the positional slot
+          if (!teamLike(org)) {
+            const rowItems = []
+            for (let k = i + 2; k < ne.length && k <= i + 8; k++) { const t = ne[k].trim(); if (/^\d{1,3}$/.test(t)) break; rowItems.push(t) }
+            const hit = rowItems.find(t => teamLike(t) && t !== drv)
+            if (hit) org = hit
+            else if (orgOffset >= 0 && rowItems[orgOffset] && !isMfrOrInd(rowItems[orgOffset])) org = rowItems[orgOffset]   // header says which column
           }
           if (drv && /[A-Z]/.test(drv) && drv.length > 3 && !/^\d/.test(drv)) {
             const carNum = (+s >= 101 && +s <= 199) ? String(+s - 100) : s
@@ -405,7 +431,7 @@ function EntryListManager() {
       setBulkText(rows.join('\n'))
       setShowBulk(true)
       if (rows.length > 0) {
-        setPdfStatus('Found ' + rows.length + ' drivers -- scroll down to import')
+        setPdfStatus('Found ' + rows.length + ' drivers -- scroll down to import' + (headerCells.length ? ' (PDF columns: ' + headerCells.join(' / ') + ')' : ''))
       } else {
         setPdfStatus('No drivers found. First items: ' + ne.slice(0,6).join(' | '))
       }
@@ -2063,18 +2089,6 @@ export default function Admin() {
   const [year, setYear] = useState(new Date().getFullYear())
   const [sessionNum, setSessionNum] = useState(1)
   const [practiceRaceNum, setPracticeRaceNum] = useState('')
-  // v6.4-sets (2026-09-05): practice tire allotment -> grader tire age + practice_sessions.tire_sets.
-  // Defaults from tire_allocations (NASCAR event tire sheets); operator can override per upload.
-  const [tireSets, setTireSets] = useState('')
-  const [tireSetsAuto, setTireSetsAuto] = useState(null)
-  useEffect(() => {
-    let alive = true
-    const rn = parseInt(practiceRaceNum)
-    if (!rn) { setTireSetsAuto(null); return }
-    supabase.from('tire_allocations').select('practice_sets').eq('series', series).eq('year', parseInt(year)).eq('race_number', rn).limit(1)
-      .then(({ data }) => { if (!alive) return; const v = data && data[0] ? data[0].practice_sets : null; setTireSetsAuto(v); setTireSets(v != null ? String(Math.max(1, v)) : '') })
-    return () => { alive = false }
-  }, [series, year, practiceRaceNum])
   useWeekendRaceNum(series, setPracticeRaceNum)
   const [trackList, setTrackList] = useState([])
 
@@ -2142,7 +2156,7 @@ export default function Admin() {
           }
         }
       } catch (gcErr) { gcPriors = null }
-      const graded = gradePracticeSession(parsed.drivers, gcPriors, { tireSets: tireSets === '' ? null : parseInt(tireSets) })
+      const graded = gradePracticeSession(parsed.drivers, gcPriors)
       setPreview({ parsed, graded })
     } catch (err) {
       setUploadStatus({ type: 'error', message: err.message })
@@ -2155,7 +2169,6 @@ export default function Admin() {
     if (!practiceRaceNum || !parseInt(practiceRaceNum)) { setUploadStatus({ type: 'error', message: 'Enter the Race # (season round R#) before uploading - sessions and laps join on it.' }); return }
     setUploading(true)
     setUploadStatus(null)
-    let __rnFinal = parseInt(practiceRaceNum)
     // ---- UPLOAD GUARDS (2026-07-16): confirm dialogs for the three dropdown/race# mistake modes ----
     try {
       let rn = parseInt(practiceRaceNum)
@@ -2168,17 +2181,7 @@ export default function Admin() {
       if (!exactMatch) {
         const trackNums = [...new Set((trackRaces || []).map(r => parseInt(r.race_number)).filter(Boolean))].sort((a, b) => a - b)
         const other = (rnRaces || []).map(r => r.track_name).join(', ') || 'no race'
-        // 2026-09-05: a RETURN VISIT (Darlington O'Reilly R25 after R6 in March) used to be
-        // "corrected" to the spring number because the registry only held completed races.
-        // If the entered R# is past every race in the registry for this series/year and no
-        // race holds that number, it is a future race - offer a stub for it, not the old number.
-        const { data: __maxRow } = await supabase.from('races').select('race_number').eq('year', year).eq('series', series).order('race_number', { ascending: false }).limit(1)
-        const __maxRn = __maxRow && __maxRow[0] ? parseInt(__maxRow[0].race_number) : 0
-        if (trackNums.length && !(rnRaces || []).length && rn > __maxRn) {
-          const ok = window.confirm('RETURN VISIT\n\n' + trackName + ' was R' + trackNums.map(n => 'R' + n).join(' / ').replace(/^R/, '') + ' earlier this season and the registry ends at R' + __maxRn + '.\n' +
-            'R' + rn + ' is not in the registry yet.\n\nOK = create ' + trackName + ' R' + rn + ' (second visit) and upload\nCancel = stop')
-          if (!ok) { setUploading(false); setUploadStatus({ type: 'error', message: 'Upload cancelled (return-visit race not created).' }); return }
-        } else if (trackNums.length) {
+        if (trackNums.length) {
           // The track IS on the schedule, just under a different number -> offer the correct one.
           const suggest = trackNums[0]
           const msg = 'RACE NUMBER MISMATCH\n\n' +
@@ -2232,17 +2235,13 @@ export default function Admin() {
           }
         }
       }
-      __rnFinal = rn
     } catch (guardErr) { /* guards must never block uploads on their own errors */ }
     // ---- end guards ----
-    // 2026-09-05: use the number the guard settled on. setPracticeRaceNum() is async, so the
-    // 'upload as R6' path used to write practice rows under the ORIGINAL number anyway.
-    const __rnUse = String(__rnFinal)
     try {
       let raceId = null
       const { data: raceMatches } = await supabase
         .from('races').select('id, racing_reference_url')
-        .eq('track_name', trackName).eq('year', year).eq('series', series).eq('race_number', __rnUse)
+        .eq('track_name', trackName).eq('year', year).eq('series', series).eq('race_number', practiceRaceNum)
         .order('id', { ascending: true })
       // Prefer the canonical row (loop-data loader row has the RR URL) if duplicates exist
       const existingRace = (raceMatches || []).find(rm => rm.racing_reference_url) || (raceMatches || [])[0] || null
@@ -2252,7 +2251,7 @@ export default function Admin() {
       } else {
         const { data: newRace, error: raceError } = await supabase
           .from('races')
-          .insert({ race_name: `${trackName} ${year} R${__rnUse}`, series, year, track_name: trackName, race_number: __rnUse })
+          .insert({ race_name: `${trackName} ${year} R${practiceRaceNum}`, series, year, track_name: trackName, race_number: practiceRaceNum })
           .select('id').single()
         if (raceError) throw raceError
         raceId = newRace.id
@@ -2260,7 +2259,7 @@ export default function Admin() {
 
       // Delete and re-insert practice session summaries
       await supabase.from('practice_sessions').delete()
-        .eq('race_id', raceId).eq('series', series).eq('session_number', sessionNum).eq('race_number', __rnUse)
+        .eq('race_id', raceId).eq('series', series).eq('session_number', sessionNum).eq('race_number', practiceRaceNum)
 
       const rows = preview.graded.map(d => ({
         race_id: raceId,
@@ -2268,11 +2267,10 @@ export default function Admin() {
         series, year,
         track_name: trackName,
         session_number: sessionNum,
-        race_number: __rnUse,
+        race_number: practiceRaceNum,
         qualifying_position: d.start,
         car_number: d.carNumber || null,
         practice_group: d.group || null,
-        tire_sets: tireSets === '' ? null : parseInt(tireSets),   // v6.4-sets: stamped at upload (was hand-edited after the fact)
         total_laps: d.totalLaps,
         best_lap: d.bestLap,
         best5: d.best5 != null ? d.best5 : null,
@@ -2297,7 +2295,7 @@ export default function Admin() {
       try {
         await supabase.from('practice_laps').delete()
           .eq('series', series).eq('year', year)
-          .eq('track_name', trackName).eq('session_number', sessionNum).eq('race_number', __rnUse)
+          .eq('track_name', trackName).eq('session_number', sessionNum).eq('race_number', practiceRaceNum)
 
         const lapRows = []
         for (const d of (preview.parsed.drivers || [])) {
@@ -2308,7 +2306,7 @@ export default function Admin() {
             if (isNaN(t) || t <= 0) continue
             lapRows.push({
               series, year, track_name: trackName, session_number: sessionNum,
-            race_number: __rnUse,
+            race_number: practiceRaceNum,
               driver_name: stripRosterMarkers(d.driver),
               car_number: d.carNumber || null,
               starting_position: d.start || null,
@@ -2357,7 +2355,7 @@ export default function Admin() {
 
   const __tabBar = (
     <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid rgba(128,128,128,0.25)', marginBottom: 16 }}>
-      {[['admin', 'Admin'], ['sim', 'Sim Admin'], ['grader', 'Sim Grader'], ['flags', 'Flagged Bets'], ['mybets', 'My Bets'], ['load', 'Load Data'], ['dfs', 'DFS'], ['replay', 'DFS Replay'], ['lines', 'Line Movement'], ['flodds', 'Fastest Lap Odds'], ['beta', 'Beta Access']].map(t => (
+      {[['admin', 'Admin'], ['sim', 'Sim Admin'], ['grader', 'Sim Grader'], ['flags', 'Flagged Bets'], ['mybets', 'My Bets'], ['load', 'Load Data'], ['dfs', 'DFS'], ['replay', 'DFS Replay'], ['lines', 'Line Movement'], ['flodds', 'Fastest Lap Odds']].map(t => (
         <button key={t[0]} onClick={() => setAdminTab(t[0])} style={{ padding: '8px 16px', border: 'none', background: 'none', borderBottom: adminTab === t[0] ? '2px solid #e8b923' : '2px solid transparent', color: adminTab === t[0] ? '#e8b923' : 'var(--text-muted)', fontWeight: 600, cursor: 'pointer', fontSize: '0.95rem' }}>{t[1]}</button>
       ))}
     </div>
@@ -2378,7 +2376,6 @@ export default function Admin() {
       {adminTab === 'replay' && <DfsReplay />}
       {adminTab === 'lines' && <LineMovementAdmin />}
       {adminTab === 'flodds' && <FastestLapOddsAdmin />}
-      {adminTab === 'beta' && <BetaAccessAdmin />}
       {adminTab === 'admin' && (<>
       <WeekendConfig />
       <QualSimConfig />
@@ -2442,12 +2439,6 @@ export default function Admin() {
           <div>
             <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: 6 }}>Race #</label>
             <input type="number" min="1" value={practiceRaceNum} onChange={e => setPracticeRaceNum(parseInt(e.target.value) || 1)}
-              style={{ width: '100%', padding: '8px 10px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', fontSize: '0.875rem', outline: 'none' }} />
-          </div>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: 6 }}>Tire sets (practice){tireSetsAuto != null ? ' - sheet: ' + tireSetsAuto : ''}</label>
-            <input type="number" min="1" max="8" value={tireSets} onChange={e => setTireSets(e.target.value)} placeholder="unknown"
-              title="Practice tire allotment from the NASCAR event tire sheet. Drives tire age in the grader: with K sets a run is on new tires at most K-1 times. Blank = legacy grading (every run treated as fresh). Re-select the file after changing."
               style={{ width: '100%', padding: '8px 10px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', fontSize: '0.875rem', outline: 'none' }} />
           </div>
         </div>
