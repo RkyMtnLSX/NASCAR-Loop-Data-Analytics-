@@ -48,7 +48,9 @@ export function classifyPortfolioPool(rows, projOwn, R) {
 }
 
 // Build the legs. deps = { optimize, bestLineup, makeEmaxSelector, topUpLineups, enforceMinExposure, capFor, ROSTER, CAP }
-// input = { rows, samples: { drivers, rows }, simCands, legs, want, rulesOn, schedule, locks, excludes, userExpo, projOwn }
+// input = { rows, samples: { drivers, rows }, simCands, legs, want, wants?, rulesOn, schedule, locks, excludes, userExpo, projOwn }
+//   wants (2026-09-12, contest-file-first): per-leg entry counts, e.g. [40, 20, 20] - legs ARE contests and
+//   each is built to its own contest's size. Omitted -> every leg wants `want` (unchanged behaviour).
 // Returns { legs: [{ lineups: [{ drivers, salary, proj, ceil, floor }], short }], exposure: { name: count }, cls, total }
 export function buildPortfolio(deps, input) {
   const { optimize, makeEmaxSelector, topUpLineups, enforceMinExposure, capFor, ROSTER, CAP } = deps
@@ -57,7 +59,9 @@ export function buildPortfolio(deps, input) {
   const byName = {}; rows.forEach(r => { byName[r.name] = r })
   const cls = classifyPortfolioPool(rows, input.projOwn || {}, R)
   const isPunt = n => cls.floor.indexOf(n) !== -1 || cls.midPunt.indexOf(n) !== -1
-  const want = input.want, LEGS = input.legs
+  const LEGS = input.legs
+  const wants = Array.isArray(input.wants) && input.wants.length === LEGS ? input.wants.map(n => Math.max(1, n | 0)) : Array.from({ length: LEGS }, () => input.want)
+  const want = Math.max.apply(null, wants), wantSum = wants.reduce((a, b) => a + b, 0)
   const nmIdx = {}; input.samples.drivers.forEach((nm, ix) => { nmIdx[nm] = ix })
   const lkArr = Array.from(input.locks || [])
   const feasible = names => names.length === ROSTER && names.every(nm => nmIdx[nm] != null && byName[nm]) && lkArr.every(nm => names.indexOf(nm) !== -1) &&
@@ -79,7 +83,7 @@ export function buildPortfolio(deps, input) {
   const nD = drawRows.length
   const stance = CHALK_SCHEDULES[input.schedule] ? CHALK_SCHEDULES[input.schedule].stance : CHALK_SCHEDULES.all50.stance
   const t2Off = new Set(input.t2MinOffLegs || [])
-  const portMaxN = Math.floor(R.portfolioMaxPct / 100 * want * LEGS)
+  const portMaxN = Math.max(1, Math.floor(R.portfolioMaxPct / 100 * wantSum))   // >= 1 so a 1-entry plan is not capped to zero
   const running = {}
   // ---- per-leg exposure (user settings win, then chalk stance, then rules). The portfolio cap is
   // applied LIVE inside capOf below, not baked in here, because the legs are built together.
@@ -105,8 +109,8 @@ export function buildPortfolio(deps, input) {
   const seen = new Set(base.map(ns => ns.join('|')))
   Object.keys(cnt).forEach(nm => {
     if (input.locks && input.locks.has(nm)) return
-    const capN = Math.min.apply(null, legExpo.map(e => capFor(nm, want, 1, e)).concat([portMaxN / LEGS]))
-    if (!isFinite(capN) || cnt[nm] / base.length <= capN / want) return
+    const capN = Math.min.apply(null, legExpo.map((e, L) => capFor(nm, wants[L], 1, e) / wants[L]).concat([portMaxN / wantSum]))   // as a share
+    if (!isFinite(capN) || cnt[nm] / base.length <= capN) return
     let added = 0
     for (const ns of cands) { if (added >= R.diversifyExtra) break; if (ns.indexOf(nm) !== -1) continue; const k = ns.join('|'); if (seen.has(k)) continue; seen.add(k); base.push(ns); added++ }
   })
@@ -122,9 +126,9 @@ export function buildPortfolio(deps, input) {
   // leftovers and the portfolio cap bites all legs equally. A lineup picked by one leg is banned
   // in the others; capOf reads the live cross-leg count.
   const legCount = legExpo.map(() => ({}))
-  const sels = legExpo.map((expo, L) => makeEmaxSelector(nC, nD, Smat, want, base, nm => {
+  const sels = legExpo.map((expo, L) => makeEmaxSelector(nC, nD, Smat, wants[L], base, nm => {
     if (input.locks && input.locks.has(nm)) return Infinity
-    const legCap = capFor(nm, want, 1, expo)
+    const legCap = capFor(nm, wants[L], 1, expo)
     const other = (running[nm] || 0) - (legCount[L][nm] || 0)
     return Math.min(legCap, Math.max(0, portMaxN - other))
   }, ROSTER))
@@ -134,7 +138,7 @@ export function buildPortfolio(deps, input) {
     progress = false
     for (let L = 0; L < LEGS; L++) {
       const before = sels[L].chosen.length
-      if (before >= want) continue
+      if (before >= wants[L]) continue
       if (!sels[L].pick()) continue
       const c = sels[L].chosen[before]
       legIdx[L].push(c); progress = true
@@ -148,8 +152,9 @@ export function buildPortfolio(deps, input) {
   const legs = []
   for (let L = 0; L < LEGS; L++) {
     const expo = legExpo[L]
+    const wantL = wants[L]
     // fold the live portfolio cap into this leg's expo for the mean-optimizer passes
-    rows.forEach(r => { if (input.locks && input.locks.has(r.name)) return; const other = (running[r.name] || 0) - (legCount[L][r.name] || 0); const roomPct = Math.max(0, Math.floor(100 * (portMaxN - other) / want)); if (roomPct < 100) { const cur = expo[r.name] && expo[r.name].max != null ? expo[r.name].max : null; expo[r.name] = Object.assign({}, expo[r.name] || {}, { max: cur != null ? Math.min(cur, roomPct) : roomPct }) } })
+    rows.forEach(r => { if (input.locks && input.locks.has(r.name)) return; const other = (running[r.name] || 0) - (legCount[L][r.name] || 0); const roomPct = Math.max(0, Math.floor(100 * (portMaxN - other) / wantL)); if (roomPct < 100) { const cur = expo[r.name] && expo[r.name].max != null ? expo[r.name].max : null; expo[r.name] = Object.assign({}, expo[r.name] || {}, { max: cur != null ? Math.min(cur, roomPct) : roomPct }) } })
     const zero = new Set(Object.keys(expo).filter(n => expo[n].max === 0))
     let picked = legIdx[L].map(c => ({
       drivers: base[c].map(nm => ({ name: nm, car: byName[nm].car, sal: byName[nm].sal, projDK: byName[nm].projDK })),
@@ -159,14 +164,14 @@ export function buildPortfolio(deps, input) {
     const ex = new Set(zero)
     const poolL = pool2.filter(d => !zero.has(d.name))
     const before = picked.length
-    picked = topUpLineups(picked, want, 1, input.locks || new Set(), poolL, ex, expo)
-    picked = enforceMinExposure(picked, want, 1, input.locks || new Set(), poolL, ex, expo)
+    picked = topUpLineups(picked, wantL, 1, input.locks || new Set(), poolL, ex, expo)
+    picked = enforceMinExposure(picked, wantL, 1, input.locks || new Set(), poolL, ex, expo)
     for (let pass = 0; pass < 2; pass++) {
       const dups = picked.filter(lu => used.has(keyOfLu(lu)))
       if (!dups.length) break
       const keep = picked.filter(lu => !used.has(keyOfLu(lu)))
-      const refilled = topUpLineups(keep.concat(dups), want + dups.length, 1, input.locks || new Set(), poolL, ex, expo)
-      picked = refilled.filter(lu => !used.has(keyOfLu(lu))).slice(0, want)
+      const refilled = topUpLineups(keep.concat(dups), wantL + dups.length, 1, input.locks || new Set(), poolL, ex, expo)
+      picked = refilled.filter(lu => !used.has(keyOfLu(lu))).slice(0, wantL)
     }
     picked = picked.filter(lu => !used.has(keyOfLu(lu)))
     // recount this leg after top-up (running was built from the selector picks only)
@@ -176,16 +181,16 @@ export function buildPortfolio(deps, input) {
     picked.forEach(lu => used.add(keyOfLu(lu)))
     // WHY SHORT: name the binding constraint instead of padding
     const why = []
-    if (picked.length < want) {
+    if (picked.length < wantL) {
       const atPort = rows.filter(r => (running[r.name] || 0) >= portMaxN).map(r => r.name)
       if (atPort.length) why.push('portfolio cap ' + R.portfolioMaxPct + '% reached on ' + atPort.join(', '))
-      const t2Under = input.rulesOn && !t2Off.has(L) ? cls.t2.filter(n => (cntL[n] || 0) < Math.ceil(want * R.tier2MinPct / 100)) : []
+      const t2Under = input.rulesOn && !t2Off.has(L) ? cls.t2.filter(n => (cntL[n] || 0) < Math.ceil(wantL * R.tier2MinPct / 100)) : []
       if (t2Under.length) why.push('tier-two minimum ' + R.tier2MinPct + '% not reachable for ' + t2Under.join(', '))
       const left = cands.filter(ns => !used.has(ns.join('|')) && !ns.some(n => zero.has(n))).length
-      if (left < want - picked.length) why.push('candidate pool exhausted (' + left + ' unused cap-legal lineups left)')
+      if (left < wantL - picked.length) why.push('candidate pool exhausted (' + left + ' unused cap-legal lineups left)')
       if (!why.length) why.push('per-leg exposure caps leave no legal lineup')
     }
-    legs.push({ lineups: picked, short: picked.length < want, expo, why, selectorPicks: before })
+    legs.push({ lineups: picked, short: picked.length < wantL, want: wantL, expo, why, selectorPicks: before })
   }
   const total = legs.reduce((s, l) => s + l.lineups.length, 0)
   return { legs, exposure: running, total, cls }
