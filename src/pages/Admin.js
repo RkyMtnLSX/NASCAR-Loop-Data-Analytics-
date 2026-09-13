@@ -2495,7 +2495,7 @@ export default function Admin() {
         {preview && (
           <div>
             <div style={{ padding: '10px 14px', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)', marginBottom: 16, fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
-              Parsed {preview.parsed.totalDrivers} drivers from sheet "{preview.parsed.sheetName}" -- ready to grade and upload
+              Parsed {preview.parsed.totalDrivers} drivers from sheet "{preview.parsed.sheetName}" -- ready to grade and upload{preview.parsed.skipped && preview.parsed.skipped.length ? <span style={{ color: '#f5a623' }}> -- SKIPPED {preview.parsed.skipped.length}: {preview.parsed.skipped.join('; ')}</span> : null}
             </div>
             <div className="table-wrap" style={{ marginBottom: 16 }}>
               <table>
