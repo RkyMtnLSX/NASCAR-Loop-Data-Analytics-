@@ -26,6 +26,18 @@ export const PORTFOLIO_RULES = {
   portfolioMaxPct: 60,  // any driver across all legs
   diversifyExtra: 1500, // V4 candidate diversification under caps (DFSPage 09-06)
 }
+// OPERATOR PRESET (registered 2026-09-13, BACKTEST_LOG same date). The three deltas between the shipped
+// rules and the operator's hand-built Darlington leg that won (09-05, rule 3 there): never the $5,000
+// floor, punts only from LOW-owned mid-priced cars, and every lineup carries at least one punt.
+// Overlay on PORTFOLIO_RULES via input.rules; rulesOn must be true. NOT a default anywhere until the
+// registered test and the forward ledger say so. `puntEligible` (a Set of names) is the NULL-arm hook:
+// when present it replaces the ownership gate with an explicit eligible set of the same size.
+export const OPERATOR_PRESET = {
+  floorMaxPct: 0,        // never the floor car
+  puntOwnMaxPct: 12,     // mid punts must be projected <= 12% owned (v3 ownership model), else 0%
+  puntMaxPct: 55,        // an eligible punt can carry up to 55% of a leg (Bilicki 55 / Smithley 45 in the leg that won)
+  minPuntsPerLineup: 1,  // 1-2 punts per lineup (maxPuntsPerLineup stays 2)
+}
 export const CHALK_SCHEDULES = {
   all50: { label: 'All legs 50% chalk (default, backtested +14%)', stance: () => 50 },
   fade1: { label: '0 / 50 / 50 — leg 1 fades the chalk (high variance: zeroes most weeks)', stance: (leg) => (leg === 0 ? 0 : 50) },
@@ -74,7 +86,15 @@ export function buildPortfolio(deps, input) {
   const meanRes = optimize(pool2, input.locks || new Set(), new Set(), Math.max(300, want * 4))
   if (!meanRes.error) meanRes.lineups.forEach(lu => addCand(lu.drivers.map(d => d.name)))
   let universe = Array.from(candMap.values())
-  if (input.rulesOn) universe = universe.filter(ns => ns.reduce((s, n) => s + byName[n].sal, 0) >= R.salaryFloor && ns.filter(isPunt).length <= R.maxPuntsPerLineup)
+  // punt eligibility (Operator preset / null arm): mid punts outside the eligible set count as punts but are capped at 0
+  const puntOK = n => {
+    if (cls.midPunt.indexOf(n) === -1) return true
+    if (R.puntEligible) return R.puntEligible.has(n)
+    if (R.puntOwnMaxPct != null) return ((input.projOwn || {})[n] || 0) <= R.puntOwnMaxPct
+    return true
+  }
+  const minPunts = R.minPuntsPerLineup || 0
+  if (input.rulesOn) universe = universe.filter(ns => { const np = ns.filter(isPunt).length; return ns.reduce((s, n) => s + byName[n].sal, 0) >= R.salaryFloor && np <= R.maxPuntsPerLineup && np >= minPunts })
   universe = universe.map(ns => [ns, ns.reduce((a, n) => a + byName[n].projDK, 0)]).sort((x, y) => y[1] - x[1]).map(x => x[0])
   // draws
   const DRAW_TARGET = 2000
@@ -96,7 +116,7 @@ export function buildPortfolio(deps, input) {
     if (input.rulesOn) {
       cls.t2.forEach(n => { if (!expo[n]) expo[n] = t2Off.has(L) ? { max: R.tier2MaxPct } : { min: R.tier2MinPct, max: R.tier2MaxPct } })
       cls.floor.forEach(n => { if (!expo[n]) expo[n] = { max: R.floorMaxPct } })
-      cls.midPunt.forEach(n => { if (!expo[n]) expo[n] = { max: R.puntMaxPct } })
+      cls.midPunt.forEach(n => { if (!expo[n]) expo[n] = { max: puntOK(n) ? R.puntMaxPct : 0 } })
     }
     legExpo.push(expo)
   }
@@ -174,6 +194,9 @@ export function buildPortfolio(deps, input) {
       picked = refilled.filter(lu => !used.has(keyOfLu(lu))).slice(0, wantL)
     }
     picked = picked.filter(lu => !used.has(keyOfLu(lu)))
+    // Operator preset: the top-up passes build with the mean optimizer, which knows nothing about the
+    // minimum-punt rule - drop any filler lineup that breaks it rather than pad (never pads, 09-06).
+    if (input.rulesOn && minPunts > 0) picked = picked.filter(lu => lu.drivers.filter(d => isPunt(d.name)).length >= minPunts)
     // recount this leg after top-up (running was built from the selector picks only)
     const cntL = {}; picked.forEach(lu => lu.drivers.forEach(d => { cntL[d.name] = (cntL[d.name] || 0) + 1 }))
     Object.keys(legCount[L]).forEach(n => { running[n] -= legCount[L][n] }); legCount[L] = cntL; Object.keys(cntL).forEach(n => { running[n] = (running[n] || 0) + cntL[n] })
