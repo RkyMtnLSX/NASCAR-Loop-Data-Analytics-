@@ -48,6 +48,45 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-13 — REGISTRATION: 'OPERATOR' BUILD PRESET (the 09-05 proposal; construction only, no solver change)
+
+WHY. STATE [OPEN 2026-09-05]: the operator's hand-built Darlington O'Reilly leg beat both solvers
+(1st of 1,189) and the 09-06 Portfolio ship encoded rules 2 and 4 of that construction (tier-two
+studs 50-80%, cap spent, no lineup reused, 60% portfolio cap) plus a loose form of rule 3 (floor
+cars <= 10%, mid punts <= 25%). Rule 3 as observed was stricter and different: "punts = small
+rotating set of mid-priced (5.5-5.8k) sub-10%-owned cars, 1-2 per lineup, NEVER the $5,000 floor"
+- Bilicki 55% / Smithley 45% (8-9% owned), floor cars 0, and Finchum 0 of 61 at cup Darlington
+09-07. This registers the DELTA between the shipped rules and that construction, as a preset.
+Operator 2026-09-13: the preset is a fixed rule set in code - "the operator would just be me";
+nothing per-user is learned or stored.
+
+CANDIDATE (frozen; src/lib/dfsPortfolio.js OPERATOR_PRESET, overlay on PORTFOLIO_RULES, rules ON):
+  floorMaxPct 0 (never the floor car: salary <= floor + $500);
+  mid punts (floor + $500 < salary <= $6,200) eligible ONLY if projected ownership (v3 model, the
+  product's own) <= 12%, else 0%; eligible punts may carry up to 55% of a leg (was 25);
+  every lineup carries >= 1 punt (max stays 2; filler lineups that break it are dropped, never
+  padded - 09-06 doctrine). Everything else identical to the shipped rules (tier-two 50-80%,
+  salary >= $48,800, all legs 50% chalk, 60% portfolio cap, round-robin legs).
+HARNESS: DFS Replay (Admin) - the product's own solvers, draws, salaries, ladder and scoring;
+  a report-only "Operator preset arm" block added to the replay result (nothing saved to
+  dfs_replays). Races: every replayable ledger race (the nine 09-06 races + cup Darlington R27;
+  Gateway if its post boards + results are in by the run). 3 legs x 20.
+ARMS: REF = the shipped Portfolio with rules FORCED ON in every series (so trucks compare
+  like-for-like; for cup / O'Reilly this is the ledger's Portfolio row). PRESET = REF + the three
+  deltas. NULL = PRESET with the ownership gate replaced by a RANDOM eligible set of the same size
+  drawn from the mid punts (seeds 1-5, mean) - isolates "low-owned" from "fewer, heavier punts".
+METRIC (primary): realised prize over the 60 entries on the real ladder, DK-like curve (top 20%,
+  r^-0.75, entry-fee units) - the 09-06 metric. Secondary: best-of-60 pctile; short-leg counts;
+  mean actual DK points of the punt slots per arm (WHERE the effect must land: the preset changes
+  only which cars fill the 1-2 punt slots - stud exposure is unchanged by construction, so a win
+  that does not show up as punt-slot points is not the preset working).
+DECISION: adopt if PRESET mean prize > REF mean AND W/L vs REF >= 1.5:1 AND PRESET mean > NULL
+  mean over the races run. Adopt = ships as a third rules option in the Lineup Optimizer
+  ("Operator preset", off by default - the forward Replay ledger decides any default change) and a
+  ledger column. Fail = logged, the module constant stays in code unexposed, STATE item closed.
+NOT DONE BEFORE THIS ENTRY: no replay race has been run with the arm; the only check was a
+  synthetic-draw smoke of the module (3 x 20 fills, floor 0, 1-2 punts per lineup).
+
 ## 2026-09-08 — RESULT: MARKET BENCHMARK — the sim is within 2 rho points of the closing line; the line itself is at ~.49 in cup
 
 13 races (cup 6, O'Reilly 4, trucks 3), post boards vs closing consensus (median of 2-3 books,
