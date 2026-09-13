@@ -48,6 +48,49 @@ Diff the current HEAD against your last commit, extract the missing sections, an
      notes, practice-edge closure, ARP/GFS/pass_diff saturation findings). SEARCH there for
      anything pre-August. This file continues the same append-only protocol from that point. -->
 
+## 2026-09-13 — RESULT: 'OPERATOR' BUILD PRESET — FAILS on every count; CLOSED (constant stays in code, unexposed)
+
+Harness as registered (DFS Replay data path and the product's own solvers, run in-page against the
+live tables because the cloud sandbox cannot reach Supabase; the deployed report-only arm in
+DfsReplay is the same code). 3 legs x 20, realised prize on the real ladder, entry-fee units.
+Ten races had samples + salaries + contest + finish (O'Reilly R22 Indy, cup R22 Indy, trucks R16
+IRP: no contest stored; O'Reilly R26 Gateway: no finish yet).
+  race             REF (rules on)   PRESET            NULL (5 seeds, mean)   eligible punts
+  cup Iowa R23        5.64 20/18/18   3.79 12/7/7       3.79 (all 5 identical)  6 of 6
+  cup Richmond R24    6.50 19/15/15   4.48 12/10/13     4.48 (identical)        12 of 12
+  cup NH R25         13.84 20/20/20  16.14 20/20/20    16.14 (identical)         8 of 8
+  cup Daytona R26    46.78 20/20/20  41.76 11/9/9      44.48                     4 of 8
+  cup Darlington R27 14.81 20/20/19  14.33 19/16/13    23.62                     9 of 11
+  ore Iowa R23       95.25 20/19/19  11.79 16/17/16    11.79 (identical)         5 of 5
+  ore Daytona R24    11.65 20/19/18  10.32 11/10/10    58.44                     3 of 7
+  ore Darlington R25  6.29 20/19/20   7.06 14/6/5       5.37                     6 of 7
+  trk Richmond R17   54.22 20/19/19  49.61 10/12/10    48.46                     7 of 11
+  trk NH R18          6.28 20/20/20   2.25 19/17/14     4.08                     4 of 6
+  MEAN               26.13           16.15 (-38%)      22.07
+  W/L PRESET vs REF: 2/8.  PRESET vs NULL mean: below.  Decision rule: fails all three legs of it.
+WHERE IT LANDED. (1) The >= 1-punt rule collides with the tier-two minimums: legs came up 7-13 of
+20 in seven of ten races ("tier-two minimum 50% not reachable" every time), and a short leg is
+scored as what it is - never padded. Most of the -38% is missing entries, not worse entries.
+(2) The ownership gate is TOOTHLESS as specified: projected ownership (v3) is a monotone function
+of our own projection, so every mid-priced car projects low-owned - in 4 of 10 races every mid
+punt was "eligible" and the NULL arm was byte-identical to the preset. The operator's "sub-10%-
+owned" rule needs ACTUAL crowd ownership, which the product does not have pre-lock (leverage line
+closed 08-30 for exactly this reason). (3) Punt-slot points (the registered location of any
+effect) did not move the right way consistently: up in 5 races, down in 5; the floor cars the
+preset bans scored 0-40 with no pattern (Daytona Dillon 33, Maggio 40 vs Ware -1, Bacarella 0).
+(4) The one clean win (cup NH +2.3, all legs full) is the only race where the preset filled 60 -
+the rule set is workable only when the slate has 8+ cheap eligible cars and no tier-two squeeze.
+NOT the same REF numbers as the 09-06 table (e.g. ore Iowa 95.3 here vs 41.0 there): REF here is
+the CURRENT module (round-robin legs, V4 diversification, wants) with rules forced on, run on the
+same data path as the product; the 09-06 harness predates both. The comparison inside this entry
+is like-for-like; do not compare across entries.
+DECISION: CLOSED. OPERATOR_PRESET stays in src/lib/dfsPortfolio.js as an unexposed constant (the
+registered form, for re-testing if actual-ownership data ever exists pre-lock); no Lineup
+Optimizer option, no ledger column. STATE [OPEN 2026-09-05] Operator preset -> CLOSED. What the
+09-05 win still says: rules 2 and 4 are shipped and +14% on the ledger; rule 3 as a mechanical
+gate is not reproducible with the inputs we have. The DfsReplay report-only arm stays (small,
+nothing saved) so the numbers above can be re-run from the admin page.
+
 ## 2026-09-13 — REGISTRATION: 'OPERATOR' BUILD PRESET (the 09-05 proposal; construction only, no solver change)
 
 WHY. STATE [OPEN 2026-09-05]: the operator's hand-built Darlington O'Reilly leg beat both solvers

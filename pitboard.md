@@ -3445,3 +3445,15 @@ manual mode with no file is byte-identical. Node check on synthetic draws: wants
 40/40, 20/20, 20/20, zero cross-leg duplicates; legacy 3x20 unchanged; 1-entry plan -> 1/1.
 Also: MANUAL L250 was stale (still described GPP as per-lineup p90) — corrected to E[max] set.
 Not touched: solvers, caps, chalk schedules, rules (all carry registered results).
+
+## 2026-09-13 — 'Operator' build preset: registered, run, FAILED, closed
+Operator: "okay build it" (after "the operator would just be me... can't have users having their data
+stored in the database"). Registered first (BACKTEST_LOG 09-13, pushed a826bc8 before any race was
+read), then the harness (dfsPortfolio OPERATOR_PRESET overlay + a report-only arm in DfsReplay). The
+replay page's own timer-chained loops crawled because the tab was hidden (Chrome throttling), so
+the ten races were run in-page with the identical solver source injected via the extension, against
+the live tables. Result: prize 26.13 -> 16.15 (-38%), 2/8 vs rules-on, below the random-punt null.
+Two mechanical reasons: (a) ">= 1 punt per lineup" starves legs under the tier-two minimums (7-13 of
+20 in seven races); (b) the "low-owned punt" gate cannot bite with PROJECTED ownership, which is
+monotone in our own projection - the null arm was identical to the preset in 4 of 10 races. CLOSED;
+constant stays unexposed; STATE item closed; MANUAL + STATE gained the no-user-data-stored rule.
