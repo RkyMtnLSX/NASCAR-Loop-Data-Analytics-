@@ -752,6 +752,7 @@ before stating n.
   fallback. O'REILLY and TRUCKS are the real over-projection (+2.5 to +3.5 at P31+) and
   remain so after both ships - that is the open sim item now.
 - **Ledger 2026-09-07:** GPP 5 / cash 3 / tie 2. Portfolio row: 1 / 0 (Darlington Cup 11.1 vs 0.0).
+- **Ledger 2026-09-13 (O'Reilly Gateway R26, operator-run at N=60):** GPP 6 / cash 3 / tie 2. Portfolio row 1 / 1 — first loss (24.1 vs 34.6; the projected chalk Allgaier/Sawalich busted, rules put 50% of every leg on them). rho model .50 beat own .43 and salary .41 for the first time. SIM LEAD (n=1): front-row starters at flat short tracks under-projected (Kvapil P1 / Love P2 projected P12 and 28 DK; finished 5th/1st for 83/78). pitboard.md 09-13.
   Replay ledger note: the Cup Darlington `races` row was numbered 25 and the feed loader numbers
   loop_data from that row - fixed by hand to 27 (races + loop_data). Watch the registry number when
   a stub is created from the practice-upload guard.

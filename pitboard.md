@@ -3457,3 +3457,29 @@ Two mechanical reasons: (a) ">= 1 punt per lineup" starves legs under the tier-t
 20 in seven races); (b) the "low-owned punt" gate cannot bite with PROJECTED ownership, which is
 monotone in our own projection - the null arm was identical to the preset in 4 of 10 races. CLOSED;
 constant stays unexposed; STATE item closed; MANUAL + STATE gained the no-user-data-stored rule.
+
+## 2026-09-13 — DFS O'Reilly Gateway R26 replay examined (operator ran + saved it; Entries = 60)
+Contest 2,972 entries, winner 339.1, median 218.5. Verdict GPP: best-of-60 287.25 (~258th, p91) vs
+cash 194.75 (~1,931st, p35, BELOW the median); perfect 341.95 (Kvapil / Love / Mayer / Burton /
+Sieg $5.9k / Maggio). rho model .50 > own .43 > salary .41 — the FIRST replay where the board out-
+ranked both the crowd and the salary line. Ledger: GPP 6 / cash 3 / tie 2.
+THE MISS IS THE FRONT ROW: the board had the pole-sitter Kvapil at proj finish 12.4 / 27.8 DK and
+Love (P2) 12.5 / 28.3, while Allgaier (P5) 10.5 / 39.5 and Crews (P10) 10.9 / 43.1 were the favourites.
+Actual: Love won from P2 (78.35), Kvapil P1->5 (82.85, laps led), Mayer P18->3 (62.75); Allgaier
+P5->13 (26.05), Sawalich P8->16 (21.7) — the two projected chalk cars are what sank the cash lineup
+and every set that leaned on them. Gateway is a "Short & Flat" board, so dominance is still dealt
+by finish rank (int-dom-v2 is INT only) and the sim had the front row finishing ~12th: with that
+finish it cannot give them the laps. Sim item, not a DFS item: front-row starters at flat short
+tracks under-projected (n=1 here; check against the 2022-25 Gateway/Richmond/Phoenix history
+before registering anything).
+PORTFOLIO ROW (3 x 60, rules on): prize 24.1 vs 34.6 for 3 x the E[max] 60-set — first LOSS on the
+portfolio ledger (1/1). Legs 165 of 180 (short under tier-two minimums at N=60), exposure Sieg 61 /
+Crews 52 / Sawalich 52 / Allgaier 48: the rules put 50% of every leg on the projected chalk
+(Sawalich, Allgaier) and 50-80% on the tier-two (Jones / Creed / Gray), and the chalk busted. The
+plain E[max] set carried the same Sieg/Crews and less Sawalich/Allgaier. Note the row was scored at
+N=60 (the operator's real entry count), not the ledger's N=20 - comparable to itself, not to 09-07.
+OWNERSHIP: actual chalk was Sieg 49% / Retzlaff 47% / Kvapil 45% - projected chalk (proj own > 35%)
+was Crews / Allgaier / Sawalich, owned 13 / 33 / 25. The crowd chased Kvapil's pole and the two
+cheap fast-practice cars (the 09-06 v2 finding: the crowd chases PRACTICE); v3 still misses it.
+ALSO: practice sheet parser now NAMES a driver it drops for having no usable lap (cup Gateway parsed
+35 of 36 silently - src/lib/excelParser.js `skipped`, shown in the upload status).
