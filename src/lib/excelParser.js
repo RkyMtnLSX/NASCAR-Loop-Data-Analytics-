@@ -52,6 +52,7 @@ export function parsePracticeExcel(file, series = 'cup') {
         lapColumns.sort(function (a, b) { return a.lapNum - b.lapNum })
         if (lapColumns.length === 0) { reject(new Error('Could not find lap time columns')); return }
         const drivers = []
+        const skipped = []   // 2026-09-13: name every dropped row (cup Gateway parsed 35 of 36 silently)
         for (let i = headerRowIndex + 1; i < rows.length; i++) {
           const row = rows[i]
           const driverName = String(row[driverColIndex] || '').trim()
@@ -73,6 +74,7 @@ export function parsePracticeExcel(file, series = 'cup') {
           }
           const group = groupColIndex !== -1 ? (String(row[groupColIndex] || '').trim().toUpperCase() || null) : null
           if (Object.keys(lapData).length > 0) drivers.push({ driver: driverName, carNumber, start: startPos, group, lapData })
+          else skipped.push(driverName + ' (no lap between 10s and 500s on the sheet)')
         }
         // LAPS_RAW (2026-08-14): watcher-built sheets carry a second worksheet with
         // ORIGINAL lap numbers (gaps preserve stint detection) and per-lap capture
@@ -108,7 +110,7 @@ export function parsePracticeExcel(file, series = 'cup') {
           }
         } catch (rawErr) {}
         if (drivers.length === 0) { reject(new Error('No valid driver data found')); return }
-        resolve({ drivers, sheetName, totalDrivers: drivers.length })
+        resolve({ drivers, sheetName, totalDrivers: drivers.length, skipped })
       } catch (err) {
         reject(new Error('Failed to parse spreadsheet: ' + err.message))
       }
