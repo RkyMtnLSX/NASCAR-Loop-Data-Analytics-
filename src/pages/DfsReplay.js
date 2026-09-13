@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { optimize, bestLineup, makeEmaxSelector, topUpLineups, enforceMinExposure, dfsCapFor, projectOwnership, DFS_ROSTER, DFS_CAP } from './DFSPage'
-import { buildPortfolio, portfolioRulesDefault } from '../lib/dfsPortfolio'
+import { buildPortfolio, portfolioRulesDefault, classifyPortfolioPool, OPERATOR_PRESET, PORTFOLIO_RULES } from '../lib/dfsPortfolio'
 
 // DFS REPLAY (2026-08-30, operator: "should this be an admin tool that I can run instead of having
 // you do it everytime? ... I always upload the contest after the race").
@@ -393,6 +393,25 @@ export default function DfsReplay() {
         const __pfBest = Math.max.apply(null, __pfLegs.flat().map(ns => placeIn(ladder, __E, ns.reduce((t, n) => t + byName[n].actual, 0)).pct || 0))
         portfolio = { legs: __legs, n: __N, rulesOn: __rulesOn, prize: __pfPrize, basePrize: __basePrize, bestPct: __pfBest, entries: __pf.total,
           exposure: Object.entries(__pf.exposure).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([n, c]) => ({ name: n, pct: Math.round(100 * c / Math.max(1, __pf.total)) })), chalk: __pf.cls.chalk, t2: __pf.cls.t2 }
+        // ---- OPERATOR PRESET arm (registered 2026-09-13, BACKTEST_LOG): rules ON + OPERATOR_PRESET
+        // (floor 0%, mid punts only if projected own <= 12%, >= 1 punt per lineup), scored exactly like the
+        // Portfolio row. Reference = the Portfolio row above with rules FORCED ON (so trucks compare
+        // like-for-like). NULL arm = the same preset with the ownership gate replaced by a random
+        // eligible set of the same size (5 seeds, mean). Report only - nothing here is saved to the ledger.
+        try {
+          const __pfRows = pool.map(d => ({ name: d.name, sal: d.sal, projDK: d.projDK }))
+          const __base = { rows: __pfRows, samples: { drivers: names, rows: draws }, simCands: cands, legs: __legs, want: __N, rulesOn: true, schedule: 'all50', locks: new Set(), excludes: new Set(), userExpo: {}, projOwn: __own }
+          const __deps = { optimize, bestLineup, makeEmaxSelector, topUpLineups, enforceMinExposure, capFor: dfsCapFor, ROSTER: DFS_ROSTER, CAP: DFS_CAP }
+          const __cls = classifyPortfolioPool(__pfRows, __own, PORTFOLIO_RULES)
+          const __puntPts = (pf) => { let s2 = 0, k = 0; pf.legs.forEach(l => l.lineups.forEach(lu => lu.drivers.forEach(d => { if (__cls.floor.indexOf(d.name) !== -1 || __cls.midPunt.indexOf(d.name) !== -1) { s2 += byName[d.name].actual; k++ } }))); return { mean: k ? s2 / k : null, slots: k } }
+          const __arm = (rules) => { const pf = buildPortfolio(__deps, { ...__base, rules }); const legsN = pf.legs.map(l => l.lineups.map(lu => lu.drivers.map(d => d.name))); return { prize: legsN.reduce((s2, lus) => s2 + __score(lus), 0), entries: pf.total, legs: pf.legs.map(l => l.lineups.length), bestPct: Math.max.apply(null, [0].concat(legsN.flat().map(ns => placeIn(ladder, __E, ns.reduce((t, n) => t + byName[n].actual, 0)).pct || 0))), punt: __puntPts(pf), why: pf.legs.map(l => (l.why || []).join('; ')).filter(Boolean) } }
+          const __ref = __rulesOn ? { prize: __pfPrize, entries: __pf.total, legs: __pf.legs.map(l => l.lineups.length), bestPct: __pfBest, punt: __puntPts(__pf) } : __arm({})
+          const __op = __arm({ ...OPERATOR_PRESET })
+          const __elig = __cls.midPunt.filter(n => (__own[n] || 0) <= OPERATOR_PRESET.puntOwnMaxPct)
+          const __rng = (seed) => { let a = seed >>> 0; return () => { a += 0x6D2B79F5; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296 } }
+          const __nulls = [1, 2, 3, 4, 5].map(seed => { const r = __rng(seed); const pool2 = __cls.midPunt.slice(); const pick = new Set(); while (pick.size < Math.min(__elig.length, pool2.length)) pick.add(pool2[Math.floor(r() * pool2.length)]); return __arm({ ...OPERATOR_PRESET, puntEligible: pick }) })
+          portfolio.operator = { ref: __ref, preset: __op, nullMean: __nulls.reduce((s2, x) => s2 + x.prize, 0) / __nulls.length, nullPrizes: __nulls.map(x => +x.prize.toFixed(2)), eligiblePunts: __elig, midPunts: __cls.midPunt, floor: __cls.floor }
+        } catch (e) { portfolio.operator = { error: String((e && e.message) || e) } }
       } catch (e) { portfolio = { error: String((e && e.message) || e) } }
 
       // ---- calibration
@@ -534,6 +553,14 @@ export default function DfsReplay() {
             </div>
           )}
           {res.portfolio && res.portfolio.error && <div style={{ fontSize: 12, color: '#f5a623', marginBottom: 10 }}>Portfolio row failed: {res.portfolio.error}</div>}
+          {res.portfolio && res.portfolio.operator && !res.portfolio.operator.error && (() => { const o = res.portfolio.operator; return (
+            <div id="operator-arm" style={{ fontSize: 12, color: 'var(--text-secondary, #9aa0aa)', marginBottom: 10, padding: '6px 10px', border: '1px dashed var(--border, #2a2d34)', borderRadius: 6 }}>
+              <strong style={{ color: 'var(--text-primary, #e8eaed)' }}>Operator preset arm</strong> (report only, not saved) · REF rules-on prize <b>{o.ref.prize.toFixed(2)}</b> ({o.ref.legs.join('/')}, best p{Math.round(o.ref.bestPct)}, punt slots {o.ref.punt.slots} avg {o.ref.punt.mean != null ? o.ref.punt.mean.toFixed(1) : '-'} pts)
+              {' · '}PRESET prize <b>{o.preset.prize.toFixed(2)}</b> ({o.preset.legs.join('/')}, best p{Math.round(o.preset.bestPct)}, punt slots {o.preset.punt.slots} avg {o.preset.punt.mean != null ? o.preset.punt.mean.toFixed(1) : '-'} pts)
+              {' · '}NULL mean <b>{o.nullMean.toFixed(2)}</b> [{o.nullPrizes.join(', ')}] · eligible punts {o.eligiblePunts.length} of {o.midPunts.length} mid ({o.eligiblePunts.join(', ') || 'none'}); floor {o.floor.join(', ') || 'none'}
+              {o.preset.why.length ? ' · preset short: ' + o.preset.why.join(' | ') : ''}
+            </div>) })()}
+          {res.portfolio && res.portfolio.operator && res.portfolio.operator.error && <div style={{ fontSize: 12, color: '#f5a623', marginBottom: 10 }}>Operator arm failed: {res.portfolio.operator.error}</div>}
           <div style={{ ...lbl, marginBottom: 14 }}>ρ = Spearman of each ranking against actual DK points. Ownership above the model means the crowd out-ranked us.</div>
         </div>
       )}
