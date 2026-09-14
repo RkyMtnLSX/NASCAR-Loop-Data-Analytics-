@@ -34,3 +34,8 @@ create policy admin_all on public.dfs_operator_entries
 alter table public.dfs_replays add column if not exists operator_json jsonb;
 alter table public.dfs_replays add column if not exists operator_prize numeric;
 alter table public.dfs_replays add column if not exists operator_entries int;
+-- 2026-09-14 (measurement fix 1): fine placement ladder. dfs_contests.scores_sample is a 10-decile ladder,
+-- which placed a 300.0 at ~506th in a 7,324-entry field whose real rank was 129th - and the prize curve is
+-- steepest exactly there. scores_top holds the top 1,000 scores (descending) from the standings file; the
+-- replay places against it and falls back to the deciles only below it.
+alter table public.dfs_contests add column if not exists scores_top jsonb;
