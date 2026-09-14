@@ -3511,3 +3511,21 @@ the ledger gained an Operator column (dfs_replays.operator_json / operator_prize
 Operator data only - inside the no-user-data rule. Gateway's files were ingested BEFORE this shipped:
 re-upload the two standings CSVs (cup R28, O'Reilly R26) on DFS Salary Admin to capture them, then
 re-run + save the replays for the Operator column to fill.
+
+## 2026-09-14 — DFS ledger measurement fixes (operator: "do the two measurement fixes first")
+(1) EXACT PLACEMENT. dfs_contests.scores_sample is a 10-decile ladder and placeIn interpolated inside
+a decile: a 300.0 at cup Gateway was placed ~506th of 7,324 when the standings file says 129th, and
+the prize curve (r^-0.75, top 20% paid) is steepest exactly there - every Portfolio / GPP / preset
+prize number on the ledger carried that error. The ownership ingest now also stores `scores_top`
+(top 1,000 scores, descending; new column in sql/dfs_operator_entries.sql, upsert falls back to the
+old shape until the column exists) and placeIn ranks EXACTLY inside it (1 + scores above), deciles
+only below the stored top. The replay message says which placement it used. Past races get exact
+ranks only when their standings file is re-uploaded - do it for the ledger races as time allows.
+(2) PRODUCT AT THE OPERATOR'S N. Per-entry prize falls with N on a top-heavy curve, so 20 operator
+entries vs a 120-entry Portfolio row flattered the operator. With operator entries stored per
+contest, the replay now also builds the product at exactly those sizes - one Portfolio leg per
+operator GPP contest (wants = entries) and the plain E[max] set at each size - scores them on the same
+ladder and reports "AT THE OPERATOR'S N: operator x vs Portfolio y vs E[max] z per entry". The
+ledger's Operator column prefers this like-for-like number. Nothing in the solvers changed.
+NOT yet re-scored: the existing ledger rows (they need re-uploaded standings for scores_top). Next
+after the operator has run the SQL and re-uploaded: chalk-40 stance registration.
