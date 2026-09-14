@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 
 const SERIES = [{ v: 'cup', label: 'Cup' }, { v: 'oreilly', label: "O'Reilly" }, { v: 'trucks', label: 'Trucks' }]
+const OPERATOR_DK_USER = 'atmmstrs2'   // the operator's DraftKings username (2026-09-14); entries under it are captured to dfs_operator_entries
+let ownFileName = ''                  // last standings file name (carries the DK contest id)
 const norm = (s) => (s || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z ]/g, '').replace(/\s+/g, ' ').trim() // 2026-08-14: NFD accent fold (Suarez matching), standard name-join rule
 
 function parseSalaries(text, drivers) {
@@ -147,15 +149,67 @@ export default function DfsSalaryAdmin() {
         }, { onConflict: 'series,race_year,race_number,contest_type' })
       }
     } catch (e4) {}
+    // OPERATOR ENTRIES (2026-09-14): the same standings file carries the operator's own lineups -
+    // rows whose EntryName is the operator's DK username (OPERATOR_DK_USER), Lineup cell "D A B D C D...".
+    // Stored to dfs_operator_entries with per-contest exposure + placement + realised prize so DFS
+    // Replay can score the real construction against the product every week. Operator data only.
+    let opMsg = ''
+    try {
+      const lines2 = (text || '').split(/\r?\n/)
+      const hdr = lines2[0] ? lines2[0].split(',').map(c => c.trim().toLowerCase()) : []
+      const iName = hdr.indexOf('entryname'), iPts = hdr.indexOf('points'), iLu = hdr.indexOf('lineup'), iRank = hdr.indexOf('rank')
+      const nameKeys = Object.keys(parseOwnership(text, extra))   // canonical names this file resolves to
+      const byN2 = {}; nameKeys.forEach(n2 => { byN2[norm(n2)] = n2 })
+      const byFL2 = {}; Object.keys(byN2).forEach(k => { const p = k.split(' '); if (p.length >= 2) byFL2[p[0] + ' ' + p[p.length - 1]] = byN2[k] })
+      const canon = raw => { const nc = norm(raw); if (byN2[nc]) return byN2[nc]; const p2 = nc.split(' '); const k2 = p2.length >= 2 ? p2[0] + ' ' + p2[p2.length - 1] : nc; return byFL2[k2] || raw.trim() }
+      const mine = []
+      const scoresAll = []
+      if (iName !== -1 && iLu !== -1 && iPts !== -1) {
+        for (let li = 1; li < lines2.length; li++) {
+          const c = lines2[li].split(',')
+          if (!/^\d{6,}$/.test((c[1] || '').trim())) continue
+          const pts = parseFloat(c[iPts]); if (isFinite(pts)) scoresAll.push(pts)
+          const en = (c[iName] || '').trim().toLowerCase()
+          if (en === OPERATOR_DK_USER || en.indexOf(OPERATOR_DK_USER + ' ') === 0) {
+            const drivers = (c[iLu] || '').split(/\bD\s+/).map(x => x.trim()).filter(Boolean).map(canon)
+            if (drivers.length === 6) mine.push({ rank: parseInt(c[iRank]) || null, points: isFinite(pts) ? pts : null, drivers })
+          }
+        }
+      }
+      if (mine.length) {
+        scoresAll.sort((a, b) => b - a)
+        const E = scoresAll.length
+        const prizeOf = (() => { const R = Math.floor(0.2 * E); let Z = 0; for (let r = 1; r <= R; r++) Z += Math.pow(r, -0.75); return r => (E && r >= 1 && r <= R) ? E * Math.pow(r, -0.75) / Z : 0 })()
+        const rankOf = (pts) => { let k = 0; while (k < E && scoresAll[k] > pts) k++; return k + 1 }
+        const expo = {}; mine.forEach(l => l.drivers.forEach(d => { expo[d] = (expo[d] || 0) + 1 }))
+        Object.keys(expo).forEach(d => { expo[d] = Math.round(1000 * expo[d] / mine.length) / 10 })
+        const ranks = mine.map(l => l.rank || rankOf(l.points || 0))
+        const pcts = ranks.map(r => E ? 100 * (1 - (r - 1) / Math.max(1, E - 1)) : null)
+        const med = scoresAll[Math.floor((E - 1) / 2)]
+        const cidM = (ownFileName || '').match(/(\d{6,})/)
+        const row = {
+          series, race_year: sel.year, race_number: sel.race_number, track_name: sel.track_name, contest_type: ownType,
+          contest_id: cidM ? cidM[1] : 'unknown', dk_user: OPERATOR_DK_USER, entries: mine.length, contest_entries: E,
+          lineups: mine, exposure: expo, best_rank: Math.min.apply(null, ranks), best_points: Math.max.apply(null, mine.map(l => l.points || 0)),
+          mean_pct: pcts.length ? +(pcts.reduce((a, b) => a + b, 0) / pcts.length).toFixed(2) : null,
+          above_median: mine.filter(l => (l.points || 0) > med).length,
+          prize: +ranks.reduce((a, r) => a + prizeOf(r), 0).toFixed(3),
+        }
+        const { error: opErr } = await supabase.from('dfs_operator_entries').upsert(row, { onConflict: 'series,race_year,race_number,contest_id' })
+        opMsg = opErr ? ' Operator entries NOT saved: ' + opErr.message + (opErr.message.includes('does not exist') ? ' - run sql/dfs_operator_entries.sql first.' : '')
+          : ' Operator: ' + mine.length + ' entries captured (best ' + row.best_rank + ' of ' + E + ', ' + row.above_median + ' above median, prize ' + row.prize + ').'
+      } else if (iName !== -1) opMsg = ' (no entries by ' + OPERATOR_DK_USER + ' in this file)'
+    } catch (e5) { opMsg = ' Operator entries failed: ' + (e5.message || e5) }
     const { error } = await supabase.from('dfs_ownership')
       .upsert(rows2, { onConflict: 'series,race_year,race_number,driver_name,contest_type' })
-    setOwnMsg(error
+    setOwnMsg((error
       ? 'Save failed: ' + error.message + (error.message.includes('does not exist') ? ' - run dfs_ownership_schema.sql in Supabase first.' : '')
-      : 'Saved ownership + FPTS for ' + n + ' drivers (' + ownType.toUpperCase() + ', ' + sel.year + ' R' + sel.race_number + ' ' + sel.track_name + ').')
+      : 'Saved ownership + FPTS for ' + n + ' drivers (' + ownType.toUpperCase() + ', ' + sel.year + ' R' + sel.race_number + ' ' + sel.track_name + ').') + opMsg)
   }
   const doOwnFile = (e) => {
     const file = e.target.files && e.target.files[0]
     if (!file) return
+    ownFileName = file.name
     const reader = new FileReader()
     reader.onload = (ev) => { setOwnPaste(String(ev.target.result || '')); doOwnIngest(String(ev.target.result || '')) }
     reader.readAsText(file)

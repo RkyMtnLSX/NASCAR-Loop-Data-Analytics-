@@ -167,7 +167,7 @@ export default function DfsReplay() {
   const [entries, setEntries] = useState(20)
 
   const loadLedger = () => supabase.from('dfs_replays')
-    .select('series,race_year,race_number,track_name,cash_actual,cash_rank,gpp_actual,gpp_rank,perfect_actual,contest_entries,contest_median,rho_model,rho_salary,rho_own,verdict,engine_era,created_at,portfolio_prize,portfolio_base_prize,portfolio_legs')
+    .select('series,race_year,race_number,track_name,cash_actual,cash_rank,gpp_actual,gpp_rank,perfect_actual,contest_entries,contest_median,rho_model,rho_salary,rho_own,verdict,engine_era,created_at,portfolio_prize,portfolio_base_prize,portfolio_legs,operator_prize,operator_entries,operator_json')
     .order('race_year', { ascending: false }).order('race_number', { ascending: false, nullsFirst: false })
     .limit(50).then(({ data }) => setLedger(data || []))
 
@@ -414,6 +414,30 @@ export default function DfsReplay() {
         } catch (e) { portfolio.operator = { error: String((e && e.message) || e) } }
       } catch (e) { portfolio = { error: String((e && e.message) || e) } }
 
+      // ---- OPERATOR ROW (2026-09-14): the operator's real entries for this race, captured by the
+      // ownership ingest into dfs_operator_entries (his DK username only). Scored on the same ladder
+      // and curve as the product rows, so the ledger finally carries the construction that beat both
+      // solvers at Darlington 09-05 as a weekly number instead of a hand computation.
+      let operator = null
+      try {
+        const { data: opRows } = await eqRace(supabase.from('dfs_operator_entries').select('contest_id,contest_type,entries,contest_entries,lineups,exposure,best_rank,best_points,mean_pct,above_median,prize').eq('series', sr).eq('race_year', year))
+        if (opRows && opRows.length) {
+          const tot = opRows.reduce((a, r) => a + (r.entries || 0), 0)
+          const prize = opRows.reduce((a, r) => a + (+r.prize || 0), 0)
+          const exAll = {}; opRows.forEach(r => r.lineups.forEach(l => l.drivers.forEach(d => { exAll[d] = (exAll[d] || 0) + 1 })))
+          const bestRow = opRows.slice().sort((a, b) => (a.best_rank || 1e9) - (b.best_rank || 1e9))[0]
+          // per-entry prize is the comparable unit: product rows are 3 x N (portfolio) or N (E[max] set)
+          const perEntry = tot ? prize / tot : null
+          const pfPer = portfolio && !portfolio.error && portfolio.entries ? portfolio.prize / portfolio.entries : null
+          const basePer = portfolio && !portfolio.error && portfolio.legs && selN ? portfolio.basePrize / (portfolio.legs * selN) : null
+          operator = { contests: opRows.length, entries: tot, prize: +prize.toFixed(3), perEntry: perEntry != null ? +perEntry.toFixed(4) : null, pfPer: pfPer != null ? +pfPer.toFixed(4) : null, basePer: basePer != null ? +basePer.toFixed(4) : null,
+            bestRank: bestRow.best_rank, bestPoints: bestRow.best_points, bestOf: bestRow.contest_entries, meanPct: opRows.length === 1 ? opRows[0].mean_pct : +(opRows.reduce((a, r) => a + (+r.mean_pct || 0) * r.entries, 0) / Math.max(1, tot)).toFixed(1),
+            aboveMedian: opRows.reduce((a, r) => a + (r.above_median || 0), 0),
+            exposure: Object.entries(exAll).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([n, c]) => ({ name: n, pct: Math.round(100 * c / Math.max(1, tot)) })),
+            byContest: opRows.map(r => ({ id: r.contest_id, type: r.contest_type, entries: r.entries, of: r.contest_entries, best: r.best_rank, meanPct: r.mean_pct, prize: +(+r.prize).toFixed(2) })) }
+        }
+      } catch (e) { operator = { error: String((e && e.message) || e) } }
+
       // ---- calibration
       const withOwn = pool.filter(d => d.own != null)
       const cal = {
@@ -429,7 +453,7 @@ export default function DfsReplay() {
         series: sr, year, race, track: trk, samplesAt: samp.created_at, boardAt: board && board.published_at, stage: board && board.stage,
         nDraws: nD, nPool: pool.length, nCands: cands.length, nScoreDraws: nS,
         cash, gpp, alt, perfect, contest, cal, verdict, unmatched, same,
-        setN: setIdx.length, setUniq: setUniq.size, setEmax: sel.emax(), wantN: selN, portfolio,
+        setN: setIdx.length, setUniq: setUniq.size, setEmax: sel.emax(), wantN: selN, portfolio, operator,
       })
       setProg('')
       setMsg('Done. ' + cands.length.toLocaleString() + ' candidates, ' + nS.toLocaleString() +
@@ -468,6 +492,9 @@ export default function DfsReplay() {
       portfolio_base_prize: res.portfolio && res.portfolio.basePrize != null ? +res.portfolio.basePrize.toFixed(3) : null,
       portfolio_legs: res.portfolio && res.portfolio.legs != null ? res.portfolio.legs : null,
       portfolio_json: res.portfolio || null,
+      operator_json: res.operator && !res.operator.error ? res.operator : null,
+      operator_prize: res.operator && !res.operator.error ? res.operator.prize : null,
+      operator_entries: res.operator && !res.operator.error ? res.operator.entries : null,
     }
     const { error } = await supabase.from('dfs_replays').upsert(row, { onConflict: 'series,race_year,race_number' })
     if (error) setMsg('Save failed: ' + error.message)
@@ -553,6 +580,15 @@ export default function DfsReplay() {
             </div>
           )}
           {res.portfolio && res.portfolio.error && <div style={{ fontSize: 12, color: '#f5a623', marginBottom: 10 }}>Portfolio row failed: {res.portfolio.error}</div>}
+          {res.operator && !res.operator.error && (() => { const o = res.operator; return (
+            <div style={{ fontSize: 12, color: 'var(--text-secondary, #9aa0aa)', marginBottom: 10, padding: '6px 10px', border: '1px solid #e8b923', borderRadius: 6 }}>
+              <strong style={{ color: '#e8b923' }}>Operator</strong> {o.entries} entries in {o.contests} contest{o.contests === 1 ? '' : 's'} · best {o.bestRank} of {o.bestOf} ({o.bestPoints}) · mean p{o.meanPct} · {o.aboveMedian}/{o.entries} above median · prize <b>{o.prize}</b>
+              {' · '}per entry: operator <b>{o.perEntry}</b>{o.pfPer != null ? ' vs portfolio ' + o.pfPer : ''}{o.basePer != null ? ' vs E[max] ' + o.basePer : ''}
+              <div>Exposure: {o.exposure.map(e => e.name + ' ' + e.pct).join(', ')}</div>
+              {o.byContest.length > 1 && <div>{o.byContest.map(c => '#' + c.id + ' ' + c.type + ' ' + c.entries + '/' + c.of + ' best ' + c.best + ' p' + c.meanPct + ' prize ' + c.prize).join(' · ')}</div>}
+            </div>) })()}
+          {res.operator && res.operator.error && <div style={{ fontSize: 12, color: '#f5a623', marginBottom: 10 }}>Operator row failed: {res.operator.error}</div>}
+          {!res.operator && <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7078)', marginBottom: 10 }}>No operator entries stored for this race (upload the contest-standings file on DFS Salary Admin - entries under atmmstrs2 are captured automatically).</div>}
           {res.portfolio && res.portfolio.operator && !res.portfolio.operator.error && (() => { const o = res.portfolio.operator; return (
             <div id="operator-arm" style={{ fontSize: 12, color: 'var(--text-secondary, #9aa0aa)', marginBottom: 10, padding: '6px 10px', border: '1px dashed var(--border, #2a2d34)', borderRadius: 6 }}>
               <strong style={{ color: 'var(--text-primary, #e8eaed)' }}>Operator preset arm</strong> (report only, not saved) · REF rules-on prize <b>{o.ref.prize.toFixed(2)}</b> ({o.ref.legs.join('/')}, best p{Math.round(o.ref.bestPct)}, punt slots {o.ref.punt.slots} avg {o.ref.punt.mean != null ? o.ref.punt.mean.toFixed(1) : '-'} pts)
@@ -586,6 +622,7 @@ export default function DfsReplay() {
                 <th style={{ padding: '5px 6px' }}>Median</th><th style={{ padding: '5px 6px' }}>Perfect</th>
                 <th style={{ padding: '5px 6px' }}>ρ model</th><th style={{ padding: '5px 6px' }}>ρ sal</th><th style={{ padding: '5px 6px' }}>ρ own</th>
                 <th style={{ padding: '5px 6px' }} title="Portfolio realised prize vs legs x E[max] set (entry-fee units, DK-like curve)">Portfolio</th>
+                <th style={{ padding: '5px 6px' }} title="The operator's real entries: prize per entry (entry-fee units, same curve) vs the Portfolio row per entry; entries in brackets">Operator</th>
                 <th style={{ padding: '5px 6px' }}>Engine</th>
                 <th style={{ padding: '5px 6px' }}>Verdict</th>
               </tr>
@@ -604,6 +641,7 @@ export default function DfsReplay() {
                   <td style={{ padding: '5px 6px' }}>{r.rho_salary == null ? '—' : (+r.rho_salary).toFixed(3)}</td>
                   <td style={{ padding: '5px 6px' }}>{r.rho_own == null ? '—' : (+r.rho_own).toFixed(3)}</td>
                   <td style={{ padding: '5px 6px', color: r.portfolio_prize == null ? 'var(--text-muted, #6b7078)' : +r.portfolio_prize > +r.portfolio_base_prize ? '#4ade80' : +r.portfolio_prize < +r.portfolio_base_prize ? '#f5a623' : 'inherit' }}>{r.portfolio_prize == null ? '—' : (+r.portfolio_prize).toFixed(1) + ' / ' + (+r.portfolio_base_prize).toFixed(1)}</td>
+                  <td style={{ padding: '5px 6px', color: r.operator_prize == null ? 'var(--text-muted, #6b7078)' : (r.operator_json && r.operator_json.pfPer != null && r.operator_json.perEntry > r.operator_json.pfPer) ? '#4ade80' : (r.operator_json && r.operator_json.pfPer != null && r.operator_json.perEntry < r.operator_json.pfPer) ? '#f5a623' : 'inherit' }}>{r.operator_prize == null ? '—' : (r.operator_json && r.operator_json.perEntry != null ? r.operator_json.perEntry.toFixed(2) : two(r.operator_prize)) + (r.operator_json && r.operator_json.pfPer != null ? ' v ' + r.operator_json.pfPer.toFixed(2) : '') + ' [' + r.operator_entries + ']'}</td>
                   <td style={{ padding: '5px 6px', color: r.engine_era === 'post-0829' ? 'var(--text-primary, #e8eaed)' : 'var(--text-muted, #6b7078)' }}>{r.engine_era === 'post-0829' ? 'current' : r.engine_era ? 'old' : '—'}</td>
                   <td style={{ padding: '5px 6px', fontWeight: 700, color: r.verdict === 'gpp' ? '#4ade80' : r.verdict === 'cash' ? '#f5a623' : 'var(--text-secondary, #9aa0aa)' }}>{(r.verdict || '').toUpperCase()}</td>
                 </tr>
