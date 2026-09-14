@@ -95,8 +95,17 @@ function spearman(a, b) {
 
 // dfs_contests.scores_sample is a descending decile ladder [max, p90, ..., p10, min].
 // Placement is linear inside whichever decile the score lands in.
-function placeIn(ladder, entries, score) {
-  if (!ladder || ladder.length < 2 || score == null) return { pct: null, rank: null }
+// 2026-09-14: `top` = dfs_contests.scores_top (top 1,000 scores, descending). When the score lands
+// inside it the rank is EXACT (1 + scores above it); the decile interpolation is only the fallback
+// below the stored top. Measured error of the deciles alone: 300.0 placed ~506th, real rank 129th.
+function placeIn(ladder, entries, score, top) {
+  if (score == null) return { pct: null, rank: null }
+  if (Array.isArray(top) && top.length && entries && score >= +top[top.length - 1]) {
+    let above = 0; for (let i = 0; i < top.length; i++) { if (+top[i] > score) above++; else break }
+    const rank = above + 1
+    return { pct: 100 * (1 - (rank - 1) / Math.max(1, entries - 1)), rank, exact: true }
+  }
+  if (!ladder || ladder.length < 2) return { pct: null, rank: null }
   const L = ladder.map(Number)
   const step = 100 / (L.length - 1)
   if (score >= L[0]) return { pct: 100, rank: 1 }
@@ -232,7 +241,7 @@ export default function DfsReplay() {
       })
 
       // ---- contest + ownership (post-race, operator uploads)
-      const { data: conRows } = await eqRace(supabase.from('dfs_contests').select('entries,winner_score,median_score,scores_sample,contest_type').eq('series', sr).eq('race_year', year))
+      const { data: conRows } = await eqRace(supabase.from('dfs_contests').select('entries,winner_score,median_score,scores_sample,scores_top,contest_type').eq('series', sr).eq('race_year', year))
         .order('entries', { ascending: false }).limit(1)
       const contest = conRows && conRows[0]
       // 2026-09-05 review fix: (a) ownership rows carry contest_type and both GPP and cash can be
@@ -278,10 +287,11 @@ export default function DfsReplay() {
       const sumS = (ds) => ds.reduce((s, d) => s + d.sal, 0)
       const sumP = (ds) => ds.reduce((s, d) => s + d.projDK, 0)
       const ladder = contest && Array.isArray(contest.scores_sample) ? contest.scores_sample : null
+      const topScores = contest && Array.isArray(contest.scores_top) && contest.scores_top.length ? contest.scores_top : null
       const ent = contest ? contest.entries : null
       const decorate = (ds, ceil) => {
         const actual = sumA(ds)
-        const p = placeIn(ladder, ent, actual)
+        const p = placeIn(ladder, ent, actual, topScores)
         return { drivers: ds, proj: sumP(ds), ceil, salary: sumS(ds), actual, pct: p.pct, rank: p.rank, entries: ent }
       }
 
@@ -386,11 +396,11 @@ export default function DfsReplay() {
           { optimize, bestLineup, makeEmaxSelector, topUpLineups, enforceMinExposure, capFor: dfsCapFor, ROSTER: DFS_ROSTER, CAP: DFS_CAP },
           { rows: pool.map(d => ({ name: d.name, sal: d.sal, projDK: d.projDK })), samples: { drivers: names, rows: draws }, simCands: cands, legs: __legs, want: __N,
             rulesOn: __rulesOn, schedule: 'all50', locks: new Set(), excludes: new Set(), userExpo: {}, projOwn: __own })
-        const __score = (lus) => lus.reduce((s, ns) => { const a = ns.reduce((t, n) => t + byName[n].actual, 0); const p = placeIn(ladder, __E, a); return s + (p.rank ? __prize(p.rank) : 0) }, 0)
+        const __score = (lus) => lus.reduce((s, ns) => { const a = ns.reduce((t, n) => t + byName[n].actual, 0); const p = placeIn(ladder, __E, a, topScores); return s + (p.rank ? __prize(p.rank) : 0) }, 0)
         const __pfLegs = __pf.legs.map(l => l.lineups.map(lu => lu.drivers.map(d => d.name)))
         const __pfPrize = __pfLegs.reduce((s, lus) => s + __score(lus), 0)
         const __basePrize = __legs * __score(setIdx.map(c2 => cands[c2]))
-        const __pfBest = Math.max.apply(null, __pfLegs.flat().map(ns => placeIn(ladder, __E, ns.reduce((t, n) => t + byName[n].actual, 0)).pct || 0))
+        const __pfBest = Math.max.apply(null, __pfLegs.flat().map(ns => placeIn(ladder, __E, ns.reduce((t, n) => t + byName[n].actual, 0), topScores).pct || 0))
         portfolio = { legs: __legs, n: __N, rulesOn: __rulesOn, prize: __pfPrize, basePrize: __basePrize, bestPct: __pfBest, entries: __pf.total,
           exposure: Object.entries(__pf.exposure).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([n, c]) => ({ name: n, pct: Math.round(100 * c / Math.max(1, __pf.total)) })), chalk: __pf.cls.chalk, t2: __pf.cls.t2 }
         // ---- OPERATOR PRESET arm (registered 2026-09-13, BACKTEST_LOG): rules ON + OPERATOR_PRESET
@@ -404,7 +414,7 @@ export default function DfsReplay() {
           const __deps = { optimize, bestLineup, makeEmaxSelector, topUpLineups, enforceMinExposure, capFor: dfsCapFor, ROSTER: DFS_ROSTER, CAP: DFS_CAP }
           const __cls = classifyPortfolioPool(__pfRows, __own, PORTFOLIO_RULES)
           const __puntPts = (pf) => { let s2 = 0, k = 0; pf.legs.forEach(l => l.lineups.forEach(lu => lu.drivers.forEach(d => { if (__cls.floor.indexOf(d.name) !== -1 || __cls.midPunt.indexOf(d.name) !== -1) { s2 += byName[d.name].actual; k++ } }))); return { mean: k ? s2 / k : null, slots: k } }
-          const __arm = (rules) => { const pf = buildPortfolio(__deps, { ...__base, rules }); const legsN = pf.legs.map(l => l.lineups.map(lu => lu.drivers.map(d => d.name))); return { prize: legsN.reduce((s2, lus) => s2 + __score(lus), 0), entries: pf.total, legs: pf.legs.map(l => l.lineups.length), bestPct: Math.max.apply(null, [0].concat(legsN.flat().map(ns => placeIn(ladder, __E, ns.reduce((t, n) => t + byName[n].actual, 0)).pct || 0))), punt: __puntPts(pf), why: pf.legs.map(l => (l.why || []).join('; ')).filter(Boolean) } }
+          const __arm = (rules) => { const pf = buildPortfolio(__deps, { ...__base, rules }); const legsN = pf.legs.map(l => l.lineups.map(lu => lu.drivers.map(d => d.name))); return { prize: legsN.reduce((s2, lus) => s2 + __score(lus), 0), entries: pf.total, legs: pf.legs.map(l => l.lineups.length), bestPct: Math.max.apply(null, [0].concat(legsN.flat().map(ns => placeIn(ladder, __E, ns.reduce((t, n) => t + byName[n].actual, 0), topScores).pct || 0))), punt: __puntPts(pf), why: pf.legs.map(l => (l.why || []).join('; ')).filter(Boolean) } }
           const __ref = __rulesOn ? { prize: __pfPrize, entries: __pf.total, legs: __pf.legs.map(l => l.lineups.length), bestPct: __pfBest, punt: __puntPts(__pf) } : __arm({})
           const __op = __arm({ ...OPERATOR_PRESET })
           const __elig = __cls.midPunt.filter(n => (__own[n] || 0) <= OPERATOR_PRESET.puntOwnMaxPct)
@@ -430,7 +440,35 @@ export default function DfsReplay() {
           const perEntry = tot ? prize / tot : null
           const pfPer = portfolio && !portfolio.error && portfolio.entries ? portfolio.prize / portfolio.entries : null
           const basePer = portfolio && !portfolio.error && portfolio.legs && selN ? portfolio.basePrize / (portfolio.legs * selN) : null
-          operator = { contests: opRows.length, entries: tot, prize: +prize.toFixed(3), perEntry: perEntry != null ? +perEntry.toFixed(4) : null, pfPer: pfPer != null ? +pfPer.toFixed(4) : null, basePer: basePer != null ? +basePer.toFixed(4) : null,
+          // PRODUCT AT THE OPERATOR'S N (2026-09-14, measurement fix 2): per-entry prize falls with N on a
+          // top-heavy curve, so a 120-entry Portfolio row is not comparable to 20 real entries. Build the
+          // product at exactly the operator's entry counts - one Portfolio leg per operator GPP contest
+          // sized to its entries, and the plain E[max] set at the same sizes - and score on the same ladder.
+          let atN = null
+          try {
+            const gppRows = opRows.filter(r => (r.contest_type || 'gpp') === 'gpp' && r.entries > 0)
+            if (gppRows.length && gppRows.length <= 6) {
+              const wantsN = gppRows.map(r => Math.max(1, Math.min(150, r.entries)))
+              const __E2 = ent || 0
+              const __prize2 = (() => { const R = Math.floor(0.2 * __E2); let Z = 0; for (let r = 1; r <= R; r++) Z += Math.pow(r, -0.75); return r => (__E2 && r >= 1 && r <= R) ? __E2 * Math.pow(r, -0.75) / Z : 0 })()
+              const __score2 = (lus) => lus.reduce((s2, ns) => { const a = ns.reduce((t, n) => t + byName[n].actual, 0); const p = placeIn(ladder, __E2, a, topScores); return s2 + (p.rank ? __prize2(p.rank) : 0) }, 0)
+              const __own2 = projectOwnership(pool)
+              const pfN = buildPortfolio(
+                { optimize, bestLineup, makeEmaxSelector, topUpLineups, enforceMinExposure, capFor: dfsCapFor, ROSTER: DFS_ROSTER, CAP: DFS_CAP },
+                { rows: pool.map(d => ({ name: d.name, sal: d.sal, projDK: d.projDK })), samples: { drivers: names, rows: draws }, simCands: cands, legs: wantsN.length, want: Math.max.apply(null, wantsN), wants: wantsN,
+                  rulesOn: portfolioRulesDefault(sr), schedule: 'all50', locks: new Set(), excludes: new Set(), userExpo: {}, projOwn: __own2 })
+              const pfNPrize = pfN.legs.reduce((s2, l) => s2 + __score2(l.lineups.map(lu => lu.drivers.map(d => d.name))), 0)
+              // plain E[max] set at each contest's N (fresh selector each, same candidates)
+              let emaxPrize = 0, emaxEntries = 0
+              wantsN.forEach(nk => { const selK = makeEmaxSelector(nC2, nD2, Smat, nk, cands, () => Infinity, DFS_ROSTER); selK.step(0); emaxPrize += __score2(selK.chosen.map(c2 => cands[c2])); emaxEntries += selK.chosen.length })
+              const opGppEntries = gppRows.reduce((a, r) => a + r.entries, 0), opGppPrize = gppRows.reduce((a, r) => a + (+r.prize || 0), 0)
+              atN = { wants: wantsN, pfEntries: pfN.total, pfPrize: +pfNPrize.toFixed(3), pfPer: pfN.total ? +(pfNPrize / pfN.total).toFixed(4) : null,
+                emaxEntries, emaxPrize: +emaxPrize.toFixed(3), emaxPer: emaxEntries ? +(emaxPrize / emaxEntries).toFixed(4) : null,
+                opEntries: opGppEntries, opPrize: +opGppPrize.toFixed(3), opPer: opGppEntries ? +(opGppPrize / opGppEntries).toFixed(4) : null,
+                pfLegs: pfN.legs.map(l => l.lineups.length).join('/') }
+            }
+          } catch (e2) { atN = { error: String((e2 && e2.message) || e2) } }
+          operator = { atN, contests: opRows.length, entries: tot, prize: +prize.toFixed(3), perEntry: perEntry != null ? +perEntry.toFixed(4) : null, pfPer: pfPer != null ? +pfPer.toFixed(4) : null, basePer: basePer != null ? +basePer.toFixed(4) : null,
             bestRank: bestRow.best_rank, bestPoints: bestRow.best_points, bestOf: bestRow.contest_entries, meanPct: opRows.length === 1 ? opRows[0].mean_pct : +(opRows.reduce((a, r) => a + (+r.mean_pct || 0) * r.entries, 0) / Math.max(1, tot)).toFixed(1),
             aboveMedian: opRows.reduce((a, r) => a + (r.above_median || 0), 0),
             exposure: Object.entries(exAll).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([n, c]) => ({ name: n, pct: Math.round(100 * c / Math.max(1, tot)) })),
@@ -456,7 +494,7 @@ export default function DfsReplay() {
         setN: setIdx.length, setUniq: setUniq.size, setEmax: sel.emax(), wantN: selN, portfolio, operator,
       })
       setProg('')
-      setMsg('Done. ' + cands.length.toLocaleString() + ' candidates, ' + nS.toLocaleString() +
+      setMsg((topScores ? 'Exact placement (top ' + topScores.length + ' scores stored). ' : 'DECILE placement only - re-upload this contest\'s standings file after running sql/dfs_operator_entries.sql for exact ranks. ') + 'Done. ' + cands.length.toLocaleString() + ' candidates, ' + nS.toLocaleString() +
         ' draws; GPP set of ' + setIdx.length + ' using ' + setUniq.size + ' unique drivers.' +
         (same ? ' Its best lineup is the cash lineup.' : '') +
         (__nOfficial ? ' Scored with official DK FPTS for ' + __nOfficial + ' of ' + pool.length + ' drivers' + (__ct ? ' (' + __ct + ' contest)' : '') + '.' : ' Scored with the hand DK formula (no official FPTS stored for this race).'))
@@ -584,6 +622,8 @@ export default function DfsReplay() {
             <div style={{ fontSize: 12, color: 'var(--text-secondary, #9aa0aa)', marginBottom: 10, padding: '6px 10px', border: '1px solid #e8b923', borderRadius: 6 }}>
               <strong style={{ color: '#e8b923' }}>Operator</strong> {o.entries} entries in {o.contests} contest{o.contests === 1 ? '' : 's'} · best {o.bestRank} of {o.bestOf} ({o.bestPoints}) · mean p{o.meanPct} · {o.aboveMedian}/{o.entries} above median · prize <b>{o.prize}</b>
               {' · '}per entry: operator <b>{o.perEntry}</b>{o.pfPer != null ? ' vs portfolio ' + o.pfPer : ''}{o.basePer != null ? ' vs E[max] ' + o.basePer : ''}
+              {o.atN && !o.atN.error && <div style={{ color: 'var(--text-primary, #e8eaed)' }}>AT THE OPERATOR'S N ({o.atN.wants.join(' / ')}): operator <b>{o.atN.opPer}</b> per entry ({o.atN.opPrize} on {o.atN.opEntries}) vs Portfolio <b>{o.atN.pfPer}</b> ({o.atN.pfPrize} on {o.atN.pfEntries}, legs {o.atN.pfLegs}) vs E[max] set <b>{o.atN.emaxPer}</b> ({o.atN.emaxPrize} on {o.atN.emaxEntries}) - same ladder, same sizes; this is the like-for-like number.</div>}
+              {o.atN && o.atN.error && <div style={{ color: '#f5a623' }}>at-N build failed: {o.atN.error}</div>}
               <div>Exposure: {o.exposure.map(e => e.name + ' ' + e.pct).join(', ')}</div>
               {o.byContest.length > 1 && <div>{o.byContest.map(c => '#' + c.id + ' ' + c.type + ' ' + c.entries + '/' + c.of + ' best ' + c.best + ' p' + c.meanPct + ' prize ' + c.prize).join(' · ')}</div>}
             </div>) })()}
@@ -641,7 +681,7 @@ export default function DfsReplay() {
                   <td style={{ padding: '5px 6px' }}>{r.rho_salary == null ? '—' : (+r.rho_salary).toFixed(3)}</td>
                   <td style={{ padding: '5px 6px' }}>{r.rho_own == null ? '—' : (+r.rho_own).toFixed(3)}</td>
                   <td style={{ padding: '5px 6px', color: r.portfolio_prize == null ? 'var(--text-muted, #6b7078)' : +r.portfolio_prize > +r.portfolio_base_prize ? '#4ade80' : +r.portfolio_prize < +r.portfolio_base_prize ? '#f5a623' : 'inherit' }}>{r.portfolio_prize == null ? '—' : (+r.portfolio_prize).toFixed(1) + ' / ' + (+r.portfolio_base_prize).toFixed(1)}</td>
-                  <td style={{ padding: '5px 6px', color: r.operator_prize == null ? 'var(--text-muted, #6b7078)' : (r.operator_json && r.operator_json.pfPer != null && r.operator_json.perEntry > r.operator_json.pfPer) ? '#4ade80' : (r.operator_json && r.operator_json.pfPer != null && r.operator_json.perEntry < r.operator_json.pfPer) ? '#f5a623' : 'inherit' }}>{r.operator_prize == null ? '—' : (r.operator_json && r.operator_json.perEntry != null ? r.operator_json.perEntry.toFixed(2) : two(r.operator_prize)) + (r.operator_json && r.operator_json.pfPer != null ? ' v ' + r.operator_json.pfPer.toFixed(2) : '') + ' [' + r.operator_entries + ']'}</td>
+                  <td style={{ padding: '5px 6px', color: r.operator_prize == null ? 'var(--text-muted, #6b7078)' : (() => { const j = r.operator_json; const a = j && j.atN && j.atN.opPer != null ? j.atN : j; if (!a) return 'inherit'; const op = a === j ? j.perEntry : a.opPer, pf = a.pfPer; return pf == null || op == null ? 'inherit' : op > pf ? '#4ade80' : op < pf ? '#f5a623' : 'inherit' })() }}>{r.operator_prize == null ? '—' : (r.operator_json && r.operator_json.atN && r.operator_json.atN.opPer != null ? r.operator_json.atN.opPer.toFixed(2) + ' v ' + (r.operator_json.atN.pfPer != null ? r.operator_json.atN.pfPer.toFixed(2) : '-') : (r.operator_json && r.operator_json.perEntry != null ? r.operator_json.perEntry.toFixed(2) : two(r.operator_prize)) + (r.operator_json && r.operator_json.pfPer != null ? ' v ' + r.operator_json.pfPer.toFixed(2) : '')) + ' [' + r.operator_entries + ']'}</td>
                   <td style={{ padding: '5px 6px', color: r.engine_era === 'post-0829' ? 'var(--text-primary, #e8eaed)' : 'var(--text-muted, #6b7078)' }}>{r.engine_era === 'post-0829' ? 'current' : r.engine_era ? 'old' : '—'}</td>
                   <td style={{ padding: '5px 6px', fontWeight: 700, color: r.verdict === 'gpp' ? '#4ade80' : r.verdict === 'cash' ? '#f5a623' : 'var(--text-secondary, #9aa0aa)' }}>{(r.verdict || '').toUpperCase()}</td>
                 </tr>

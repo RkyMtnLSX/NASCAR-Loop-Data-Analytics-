@@ -128,6 +128,7 @@ export default function DfsSalaryAdmin() {
       track_name: sel.track_name, driver_name: name,
       own_pct: found[name].pct, fpts: found[name].fpts, contest_type: ownType,
     }))
+    let opMsgPre = ''
     // Contest field distribution (2026-08-14): entry rows carry Rank/EntryId/Points.
     // Bank winner/median/percentiles + decile curve so the weekly optimizer-replay
     // report can place our optimal lineup in the real contest field.
@@ -141,12 +142,21 @@ export default function DfsSalaryAdmin() {
         scores.sort((a, b) => b - a)
         const pick = f2 => scores[Math.min(scores.length - 1, Math.floor(f2 * (scores.length - 1)))]
         const dec = []; for (let k2 = 0; k2 <= 10; k2++) dec.push(pick(k2 / 10))
-        await supabase.from('dfs_contests').upsert({
+        const __cRow = {
           series, race_year: sel.year, race_number: sel.race_number, track_name: sel.track_name,
           contest_type: ownType, entries: scores.length, winner_score: scores[0],
           median_score: pick(0.5), pct90: pick(0.1), pct75: pick(0.25), pct25: pick(0.75),
           scores_sample: dec,
-        }, { onConflict: 'series,race_year,race_number,contest_type' })
+          // 2026-09-14: top 1,000 scores for exact placement at the top of the field (the deciles put a
+          // 300.0 at ~506th when it was 129th of 7,324; prize is r^-0.75, so that error is the money)
+          scores_top: scores.slice(0, 1000).map(v => +v.toFixed(2)),
+        }
+        const { error: cErr } = await supabase.from('dfs_contests').upsert(__cRow, { onConflict: 'series,race_year,race_number,contest_type' })
+        if (cErr && /scores_top/.test(cErr.message)) {   // column not added yet (sql/dfs_operator_entries.sql) - keep the old shape working
+          const { scores_top: __drop, ...__legacy } = __cRow
+          await supabase.from('dfs_contests').upsert(__legacy, { onConflict: 'series,race_year,race_number,contest_type' })
+          opMsgPre = ' (contest ladder saved WITHOUT scores_top - run sql/dfs_operator_entries.sql for exact placement)'
+        }
       }
     } catch (e4) {}
     // OPERATOR ENTRIES (2026-09-14): the same standings file carries the operator's own lineups -
@@ -204,7 +214,7 @@ export default function DfsSalaryAdmin() {
       .upsert(rows2, { onConflict: 'series,race_year,race_number,driver_name,contest_type' })
     setOwnMsg((error
       ? 'Save failed: ' + error.message + (error.message.includes('does not exist') ? ' - run dfs_ownership_schema.sql in Supabase first.' : '')
-      : 'Saved ownership + FPTS for ' + n + ' drivers (' + ownType.toUpperCase() + ', ' + sel.year + ' R' + sel.race_number + ' ' + sel.track_name + ').') + opMsg)
+      : 'Saved ownership + FPTS for ' + n + ' drivers (' + ownType.toUpperCase() + ', ' + sel.year + ' R' + sel.race_number + ' ' + sel.track_name + ').') + opMsgPre + opMsg)
   }
   const doOwnFile = (e) => {
     const file = e.target.files && e.target.files[0]
