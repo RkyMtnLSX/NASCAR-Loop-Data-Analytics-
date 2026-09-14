@@ -3483,3 +3483,31 @@ was Crews / Allgaier / Sawalich, owned 13 / 33 / 25. The crowd chased Kvapil's p
 cheap fast-practice cars (the 09-06 v2 finding: the crowd chases PRACTICE); v3 still misses it.
 ALSO: practice sheet parser now NAMES a driver it drops for having no usable lap (cup Gateway parsed
 35 of 36 silently - src/lib/excelParser.js `skipped`, shown in the upload status).
+
+## 2026-09-14 — DFS Cup Gateway R28 replay examined (operator-run at N=40); operator-entries capture built
+CUP GATEWAY R28: contest 7,324 entries, winner 401.5 = PERFECT 401.5 (someone in the field drew the
+perfect six), median 178.35. GPP best-of-40 300.0 (~506th, p93) vs cash 161.15 (p38, below median) -
+verdict GPP, ledger GPP 7 / cash 3 / tie 2. rho model .13 / salary -.02 / own .03: a chaos race nobody
+had, and the model still ranked first of three (second week running). The cash lineup died on the
+chalk: Blaney P3 -> 35 for -20.6 at 44% owned (the board's favourite: proj finish 7.3, 62.2 DK, 27%
+win) and Bell P4 -> 19 for 14.9 at 37%. Winners: Larson from P2 (80, proj 36.1), Logano P1 -> 3 (81.9,
+proj 52.9 - the board had him), Keselowski P23 -> 12 (64.3 at 20% owned), Chastain P20 -> 5 (61.4 at
+11%), Byron P24 -> 4 (60 at 30%). PORTFOLIO ROW 3 x 40 (105 of 120 entries): prize 86.4 vs 54.5 for
+3 x E[max] - a WIN; ledger 2 / 1. Exposure Blaney 60 / Logano 52 / Bell 48 / McDowell 47 / Byron 44 /
+Keselowski 41 / Chastain 31: the tier-two spread (Byron / Larson / Reddick at 50-80%) and the rotating
+mid-price cars carried it past the Blaney bust that the plain set could not survive.
+FRONT-ROW LEAD, second data point: O'Reilly had Kvapil P1 / Love P2 projected P12 (28 DK) -> 83 / 78;
+cup had Larson P2 projected P10.4 (36 DK) -> won, 80, while Logano P1 was projected P8.2 / 52.9 -> 81.9.
+Two races, three of four front-row cars 30-50 DK over projection at a flat short track. Still a lead
+(n=2); register against the 2022-25 Gateway / Richmond / Phoenix / NH history before touching weights.
+OPERATOR ENTRIES (operator: "did it save the operator ownership percentages" - it did not; "my username
+is atmmstrs2"): the ownership ingest (DfsSalaryAdmin) now also captures the operator's own rows from the
+same contest-standings file - EntryName = atmmstrs2, Lineup cell "D A D B ..." - and stores per
+contest to NEW table dfs_operator_entries (sql/dfs_operator_entries.sql, mirrored to the Handoff
+folder - operator runs it in the Supabase SQL editor; MCP link still down): lineups, exposure, best
+rank / points, mean percentile, above-median count, realised prize on the same DK-like curve. DFS
+Replay shows an Operator block (per-entry prize vs the Portfolio row and the E[max] set per entry) and
+the ledger gained an Operator column (dfs_replays.operator_json / operator_prize / operator_entries).
+Operator data only - inside the no-user-data rule. Gateway's files were ingested BEFORE this shipped:
+re-upload the two standings CSVs (cup R28, O'Reilly R26) on DFS Salary Admin to capture them, then
+re-run + save the replays for the Operator column to fill.
