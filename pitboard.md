@@ -3529,3 +3529,17 @@ ladder and reports "AT THE OPERATOR'S N: operator x vs Portfolio y vs E[max] z p
 ledger's Operator column prefers this like-for-like number. Nothing in the solvers changed.
 NOT yet re-scored: the existing ledger rows (they need re-uploaded standings for scores_top). Next
 after the operator has run the SQL and re-uploaded: chalk-40 stance registration.
+
+## 2026-09-17 — OPEN: E[max] set saturates (~60 lineups) — entries above that add nothing
+Operator (cup replay, days ago): raising the entry count past ~60 left the optimal lineup unchanged.
+Diagnosis from the code, not re-run: makeEmaxSelector (DFSPage.js) stops when no remaining candidate
+raises the best-in-set score in ANY sampled draw (`bound[pick] <= 0`) - once the set holds the
+top-scoring candidate for every draw in the stride sample (~2,500 in Replay, 1,500-2,000 in the
+product) the greedy has nothing left to add, so the set stops short of `want` and E[max] freezes. The
+"GPP best of N" card freezing on its own is mechanical (best ACTUAL inside the set is monotone in N).
+PRODUCT EXPOSURE: Lineup Optimizer uses the same selector and topUpLineups returns early at 100% max
+exposure, so a 100+ entry contest (or a Portfolio leg with wants >= the saturation size) is quietly
+under-filled with unique lineups. Fix candidates: (a) continue past saturation on a secondary
+criterion (E[second-best] across draws, or ceiling), (b) score against more draws so saturation lands
+later. Both are construction changes -> BACKTEST_LOG registration first; not touched for tonight's
+truck race (plain set, 20-40 entries, well under the ceiling). Queue behind the ledger re-score.
