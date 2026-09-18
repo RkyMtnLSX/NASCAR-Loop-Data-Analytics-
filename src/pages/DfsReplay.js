@@ -175,10 +175,19 @@ export default function DfsReplay() {
   // against a product that delivers 20-150 was measuring the wrong thing.
   const [entries, setEntries] = useState(20)
 
-  const loadLedger = () => supabase.from('dfs_replays')
-    .select('series,race_year,race_number,track_name,cash_actual,cash_rank,gpp_actual,gpp_rank,perfect_actual,contest_entries,contest_median,rho_model,rho_salary,rho_own,verdict,engine_era,created_at,portfolio_prize,portfolio_base_prize,portfolio_legs,operator_prize,operator_entries,operator_json')
-    .order('race_year', { ascending: false }).order('race_number', { ascending: false, nullsFirst: false })
-    .limit(50).then(({ data }) => setLedger(data || []))
+  // 2026-09-18: the 09-14 columns (operator_*, dfs_contests.scores_top) exist only after
+  // sql/dfs_operator_entries.sql has been run. Until then every read that names them 400s, which
+  // emptied the ledger, dropped the contest ladder from the replay and made Save fail. Each read now
+  // retries in the legacy shape when Postgres says the column is missing (42703).
+  const __missingCol = (error) => !!error && (error.code === '42703' || /does not exist|schema cache/i.test(error.message || ''))
+  const LEDGER_COLS = 'series,race_year,race_number,track_name,cash_actual,cash_rank,gpp_actual,gpp_rank,perfect_actual,contest_entries,contest_median,rho_model,rho_salary,rho_own,verdict,engine_era,created_at,portfolio_prize,portfolio_base_prize,portfolio_legs'
+  const loadLedger = async () => {
+    const q = (cols) => supabase.from('dfs_replays').select(cols)
+      .order('race_year', { ascending: false }).order('race_number', { ascending: false, nullsFirst: false }).limit(50)
+    let { data, error } = await q(LEDGER_COLS + ',operator_prize,operator_entries,operator_json')
+    if (__missingCol(error)) ({ data } = await q(LEDGER_COLS))
+    setLedger(data || [])
+  }
 
   useEffect(() => {
     supabase.from('dfs_sim_samples').select('series,race_year,race_number,track_name,created_at').eq('stage', 'post')   // 2026-09-05: post-board draws only
@@ -241,8 +250,9 @@ export default function DfsReplay() {
       })
 
       // ---- contest + ownership (post-race, operator uploads)
-      const { data: conRows } = await eqRace(supabase.from('dfs_contests').select('entries,winner_score,median_score,scores_sample,scores_top,contest_type').eq('series', sr).eq('race_year', year))
-        .order('entries', { ascending: false }).limit(1)
+      const __conQ = (cols) => eqRace(supabase.from('dfs_contests').select(cols).eq('series', sr).eq('race_year', year)).order('entries', { ascending: false }).limit(1)
+      let { data: conRows, error: conErr } = await __conQ('entries,winner_score,median_score,scores_sample,scores_top,contest_type')
+      if (__missingCol(conErr)) ({ data: conRows } = await __conQ('entries,winner_score,median_score,scores_sample,contest_type'))   // pre-migration schema
       const contest = conRows && conRows[0]
       // 2026-09-05 review fix: (a) ownership rows carry contest_type and both GPP and cash can be
       // banked for one race - the join used to take whichever arrived last, so rho(ownership) could
@@ -534,9 +544,15 @@ export default function DfsReplay() {
       operator_prize: res.operator && !res.operator.error ? res.operator.prize : null,
       operator_entries: res.operator && !res.operator.error ? res.operator.entries : null,
     }
-    const { error } = await supabase.from('dfs_replays').upsert(row, { onConflict: 'series,race_year,race_number' })
+    let { error } = await supabase.from('dfs_replays').upsert(row, { onConflict: 'series,race_year,race_number' })
+    let __legacy = false
+    if (__missingCol(error)) {   // operator columns not migrated yet: save the row without them
+      const { operator_json, operator_prize, operator_entries, ...rest } = row
+      ;({ error } = await supabase.from('dfs_replays').upsert(rest, { onConflict: 'series,race_year,race_number' }))
+      __legacy = true
+    }
     if (error) setMsg('Save failed: ' + error.message)
-    else { setSaved(true); setMsg('Saved to the replay ledger.'); loadLedger() }
+    else { setSaved(true); setMsg('Saved to the replay ledger.' + (__legacy ? ' (Operator columns not saved - run sql/dfs_operator_entries.sql, then re-save.)' : '')); loadLedger() }
   }
 
   const tally = ledger.reduce((a, r) => { if (r.verdict) a[r.verdict] = (a[r.verdict] || 0) + 1; return a }, {})
