@@ -3543,3 +3543,29 @@ under-filled with unique lineups. Fix candidates: (a) continue past saturation o
 criterion (E[second-best] across draws, or ceiling), (b) score against more draws so saturation lands
 later. Both are construction changes -> BACKTEST_LOG registration first; not touched for tonight's
 truck race (plain set, 20-40 entries, well under the ceiling). Queue behind the ledger re-score.
+
+## 2026-09-18 — DFS Trucks Bristol R19 replay examined (operator-run at N=20); replay page repaired
+PAGE REPAIR FIRST: the 09-14 code named dfs_contests.scores_top and dfs_replays.operator_* in
+plain selects and in the save, and the SQL has still not been run, so the replay page had an empty
+ledger, no contest ladder and a failing Save since Monday (why last night's truck replay was never
+saved). DfsReplay now retries every one of those reads in the legacy shape on 42703 and saves the row
+without the operator columns, saying so in the message. Build clean. Run the SQL and re-save when
+convenient; nothing else depends on it.
+TRUCKS BRISTOL R19: contest 845 entries, winner 345.75, median 186.55, PERFECT 360.25 (Garcia 100 /
+Currey 62.75 / Ruggiero 53.7 / Friesen 49.1 / Haley 47.7 / Honeycutt 47 - the winner did not draw it).
+GPP best-of-20 324.05 (~19th, p97.7) vs cash 186.2 (~425th, dead on the median) - verdict GPP by
+137.85, ledger GPP 8 / cash 3 / tie 2. The plain set had Garcia (P12 -> WIN, 100 DK at 27% owned)
+and Currey (P16 -> 2, 62.75 at 25%) in the best lineup. Cash died on the chalk: Riggs pole P1 -> 32
+(23.9 at 55.7% owned, proj 65.8), Smith P2 -> 24 (4.1 at 24%), Leitz P25 -> 34 (2.95 at 44%). rho
+model .325 / own .307 / salary .288 - model first of three, THIRD week running. Placement is DECILE
+(no scores_top yet). Unmatched: Sawalich priced, no finish (did not race - expected).
+PORTFOLIO ROW 3 x 20, rules OFF (trucks default): 77.5 vs 88.7 for 3 x the plain set - a LOSS,
+ledger 2 / 2; best entry p97.9. With rules off the legs differ from the plain set only by the
+no-reuse round-robin, so the loss is the cost of forced diversity on a night the plain set's top
+lineup was the answer. Report-only preset arm: REF rules-on 68.4, PRESET 42.4 = NULL 42.4 (tier-two
+minimum unreachable for all four tier-two trucks) - consistent with the 09-13 CLOSED verdict.
+FRONT-ROW NOTE: the flat-track front-row lead (n=2, Gateway) does NOT carry to Bristol - Riggs P1 ->
+32 and Smith P2 -> 24 were the two worst chalk cars. Different bucket (SHORT high-banked), so it is
+not a counter-example to the Gateway lead, but it is a reminder to scope that registration to the
+flat short tracks only.
+NOT DONE: no operator entries stored (SQL not run); saved with the legacy row shape.
