@@ -1189,7 +1189,11 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
   }
 
   const roadCourse  = config ? isRoadCourse(config.track_name) : false
-  const hasQual     = rawDrivers.some(d => d.startPos != null)
+  // 2026-09-26 (operator: "it says starting grid set but I only uploaded a qualifying order"): since start
+  // projection v4 every driver gets a PROJECTED startPos when qualifying is not loaded, so "some startPos"
+  // is always true. Real = qualifying / practice-derived; projected = history + Jayski order.
+  const hasQual     = rawDrivers.some(d => d.startPos != null && !d.__startProjected)
+  const hasProjGrid = !hasQual && rawDrivers.some(d => d.__startProjected)
   const hasPractice = rawDrivers.some(d => d.lrpTime != null)
   const hasCorr     = rawDrivers.some(d => d.corrAvgFinish != null)
 
@@ -1260,8 +1264,8 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
               {hasPractice ? 'Practice data loaded' : 'No practice data'}
             </span>
             <span style={{ color: 'var(--text-muted)', fontSize: '0.89rem' }}>|</span>
-            <span style={{ fontSize: '0.85rem', color: hasQual ? '#22c55e' : '#f59e0b' }}>
-              {hasQual ? 'Starting grid set' : 'Qualifying not loaded'}
+            <span style={{ fontSize: '0.85rem', color: hasQual ? '#22c55e' : '#f59e0b' }} title={hasProjGrid ? 'No qualifying result loaded - the sim is running on the projected grid (history + the Jayski order). Load qualifying to replace it.' : undefined}>
+              {hasQual ? 'Starting grid set' : hasProjGrid ? 'Projected grid (qualifying not loaded)' : 'Qualifying not loaded'}
             </span>
           </div>
 

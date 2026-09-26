@@ -3629,3 +3629,13 @@ reads it; left as is. GUARD (Admin.js EntryListManager): parsePdf records the tr
 "World Wide Technology Raceway" = Gateway, COTA = Americas, Loudon = New Hampshire - against
 cfg.track_name and asks before writing when they share none (Cancel = set Weekend Config first).
 Build clean. Operator still has to move Weekend Config trucks to Kansas.
+
+## 2026-09-26 — Sim Admin header: "Starting grid set" on a projected grid
+Operator (Kansas cup, only the Jayski order loaded): "it says starting grid set but I have only
+uploaded a qualifying order". Since start projection v4 (09-03) every driver gets a PROJECTED
+startPos when qualifying is absent (history + the Jayski order), stored in the same field, and the
+header pill only tested "some startPos != null" - always true now. The lineup-state badge below
+already knew the difference; the pill did not. Now: green "Starting grid set" only for real
+(qualifying / practice-derived) starts; amber "Projected grid (qualifying not loaded)" with a
+tooltip when every start is a projection; amber "Qualifying not loaded" when there is nothing. The
+sim's behaviour is unchanged - running pre-qualifying on the projected grid is by design.
