@@ -3670,3 +3670,14 @@ OPEN, register before touching: a METRIC grid is not a speed grid - Riggs P22 is
 Bristol finish, not pace - the .23 start weight was fitted on qualifying grids; test shading
 lineup_source = metric starts the way projected starts are shaded (lam .7). Crews's 75% market fill
 in the history slot and his market fill in the Kansas-history slot are the 07-22 behaviour and stay.
+
+## 2026-09-26 — "Brennan Poole Chevrolet": merged driver+make cell; Honeyman / Poole DK ids patched
+Operator: lineup export said no DK id for Leland Honeyman Jr and "Brennan Poole Chevrolet". The
+CSV was uploaded before the suffix fix deployed (Honeyman) and the board carries the merged name
+(Poole): NASCAR's PDF row "Brennan Poole(i) (C) Chevrolet" is single-spaced (two markers pushed the
+make column), pdf.js emitted it as one item, cleanName strips only a trailing marker, so the driver
+became "Brennan Poole Chevrolet" - a second Kansas entry_list row (deleted, 36 again) and the name on
+the published board. Patched dfs_salaries row 22 __ids (Honeyman 44259087, Poole 44259075) so the
+export works tonight. Parser: inline markers and a trailing make are stripped from the driver cell,
+the make feeds mfr. Operator: republish the truck board before uploading standings so the Poole row
+carries the clean name for the ownership join.

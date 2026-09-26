@@ -409,6 +409,11 @@ function EntryListManager() {
         if (/^\d{1,3}$/.test(s) && +s < 200) {
           let drv = ne[i+1] ? cleanName(ne[i+1]) : ''
           if (isHeaderWord(drv) || isHeaderWord(ne[i+2])) continue   // the column header line, not a car
+          // 2026-09-26 (Kansas trucks): "Brennan Poole(i) (C) Chevrolet" arrived as ONE item - two roster
+          // markers pushed the make into the driver cell - and became driver "Brennan Poole Chevrolet".
+          // Strip inline markers and a trailing make from the driver cell; the make still feeds mfr.
+          let __mkFromDrv = ''
+          drv = drv.replace(/\s*\((?:i|P|C|R)\)\s*/gi, ' ').replace(/\s+(chevrolet|chevy|ford|toyota|ram|dodge)\s*$/i, (m, mk) => { __mkFromDrv = mk; return '' }).replace(/\s+/g, ' ').trim()
           const isMfrOrInd = n => /^\([a-zA-Z]\)$/.test(n) || /^(chevrolet|chevy|ford|toyota|tundra|silverado|f-?150|ram|dodge)/i.test(n)
           const isTeamName = t => /racing|motorsports|motor|penske|hendrick|gibbs|23xi|rfk|kaulig|haas|wood|trackhouse|spire|hyak|club|legacy|front row|\bware\b/i.test(t)
           const teamLike = t => !!t && !isMfrOrInd(t) && (teamMatch(t, knownTeams) || isTeamName(t))
@@ -450,7 +455,7 @@ function EntryListManager() {
           }
           if (drv && /[A-Z]/.test(drv) && drv.length > 3 && !/^\d/.test(drv)) {
             const carNum = (+s >= 101 && +s <= 199) ? String(+s - 100) : s
-            var mfr = ''; for (var mk = i + 2; mk < ne.length && mk <= i + 6; mk++) { if (/^\d{1,3}$/.test((ne[mk] || '').trim())) break; var mm = normMfr(ne[mk]); if (mm) { mfr = mm; break; } } rows.push(carNum + ',' + drv + ',' + canonTeam(org) + ',' + mfr)
+            var mfr = normMfr(__mkFromDrv) || ''; for (var mk = i + 2; !mfr && mk < ne.length && mk <= i + 6; mk++) { if (/^\d{1,3}$/.test((ne[mk] || '').trim())) break; var mm = normMfr(ne[mk]); if (mm) { mfr = mm; break; } } rows.push(carNum + ',' + drv + ',' + canonTeam(org) + ',' + mfr)
           }
         }
       }
