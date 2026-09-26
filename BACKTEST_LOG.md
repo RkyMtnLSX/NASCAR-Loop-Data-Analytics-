@@ -7852,3 +7852,25 @@ SHIPPED: SimulationCenter projection block now keys the v4 betas by series (__V4
 oreilly); trucks have no entry and no term. Jayski draw_order substitution applies to O'Reilly the
 moment an O'Reilly PDF is loaded through the same Admin panel (series-scoped rows). Stamp
 'trail10-v4-form' on O'Reilly boards too.
+
+
+## 2026-09-26 — REGISTRATION: empty-slot rule (a slot with no data for anyone contributes to no one)
+TRIGGER. Kansas trucks no-practice board (operator: Chandler Smith at ~35-1 vs +850 on the books;
+"ready to can this product"). Diagnosis from the stored board + loop_data: Brent Crews (ONE
+intermediate truck start ever) was the sim favourite at 24.9%; Layne Riggs (6 wins in 2026, P22 by
+metric) 4%; Smith (2 wins, avg 9.9) 3%. Mechanism: with no practice, buildSpeedScores fills the
+longRunPace slot at 50 for ESTABLISHED drivers but at the MARKET percentile for THIN drivers
+(market anchor, 07-22), so a one-start driver 3rd in the odds scored ~92 in a slot where the points
+leader scored 50 - the same missing information was two different numbers. The 07-22 anchor test
+never covered the no-practice condition (the reconstruction harness has no odds and no practice).
+FROZEN FORM. buildSpeedScores(opts.dropEmptySlots): if lrpTime is null for EVERY driver, the
+longRunPace weight is set to 0 (same for pitCrew) and the remaining weights renormalise pro rata.
+No other change. Thin-driver fills in slots that DO have data are untouched (that is the 07-22
+question, not this one).
+ARMS. A = current (50-fill, weight kept). B = dropEmptySlots. Same inputs, same presets, same DNF
+rate, holdout.txt 2025-26 all series (162 races), SIMS=10000. Harness: scripts/backtest-empty-slot.js.
+NOTE the harness has no practice for anyone, so it measures the established-driver half of the
+asymmetry (50-fill vs drop); the market-fill half cannot be reconstructed and is argued from
+consistency, not measured.
+DECISION RULE. Ship if B's win log loss <= A's and top-5 Brier is not worse by more than 0.0005;
+otherwise do NOT ship and the fix becomes "no board without practice" as an operator rule.

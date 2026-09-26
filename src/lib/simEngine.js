@@ -449,14 +449,24 @@ function buildSpeedScores(drivers, weights, opts) {
   const LAP_PENALTY = 0.15
   const __lapVals = (__lapPenOn ? drivers : []).map(d => d.lappedRate).filter(v => v != null && !isNaN(v)).sort((a, b) => a - b)
   const __lapMed = __lapVals.length >= 3 ? __lapVals[Math.floor(__lapVals.length / 2)] : null
-  const wTotal = Object.values(weights).reduce((a, b) => a + b, 0) || 1
+  // EMPTY-SLOT RULE (2026-09-26, opts.dropEmptySlots; registered BACKTEST_LOG same date). A slot with
+  // no data for ANY driver contributes to no one. Before this, a no-practice board filled the practice
+  // slot at 50 for established drivers and at the MARKET percentile for thin ones (market anchor
+  // 07-22), so at Kansas trucks a one-start driver 3rd in the odds scored ~92 in a slot where the
+  // 6-win points leader scored 50 - the same missing information was two different numbers. The
+  // freed weight is redistributed pro rata across the slots that do have data.
+  const __dropEmpty = !!(opts && opts.dropEmptySlots)
+  const __lrpEmpty = __dropEmpty && lrpScores.every(v => v == null)
+  const __pitEmpty = __dropEmpty && pitScores.every(v => v == null)
+  const __wIn = Object.assign({}, weights, __lrpEmpty ? { longRunPace: 0 } : {}, __pitEmpty ? { pitCrew: 0 } : {})
+  const wTotal = Object.values(__wIn).reduce((a, b) => a + b, 0) || 1
   const w = {
-    corrHistory:  weights.corrHistory  / wTotal,
-    longRunPace:  weights.longRunPace  / wTotal,
-    pitCrew:      (weights.pitCrew || 0) / wTotal,
-    startPos:     weights.startPos     / wTotal,
-    trackHistory: (weights.trackHistory || 0) / wTotal,
-    winConversion:(weights.winConversion || 0) / wTotal,
+    corrHistory:  __wIn.corrHistory  / wTotal,
+    longRunPace:  __wIn.longRunPace  / wTotal,
+    pitCrew:      (__wIn.pitCrew || 0) / wTotal,
+    startPos:     __wIn.startPos     / wTotal,
+    trackHistory: (__wIn.trackHistory || 0) / wTotal,
+    winConversion:(__wIn.winConversion || 0) / wTotal,
   }
 
   return drivers.map((d, i) => {
