@@ -3639,3 +3639,11 @@ already knew the difference; the pill did not. Now: green "Starting grid set" on
 (qualifying / practice-derived) starts; amber "Projected grid (qualifying not loaded)" with a
 tooltip when every start is a projection; amber "Qualifying not loaded" when there is nothing. The
 sim's behaviour is unchanged - running pre-qualifying on the projected grid is by design.
+
+## 2026-09-26 — DFS salary parser: Honeyman Jr (suffix) miss; Poole = board, not parser
+Operator (Kansas trucks DK CSV): "it missed Leland Honeyman jr and Brennan Poole". Honeyman: DK
+lists "Leland Honeyman", the board "Leland Honeyman Jr"; DfsSalaryAdmin's norm() kept the suffix and
+its last-name fallback keyed on "jr" (below the 3-letter floor). norm() now drops jr/sr/ii/iii/iv on
+both sides (salary AND ownership joins share it). Poole matches by name; he was absent from the
+driver list the parser joins against - the latest PUBLISHED truck board - so the fix is to republish
+the truck board after Weekend Config is on Kansas, then re-upload the CSV.

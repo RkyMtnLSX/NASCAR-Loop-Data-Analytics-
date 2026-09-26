@@ -4,7 +4,9 @@ import { supabase } from '../lib/supabase'
 const SERIES = [{ v: 'cup', label: 'Cup' }, { v: 'oreilly', label: "O'Reilly" }, { v: 'trucks', label: 'Trucks' }]
 const OPERATOR_DK_USER = 'atmmstrs2'   // the operator's DraftKings username (2026-09-14); entries under it are captured to dfs_operator_entries
 let ownFileName = ''                  // last standings file name (carries the DK contest id)
-const norm = (s) => (s || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z ]/g, '').replace(/\s+/g, ' ').trim() // 2026-08-14: NFD accent fold (Suarez matching), standard name-join rule
+// 2026-09-26: generational suffixes dropped on both sides - DK lists "Leland Honeyman", the board has
+// "Leland Honeyman Jr", and the last-name fallback was keying on "jr" (2 letters, below its 3-letter floor).
+const norm = (s) => (s || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z ]/g, '').replace(/\s+/g, ' ').trim().replace(/\s+(jr|sr|ii|iii|iv)$/, '') // 2026-08-14: NFD accent fold (Suarez matching), standard name-join rule
 
 function parseSalaries(text, drivers) {
   const lines = (text || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean)
