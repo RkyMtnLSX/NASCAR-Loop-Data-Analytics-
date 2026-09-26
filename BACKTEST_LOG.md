@@ -7888,5 +7888,5 @@ applies only in a slot where OTHER drivers have data; in a slot empty for the wh
 practice, no grid) every driver gets 50. On this harness that is byte-identical to arm A (no odds,
 no practice -> no market fills exist), so it cannot score worse than what ran; its effect on live
 no-practice boards with odds loaded is UNMEASURED and is argued from consistency (the same missing
-information must not be two different numbers). Operator rule until measured: do not publish a
-board with no practice data as fair value; load practice first.
+information must not be two different numbers). (Operator, same day: FMV is published every race regardless of practice - the board is never
+withheld; the live no-practice effect stays an open measurement, not a publishing rule.)

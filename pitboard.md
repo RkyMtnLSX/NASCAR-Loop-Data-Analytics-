@@ -3662,9 +3662,11 @@ neither odds nor practice). REGISTERED + RUN (BACKTEST_LOG): drop-the-weight for
 ll .0902 -> .0902, cup worse). SHIPPED the narrower consistency fix: the market fill is used only
 where the slot has data for other drivers; an empty-for-everyone slot fills 50 for all. Identical to
 the shipped engine on the harness by construction; live effect unmeasured, stated as such. sim:smoke
-ALL PASS, build clean. Operator rules from this: (1) no board without practice is fair value -
-load practice first (the practice slot then has real data for everyone and the asymmetry is moot);
-(2) OPEN, register before touching: a METRIC grid is not a speed grid - Riggs P22 is last week's
+ALL PASS, build clean. PRODUCT RULE (operator, same day, correcting my suggestion to withhold or flag no-practice
+boards): "the customers are paying to see FMV, we can't just not publish it" - FMV is published
+every race, practice or not; a rain-out board is a normal board and the engine has to be right on
+it, not hidden. Kansas trucks 2026 had no practice (rained out): Rain-out grid toggle + this fix.
+OPEN, register before touching: a METRIC grid is not a speed grid - Riggs P22 is last week's
 Bristol finish, not pace - the .23 start weight was fitted on qualifying grids; test shading
 lineup_source = metric starts the way projected starts are shaded (lam .7). Crews's 75% market fill
 in the history slot and his market fill in the Kansas-history slot are the 07-22 behaviour and stay.
