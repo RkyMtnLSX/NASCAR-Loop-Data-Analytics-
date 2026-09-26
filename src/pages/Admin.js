@@ -15,7 +15,7 @@ import SimulationCenter from './SimulationCenter'
 import { DEFAULT_WEIGHTS, ROAD_COURSE_WEIGHTS, SUPERSPEEDWAY_WEIGHTS, TRUCK_ROAD_WEIGHTS, ONEILLY_SUPERSPEEDWAY_WEIGHTS } from '../lib/simEngine'
 import GradeCenter from './GradeCenter'
 import DfsReplay from './DfsReplay'
-import { LoadRaceFromFeed, FeedBackfill } from './NascarFeedAdmin'
+import { LoadRaceFromFeed, FeedBackfill, FastestLapsFromArchive } from './NascarFeedAdmin'
 
 
 // Strip NASCAR roster markers that ride along with scraped driver names:
@@ -2421,6 +2421,7 @@ export default function Admin() {
       </>)}
       {adminTab === 'load' && (<>
       <LoadRaceFromFeed />
+      <FastestLapsFromArchive />
       <FeedBackfill />
       <div className="card" style={{ marginBottom: 20 }}>
         <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 8 }}>Data Audit</h2>

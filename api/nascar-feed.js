@@ -209,6 +209,74 @@ async function race(res, year, series, raceId) {
   })
 }
 
+// ---------------------------------------------------------------- per-lap archive (fastest laps)
+//
+// type=laps&year=Y&series=S&race=ID
+// cf.nascar.com/cacher/live/series_S/ID/lap-times.json is every lap of every car for a race that has
+// RUN (it is created when the race starts and is permanent afterwards; 403 for a session that has not
+// happened). This is the source the O'Reilly / Trucks fastest_laps backfill used (2026-09-02). Since
+// 2026-09-26 the Load Data tool builds Cup fastest_laps rows from it too, retiring the Lap Raptor
+// paste. Shaped only - the browser computes and writes, same as everything else here.
+//
+// The archive's own shape varies by year: {laps:[{Number, FullName, NASCARDriverID, Laps:[{Lap,
+// LapTime, LapSpeed, RunningPos}]}]} is the common one; keys are matched case-insensitively and a
+// driver entry is anything with a Laps array.
+
+function lapKey(obj, names) {
+  if (!obj) return undefined
+  const keys = Object.keys(obj)
+  for (const n of names) {
+    const k = keys.find(x => x.toLowerCase() === n.toLowerCase())
+    if (k !== undefined) return obj[k]
+  }
+  return undefined
+}
+
+async function laps(res, year, series, raceId) {
+  const [rawLaps, weekRaw] = await Promise.all([
+    getJson(`${NASCAR}/cacher/live/series_${series}/${raceId}/lap-times.json`),
+    getJson(`${NASCAR}/cacher/${year}/${series}/${raceId}/weekend-feed.json`).catch(() => null),
+  ])
+  const list = Array.isArray(rawLaps) ? rawLaps
+    : Array.isArray(lapKey(rawLaps, ['laps'])) ? lapKey(rawLaps, ['laps'])
+    : Array.isArray(lapKey(rawLaps, ['drivers'])) ? lapKey(rawLaps, ['drivers']) : []
+  const drivers = []
+  for (const d of list) {
+    const arr = lapKey(d, ['Laps', 'lap_times', 'laptimes'])
+    if (!Array.isArray(arr)) continue
+    const rows = []
+    for (const l of arr) {
+      const lap = Number(lapKey(l, ['Lap', 'lap', 'lap_number']))
+      const time = Number(lapKey(l, ['LapTime', 'lap_time', 'time']))
+      if (!Number.isInteger(lap) || lap < 1 || !Number.isFinite(time) || time <= 0) continue
+      rows.push({
+        lap, time,
+        speed: Number(lapKey(l, ['LapSpeed', 'lap_speed', 'speed'])) || null,
+        pos: Number(lapKey(l, ['RunningPos', 'running_pos', 'position'])) || null,
+      })
+    }
+    drivers.push({
+      number: String(lapKey(d, ['Number', 'number', 'car_number', 'vehicle_number']) ?? '').trim(),
+      name: String(lapKey(d, ['FullName', 'full_name', 'driver', 'name']) ?? '').trim(),
+      driver_id: Number(lapKey(d, ['NASCARDriverID', 'driver_id', 'nascar_driver_id'])) || null,
+      laps: rows,
+    })
+  }
+  if (!drivers.length) return res.status(502).json({ error: 'lap archive had no drivers - the race may not have run yet' })
+  const wkRace = weekRaw?.weekend_race?.[0] || null
+  const results = ((wkRace && wkRace.results) || []).filter(r => r.finishing_position).map(r => ({
+    driver_id: r.driver_id, name: r.driver_fullname, number: String(r.car_number ?? '').trim(),
+    start: r.starting_position, finish: r.finishing_position, status: r.finishing_status,
+  }))
+  return res.status(200).json({
+    type: 'laps', year, series_id: series, series: SERIES_NAME[series], nascar_race_id: raceId,
+    race: wkRace ? pick(wkRace, RACE_FIELDS) : null,
+    results,
+    drivers,
+    lapsTotal: drivers.reduce((a, d) => a + d.laps.length, 0),
+  })
+}
+
 // ---------------------------------------------------------------- qualifying order (compact, bulk)
 //
 // type=qorder&year=Y&series=S&races=id,id,...   (up to 8 ids)
@@ -274,7 +342,13 @@ module.exports = async function handler(req, res) {
       }
       return await race(res, year, series, raceId)
     }
-    return res.status(400).json({ error: "type must be 'schedule' or 'race'" })
+    if (q.type === 'laps') {
+      if (series === undefined || raceId === undefined) {
+        return res.status(400).json({ error: 'type=laps needs series and race' })
+      }
+      return await laps(res, year, series, raceId)
+    }
+    return res.status(400).json({ error: "type must be 'schedule', 'race', 'qorder' or 'laps'" })
   } catch (err) {
     return res.status(err.status === 404 ? 404 : 502).json({
       error: err.message, url: err.url || null,

@@ -3569,3 +3569,24 @@ FRONT-ROW NOTE: the flat-track front-row lead (n=2, Gateway) does NOT carry to B
 not a counter-example to the Gateway lead, but it is a reminder to scope that registration to the
 flat short tracks only.
 NOT DONE: no operator entries stored (SQL not run); saved with the legacy row shape.
+
+## 2026-09-26 — Fastest laps from the lap archive (Load Data); Lap Raptor paste retired for new races
+Operator: "the fastest lap data is loaded via Lap Raptor but can't we just load it with the data we
+already have?" Yes - O'Reilly / Trucks fastest_laps were already built from cf.nascar.com's per-lap
+archive (lap-times.json) on 09-02; cup was the only series still pasted from Lap Raptor. Shipped the
+browser route he chose: api/nascar-feed.js `type=laps` (archive + weekend feed, shaped only; driver
+entries matched case-insensitively because the archive's key casing varies by year) and a Load Data
+panel "Fastest Laps from the Lap Archive" (NascarFeedAdmin.js `FastestLapsFromArchive`, exported
+`buildFastestLapRows` with a unit test): list the season's run races, fetch, preview the top 5 next to
+whatever is already stored, load. Rows carry fastest lap num / time / speed, rank by time, P50 / P95
+time + speed (speed = fastest_speed x fastest_time / t, i.e. 3600 x track length / t), ARP, start /
+finish / status from the weekend feed, driver names resolved to loop_data through makeResolver (id
+first). Junk-lap rule = the backfill's (< 75% of the driver's median lap dropped); P50 / P95 over
+flying laps only (75-120% of median). Track name defaults to the canonical tracks-table match (the
+09-12 rename made canonical names the key); track type guessed from restrictor plate / name / lap
+length with an override. Write goes through the existing /api/load-fastest-laps delete + insert so
+the paste path and this path cannot drift. cPOMS / LSP stay null (Lap Raptor-only; cPOMS stopped at
+the gate 08-29, nothing reads them). NOT done: no cup race has been diffed archive-vs-Lap Raptor yet -
+load one already-stored cup race and compare the stored top 5 the panel shows before trusting the
+survival stats on archive rows (fastest time should match to the thousandth; P50 / ARP definitions may
+differ from Lap Raptor's). Checks: unit test PASS, CI build clean.

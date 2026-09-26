@@ -339,7 +339,7 @@ template with range-checked integer parameters.
   published metric — 70% previous-race finish + 30% owner points, worst first — and it correlates
   -0.95 with the previous race's finish in our own `loop_data`. As of 2026-09-03 the race sim reads
   `draw_order` (start projection v4, cup); before that only Qualifying Center did. Still manual.
-- **Lap Raptor fastest-lap paste.** Different source. `lap-times.json` may cover it; unverified.
+- **Lap Raptor fastest-lap paste.** Retired for new races 2026-09-26: Load Data -> "Fastest Laps from the Lap Archive" builds fastest_laps from `lap-times.json` for all three series (PITBOARD_MANUAL L149). The paste box stays in Admin as a fallback.
 
 ### When NASCAR publishes no weekend feed
 

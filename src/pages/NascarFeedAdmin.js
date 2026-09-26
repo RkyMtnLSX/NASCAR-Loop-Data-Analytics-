@@ -656,4 +656,218 @@ export function FeedBackfill() {
   )
 }
 
+// ===========================================================================
+// FASTEST LAPS FROM THE LAP ARCHIVE (2026-09-26)
+// ===========================================================================
+//
+// Operator: "with our loop data the fastest lap data is loaded via Lap Raptor but can't we just load
+// it with the data we already have?" Yes: cf.nascar.com's per-lap archive (lap-times.json, every lap
+// of every car, created when the race runs and permanent afterwards) is what the O'Reilly / Trucks
+// fastest_laps backfill used on 2026-09-02. Cup was the only series still going through the Lap
+// Raptor paste. This panel builds the same fastest_laps rows for any series from the archive:
+// fastest lap number / time / speed, rank, P50 / P95 lap time and speed, ARP (mean running
+// position), start / finish / status from the weekend feed, driver spelling resolved to loop_data
+// through the same resolver Load Race uses. cPOMS / LSP are Lap Raptor-only metrics and are left
+// null (cPOMS stopped at the gate 2026-08-29; neither feeds the sim or a page).
+//
+// JUNK-LAP FILTER (same rule as the backfill and race_watch): a lap under 75% of the driver's median
+// lap is a timing-line glitch (2-second "laps" on pit road), not a fastest lap. P50 / P95 are taken
+// over flying laps only (75% - 120% of the driver's median) so caution laps do not define the
+// distribution. The write goes through /api/load-fastest-laps exactly like the paste loader
+// (delete the race's rows, insert the new set) so the two paths cannot drift.
+
+const FL_TYPES = ['Short Track', 'Intermediate', 'Superspeedway', 'Road Course', 'Other']
+const stripMarkers = n => (n || '').replace(/\(\s*[A-Za-z]\s*\)/g, ' ').replace(/[#*]/g, ' ').replace(/\s+/g, ' ').trim()
+const pctile = (sorted, p) => sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(p * (sorted.length - 1)))] : null
+const mdy = iso => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ''); return m ? `${m[2]}/${m[3]}/${m[1]}` : '' }
+
+function guessType(race) {
+  if (!race) return 'Other'
+  const nm = (race.track_name || '').toLowerCase()
+  if (race.restrictor_plate) return 'Superspeedway'
+  if (/road|circuit|glen|sonoma|cota|roval|street|mexico/.test(nm)) return 'Road Course'
+  const len = race.actual_laps && race.actual_distance ? race.actual_distance / race.actual_laps
+    : race.scheduled_laps && race.scheduled_distance ? race.scheduled_distance / race.scheduled_laps : null
+  if (len == null) return 'Other'
+  if (len < 1.1) return 'Short Track'
+  if (len <= 2.0) return 'Intermediate'
+  return 'Superspeedway'
+}
+
+export function buildFastestLapRows(payload, resolve) {
+  const byId = new Map(), byNum = new Map()
+  for (const r of payload.results || []) { if (r.driver_id) byId.set(r.driver_id, r); if (r.number) byNum.set(r.number, r) }
+  const rows = []
+  const skipped = []
+  for (const d of payload.drivers || []) {
+    const times = d.laps.map(l => l.time).filter(t => t > 0).sort((a, b) => a - b)
+    if (!times.length) { skipped.push(d.name + ' (no laps)'); continue }
+    const med = times[Math.floor(times.length / 2)]
+    const valid = d.laps.filter(l => l.time >= 0.75 * med)
+    const flying = valid.filter(l => l.time <= 1.2 * med).map(l => l.time).sort((a, b) => a - b)
+    if (!valid.length) { skipped.push(d.name + ' (all laps junk)'); continue }
+    const best = valid.reduce((a, l) => (l.time < a.time ? l : a), valid[0])
+    const poss = d.laps.map(l => l.pos).filter(p => p > 0)
+    const res = byId.get(d.driver_id) || byNum.get(d.number) || null
+    const who = resolve({ driver_id: d.driver_id, driver_fullname: stripMarkers(d.name) })
+    const p50 = pctile(flying, 0.5), p95 = pctile(flying, 0.95)
+    const k = best.speed && best.time ? best.speed * best.time : null      // mph x sec = 3600 x track length
+    rows.push({
+      driver: who.name, __how: who.how, __feedName: d.name, car: d.number,
+      start_pos: res ? res.start : null, finish_pos: res ? res.finish : null, status: res ? res.status : null,
+      fastest_lap_num: best.lap, fastest_time: best.time.toFixed(3), fastest_speed: best.speed,
+      arp: poss.length ? +(poss.reduce((a, b) => a + b, 0) / poss.length).toFixed(2) : null,
+      cpoms: null, lsp: null,
+      p50_time: p50 != null ? +p50.toFixed(3) : null, p95_time: p95 != null ? +p95.toFixed(3) : null,
+      p50_speed: k && p50 ? +(k / p50).toFixed(3) : null, p95_speed: k && p95 ? +(k / p95).toFixed(3) : null,
+      __laps: d.laps.length, __junk: d.laps.length - valid.length,
+    })
+  }
+  rows.sort((a, b) => parseFloat(a.fastest_time) - parseFloat(b.fastest_time))
+  rows.forEach((r, i) => { r.rank = i + 1 })
+  return { rows, skipped }
+}
+
+export function FastestLapsFromArchive() {
+  const [series, setSeries] = useState('cup')
+  const [year, setYear] = useState(String(new Date().getFullYear()))
+  const [candidates, setCandidates] = useState([])
+  const [nascarId, setNascarId] = useState('')
+  const [tracks, setTracks] = useState([])
+  const [trackName, setTrackName] = useState('')
+  const [trackType, setTrackType] = useState('Other')
+  const [raceName, setRaceName] = useState('')
+  const [raceDate, setRaceDate] = useState('')
+  const [preview, setPreview] = useState(null)
+  const [existing, setExisting] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const [status, setStatus] = useState(null)
+
+  useEffect(() => {
+    supabase.from('tracks').select('name').order('name').then(({ data }) => setTracks((data || []).map(t => t.name)))
+  }, [])
+
+  async function listRaces() {
+    setBusy(true); setStatus(null); setPreview(null); setExisting(null)
+    try {
+      const j = await feed({ type: 'schedule', year, series: SERIES_ID[series] })
+      const today = new Date().toISOString().slice(0, 10)
+      const run = (j.races || []).filter(r => r.race_date && r.race_date <= today).reverse()
+      setCandidates(run)
+      if (run.length) setNascarId(String(run[0].nascar_race_id))
+      setStatus({ ok: `${run.length} ${series} races run in ${year} - newest first.` })
+    } catch (e) { setStatus({ err: e.message }) } finally { setBusy(false) }
+  }
+
+  async function fetchLaps() {
+    setBusy(true); setStatus(null); setPreview(null); setExisting(null)
+    try {
+      const payload = await feed({ type: 'laps', year, series: SERIES_ID[series], race: nascarId })
+      const { data: known } = await fetchAllRows(() => supabase.from('loop_data')
+        .select('driver_name, nascar_driver_id').eq('series', series))
+      const resolve = makeResolver(known || [])
+      const built = buildFastestLapRows(payload, resolve)
+      const race = payload.race || {}
+      const sched = candidates.find(c => String(c.nascar_race_id) === String(nascarId)) || {}
+      const rn = race.race_name || sched.race_name || ''
+      const rd = mdy(race.race_date || race.date_scheduled || sched.race_date)
+      const feedTrack = race.track_name || sched.track_name || ''
+      const canon = tracks.find(t => t === feedTrack) || tracks.find(t => fold(t) === fold(feedTrack))
+        || tracks.find(t => fold(feedTrack).includes(fold(t).split(' ')[0]) && fold(t).split(' ')[0].length > 4) || ''
+      setRaceName(rn); setRaceDate(rd); setTrackName(canon); setTrackType(guessType(race))
+      setPreview({ ...built, payload, feedTrack })
+      if (rn && rd) {
+        const { data: ex } = await supabase.from('fastest_laps').select('driver, rank, fastest_lap_num, fastest_time, fastest_speed')
+          .eq('series', series).eq('race_name', rn).eq('race_date', rd).order('rank').limit(5)
+        setExisting(ex || [])
+      }
+      const nw = built.rows.filter(r => r.__how === 'new')
+      setStatus({ ok: `${built.rows.length} drivers from ${payload.lapsTotal.toLocaleString()} laps` + (built.skipped.length ? `, skipped ${built.skipped.join(', ')}` : '')
+        + (nw.length ? `. ${nw.length} name(s) not in loop_data: ${nw.map(r => r.__feedName).join(', ')}` : '. Every name matched loop_data.')
+        + (canon ? '' : ` Track "${feedTrack}" is not in the tracks table - pick it below.`) })
+    } catch (e) { setStatus({ err: e.message }) } finally { setBusy(false) }
+  }
+
+  async function write() {
+    if (!preview || !raceName || !raceDate || !trackName) { setStatus({ err: 'Race name, date and a canonical track are required.' }); return }
+    setBusy(true); setStatus(null)
+    try {
+      const rows = preview.rows.map(({ __how, __feedName, __laps, __junk, ...r }) => r)
+      const res = await fetch('/api/load-fastest-laps', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ series, year: parseInt(year, 10), track_type: trackType, race_name: raceName, race_date: raceDate, track: trackName, rows }),
+      })
+      const j = await res.json()
+      if (!res.ok) throw new Error(j.error || `HTTP ${res.status}`)
+      setStatus({ ok: `${j.message} Fastest: ${j.topDriver} ${j.topSpeed ? j.topSpeed + ' mph' : ''}.` })
+      setExisting(null)
+    } catch (e) { setStatus({ err: e.message }) } finally { setBusy(false) }
+  }
+
+  const top = preview ? preview.rows.slice(0, 5) : []
+  return (
+    <div className="card" style={card}>
+      <h3 style={{ margin: '0 0 4px', fontSize: '1rem' }}>Fastest Laps from the Lap Archive</h3>
+      <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0 0 14px' }}>
+        Builds the <code>fastest_laps</code> rows for a race from NASCAR's per-lap archive (every lap of every car -
+        the source the O'Reilly / Trucks history came from) instead of the Lap Raptor paste. Fastest lap, rank,
+        P50 / P95 pace and average running position; start / finish / status from the weekend feed. The archive
+        exists only once the race has run. Loading a race that is already stored replaces its rows.
+      </p>
+      <div style={grid}>
+        <div><label style={labelStyle}>Series</label>
+          <select value={series} onChange={e => { setSeries(e.target.value); setCandidates([]); setPreview(null) }} style={inputStyle}>
+            {SERIES_OPTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select></div>
+        <div><label style={labelStyle}>Year</label>
+          <input value={year} onChange={e => setYear(e.target.value)} style={inputStyle} /></div>
+        <div style={{ gridColumn: 'span 2' }}><label style={labelStyle}>Race</label>
+          <select value={nascarId} onChange={e => setNascarId(e.target.value)} style={inputStyle} disabled={!candidates.length}>
+            {!candidates.length && <option value="">— list races first —</option>}
+            {candidates.map(c => <option key={c.nascar_race_id} value={c.nascar_race_id}>{c.race_date} · {c.race_name} · {c.track_name}</option>)}
+          </select></div>
+      </div>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+        <button className="btn btn-secondary" disabled={busy} onClick={listRaces}>List races</button>
+        <button className="btn btn-secondary" disabled={busy || !nascarId} onClick={fetchLaps}>{busy ? 'Working…' : 'Fetch laps'}</button>
+        {preview && <button className="btn" disabled={busy} onClick={write}>Load {preview.rows.length} drivers into fastest_laps</button>}
+      </div>
+      {preview && (
+        <div style={grid}>
+          <div><label style={labelStyle}>Race name</label><input value={raceName} onChange={e => setRaceName(e.target.value)} style={inputStyle} /></div>
+          <div><label style={labelStyle}>Race date (MM/DD/YYYY)</label><input value={raceDate} onChange={e => setRaceDate(e.target.value)} style={inputStyle} /></div>
+          <div><label style={labelStyle}>Track (canonical)</label>
+            <select value={trackName} onChange={e => setTrackName(e.target.value)} style={inputStyle}>
+              <option value="">-- select track --</option>{tracks.map(t => <option key={t} value={t}>{t}</option>)}
+            </select></div>
+          <div><label style={labelStyle}>Track type</label>
+            <select value={trackType} onChange={e => setTrackType(e.target.value)} style={inputStyle}>
+              {FL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+            </select></div>
+        </div>
+      )}
+      {status && status.ok && <div style={{ ...mono, padding: '8px 10px', borderRadius: 6, marginBottom: 10, background: 'rgba(34,197,94,0.12)', color: '#86efac' }}>{status.ok}</div>}
+      {status && status.err && <div style={{ ...mono, padding: '8px 10px', borderRadius: 6, marginBottom: 10, background: 'rgba(239,68,68,0.12)', color: '#fca5a5' }}>{status.err}</div>}
+      {preview && (
+        <div style={{ display: 'grid', gridTemplateColumns: existing && existing.length ? '1fr 1fr' : '1fr', gap: 14 }}>
+          <div>
+            <div style={labelStyle}>From the archive (top 5 of {preview.rows.length})</div>
+            <pre style={{ ...mono, background: 'var(--bg-elevated)', padding: 10, borderRadius: 6, margin: 0, overflow: 'auto' }}>
+              {top.map(r => `${String(r.rank).padStart(2)}  ${r.driver.padEnd(22)} #${String(r.car).padEnd(3)} lap ${String(r.fastest_lap_num).padStart(3)}  ${r.fastest_time}s${r.fastest_speed ? '  ' + r.fastest_speed + ' mph' : ''}  P50 ${r.p50_time}  ARP ${r.arp}  ${r.start_pos != null ? 'P' + r.start_pos + '->' + r.finish_pos : ''}${r.__junk ? '  (' + r.__junk + ' junk laps dropped)' : ''}`).join('\n')}
+            </pre>
+          </div>
+          {existing && existing.length > 0 && (
+            <div>
+              <div style={labelStyle}>Already stored for this race (will be replaced)</div>
+              <pre style={{ ...mono, background: 'var(--bg-elevated)', padding: 10, borderRadius: 6, margin: 0, overflow: 'auto' }}>
+                {existing.map(r => `${String(r.rank).padStart(2)}  ${(r.driver || '').padEnd(22)} lap ${String(r.fastest_lap_num).padStart(3)}  ${r.fastest_time}s${r.fastest_speed ? '  ' + r.fastest_speed + ' mph' : ''}`).join('\n')}
+              </pre>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default LoadRaceFromFeed
