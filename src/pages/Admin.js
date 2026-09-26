@@ -319,11 +319,30 @@ function EntryListManager() {
   const [showBulk, setShowBulk] = React.useState(false)
   const [pdfParsing, setPdfParsing] = React.useState(false)
   const [pdfStatus, setPdfStatus] = React.useState('')
+  const [pdfTrack, setPdfTrack] = React.useState('')   // track named by the last parsed PDF (guard below)
   const [status, setStatus] = React.useState(null)
 
   const showStatus = (msg, isErr, ms) => {
     setStatus({ msg, isErr })
     setTimeout(() => setStatus(null), ms || 3000)
+  }
+
+  // TRACK GUARD (2026-09-26): the import writes to the FEATURED weekend's track (cfg.track_name). The Kansas
+  // trucks entry list was imported while Weekend Config still said Bristol, so it upserted over Bristol's
+  // rows (by driver) and the Kansas lineup loader found no entry list. The PDF names its track in its
+  // title (NASCAR: "Kansas Speedway"; Jayski: in the heading) and so does the file name; if that track
+  // does not share a leading word with the featured track, the import asks before writing.
+  const __trackWords = t => (t || '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').split(/\s+/)
+    .filter(w => w.length > 2 && !/^(the|and|motor|speedway|raceway|superspeedway|international|park|circuit|course|track|road|rock|of|at|entry|list|lineup|starting|cup|series|trucks?|oreilly|xfinity|nascar|pdf|\d+)$/.test(w))
+  // one name per track across sources: canonical "Gateway" vs the PDF's "World Wide Technology Raceway", etc.
+  const __trackAlias = { gateway: 'gateway', world: 'gateway', wide: 'gateway', technology: 'gateway', wwt: 'gateway',
+    cota: 'americas', loudon: 'hampshire', irp: 'indianapolis', lucas: 'indianapolis', roval: 'charlotte' }
+  const __canonWords = t => __trackWords(t).map(w => __trackAlias[w] || w)
+  const trackMismatch = (hint) => {
+    if (!hint || !cfg || !cfg.track_name) return false
+    const a = __canonWords(hint), b = __canonWords(cfg.track_name)
+    if (!a.length || !b.length) return false
+    return !a.some(w => b.includes(w)) && !b.some(w => a.includes(w))
   }
 
   const parsePdf = async (file) => {
@@ -351,6 +370,9 @@ function EntryListManager() {
       const rows = []
       const ne = allItems.filter(s => s.trim())
       const cleanName = n => n.trim().replace(/\s*\([a-zA-Z]\)\s*$/, '').trim()
+      // track named by the document (title lines) or, failing that, by the file name - for the import guard
+      const __title = ne.slice(0, 15).find(t => /speedway|raceway|motor ?sports? park|circuit|road course|international|park\b/i.test(t) && !/entry list|provided by/i.test(t))
+      setPdfTrack(__title ? __title.trim() : (file && file.name ? file.name.replace(/\.pdf$/i, '') : ''))
       // COLUMN ORDER (2026-09-12): Jayski's usual columns are Veh# / Driver / Organization / Crew
       // Chief / Veh Mfg / Sponsor, and this parser took the item after the driver as the team. The
       // Gateway O'Reilly list put SPONSOR there and called the team column "Owner", so 36 sponsors
@@ -580,8 +602,14 @@ function EntryListManager() {
       for (const r of fixable) r.organization = byDriver.get(foldTeam(r.driver_name))
       unknownOrgs.length = 0; for (const r of rows) if (r.organization && !teamMatch(r.organization, known)) unknownOrgs.push({ driver_name: r.driver_name, org: r.organization })
     }
+    if (trackMismatch(pdfTrack)) {
+      const ok = window.confirm('TRACK CHECK: this PDF looks like "' + pdfTrack + '" but the featured ' + series + ' weekend is "' + cfg.track_name + '" - the import would overwrite ' + cfg.track_name + '\'s entry list.\n\n' +
+        'Cancel = stop so you can set Weekend Config to the right track first (recommended).\nOK = import to ' + cfg.track_name + ' anyway.')
+      if (!ok) { showStatus('Import cancelled - set Weekend Config ' + series + ' track to ' + pdfTrack + ' and re-import', true, 12000); return }
+    }
     const { error } = await supabase.from('entry_list').upsert(rows, { onConflict: 'series,race_year,track_name,driver_name' })
     if (error) { showStatus('Error: ' + error.message, true); return }
+    setPdfTrack('')
     await loadEntries(series, cfg)
     setBulkText(''); setShowBulk(false)
     if (unknownOrgs.length) showStatus('Imported ' + rows.length + ' drivers - ' + unknownOrgs.length + ' organization(s) not seen before in ' + series + ': ' + unknownOrgs.slice(0, 4).map(u => u.driver_name + ' / ' + u.org).join('; ') + (unknownOrgs.length > 4 ? ' ...' : ''), true, 15000)

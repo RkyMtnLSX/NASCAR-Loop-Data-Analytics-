@@ -3615,3 +3615,17 @@ Rhodes' real #99 row was unaffected - it was an extra row. Fix (Admin.js parsePd
 split on 2+ spaces before the header-cell match (so "Trk Driver" yields Trk / Driver and the
 Sponsor-before-Owner column logic engages for this layout too), "Manufacturer" / "Make" / "Trk" are
 header words, and a candidate row whose driver or next item is a header word is skipped. Build clean.
+
+## 2026-09-26 — Entry-list import: track guard; Kansas trucks list repaired in the DB
+The Kansas trucks entry list was imported while Weekend Config's truck track still said Bristol, so
+the import (which writes to the FEATURED weekend's track and upserts by driver) overwrote 24 of
+Bristol's rows in place and added 12 - and the Kansas metric-lineup loader found no Kansas entry list
+("36 cars not in this weekend's entry list", names blank). Repaired with operator approval: the header
+junk row deleted, the 12 new rows retagged, then the full 36-row Kansas list rebuilt from the PDF
+(stored team spellings: McAnally Hilgemann Racing / Rackley W.A.R / Freedom Racing Enterprises) and
+written over it. Bristol's trucks entry list is now partly Kansas data (24 shared cars) - nothing live
+reads it; left as is. GUARD (Admin.js EntryListManager): parsePdf records the track the document names
+(title line, else the file name); bulkImport compares its significant words - with aliases so
+"World Wide Technology Raceway" = Gateway, COTA = Americas, Loudon = New Hampshire - against
+cfg.track_name and asks before writing when they share none (Cancel = set Weekend Config first).
+Build clean. Operator still has to move Weekend Config trucks to Kansas.
