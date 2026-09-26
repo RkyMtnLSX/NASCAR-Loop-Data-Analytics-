@@ -7874,3 +7874,19 @@ asymmetry (50-fill vs drop); the market-fill half cannot be reconstructed and is
 consistency, not measured.
 DECISION RULE. Ship if B's win log loss <= A's and top-5 Brier is not worse by more than 0.0005;
 otherwise do NOT ship and the fix becomes "no board without practice" as an operator rule.
+
+RESULT (run 2026-09-26, SIMS=10000, 162/162 races): win Brier .022502 -> .022254 (better), win log
+loss .090169 -> .090205 (worse by .00004), top-5 Brier .093655 -> .093977 (worse by .0003, inside
+the allowance), top-10 Brier .154256 -> .154638, favourite won 56/162 both arms. Per series: cup
+win ll .0908 -> .0937 (worse), O'Reilly .0845 -> .0826 (better), trucks .0972 -> .0957 (better).
+DECISION: FAILS the rule (win log loss not <= A). The drop-the-weight form does NOT ship;
+opts.dropEmptySlots stays in the engine OFF, harness kept. Reading: for established drivers the
+50-fill and the drop are a wash - the no-practice damage on the Kansas board is the THIN-driver
+market fill in an empty slot, which this harness cannot see (no odds reconstructed).
+SHIPPED INSTEAD (narrower, not the registered form - stated plainly): the thin-driver market fill
+applies only in a slot where OTHER drivers have data; in a slot empty for the whole field (no
+practice, no grid) every driver gets 50. On this harness that is byte-identical to arm A (no odds,
+no practice -> no market fills exist), so it cannot score worse than what ran; its effect on live
+no-practice boards with odds loaded is UNMEASURED and is argued from consistency (the same missing
+information must not be two different numbers). Operator rule until measured: do not publish a
+board with no practice data as fair value; load practice first.

@@ -3647,3 +3647,24 @@ its last-name fallback keyed on "jr" (below the 3-letter floor). norm() now drop
 both sides (salary AND ownership joins share it). Poole matches by name; he was absent from the
 driver list the parser joins against - the latest PUBLISHED truck board - so the fix is to republish
 the truck board after Weekend Config is on Kansas, then re-upload the CSV.
+
+## 2026-09-26 — Kansas trucks board: Crews 25% / Riggs 4% / Smith 3% - the no-practice fill asymmetry
+Operator: "Sim fair market value on Chandler Smith is completely wrong... +850 on most books... our sim
+saying around 35-1... that's why I am ready to can this product." He is right about the board, and
+it is worse than Smith: the stored Kansas R20 truck board had Brent Crews as the favourite at 24.9%
+(ONE intermediate truck start ever - Charlotte 2025 P3->2), Nick Sanchez 11% on two starts, while
+Layne Riggs (6 wins, laps led in 12 of 19, DK +380) was 4% from P22 and Smith (2 wins, avg 9.9) 3%
+from P15. MECHANISM (simEngine buildSpeedScores): no practice loaded -> the longRunPace slot filled
+at 50 for established drivers but at the MARKET percentile for thin drivers (<5 group races, market
+anchor 07-22); Crews, 3rd in the odds, scored ~92 in a slot where Riggs scored 50, plus a P5 vs P22
+metric grid at .23 weight. The 07-22 anchor was never tested on a no-practice board (the harness has
+neither odds nor practice). REGISTERED + RUN (BACKTEST_LOG): drop-the-weight form FAILED (wash; win
+ll .0902 -> .0902, cup worse). SHIPPED the narrower consistency fix: the market fill is used only
+where the slot has data for other drivers; an empty-for-everyone slot fills 50 for all. Identical to
+the shipped engine on the harness by construction; live effect unmeasured, stated as such. sim:smoke
+ALL PASS, build clean. Operator rules from this: (1) no board without practice is fair value -
+load practice first (the practice slot then has real data for everyone and the asymmetry is moot);
+(2) OPEN, register before touching: a METRIC grid is not a speed grid - Riggs P22 is last week's
+Bristol finish, not pace - the .23 start weight was fitted on qualifying grids; test shading
+lineup_source = metric starts the way projected starts are shaded (lam .7). Crews's 75% market fill
+in the history slot and his market fill in the Kansas-history slot are the 07-22 behaviour and stay.

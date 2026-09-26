@@ -31,16 +31,16 @@ function newAcc() { const m = {}; for (const [k] of MARKETS) m[k] = { brier: 0, 
 function accumulate(acc, rows, actualFinish, bySeries) {
   for (const [key, cut] of MARKETS) {
     const b = acc[key]
-    rows.forEach((r, i) => {
-      const p = Math.min(0.999, Math.max(0.001, (key === 'win' ? r.winProb : key === 'top5' ? r.top5Prob : r.top10Prob) / 100))
-      const o = actualFinish[i] != null && actualFinish[i] <= cut ? 1 : 0
+    rows.forEach((r) => {
+      const p = Math.min(1 - 1e-6, Math.max(1e-6, (key === 'win' ? r.winPct : key === 'top5' ? r.top5Pct : r.top10Pct) / 100))
+      const o = actualFinish[r.simIdx] != null && actualFinish[r.simIdx] <= cut ? 1 : 0
       b.brier += (p - o) ** 2; b.ll += -(o * Math.log(p) + (1 - o) * Math.log(1 - p)); b.n++
       const bi = BINS.findIndex((lo, j) => p >= lo && p < BINS[j + 1]); if (bi >= 0) { b.bins[bi].p += p; b.bins[bi].o += o; b.bins[bi].n++ }
     })
   }
   acc.races++
-  const fav = rows.reduce((a, r, i) => (r.winProb > rows[a].winProb ? i : a), 0)
-  if (actualFinish[fav] === 1) acc.favHit++
+  const fav = rows.reduce((a, r) => (r.winPct > a.winPct ? r : a), rows[0])
+  if (actualFinish[fav.simIdx] === 1) acc.favHit++
 }
 const lines = fs.readFileSync(path.join(__dirname, 'backtest-data', 'holdout.txt'), 'utf8').split('\n').filter(l => l.trim())
 const A = newAcc(), B = newAcc(); const perSeries = {}

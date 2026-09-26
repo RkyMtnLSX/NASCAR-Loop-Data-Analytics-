@@ -506,8 +506,15 @@ function buildSpeedScores(drivers, weights, opts) {
     const rawT = blendedT ?? 50
     const tConf = d.nTrackRaces > 0 ? Math.min(1, d.nTrackRaces / 4) : (blendedT != null ? 1 : 0)
     const t    = rawT * tConf + (__thinD ? __mkA : 50) * (1 - tConf) // thin drivers: track ignorance = market too (2026-07-22); NOTE shrink-to-corr for ESTABLISHED drivers tested + REJECTED 07-18 — do not 'fix' this to HIST
-    const lrp = lrpScores[i]   ?? (__thinD ? __mkA : 50) // v1.1: thin drivers' ignorance fills = market everywhere
-    const sp  = startScores[i] ?? (__thinD ? __mkA : 50)
+    // 2026-09-26 (Kansas trucks, BACKTEST_LOG same date): the market fill is for a thin driver's MISSING
+    // value in a slot OTHER drivers have data in. In a slot empty for the whole field (no practice
+    // uploaded, no grid yet) everyone gets the same 50, thin or not - otherwise a one-start driver 3rd
+    // in the odds out-scored the 6-win points leader in a slot neither of them had. Registered drop-
+    // the-weight form failed its decision rule (wash); this narrower form is identical to the
+    // shipped engine wherever the slot has any data and is the consistency fix for when it has none.
+    const __lrpAllNull = lrpScores.every(v => v == null), __spAllNull = startScores.every(v => v == null)
+    const lrp = lrpScores[i]   ?? (__thinD && !__lrpAllNull ? __mkA : 50) // v1.1: thin drivers' ignorance fills = market where the slot has data
+    const sp  = startScores[i] ?? (__thinD && !__spAllNull ? __mkA : 50)
     const wc  = winConvScores[i]   ?? 50
     const pit = pitScores[i] ?? 50
 
