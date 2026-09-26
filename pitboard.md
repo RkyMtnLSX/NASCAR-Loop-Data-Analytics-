@@ -3590,3 +3590,18 @@ the gate 08-29, nothing reads them). NOT done: no cup race has been diffed archi
 load one already-stored cup race and compare the stored top 5 the panel shows before trusting the
 survival stats on archive rows (fastest time should match to the thousandth; P50 / ARP definitions may
 differ from Lap Raptor's). Checks: unit test PASS, CI build clean.
+
+## 2026-09-26 (later) — Richmond archive-vs-Lap Raptor diff: a definition, not a bug; Lap Raptor-compatible mode
+Operator loaded cup Richmond R24 (Cook Out 400, 08/15) in the new panel next to the stored Lap Raptor
+rows. Race fastest lap identical (Blaney lap 2, 22.738); 31 of 37 drivers identical to the thousandth.
+The 6 that differ (#16 Allmendinger, #33, #51, #10, #66 at lap 78-79; #47 at lap 239) are ALL lap-down
+cars' first green lap after a stage restart: the caution ran leader laps 72-79, and a lap-down car's
+"lap 79" is physically run while the leaders are on 80 - under green, on fresh stage-break tires
+(Allmendinger 22.759 there vs 23.059 next lap). Lap Raptor drops every lap NUMBERED inside a caution
+window, so it discards those real laps and lists him at lap 80 / 23.059 (rank 22 instead of 3). The
+archive is physically right; Lap Raptor is what four years of history and the fastest-lap-rank
+handicapping were built on. Shipped: api type=laps now returns the weekend feed's caution windows;
+buildFastestLapRows takes { lapRaptorRule } and the panel has a "Lap Raptor-compatible" checkbox ON by
+default (re-derives the preview without refetching), so new rows match the stored history; untick it
+for the raw archive. Test covers both modes. The 09-26 open item (diff a cup race before trusting
+archive rows) is CLOSED by this.

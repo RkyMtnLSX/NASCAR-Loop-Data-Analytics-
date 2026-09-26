@@ -268,9 +268,16 @@ async function laps(res, year, series, raceId) {
     driver_id: r.driver_id, name: r.driver_fullname, number: String(r.car_number ?? '').trim(),
     start: r.starting_position, finish: r.finishing_position, status: r.finishing_status,
   }))
+  // Caution windows (leader lap numbers). The browser's Lap Raptor-compatible mode drops every lap
+  // NUMBERED inside one - Lap Raptor's rule, which for lap-down cars discards real green laps
+  // (Richmond 2026: 6 of 37 drivers, all lap-down cars' first green lap after a stage restart).
+  const cautions = ((wkRace && wkRace.caution_segments) || [])
+    .map(c => ({ start_lap: c.start_lap, end_lap: c.end_lap, reason: c.reason || null }))
+    .filter(c => Number.isInteger(c.start_lap) && Number.isInteger(c.end_lap))
   return res.status(200).json({
     type: 'laps', year, series_id: series, series: SERIES_NAME[series], nascar_race_id: raceId,
     race: wkRace ? pick(wkRace, RACE_FIELDS) : null,
+    cautions,
     results,
     drivers,
     lapsTotal: drivers.reduce((a, d) => a + d.laps.length, 0),

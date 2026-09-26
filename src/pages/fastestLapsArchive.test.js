@@ -26,3 +26,19 @@ test('archive rows: junk laps dropped, fastest is the real lap, P50 over flying 
   expect(rows[1].driver).toBe('Joey Logano'); expect(rows[1].rank).toBe(2); expect(rows[1].start_pos).toBeNull()
   expect(rows[0].p50_speed).toBeGreaterThan(rows[0].p95_speed)
 })
+
+test('Lap Raptor-compatible rule drops laps numbered inside caution windows; raw mode keeps them', () => {
+  const payload = {
+    cautions: [{ start_lap: 72, end_lap: 79 }],
+    drivers: [{ number: '16', name: 'A.J. Allmendinger', driver_id: 1, laps: [
+      { lap: 77, time: 66.9, speed: 40, pos: 36 }, { lap: 78, time: 26.1, speed: 100, pos: 36 },
+      { lap: 79, time: 22.759, speed: 118.6, pos: 36 }, { lap: 80, time: 23.059, speed: 117, pos: 36 }, { lap: 81, time: 23.3, speed: 116, pos: 36 },
+    ] }],
+    results: [],
+  }
+  const resolve = makeResolver([{ driver_name: 'A.J. Allmendinger', nascar_driver_id: 1 }])
+  const lr = buildFastestLapRows(payload, resolve, { lapRaptorRule: true }).rows[0]
+  expect(lr.fastest_lap_num).toBe(80); expect(lr.fastest_time).toBe('23.059'); expect(lr.__caution).toBe(3)
+  const raw = buildFastestLapRows(payload, resolve, { lapRaptorRule: false }).rows[0]
+  expect(raw.fastest_lap_num).toBe(79); expect(raw.fastest_time).toBe('22.759'); expect(raw.__caution).toBe(0)
+})

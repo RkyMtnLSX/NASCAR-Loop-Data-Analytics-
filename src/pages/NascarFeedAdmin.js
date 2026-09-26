@@ -694,16 +694,26 @@ function guessType(race) {
   return 'Superspeedway'
 }
 
-export function buildFastestLapRows(payload, resolve) {
+// LAP RAPTOR-COMPATIBLE MODE (2026-09-26, Richmond diff): the archive and Lap Raptor agree on the race
+// fastest lap and on 31 of 37 drivers to the thousandth. The 6 that differ are all lap-down cars whose
+// first green lap after a stage restart is NUMBERED inside the leaders' caution window (a lap-down
+// car's lap 79 is run while the leaders are on 80). Lap Raptor drops every lap numbered inside a
+// caution window, so it discards those real laps; the archive keeps them. Four years of stored
+// history and the fastest-lap-rank handicapping were built on Lap Raptor's rule, so the panel
+// applies it by default (opts.lapRaptorRule) and offers the raw archive as the alternative.
+export function buildFastestLapRows(payload, resolve, opts = {}) {
   const byId = new Map(), byNum = new Map()
   for (const r of payload.results || []) { if (r.driver_id) byId.set(r.driver_id, r); if (r.number) byNum.set(r.number, r) }
+  const cautions = opts.lapRaptorRule ? (payload.cautions || []) : []
+  const underCaution = lap => cautions.some(c => lap >= c.start_lap && lap <= c.end_lap)
   const rows = []
   const skipped = []
   for (const d of payload.drivers || []) {
-    const times = d.laps.map(l => l.time).filter(t => t > 0).sort((a, b) => a - b)
+    const eligible = d.laps.filter(l => !underCaution(l.lap))
+    const times = eligible.map(l => l.time).filter(t => t > 0).sort((a, b) => a - b)
     if (!times.length) { skipped.push(d.name + ' (no laps)'); continue }
     const med = times[Math.floor(times.length / 2)]
-    const valid = d.laps.filter(l => l.time >= 0.75 * med)
+    const valid = eligible.filter(l => l.time >= 0.75 * med)
     const flying = valid.filter(l => l.time <= 1.2 * med).map(l => l.time).sort((a, b) => a - b)
     if (!valid.length) { skipped.push(d.name + ' (all laps junk)'); continue }
     const best = valid.reduce((a, l) => (l.time < a.time ? l : a), valid[0])
@@ -720,7 +730,7 @@ export function buildFastestLapRows(payload, resolve) {
       cpoms: null, lsp: null,
       p50_time: p50 != null ? +p50.toFixed(3) : null, p95_time: p95 != null ? +p95.toFixed(3) : null,
       p50_speed: k && p50 ? +(k / p50).toFixed(3) : null, p95_speed: k && p95 ? +(k / p95).toFixed(3) : null,
-      __laps: d.laps.length, __junk: d.laps.length - valid.length,
+      __laps: d.laps.length, __junk: eligible.length - valid.length, __caution: d.laps.length - eligible.length,
     })
   }
   rows.sort((a, b) => parseFloat(a.fastest_time) - parseFloat(b.fastest_time))
@@ -742,10 +752,19 @@ export function FastestLapsFromArchive() {
   const [existing, setExisting] = useState(null)
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState(null)
+  const [lrRule, setLrRule] = useState(true)
+  const [resolver, setResolver] = useState(null)
 
   useEffect(() => {
     supabase.from('tracks').select('name').order('name').then(({ data }) => setTracks((data || []).map(t => t.name)))
   }, [])
+
+  // Re-derive the preview when the rule toggle changes (no refetch).
+  useEffect(() => {
+    if (!preview || !resolver) return
+    const built = buildFastestLapRows(preview.payload, resolver, { lapRaptorRule: lrRule })
+    setPreview(p => ({ ...p, ...built }))
+  }, [lrRule]) // eslint-disable-line
 
   async function listRaces() {
     setBusy(true); setStatus(null); setPreview(null); setExisting(null)
@@ -766,7 +785,8 @@ export function FastestLapsFromArchive() {
       const { data: known } = await fetchAllRows(() => supabase.from('loop_data')
         .select('driver_name, nascar_driver_id').eq('series', series))
       const resolve = makeResolver(known || [])
-      const built = buildFastestLapRows(payload, resolve)
+      setResolver(() => resolve)
+      const built = buildFastestLapRows(payload, resolve, { lapRaptorRule: lrRule })
       const race = payload.race || {}
       const sched = candidates.find(c => String(c.nascar_race_id) === String(nascarId)) || {}
       const rn = race.race_name || sched.race_name || ''
@@ -782,7 +802,7 @@ export function FastestLapsFromArchive() {
         setExisting(ex || [])
       }
       const nw = built.rows.filter(r => r.__how === 'new')
-      setStatus({ ok: `${built.rows.length} drivers from ${payload.lapsTotal.toLocaleString()} laps` + (built.skipped.length ? `, skipped ${built.skipped.join(', ')}` : '')
+      setStatus({ ok: `${built.rows.length} drivers from ${payload.lapsTotal.toLocaleString()} laps, ${(payload.cautions || []).length} caution windows` + (built.skipped.length ? `, skipped ${built.skipped.join(', ')}` : '')
         + (nw.length ? `. ${nw.length} name(s) not in loop_data: ${nw.map(r => r.__feedName).join(', ')}` : '. Every name matched loop_data.')
         + (canon ? '' : ` Track "${feedTrack}" is not in the tracks table - pick it below.`) })
     } catch (e) { setStatus({ err: e.message }) } finally { setBusy(false) }
@@ -792,7 +812,7 @@ export function FastestLapsFromArchive() {
     if (!preview || !raceName || !raceDate || !trackName) { setStatus({ err: 'Race name, date and a canonical track are required.' }); return }
     setBusy(true); setStatus(null)
     try {
-      const rows = preview.rows.map(({ __how, __feedName, __laps, __junk, ...r }) => r)
+      const rows = preview.rows.map(({ __how, __feedName, __laps, __junk, __caution, ...r }) => r)
       const res = await fetch('/api/load-fastest-laps', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ series, year: parseInt(year, 10), track_type: trackType, race_name: raceName, race_date: raceDate, track: trackName, rows }),
@@ -831,6 +851,9 @@ export function FastestLapsFromArchive() {
         <button className="btn btn-secondary" disabled={busy} onClick={listRaces}>List races</button>
         <button className="btn btn-secondary" disabled={busy || !nascarId} onClick={fetchLaps}>{busy ? 'Working…' : 'Fetch laps'}</button>
         {preview && <button className="btn" disabled={busy} onClick={write}>Load {preview.rows.length} drivers into fastest_laps</button>}
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', color: 'var(--text-muted)', marginLeft: 'auto' }} title="Lap Raptor drops every lap numbered inside a caution window. For lap-down cars that discards real green laps (their lap N runs while the leaders are on N+1), but it is the rule the stored history was built on. Off = the raw archive.">
+          <input type="checkbox" checked={lrRule} onChange={e => setLrRule(e.target.checked)} /> Lap Raptor-compatible (drop laps numbered under caution)
+        </label>
       </div>
       {preview && (
         <div style={grid}>
