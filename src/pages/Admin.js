@@ -370,7 +370,14 @@ function EntryListManager() {
         const hits = knownTeams.filter(k => k.endsWith(tail) && k !== tail)
         return hits.length === 1 ? (teamSpelling.get(hits[0]) || t) : t
       }
-      const headerCells = ne.slice(0, 40).filter(t => /^(entry|veh#|driver|organization|owner|team|crew chief|veh mfg|sponsor)$/i.test(t.trim()))
+      // HEADER CELLS (2026-09-26): NASCAR's own "Entry List - Numerical" PDF (Kansas trucks) emits the header
+      // as one item per column run ("Trk     Driver"), names the make column "Manufacturer", and its
+      // timestamp line ("... @ 01:36 PM") splits so a bare "36" sits right before "Trk Driver" - which the
+      // row scan below turned into driver "Trk Driver" / team "Manufacturer" at car 36. Header items are
+      // split on 2+ spaces before matching, and any row whose "driver" is a header word is skipped.
+      const headerCells = ne.slice(0, 40).flatMap(t => t.split(/\s{2,}/)).map(t => t.trim())
+        .filter(t => /^(entry|trk|veh#|driver|organization|owner|team|crew chief|veh mfg|manufacturer|make|sponsor)$/i.test(t))
+      const isHeaderWord = t => /^(trk|veh#?|entry|driver|organization|owner|team|manufacturer|make|sponsor|crew chief)(\s+(trk|veh#?|entry|driver|organization|owner|team|manufacturer|make|sponsor|crew chief))*$/i.test((t || '').trim())
       const hIdx = re => headerCells.findIndex(t => re.test(t.trim()))
       const hDrv = hIdx(/^driver$/i), hOrg = hIdx(/^(organization|owner|team)$/i), hSpo = hIdx(/^sponsor$/i)
       const sponsorFirst = hSpo >= 0 && hOrg >= 0 && hSpo < hOrg   // sponsor column sits before the team column
@@ -379,6 +386,7 @@ function EntryListManager() {
         const s = ne[i].trim()
         if (/^\d{1,3}$/.test(s) && +s < 200) {
           let drv = ne[i+1] ? cleanName(ne[i+1]) : ''
+          if (isHeaderWord(drv) || isHeaderWord(ne[i+2])) continue   // the column header line, not a car
           const isMfrOrInd = n => /^\([a-zA-Z]\)$/.test(n) || /^(chevrolet|chevy|ford|toyota|tundra|silverado|f-?150|ram|dodge)/i.test(n)
           const isTeamName = t => /racing|motorsports|motor|penske|hendrick|gibbs|23xi|rfk|kaulig|haas|wood|trackhouse|spire|hyak|club|legacy|front row|\bware\b/i.test(t)
           const teamLike = t => !!t && !isMfrOrInd(t) && (teamMatch(t, knownTeams) || isTeamName(t))

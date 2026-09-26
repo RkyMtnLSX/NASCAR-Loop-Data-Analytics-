@@ -3605,3 +3605,13 @@ buildFastestLapRows takes { lapRaptorRule } and the panel has a "Lap Raptor-comp
 default (re-derives the preview without refetching), so new rows match the stored history; untick it
 for the raw archive. Test covers both modes. The 09-26 open item (diff a cup race before trusting
 archive rows) is CLOSED by this.
+
+## 2026-09-26 — Entry-list PDF: NASCAR "Entry List - Numerical" header row parsed as car 36
+Operator (Kansas trucks): "one driver is coming up trk driver, manufacturer for 36". NASCAR's own
+entry-list PDF (not Jayski's) has a timestamp line "Provided by NASCAR Statistics - ... @ 01:36 PM"
+directly above the column headers; pdf.js splits the time so a bare "36" sits before "Trk     Driver",
+and the row scan (any 1-3 digit item = a car) made driver "Trk Driver" / team "Manufacturer" at car 36.
+Rhodes' real #99 row was unaffected - it was an extra row. Fix (Admin.js parsePdf): header items are
+split on 2+ spaces before the header-cell match (so "Trk Driver" yields Trk / Driver and the
+Sponsor-before-Owner column logic engages for this layout too), "Manufacturer" / "Make" / "Trk" are
+header words, and a candidate row whose driver or next item is a header word is skipped. Build clean.
