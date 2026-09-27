@@ -286,6 +286,14 @@ const raceCols = primaryRaces.map(r => { const yr = parseInt(r.year); const tn =
 
 const otherDrivers = effectiveRows.filter(r => r.driver !== cardDriver.driver && !(compareDrivers||[]).find(cd=>cd.driver===r.driver)).map(r => r.driver).sort()
 
+// Which of a compare driver's races lines up with a race column (same year + track; real race_number when both
+// sides have one, else the nth occurrence). Shared by the cells and the AVG column (2026-09-27).
+const compareRaceFor = (cd, rc) => { var __l = (compareRacesMap[cd.driver] || []).filter(function(r){ return parseInt(r.year) === rc.year && (r.track_name || '') === rc.track_name; }); if (__l.length === 0) return null; var __haveRn = __l.some(function(r){ return r.race_number != null; }); if (rc.realRn != null && __haveRn) { return __l.find(function(r){ return r.race_number != null && parseInt(r.race_number) === rc.realRn; }) || null; } if (__l.length === 1) return __l[0]; var __s = __l.slice().sort(function(a,b){ return (parseInt(a.race_number)||0) - (parseInt(b.race_number)||0); }); return __s[rc.occIdx] || null; }
+const primaryRaceFor = rc => primaryRaces.find(r => parseInt(r.year) === rc.year && (r.track_name || '') === rc.track_name && (r._occ || r.race_number || 1) === rc.raceNum)
+// AVG column (operator 2026-09-27: "overall averages for each stat type to the right of the stat column"):
+// the mean of the values shown in the row, per driver, over the races that have a value.
+const meanOf = vals => { const v = vals.map(x => (x == null || x === '' ? null : Number(x))).filter(x => x != null && !isNaN(x)); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null }
+
 const cellBase = {
 padding: '6px 10px',
 fontSize: '0.92rem',
@@ -391,6 +399,10 @@ No data at this track.
 color: 'var(--text-secondary)', position: 'sticky', left: 0,
 background: 'var(--bg-elevated)', zIndex: 2, borderBottom: '2px solid var(--border)',
 }}>Stat</th>
+<th title="Average of the races shown, per driver" style={{
+...cellBase, fontWeight: 700, fontSize: '0.89rem', color: 'var(--text-primary)',
+borderBottom: '2px solid var(--border)', borderRight: '1px solid var(--border)', background: 'var(--bg-surface)',
+}}>AVG</th>
 {raceCols.map(rc => (
 <th key={rc.key} style={{
 ...cellBase, fontWeight: 700, fontSize: '0.89rem',
@@ -412,8 +424,14 @@ background: 'var(--bg-elevated)', zIndex: 1, fontSize: '0.89rem',
 }}>
 {col.label}
 </td>
+<td style={{ ...cellBase, verticalAlign: 'top', borderRight: '1px solid var(--border)', background: 'var(--bg-surface)' }}>
+<div style={{ color: 'var(--accent-text)', fontWeight: 600 }}>{fmtRaw(meanOf(raceCols.map(rc => { const r = primaryRaceFor(rc); return r ? r[col.key] : null })), Math.max(1, col.decimals))}</div>
+{(compareDrivers||[]).map((cd, ci) => (
+<div key={cd.driver} style={{ color: COMPARE_COLORS[ci], fontSize: '0.85rem', marginTop: 2, fontWeight: 600 }}>{fmtRaw(meanOf(raceCols.map(rc => { const r = compareRaceFor(cd, rc); return r ? r[col.key] : null })), Math.max(1, col.decimals))}</div>
+))}
+</td>
 {raceCols.map(rc => {
-const pRace = primaryRaces.find(r => parseInt(r.year) === rc.year && (r.track_name || '') === rc.track_name && (r._occ || r.race_number || 1) === rc.raceNum)
+const pRace = primaryRaceFor(rc)
 const pVal = pRace ? pRace[col.key] : null
 const finBg = undefined
 return (
@@ -426,7 +444,7 @@ verticalAlign: 'top',
 {fmtRaw(pVal, col.decimals)}
 </div>
 {(compareDrivers||[]).map((cd,ci) => {
-const cRace = (function(){ var __l = (compareRacesMap[cd.driver] || []).filter(function(r){ return parseInt(r.year) === rc.year && (r.track_name || '') === rc.track_name; }); if (__l.length === 0) return null; var __haveRn = __l.some(function(r){ return r.race_number != null; }); if (rc.realRn != null && __haveRn) { return __l.find(function(r){ return r.race_number != null && parseInt(r.race_number) === rc.realRn; }) || null; } if (__l.length === 1) return __l[0]; var __s = __l.slice().sort(function(a,b){ return (parseInt(a.race_number)||0) - (parseInt(b.race_number)||0); }); return __s[rc.occIdx] || null; })()
+const cRace = compareRaceFor(cd, rc)
 const cVal = cRace ? cRace[col.key] : null
 return (<div key={cd.driver} style={{ color: COMPARE_COLORS[ci], fontSize: '0.85rem', marginTop: 2 }}>{fmtRaw(cVal, col.decimals)}</div>)
 })}

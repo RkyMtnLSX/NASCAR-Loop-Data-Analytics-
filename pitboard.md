@@ -3681,3 +3681,10 @@ the published board. Patched dfs_salaries row 22 __ids (Honeyman 44259087, Poole
 export works tonight. Parser: inline markers and a trailing make are stripped from the driver cell,
 the make feeds mfr. Operator: republish the truck board before uploading standings so the Poole row
 carries the clean name for the ownership join.
+
+## 2026-09-27 — Loop Data driver card: AVG column
+Operator: "in the compare loop data tables it would be nice if you could see overall averages for each
+stat type to the right of the stat column". LoopData.js DriverCard: an AVG column sits between Stat
+and the race columns - per driver (primary + up to 4 compares, same colours), the mean of the values
+shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
+factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
