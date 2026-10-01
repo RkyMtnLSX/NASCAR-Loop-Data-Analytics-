@@ -3688,3 +3688,20 @@ stat type to the right of the stat column". LoopData.js DriverCard: an AVG colum
 and the race columns - per driver (primary + up to 4 compares, same colours), the mean of the values
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
+
+## 2026-10-01 — Weekend Config from NASCAR's schedule: "Use schedule" / "Sync all 3" + Monday cron
+Operator: "automate the pitboard weekend configurations so I don't have to do it every week". Every
+field is derivable from race_list_basic.json: track_name, scheduled_laps, stage_1/2_laps (the config
+stores stage END laps = s1, s1+s2), race_type_id (1 = points race -> season round by counting).
+Verified against the hand-set Kansas week (cup R30 267 80/165, trucks R20 134 30/54). Also found the
+O'Reilly config still said Bristol R27 during Kansas week - the class of slip this removes.
+SHIPPED: api/_weekend.js (propose(): next race per series = first race >= now-36h so Sunday night /
+Monday morning still point at the race just run; NASCAR spelling -> tracks-table name with aliases
+Gateway / COTA / St. Pete / Coronado; Charlotte Roval and Indy GP told apart by race name / laps;
+unmapped track = series left alone and named). api/nascar-feed.js type=next. Weekend Config: banner
+with the three proposals, per-series amber "schedule says X" + Use schedule (fills the form; clears
+eq_overrides / rear_overrides when the race changes - they are per race), "Sync all 3" writes all
+three directly. api/weekend-sync.js = Monday 12:00 UTC cron (vercel.json), service role, requires
+CRON_SECRET (401 otherwise), ?dry=1 reports without writing; keeps track_years and every other column.
+OPERATOR TO DO ONCE: set CRON_SECRET in Vercel env (any long random string) - until then the cron is
+inert and the button is the path. Build clean, api files load.

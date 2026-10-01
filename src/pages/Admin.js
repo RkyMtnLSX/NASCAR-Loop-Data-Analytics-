@@ -82,6 +82,13 @@ function WeekendConfig() {
   const [tracks, setTracks] = useState([])
   const [saving, setSaving] = useState({})
   const [saveStatus, setSaveStatus] = useState({})
+  // SCHEDULE SYNC (2026-10-01, operator: "automate the weekend configurations so I don't have to do it
+  // every week"). /api/nascar-feed?type=next derives every field from NASCAR's schedule feed (track,
+  // season round, laps, stage ends); "Use schedule" fills a series, "Sync all 3" fills and saves all
+  // three. The Monday cron (api/weekend-sync.js) does the same unattended. A series whose track is not
+  // in the tracks table is shown as unmapped and left alone.
+  const [proposed, setProposed] = useState(null)
+  const [propErr, setPropErr] = useState('')
 
   useEffect(() => {
     Promise.all([
@@ -95,7 +102,47 @@ function WeekendConfig() {
       setConfigs(map)
       setTracks(trackRows || [])
     })
+    fetch('/api/nascar-feed?type=next&year=' + new Date().getFullYear()).then(r => r.json())
+      .then(j => { if (j && j.proposed) setProposed(j.proposed); else setPropErr(j && j.error ? j.error : 'schedule unavailable') })
+      .catch(e => setPropErr(e.message))
   }, [])
+
+  const __diffs = (cfg, p) => !cfg || cfg.track_name !== p.track_name || cfg.race_number !== p.race_number || cfg.total_laps !== p.total_laps || cfg.stage1_laps !== p.stage1_laps || cfg.stage2_laps !== p.stage2_laps
+  // Fill the form from the schedule proposal. Overrides are per race (rear-of-field flags, equipment
+  // overrides) and are cleared when the race changes, exactly as the cron does.
+  function applyProposal(series) {
+    const p = proposed && proposed[series]
+    if (!p || !p.ok) return
+    setConfigs(prev => {
+      const c = prev[series] || { series }
+      const raceChanged = c.track_name !== p.track_name || c.race_number !== p.race_number
+      return { ...prev, [series]: { ...c, series, track_name: p.track_name, track_label: p.track_label, correlation_label: p.correlation_label,
+        correlation_year: new Date().getFullYear(), race_number: p.race_number, total_laps: p.total_laps, stage1_laps: p.stage1_laps, stage2_laps: p.stage2_laps,
+        track_years: (c.track_years && c.track_years.length) ? c.track_years : [2022, 2023, 2024, 2025, 2026],
+        ...(raceChanged ? { eq_overrides: {}, rear_overrides: {} } : {}) } }
+    })
+  }
+  // Sync all 3: build each row straight from the proposal + the saved config (no dependence on form
+  // state timing), upsert, then re-read so the form shows what was saved.
+  async function syncAll() {
+    if (!proposed) return
+    const year = new Date().getFullYear()
+    for (const s of Object.keys(proposed)) {
+      const p = proposed[s]; if (!p.ok) continue
+      const c = configs[s] || {}
+      const raceChanged = c.track_name !== p.track_name || c.race_number !== p.race_number
+      setSaving(prev => ({ ...prev, [s]: true })); setSaveStatus(prev => ({ ...prev, [s]: null }))
+      const row = { series: s, track_name: p.track_name, track_label: p.track_label, correlation_label: p.correlation_label,
+        correlation_year: year, race_number: p.race_number, total_laps: p.total_laps, stage1_laps: p.stage1_laps, stage2_laps: p.stage2_laps,
+        track_years: (c.track_years && c.track_years.length) ? c.track_years : [2022, 2023, 2024, 2025, year].filter((v, i, a) => a.indexOf(v) === i),
+        updated_at: new Date().toISOString(), ...(raceChanged ? { eq_overrides: {}, rear_overrides: {} } : {}) }
+      const { error } = await supabase.from('featured_weekend').upsert(row, { onConflict: 'series' })
+      setSaveStatus(prev => ({ ...prev, [s]: error ? { type: 'error', msg: error.message } : { type: 'success', msg: 'Synced from schedule' + (raceChanged ? ' (overrides cleared)' : '') } }))
+      setSaving(prev => ({ ...prev, [s]: false }))
+    }
+    const { data } = await supabase.from('featured_weekend').select('*')
+    const map = {}; (data || []).forEach(r => { map[r.series] = { ...r } }); setConfigs(map)
+  }
 
   function updateField(series, field, value) {
     setConfigs(prev => ({
@@ -131,6 +178,8 @@ function WeekendConfig() {
         stage1_laps: parseInt(cfg.stage1_laps) || null,
         stage2_laps: parseInt(cfg.stage2_laps) || null,
         updated_at: new Date().toISOString(),
+        ...(cfg.eq_overrides !== undefined ? { eq_overrides: cfg.eq_overrides } : {}),
+        ...(cfg.rear_overrides !== undefined ? { rear_overrides: cfg.rear_overrides } : {}),
       }
       const { error } = await supabase
         .from('featured_weekend')
@@ -160,16 +209,33 @@ function WeekendConfig() {
   return (
     <div className="card" style={{ marginBottom: 20 }}>
       <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 8 }}>Weekend Config</h2>
-      <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 20 }}>
+      <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 12 }}>
         Set the featured track each week. The Loop Data page shows averages for the selected track and its correlation group.
       </p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 18, padding: '8px 12px', borderRadius: 8, background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
+        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+          {proposed ? 'NASCAR schedule: ' + Object.values(proposed).map(p => p.ok ? `${SERIES_OPTIONS.find(o => o.value === p.series)?.label || p.series} ${p.track_label} R${p.race_number} (${p.race_date})` : `${p.series}: ${p.reason}`).join(' · ')
+            : propErr ? 'Schedule unavailable: ' + propErr : 'Reading NASCAR schedule…'}
+        </span>
+        {proposed && <button onClick={syncAll} style={{ marginLeft: 'auto', padding: '6px 12px', borderRadius: 6, border: '1px solid var(--accent)', background: 'var(--accent)', color: '#fff', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>Sync all 3 from schedule</button>}
+        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', width: '100%' }}>Fills track, season round, race length and stage ends from NASCAR's schedule and clears last week's per-race overrides. A Monday 06:00 MT cron does the same automatically once CRON_SECRET is set on Vercel.</span>
+      </div>
 
       {SERIES_OPTIONS.map(({ value: s, label }) => {
         const cfg = configs[s] || {}
         const status = saveStatus[s]
         return (
           <div key={s} style={{ borderTop: '1px solid var(--border)', paddingTop: 18, marginBottom: 18 }}>
-            <div style={{ fontWeight: 600, fontSize: '0.875rem', marginBottom: 14 }}>{label}</div>
+            <div style={{ fontWeight: 600, fontSize: '0.875rem', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              {label}
+              {proposed && proposed[s] && proposed[s].ok && (
+                <span style={{ fontSize: '0.75rem', fontWeight: 400, color: __diffs(cfg, proposed[s]) ? '#f59e0b' : '#22c55e' }}>
+                  {__diffs(cfg, proposed[s]) ? 'schedule says ' : 'matches schedule: '}{proposed[s].track_label} R{proposed[s].race_number} · {proposed[s].total_laps} laps · stages {proposed[s].stage1_laps}/{proposed[s].stage2_laps}
+                  {__diffs(cfg, proposed[s]) && <button onClick={() => applyProposal(s)} style={{ marginLeft: 8, padding: '2px 8px', borderRadius: 5, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-primary)', cursor: 'pointer', fontSize: '0.72rem' }}>Use schedule</button>}
+                </span>
+              )}
+              {proposed && proposed[s] && !proposed[s].ok && <span style={{ fontSize: '0.75rem', fontWeight: 400, color: '#f59e0b' }}>schedule: {proposed[s].reason}</span>}
+            </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 14 }}>
               <div>

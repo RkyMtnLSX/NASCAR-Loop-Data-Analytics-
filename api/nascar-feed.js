@@ -349,13 +349,22 @@ module.exports = async function handler(req, res) {
       }
       return await race(res, year, series, raceId)
     }
+    if (q.type === 'next') {
+      // Weekend Config "Use schedule" (2026-10-01): the next race per series with the config fields
+      // derived from the schedule. Reads the tracks table for canonical names (anon key, read-only).
+      const W = require('./_weekend')
+      const { createClient } = require('@supabase/supabase-js')
+      const sbc = createClient(process.env.REACT_APP_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY)
+      const [{ data: tracks }, schedule] = await Promise.all([sbc.from('tracks').select('name, correlation_group_label'), W.fetchSchedule(year)])
+      return res.status(200).json({ type: 'next', year, proposed: W.propose(schedule, tracks || [], new Date()) })
+    }
     if (q.type === 'laps') {
       if (series === undefined || raceId === undefined) {
         return res.status(400).json({ error: 'type=laps needs series and race' })
       }
       return await laps(res, year, series, raceId)
     }
-    return res.status(400).json({ error: "type must be 'schedule', 'race', 'qorder' or 'laps'" })
+    return res.status(400).json({ error: "type must be 'schedule', 'race', 'qorder', 'laps' or 'next'" })
   } catch (err) {
     return res.status(err.status === 404 ? 404 : 502).json({
       error: err.message, url: err.url || null,
