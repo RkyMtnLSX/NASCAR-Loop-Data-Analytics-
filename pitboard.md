@@ -3689,6 +3689,45 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
+## 2026-10-03 — Kalshi recordings examined: late-race Top N edge (Bristol Cup, Kansas Trucks); fastest-lap market dropped
+Operator: "Kalshi has eliminated the fastest lap market this weekend" (confirmed: KXNASCARFASTLAP has no
+open events for Vegas; KXNASCARRACE lists both) - "why don't you look at the recordings then".
+DATA: recordings/2026-09-19 = Bristol Cup laps 150-500 (winner, Top 3/5/10/20, 37 drivers each,
+quotes every 5 s, depth every 60 s, feed top-10 running order); recordings/2026-09-26 = Kansas Trucks
+full race (winner, Top 3/10; Top 5/20 not offered for trucks) with the 5-hour rain red flag in the
+middle. Method: every quote joined to the feed state at that second (laps to go, flag, driver's running
+position from the top-10 list; 11+ = not in it), settled against loop_data finishes, edge = hit rate
+minus ask for YES at the ask, minus (100-bid) for NO at the bid. Bucketed by laps to go x running
+position. Caveat first: ONE race per series, and Bristol is the stickiest track on the schedule.
+HEADLINE: the books are one-sided and the spread eats everything. Typical Top 10 quote in the last
+30 laps: bid 27 / ask 77. Top 5: bid 6-36 / ask 44-89. Both edge_yes and edge_no are negative in
+nearly every bucket, i.e. neither side is mispriced enough to cross that spread, and you cannot exit
+a position - anything bought is held to settlement.
+BRISTOL CUP, last 30 GREEN laps:
+- Top 10, driver running P1-10: 10 drivers, asks 62-89 (med ~80), 8/10 hit (Cindric P9 -> 11th,
+  Briscoe P8 -> crash 27th). ~fair. Size at best ask median ~2 contracts (0.2-14). NOT a trade.
+- Top 5, driver running P1-5: Gibbs 69 / Hocevar 82 / Larson 62 / Bell 55 / Logano 55 - 5/5 hit,
+  +35c per contract. Size: Logano 79 @55, Bell 12 @55, the other three under 1 contract. So the
+  whole edge was ~$50 of Logano/Bell. Running P6-9 at 44-49 (Wallace, Berry, Byron): 0/3.
+- Top 3, running P1-4 at 48-92: 2/4 (Gibbs led with 30 to go at 92 and finished 5th; Logano won from
+  P4 at 48). Winner: the leader at 31-33c with 6-30 to go was 0/3 - Bristol's late leader was
+  overpriced, the P4-5 runner (Logano 7-11c) was the value. One race.
+- Top 20: asks 83-98 for anyone in the top 10 - no room.
+KANSAS TRUCKS: no positive bucket anywhere. Top 10 asks 66-93 for P1-10 runners hit 45-65% (the rain
+restart reshuffled everything; running order before the red flag meant nothing). Top 3 same.
+VERDICT: no systematic late-race Top N edge worth building for. The one bucket that paid (Top 5,
+running P1-5, <=30 to go, ~+35c) had ~$50 of total depth at Bristol and is the kind of result one
+sticky track produces; it would need 4-5 more recordings (Vegas, Charlotte, Talladega would be the
+counter-examples) before it is a registration. The recorder keeps running for winner / Top N / top
+team, so that sample builds itself. Not measured yet: the feed-leads-book lag on Top N (how long a
+driver sits inside/outside the top 10 before the ask moves) - that is where any edge would live, and
+the recordings can answer it when there are more of them.
+FASTEST-LAP TOOLS IF THE MARKET RETURNS: both race_watch.py and market_recorder.py look up
+KXNASCARFASTLAP open events at startup - nothing is pinned to a race, so if Kalshi relists under the
+same series ticker they work unchanged. If it comes back under a NEW series ticker, the recorder picks
+it up automatically (it scans every KXNASCAR* series); race_watch.py has the series ticker hard-coded
+(line 136) - pass --event <ticker> or change that one line.
+
 ## 2026-10-03 — DK odds paste: "Moneyline" header; DFS Salaries page: board-vs-Weekend-Config guard
 DK PARSER (operator: "DK parser for the simulation is not working"): DraftKings renamed the winner
 column from "Race Winner" to "Moneyline" (Las Vegas O'Reilly page: Moneyline / Top 3 Finish on one
