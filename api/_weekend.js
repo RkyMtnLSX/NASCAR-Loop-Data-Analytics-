@@ -45,6 +45,12 @@ function canonTrack(race, trackNames) {
 
 const trackLabel = name => name.replace(/ Raceway| Motor Speedway| Superspeedway| International Speedway| Speedway/g, '').trim()
 
+async function getJson(url) {
+  const r = await fetch(url, { headers: HEADERS })
+  if (r.status !== 200) throw new Error(`NASCAR HTTP ${r.status} for ${url.split('/').slice(-2).join('/')}`)
+  return r.json()
+}
+
 async function fetchSchedule(year) {
   const r = await fetch(`${NASCAR}/cacher/${year}/race_list_basic.json`, { headers: HEADERS })
   if (r.status !== 200) throw new Error(`NASCAR schedule HTTP ${r.status}`)
@@ -87,4 +93,4 @@ function propose(schedule, tracks, now) {
   return out
 }
 
-module.exports = { fetchSchedule, propose, canonTrack, SERIES }
+module.exports = { fetchSchedule, propose, canonTrack, SERIES, getJson, NASCAR }

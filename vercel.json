@@ -3,6 +3,7 @@
     { "source": "/api/weekend-sync", "destination": "/api/admin-track?job=weekend-sync" }
   ],
   "crons": [
-    { "path": "/api/weekend-sync", "schedule": "0 12 * * 1" }
+    { "path": "/api/weekend-sync", "schedule": "0 12 * * *" },
+    { "path": "/api/weekend-sync", "schedule": "0 23 * * *" }
   ]
 }

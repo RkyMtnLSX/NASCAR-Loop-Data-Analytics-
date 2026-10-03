@@ -37,6 +37,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { fetchAllRows } from '../lib/fetchAllRows'
 import { SERIES_ID, SERIES_OPTS, fold, makeResolver, feed, mapRace } from '../lib/nascarFeedMap'
+import { shapeBundle, applyBundle } from '../lib/weekendBundle'
 
 const card = { marginBottom: 20 }
 const inputStyle = { padding: '6px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: '0.85rem', width: '100%' }
@@ -889,6 +890,103 @@ export function FastestLapsFromArchive() {
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------------------------------
+// WEEKEND FROM NASCAR FEED (2026-10-03). Operator: "automate the website so I don't have to manually
+// upload so much, such as entry lists, qualifying orders". One panel, three series: what the feed has
+// for the featured race (entries / draw / qualifying) against what is loaded, and one button per
+// series (or all three) that writes it through the operator's session - the same shapeBundle /
+// applyBundle the daily cron uses, so a race the cron already loaded shows as loaded here.
+export function WeekendFromFeed() {
+  const [rows, setRows] = useState([])      // per series: cfg, bundle, loaded counts, status
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState('')
+  const year = new Date().getFullYear()
+
+  const refresh = useCallback(async () => {
+    setBusy(true); setMsg('')
+    try {
+      const [{ data: cfgs }, nx] = await Promise.all([
+        supabase.from('featured_weekend').select('series,track_name,track_label,race_number,correlation_year'),
+        fetch('/api/nascar-feed?type=next&year=' + year).then(r => r.json()).catch(() => null),
+      ])
+      const out = []
+      for (const series of ['cup', 'oreilly', 'trucks']) {
+        const cfg = (cfgs || []).find(c => c.series === series)
+        const p = nx && nx.proposed && nx.proposed[series]
+        if (!cfg) { out.push({ series, err: 'no Weekend Config' }); continue }
+        const raceId = p && p.ok && p.track_name === cfg.track_name ? p.nascar_race_id : null
+        const row = { series, cfg, raceId, bundle: null, loaded: {} }
+        const yr = cfg.correlation_year || year
+        const [{ count: nEntries }, { data: q }] = await Promise.all([
+          supabase.from('entry_list').select('id', { count: 'exact', head: true }).eq('series', series).eq('race_year', yr).eq('track_name', cfg.track_name),
+          supabase.from('qualifying_results').select('draw_order,qualifying_position,lineup_source').eq('series', series).eq('year', yr).eq('track_name', cfg.track_name).eq('race_number', cfg.race_number || 0),
+        ])
+        row.loaded = { entries: nEntries || 0, draw: (q || []).filter(r => r.draw_order != null).length, qualifying: (q || []).filter(r => r.qualifying_position != null).length, source: ((q || []).find(r => r.lineup_source) || {}).lineup_source || null }
+        if (raceId) {
+          try {
+            const r = await fetch(`/api/nascar-feed?type=bundle&year=${year}&series=${SERIES_ID[series]}&race=${raceId}`).then(r => r.json())
+            row.bundle = r.error ? null : r; if (r.error) row.err = r.error
+          } catch (e) { row.err = e.message }
+        } else row.err = p && p.ok ? `schedule says ${p.track_label} R${p.race_number} but the Weekend Config is ${cfg.track_label || cfg.track_name} R${cfg.race_number} - sync the config first` : 'race not mapped in the schedule'
+        out.push(row)
+      }
+      setRows(out)
+    } catch (e) { setMsg('Error: ' + e.message) }
+    setBusy(false)
+  }, [year])
+  useEffect(() => { refresh() }, [refresh])
+
+  const load = async (which) => {
+    setBusy(true); setMsg('')
+    const done = []
+    for (const row of rows) {
+      if (which !== 'all' && row.series !== which) continue
+      if (!row.bundle || !row.cfg) continue
+      try {
+        const ctx = { series: row.series, year: row.cfg.correlation_year || year, race_number: row.cfg.race_number, track_name: row.cfg.track_name }
+        const r = await applyBundle(supabase, ctx, row.bundle, {})
+        done.push(`${row.series}: entries ${r.entries}, draw ${r.draw}, qualifying ${r.qualifying}${r.lineup_source ? ' (' + r.lineup_source + ')' : ''}${r.skipped.length ? ' - ' + r.skipped.join('; ') : ''}`)
+      } catch (e) { done.push(`${row.series}: FAILED - ${e.message}`) }
+    }
+    setMsg(done.join(' · ') || 'Nothing to load.')
+    await refresh()
+  }
+
+  const cell = (have, loaded) => <span style={{ color: have >= 20 ? (loaded >= have ? '#4ade80' : '#f5a623') : 'var(--text-muted, #6b7078)' }}>{have >= 20 ? have : '—'} <span style={{ color: 'var(--text-muted, #6b7078)' }}>/ {loaded}</span></span>
+  return (
+    <div className="card" style={{ marginBottom: 20 }}>
+      <h3 style={{ margin: '0 0 4px', fontSize: '1rem' }}>Weekend from NASCAR Feed</h3>
+      <p style={{ margin: '0 0 10px', fontSize: 13, color: 'var(--text-secondary, #9aa0aa)' }}>
+        Entry list, qualifying draw and qualifying result for each series' featured race, straight from NASCAR's weekend feed - no PDF.
+        Feed / loaded per piece; amber = the feed has it and we don't. The daily sync (06:00 and 17:00 MT) loads these on its own; this is the "now" button.
+        Practice lap times are not in the feed - that upload stays.
+      </p>
+      <table style={{ fontSize: 13, borderCollapse: 'collapse', marginBottom: 10 }}>
+        <thead><tr style={{ color: 'var(--text-muted, #6b7078)', textAlign: 'left' }}><th style={{ padding: '4px 10px 4px 0' }}>Series</th><th style={{ padding: '4px 10px' }}>Race</th><th style={{ padding: '4px 10px' }}>Entries</th><th style={{ padding: '4px 10px' }}>Draw</th><th style={{ padding: '4px 10px' }}>Qualifying</th><th></th></tr></thead>
+        <tbody>
+          {rows.map(row => (
+            <tr key={row.series}>
+              <td style={{ padding: '4px 10px 4px 0', fontWeight: 600 }}>{(SERIES_OPTS.find(o => o[0] === row.series) || [])[1] || row.series}</td>
+              <td style={{ padding: '4px 10px' }}>{row.cfg ? `${row.cfg.track_label || row.cfg.track_name} R${row.cfg.race_number}` : '—'}{row.bundle && row.bundle.raced ? ' · raced' : ''}</td>
+              {row.bundle ? <>
+                <td style={{ padding: '4px 10px' }}>{cell(row.bundle.entries.length, row.loaded.entries)}</td>
+                <td style={{ padding: '4px 10px' }}>{cell(row.bundle.draw.length, row.loaded.draw)}</td>
+                <td style={{ padding: '4px 10px' }}>{cell(row.bundle.qualifying.length, row.loaded.qualifying)}{row.bundle.lineup_source ? <span style={{ color: 'var(--text-muted, #6b7078)' }}> {row.bundle.lineup_source}</span> : null}</td>
+                <td style={{ padding: '4px 10px' }}><button disabled={busy || row.bundle.raced} onClick={() => load(row.series)} style={{ fontSize: 12, padding: '4px 10px' }}>Load</button></td>
+              </> : <td colSpan={4} style={{ padding: '4px 10px', color: '#f5a623' }}>{row.err || 'loading…'}</td>}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <button disabled={busy || !rows.some(r => r.bundle && !r.bundle.raced)} onClick={() => load('all')} style={{ fontSize: 13, padding: '6px 14px', fontWeight: 600 }}>{busy ? 'Working…' : 'Load all 3 now'}</button>
+        <button disabled={busy} onClick={refresh} style={{ fontSize: 13, padding: '6px 14px' }}>Refresh</button>
+        {msg && <span style={{ fontSize: 12.5, color: /FAILED|Error/.test(msg) ? '#f87171' : 'var(--text-secondary, #9aa0aa)' }}>{msg}</span>}
+      </div>
     </div>
   )
 }

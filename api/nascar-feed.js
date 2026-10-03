@@ -349,6 +349,14 @@ module.exports = async function handler(req, res) {
       }
       return await race(res, year, series, raceId)
     }
+    if (q.type === 'bundle') {
+      // 2026-10-03: entry list / draw / qualifying for one race, shaped only (src/lib/weekendBundle).
+      // The Load Data panel writes it through the operator's session; the cron writes the same shape.
+      if (series === undefined || raceId === undefined) return res.status(400).json({ error: 'type=bundle needs series and race' })
+      const B = require('../src/lib/weekendBundle')
+      const wk = await getJson(`${NASCAR}/cacher/${year}/${series}/${raceId}/weekend-feed.json`)
+      return res.status(200).json({ type: 'bundle', year, series_id: series, nascar_race_id: raceId, ...B.shapeBundle(wk) })
+    }
     if (q.type === 'next') {
       // Weekend Config "Use schedule" (2026-10-01): the next race per series with the config fields
       // derived from the schedule. Reads the tracks table for canonical names (anon key, read-only).
@@ -364,7 +372,7 @@ module.exports = async function handler(req, res) {
       }
       return await laps(res, year, series, raceId)
     }
-    return res.status(400).json({ error: "type must be 'schedule', 'race', 'qorder', 'laps' or 'next'" })
+    return res.status(400).json({ error: "type must be 'schedule', 'race', 'qorder', 'laps', 'next' or 'bundle'" })
   } catch (err) {
     return res.status(err.status === 404 ? 404 : 502).json({
       error: err.message, url: err.url || null,

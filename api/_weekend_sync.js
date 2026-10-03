@@ -15,6 +15,7 @@
 // new venue is set by hand once and mapped forever after.
 const { createClient } = require('@supabase/supabase-js')
 const W = require('./_weekend')
+const B = require('../src/lib/weekendBundle')
 
 module.exports = async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store')
@@ -53,7 +54,20 @@ module.exports = async function handler(req, res) {
       }
       result[series] = { action: dry ? 'would-set' : 'set', from: c.track_name ? `${c.track_label || c.track_name} R${c.race_number}` : null, to: `${p.track_label} R${p.race_number} · ${p.total_laps} laps · stages ${p.stage1_laps}/${p.stage2_laps} · ${p.race_date}`, overridesCleared: raceChanged }
     }
-    return res.status(200).json({ ok: true, dry, year, result })
+    // 2026-10-03: entry list / qualifying draw / qualifying result from the same feed, per series, every
+    // run (daily now, twice a day via vercel.json). Idempotent upserts, never deletes, skips a race
+    // that has already run. Uses the PROPOSED race (= the config after this run).
+    const loads = {}
+    for (const series of Object.keys(proposed)) {
+      const p = proposed[series]
+      if (!p.ok || !p.nascar_race_id) continue
+      try {
+        const wk = await W.getJson(`https://cf.nascar.com/cacher/${year}/${B.SERIES_ID[series]}/${p.nascar_race_id}/weekend-feed.json`)
+        const b = B.shapeBundle(wk)
+        loads[series] = { race: `${p.track_label} R${p.race_number}`, ...(await B.applyBundle(sb, { series, year, race_number: p.race_number, track_name: p.track_name }, b, { dry })) }
+      } catch (e) { loads[series] = { error: e.message } }
+    }
+    return res.status(200).json({ ok: true, dry, year, result, loads })
   } catch (e) {
     return res.status(502).json({ error: e.message })
   }

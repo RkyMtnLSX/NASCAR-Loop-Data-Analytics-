@@ -3689,6 +3689,37 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
+## 2026-10-03 — Entry list / qualifying draw / qualifying result from NASCAR's weekend feed (no PDFs); sync runs daily x2
+Operator: "more process to automate the website so I don't have to manually upload so much such as
+entry lists, qualifying orders". PROBED the feed first (Chrome, cf.nascar.com):
+weekend-feed.json `weekend_race[0].results` = one row per ENTERED car from the day the entry list is
+published (driver_fullname, car_number, team_name, car_make, driver_id, sponsor, crew chief), with
+qualifying_order (the draw), qualifying_position and starting_position filled in as the weekend goes
+(Kansas Cup 5628: 36 rows, order 1-36, positions set; Vegas Cup 5630 two days out: 36 entries, all
+zeros). `weekend_runs` = the sessions that ran (run_type 2 = qualifying; finishing_position per car).
+Practice lap-by-lap is NOT there (probed practice-lap-times / practice1 / practice-results / live
+lap-times - all 403; live-feed.json exists only while a session is live), so the practice PDF upload
+stays. Bristol 5626 lap-notes confirm "qualifying and practice canceled, field set by metric".
+SHIPPED: src/lib/weekendBundle.js (CommonJS, shared by api/ and the page) - shapeBundle(feed) ->
+{entries, draw, qualifying, lineup_source, raced}; applyBundle(sb, ctx, bundle) upserts entry_list
+(organization = stored spelling for this series when one matches, else the feed's team_name;
+manufacturer = car_make) and qualifying_results (draw_order; qualifying_position / lap_time / speed /
+lineup_source 'qualifying' from the timed run, or from results.qualifying_position; 'metric' when no
+run and only starting_position is set). Feed names are mapped onto the stored entry-list spelling BY
+CAR NUMBER so a PDF-loaded "AJ Allmendinger" and the feed's "A.J. Allmendinger" stay one row. Never
+deletes; needs >= 20 rows per piece; skips a race that has already run. api/nascar-feed.js
+type=bundle (shape only). Load Data -> "Weekend from NASCAR Feed" panel: feed / loaded per piece per
+series, amber when the feed has what we don't, Load per series or all 3 (operator session writes).
+THE CRON (api/_weekend_sync.js via /api/weekend-sync) now runs DAILY at 12:00 and 23:00 UTC (06:00 /
+17:00 MT; Hobby allows 2 crons, once a day each) and after the config sync loads the bundle for every
+mapped series - so by Wednesday morning the entry lists are in, the draw lands when NASCAR posts it,
+and Saturday qualifying is loaded by 17:00 MT (Cup Vegas qualifies 15:35 MT). Response carries
+`loads` per series with counts and what was skipped.
+WHAT IS STILL MANUAL: practice PDFs (lap-by-lap), DK salaries (DK file), post-race contest standings,
+and the sim publish itself. Next candidates: DK draftables API for salaries (public JSON, needs the
+draft group id; untested from Vercel), and recording live-feed.json during practice to rebuild
+lap-by-lap without the PDF.
+
 ## 2026-10-03 — Kalshi recordings examined: late-race Top N edge (Bristol Cup, Kansas Trucks); fastest-lap market dropped
 Operator: "Kalshi has eliminated the fastest lap market this weekend" (confirmed: KXNASCARFASTLAP has no
 open events for Vegas; KXNASCARRACE lists both) - "why don't you look at the recordings then".
