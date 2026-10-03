@@ -3689,6 +3689,47 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
+## 2026-10-03 — DFS Trucks Kansas R20 replay examined (N=20, exact placement, Operator row); Cup R30 contest upload is the WRONG FILE
+Operator: "run the dfs replay from last week and examine the results with the operator levers". Both
+Kansas contests were uploaded this morning (trucks 1,203 entries, cup 1,189) with operator entries.
+TRUCKS KANSAS R20 (no-practice rain-out board, metric grid - the Crews-25% / Riggs-4% board):
+contest 1,203 entries, median 223.85, winner 360.40 = the PERFECT lineup (Honeycutt 91.05 / Eckes
+68.15 / Leitz 56 / Dye 48.75 / Hemric 48.45 / Butcher 48) - somebody in the field drew it exactly.
+Cash 244.20 (439th, p63.6) vs GPP best-of-20 264.95 (289th, p76) - GPP by 20.75, ledger GPP 9 /
+cash 3 / tie 2. E[max] set 282.2 projected, 20 lineups / 21 unique drivers. The E[max] set CASHED
+NOTHING: realised prize 0.0 on 20 entries. Portfolio row rules OFF 4.3 vs 0.0 - a WIN, trucks
+Portfolio ledger 1 / 3 (Bristol loss, two earlier). Preset arm REF 2.88 / PRESET 4.57 / NULL 4.06 -
+preset = null again, 09-13 CLOSED verdict stands.
+CALIBRATION: rho model .198 / salary .210 / OWNERSHIP .545 (n 34). First week the model is LAST of
+three, and by a mile - the field's chalk was right: Dye 55.9% P35 -> 15 (48.75), Leitz 43.6% P26 -> 7
+(56), Eckes 46% P25 -> 2 (68.15), Honeycutt 32.5% P4 -> WIN. That is the metric-grid place-differential
+play (deep starters on a metric grid who are faster than their slot) and the field priced it better
+than the sim's .23 start weight did - direct evidence FOR the queued metric-start shading registration
+(lineup_source=metric, lam .7 like projected). Riggs 58.1% owned P22 -> 19 (35.85) was the one chalk
+miss - the 4% FMV the operator hated was, this once, not wrong. Chandler Smith P15 -> 6 (47.9).
+WHAT KILLED THE PRODUCT'S SET: exposure Dye 57 (hit), Lara 48 (P18 -> 24, 12.0), Honeycutt 47 (hit),
+Crews 45 (43.45, fine), Enfinger 40 (P10 -> 31, -7.05), Lewis 37 (bust), Friesen 33 (P6 -> 21). Three
+busts at 33-48% exposure across 20 lineups is how a p76 best entry pays zero.
+OPERATOR ROW (the levers): 14 entries in 1 contest, best 66th of 1,203 (307.45), mean p41.96, 5/14
+above median, prize 5.991 = 0.428 per entry vs Portfolio 0.071 vs E[max] set 0. AT THE OPERATOR'S N
+(14, like for like): operator 0.428 vs Portfolio 0.127 vs E[max] 0 - the operator beat the product
+3.4x per entry. His exposure: Gray 50 (P16 -> 8, solid), Honeycutt 43, Butcher 43 (P29 -> 12, 48),
+Sanchez 43 (POLE -> 28, dead), Eckes 36, Smith 36, Garcia 36 (P2 -> 9), Ruggiero 29, Queen 29,
+Majeski 29 (P8 -> 29, dead), Crews 29, Dye 21. He carried two dead chalk cars (Sanchez, Majeski) and
+still won on Butcher + Eckes + lighter Dye/Lara/Enfinger. The difference is not lineup construction,
+it is driver selection: the operator faded the sim's no-practice fills (Lara 48%, Enfinger 40%) and
+bought back-row speed the metric grid under-rated. Second straight trucks race (Bristol: Garcia P12
+-> WIN) where the product's edge lived in the mid-pack starters it under-weighted.
+CUP KANSAS R30 - NOT SAVED, UPLOAD IS WRONG: the contest row stored as cup R30 has 1,189 entries,
+median 257.95, winner 387.25 = EXACTLY the Darlington R27 contest (same three numbers), and the FPTS
+it scores with are Darlington's (Gibbs P5 -> 17 at 74.3, Berry P10 -> 35 at 49.85 - impossible for
+Kansas). The Darlington standings CSV was uploaded as Kansas. The replay ran (GPP "322.60", cash
+"199.75") and is meaningless; discarded. Operator entries row for cup R30 (dfs_operator_entries id 5)
+came from the same file. TO DO: re-upload the real Kansas Cup standings (the uploader upserts
+series/race, so the wrong row is replaced), then run and save the cup replay. Loop data for cup R30 is
+correct (Larson from P2, 235 led / 88 fastest; Cindric 2nd from P11).
+LEDGER after this entry: GPP 9 / cash 3 / tie 2. Portfolio trucks 1 / 3 (rules OFF), overall 3 / 3.
+
 ## 2026-10-01 — Weekend Config from NASCAR's schedule: "Use schedule" / "Sync all 3" + Monday cron
 Operator: "automate the pitboard weekend configurations so I don't have to do it every week". Every
 field is derivable from race_list_basic.json: track_name, scheduled_laps, stage_1/2_laps (the config
