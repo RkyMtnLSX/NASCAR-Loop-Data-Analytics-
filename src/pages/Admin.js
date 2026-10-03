@@ -85,7 +85,7 @@ function WeekendConfig() {
   // SCHEDULE SYNC (2026-10-01, operator: "automate the weekend configurations so I don't have to do it
   // every week"). /api/nascar-feed?type=next derives every field from NASCAR's schedule feed (track,
   // season round, laps, stage ends); "Use schedule" fills a series, "Sync all 3" fills and saves all
-  // three. The Monday cron (api/weekend-sync.js) does the same unattended. A series whose track is not
+  // three. The Monday cron (api/_weekend_sync.js via /api/weekend-sync) does the same unattended. A series whose track is not
   // in the tracks table is shown as unmapped and left alone.
   const [proposed, setProposed] = useState(null)
   const [propErr, setPropErr] = useState('')

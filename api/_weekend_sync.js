@@ -1,4 +1,6 @@
-// api/weekend-sync.js - Monday cron: set each series' Weekend Config from NASCAR's schedule (2026-10-01).
+// api/_weekend_sync.js - Monday cron (NOT its own function: Hobby plan caps a deployment at 12 serverless
+// functions and this was #13, so it is mounted inside api/admin-track.js as GET ?job=weekend-sync and
+// vercel.json rewrites /api/weekend-sync there; the cron path is unchanged): set each series' Weekend Config from NASCAR's schedule (2026-10-01).
 //
 // Operator: "automate the pitboard weekend configurations so I don't have to do it every week".
 // vercel.json schedules this for Monday 12:00 UTC (06:00 Mountain). Vercel calls it with

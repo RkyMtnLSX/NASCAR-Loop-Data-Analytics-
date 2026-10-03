@@ -3701,7 +3701,12 @@ Gateway / COTA / St. Pete / Coronado; Charlotte Roval and Indy GP told apart by 
 unmapped track = series left alone and named). api/nascar-feed.js type=next. Weekend Config: banner
 with the three proposals, per-series amber "schedule says X" + Use schedule (fills the form; clears
 eq_overrides / rear_overrides when the race changes - they are per race), "Sync all 3" writes all
-three directly. api/weekend-sync.js = Monday 12:00 UTC cron (vercel.json), service role, requires
+three directly. api/_weekend_sync.js = Monday 12:00 UTC cron (vercel.json), service role, requires
 CRON_SECRET (401 otherwise), ?dry=1 reports without writing; keeps track_years and every other column.
+It is NOT its own function: the first deploy FAILED (exceeded_serverless_functions_per_deployment -
+Hobby plan caps a deployment at 12 functions and api/weekend-sync.js was #13), so it is mounted inside
+api/admin-track.js as GET ?job=weekend-sync and vercel.json rewrites /api/weekend-sync there (cron path
+unchanged). RULE: api/ is at the 12-function cap - any new endpoint goes INSIDE an existing function
+(a ?type= / ?job= branch) or as an _underscore helper, never a new api/*.js file.
 OPERATOR TO DO ONCE: set CRON_SECRET in Vercel env (any long random string) - until then the cron is
 inert and the button is the path. Build clean, api files load.

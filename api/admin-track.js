@@ -5,6 +5,8 @@ module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
   if (req.method === 'OPTIONS') return res.status(200).end()
+  // Monday weekend-config cron lives here (function-count cap); see api/_weekend_sync.js.
+  if (req.method === 'GET' && (req.query || {}).job === 'weekend-sync') return require('./_weekend_sync')(req, res)
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' })
 
   const { name, correlation_group_label } = req.body || {}
