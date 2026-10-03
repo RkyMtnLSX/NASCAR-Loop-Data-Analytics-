@@ -178,3 +178,43 @@ test('DK normal week: one header run, unchanged behaviour; tab-joined header; no
   const t10 = parseDkPages(`Kyle Larson\n-300\nWilliam Byron\n-250`, ['t10'])
   expect(t10.t10['william byron']).toBe(-250)
 })
+
+// FIXTURE - 2026-10-03 DK "Moneyline" header (Las Vegas O'Reilly, Focused Health 302). DK renamed the
+// winner column; the two pages are the full page copies the operator pastes (chrome included).
+const DK_ML_P1 = `[Top 5](https://sportsbook.draftkings.com/leagues/motorsports/nascar-o'reilly-auto-parts-series?category=race-lines&subcategory=winner&nav_1=top-5)
+NASCAR O’Reilly Focused Health 302 2026
+Moneyline
+Top 3 Finish
+Justin Allgaier
++275
+−145
+Jesse Love
++550
++160
+Brennan Poole
++100000
++25000
+We are having trouble verifying your location, which is required to bet.
+0
+BET SLIP`
+const DK_ML_P2 = `NASCAR O’Reilly Focused Health 302 2026
+Top 5 Finish
+Justin Allgaier
+−250
+Jesse Love
+−125
+Brennan Poole
++12000
+We are having trouble verifying your location, which is required to bet.`
+
+test('DK 2026-10-03: "Moneyline" is the winner column; Top 3 Finish / Top 5 Finish pages; unicode minus', () => {
+  const m = parseDkPages(DK_ML_P1 + '\n' + DK_ML_P2, ['win', 't3', 't5'])
+  expect(m.win['justin allgaier']).toBe(275)
+  expect(m.t3['justin allgaier']).toBe(-145)
+  expect(m.t5['justin allgaier']).toBe(-250)
+  expect(m.win['jesse love']).toBe(550); expect(m.t3['jesse love']).toBe(160); expect(m.t5['jesse love']).toBe(-125)
+  expect(m.win['brennan poole']).toBe(100000); expect(m.t5['brennan poole']).toBe(12000)
+  expect(Object.keys(m.win)).toHaveLength(3)
+  expect(m.win['moneyline']).toBeUndefined()
+  expect(Object.keys(m.t10)).toHaveLength(0)
+})

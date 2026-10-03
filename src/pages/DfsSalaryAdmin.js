@@ -34,6 +34,12 @@ function parseSalaries(text, drivers) {
 export default function DfsSalaryAdmin() {
   const [series, setSeries] = useState('cup')
   const [race, setRace] = useState(null)
+  // 2026-10-03 (operator, Las Vegas): salaries attach to the LATEST PUBLISHED BOARD for the series,
+  // not to the Weekend Config. The Vegas DK file was pasted while the last O'Reilly board was still
+  // Bristol R27 - 30 names happened to match, 6 "unmatched", and the save overwrote Bristol's
+  // salaries. The featured weekend is read here only to WARN and to require a confirm when the two
+  // disagree; the board stays the key.
+  const [featured, setFeatured] = useState(null)
   const [drivers, setDrivers] = useState([])
   const [salaries, setSalaries] = useState({})
   const [loading, setLoading] = useState(false)
@@ -74,6 +80,10 @@ export default function DfsSalaryAdmin() {
       if (!row) { setDrivers([]); setRace(null); setLoading(false); return }
       const r = { track: row.track_name, year: row.race_year, rn: row.race_number }
       setRace(r)
+      try {
+        const { data: fw } = await supabase.from('featured_weekend').select('track_name,track_label,race_number').eq('series', series).limit(1)
+        if (alive) setFeatured(fw && fw[0] ? fw[0] : null)
+      } catch (e) { /* warning only */ }
       const ds = (row.results || []).map(d => ({ name: d.driver_name, car: d.car_number, projDK: +d.proj_dk || 0 })).filter(d => d.name).sort((a, b) => b.projDK - a.projDK)
       setDrivers(ds)
       let q = supabase.from('dfs_salaries').select('salaries').eq('series', series).eq('race_year', r.year)
@@ -249,8 +259,12 @@ export default function DfsSalaryAdmin() {
     const ni = Object.keys(ids).length; setMsg('Matched ' + n + ' driver' + (n === 1 ? '' : 's') + ', ' + ni + ' DK IDs.' + (outs.length ? ' ' + outs.length + ' marked OUT.' : '') + (unmatched.length ? ' Unmatched: ' + unmatched.length + ' (edit below).' : '') + (ni === 0 ? ' NOTE: no DK IDs in paste - upload the DK CSV file for lineup-export IDs.' : ''))
   }
   const clearAll = () => { setSalaries({}); setMsg('Cleared (not yet saved).') }
+  const boardMismatch = race && featured && (
+    (featured.race_number != null && race.rn != null && +featured.race_number !== +race.rn) ||
+    (featured.track_name && race.track && featured.track_name.toLowerCase() !== race.track.toLowerCase()))
   const save = async () => {
     if (!race) return
+    if (boardMismatch && !window.confirm('These salaries will be saved to ' + race.track + ' R' + race.rn + ' (the latest published ' + series + ' board), but the Weekend Config is ' + (featured.track_label || featured.track_name) + ' R' + featured.race_number + '.\n\nIf this DK file is for ' + (featured.track_label || featured.track_name) + ', publish that board first, then paste again. Save to ' + race.track + ' anyway?')) { setSaveMsg('Not saved.'); return }
     setSaveMsg('Saving\u2026')
     try {
       // ORDER MATTERS (2026-09-05 review fix). This was delete-then-insert with the delete's error
@@ -282,6 +296,7 @@ export default function DfsSalaryAdmin() {
           <button key={s.v} onClick={() => setSeries(s.v)} style={{ padding: '6px 13px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: series === s.v ? '#e8b923' : 'transparent', color: series === s.v ? '#111' : 'var(--text-secondary,#9aa0aa)', fontWeight: series === s.v ? 700 : 400 }}>{s.label}</button>
         ))}
         {race && <span style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 13 }}>{race.track} &middot; {race.year} &middot; Race {race.rn} &middot; {salCount}/{drivers.length} set</span>}
+        {boardMismatch && <span style={{ color: '#f87171', fontSize: 12.5, fontWeight: 600 }}>Latest published board is {race.track} R{race.rn} but the Weekend Config is {featured.track_label || featured.track_name} R{featured.race_number} — salaries attach to the BOARD. Publish the {featured.track_label || featured.track_name} board first, then paste the DK file.</span>}
       </div>
 
       {loading && <div style={{ color: 'var(--text-secondary,#9aa0aa)' }}>Loading\u2026</div>}

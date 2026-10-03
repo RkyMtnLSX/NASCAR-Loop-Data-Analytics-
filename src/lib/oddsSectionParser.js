@@ -88,8 +88,11 @@ export function parseSect(txt, hdr) {
 // recognised as a column too (it used to be dropped from the winner box). `dflt` is the column order
 // used before any header is seen (winner box: win/t3/t5; Top 10 box: t10), so a header-less paste
 // behaves exactly as it did before.
+// 2026-10-03 (operator, Las Vegas O'Reilly): DK renamed the winner column "Moneyline". Unknown header
+// word = treated as a driver name, so the Top 3 header alone set a one-column layout and every winner
+// price landed in t3. "Moneyline" is now a winner column (and a header word).
 function isDkHeaderLine(l) {
-  var rest = l.replace(/race\s*-?\s*winner/g, ' ').replace(/top\s*-?\s*\d+\s*finish/g, ' ').replace(/top\s*-?\s*\d+/g, ' ').replace(/\bfinish\b/g, ' ').replace(/\bto win\b/g, ' ').replace(/\bwinner\b/g, ' ').replace(/\boutright\b/g, ' ').replace(/[^a-z0-9]+/g, '').trim();
+  var rest = l.replace(/money\s*-?\s*line/g, ' ').replace(/race\s*-?\s*winner/g, ' ').replace(/top\s*-?\s*\d+\s*finish/g, ' ').replace(/top\s*-?\s*\d+/g, ' ').replace(/\bfinish\b/g, ' ').replace(/\bto win\b/g, ' ').replace(/\bwinner\b/g, ' ').replace(/\boutright\b/g, ' ').replace(/[^a-z0-9]+/g, '').trim();
   return !rest;
 }
 function dkHeaderMarkets(l) {
@@ -97,7 +100,7 @@ function dkHeaderMarkets(l) {
   var m10 = /top\s*-?\s*10/.exec(l);           if (m10) found.push([m10.index, 't10']);
   var m5 = /top\s*-?\s*5(?!\d)/.exec(l);       if (m5) found.push([m5.index, 't5']);
   var m3 = /top\s*-?\s*3(?!\d)/.exec(l);       if (m3) found.push([m3.index, 't3']);
-  var mw = /race\s*winner|outright|(^|\s)winner(\s|$)/.exec(l); if (mw) found.push([mw.index, 'win']);
+  var mw = /money\s*-?\s*line|race\s*winner|outright|(^|\s)winner(\s|$)/.exec(l); if (mw) found.push([mw.index, 'win']);
   found.sort(function (a, b) { return a[0] - b[0]; });
   return found.map(function (f) { return f[1]; });
 }

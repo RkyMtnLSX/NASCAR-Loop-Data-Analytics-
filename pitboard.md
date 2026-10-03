@@ -3689,6 +3689,25 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
+## 2026-10-03 — DK odds paste: "Moneyline" header; DFS Salaries page: board-vs-Weekend-Config guard
+DK PARSER (operator: "DK parser for the simulation is not working"): DraftKings renamed the winner
+column from "Race Winner" to "Moneyline" (Las Vegas O'Reilly page: Moneyline / Top 3 Finish on one
+page, Top 5 Finish on another). parseDkPages did not know the word, so "Moneyline" was read as a
+driver name, the "Top 3 Finish" header alone set a ONE-column layout and every driver's winner price
+was stored as Top 3; nothing sensible parsed. isDkHeaderLine / dkHeaderMarkets now treat "Moneyline"
+as the winner column; the operator's two full-page pastes are the regression fixture
+(oddsSectionParser.test.js, 9/9 pass). Unicode minus was already handled.
+DFS SALARIES "6 UNMATCHED": the page keys salaries to the LATEST PUBLISHED BOARD for the series
+(sim_results), not to the Weekend Config. The Vegas DK file was pasted while the last O'Reilly board
+was still Bristol R27: 30 names matched by coincidence, the 6 "unmatched" were Vegas drivers not at
+Bristol, and the save REPLACED Bristol R27's O'Reilly salaries with Vegas prices (dfs_salaries id 24;
+a Bristol O'Reilly replay now needs that file re-pasted). Shipped: the page reads featured_weekend
+and, when the board's race differs from it, shows a red banner (board X vs Weekend Config Y -
+publish the Y board first) and asks before saving. The board stays the key - the fix is to publish
+the new board before pasting salaries, and the guard makes that order impossible to miss.
+OPERATOR THIS WEEKEND: publish the Vegas O'Reilly board, then re-paste the DK file (36/36 should
+match), then the same for Cup / Trucks as usual.
+
 ## 2026-10-03 — DFS Kansas replays examined: Trucks R20 + Cup R30 (N=20, exact placement, Operator rows)
 Operator: "run the dfs replay from last week and examine the results with the operator levers". Both
 Kansas contests were uploaded this morning (trucks 1,203 entries, cup 1,189) with operator entries.
