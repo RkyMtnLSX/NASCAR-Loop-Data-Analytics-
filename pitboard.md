@@ -3689,7 +3689,7 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
-## 2026-10-03 — DFS Trucks Kansas R20 replay examined (N=20, exact placement, Operator row); Cup R30 contest upload is the WRONG FILE
+## 2026-10-03 — DFS Kansas replays examined: Trucks R20 + Cup R30 (N=20, exact placement, Operator rows)
 Operator: "run the dfs replay from last week and examine the results with the operator levers". Both
 Kansas contests were uploaded this morning (trucks 1,203 entries, cup 1,189) with operator entries.
 TRUCKS KANSAS R20 (no-practice rain-out board, metric grid - the Crews-25% / Riggs-4% board):
@@ -3720,15 +3720,41 @@ still won on Butcher + Eckes + lighter Dye/Lara/Enfinger. The difference is not 
 it is driver selection: the operator faded the sim's no-practice fills (Lara 48%, Enfinger 40%) and
 bought back-row speed the metric grid under-rated. Second straight trucks race (Bristol: Garcia P12
 -> WIN) where the product's edge lived in the mid-pack starters it under-weighted.
-CUP KANSAS R30 - NOT SAVED, UPLOAD IS WRONG: the contest row stored as cup R30 has 1,189 entries,
-median 257.95, winner 387.25 = EXACTLY the Darlington R27 contest (same three numbers), and the FPTS
-it scores with are Darlington's (Gibbs P5 -> 17 at 74.3, Berry P10 -> 35 at 49.85 - impossible for
-Kansas). The Darlington standings CSV was uploaded as Kansas. The replay ran (GPP "322.60", cash
-"199.75") and is meaningless; discarded. Operator entries row for cup R30 (dfs_operator_entries id 5)
-came from the same file. TO DO: re-upload the real Kansas Cup standings (the uploader upserts
-series/race, so the wrong row is replaced), then run and save the cup replay. Loop data for cup R30 is
-correct (Larson from P2, 235 led / 88 fastest; Cindric 2nd from P11).
-LEDGER after this entry: GPP 9 / cash 3 / tie 2. Portfolio trucks 1 / 3 (rules OFF), overall 3 / 3.
+OPERATOR CORRECTION on Riggs: "Riggs was going to finish 2nd and crashed on the last lap" - P22 -> 19
+at 58% owned is a last-lap wreck, not a chalk miss, and not evidence for the 4% FMV either way.
+CUP KANSAS R30 - first upload was the WRONG FILE: the contest row stored as cup R30 had 1,189 entries,
+median 257.95, winner 387.25 = exactly the Darlington R27 contest, and the FPTS it scored with were
+Darlington's (Gibbs P5 -> 17 at 74.3). That replay was discarded. Operator re-uploaded the real
+Kansas standings (contest 195957612, 5,945 entries); the stale operator-entries row from the first
+upload (id 5, contest 194919870, 20 entries of 1,189) was RETAGGED to cup R27 / Darlington Raceway
+rather than deleted - Darlington had no operator row (the table started 09-18) and this is his real
+Darlington entry, so Darlington gets an Operator column retroactively on its next re-save.
+CUP KANSAS R30 (correct file, N=20): contest 5,945 entries, median 258.35, winner 417.90; PERFECT
+423.90 (Larson 144.35 / Briscoe 74.65 / Blaney 70.80 / Cindric 64.75 / Nemechek 43 / Gilliland 26.35)
+- the winner was 6 points off it. Cash 296.45 (1,852nd, p68.9) vs GPP best-of-20 345.45 (649th, p89.1)
+- GPP by 49.00, ledger GPP 10 / cash 3 / tie 2. GPP #2 340.00 and #3 327.00 both BEAT their p90 (305 /
+308) - Larson 144.35 from P2 with 235 led / 88 fastest carried everything he was in. Best lineup:
+Larson / Briscoe P23 -> 4 (74.65 at 44% owned) / Bell / Byron / Ty Dillon / Allmendinger.
+CALIBRATION: rho model .586 / salary .542 / own .564 - model FIRST of three again (trucks was the
+outlier). Portfolio rules ON 36.8 vs 22.1 for 3 x the E[max] set - a WIN, best entry p96.2; Portfolio
+ledger overall 4 / 3 (cup 3 / 1). Preset arm REF 36.79 / PRESET 32.46 / NULL 27.93 - preset above
+null here but below REF; still inside the 09-13 CLOSED verdict.
+OPERATOR ROW: 20 entries, best 253rd of 5,945 (366.7), mean p50.5, 9/20 above median, prize 9.371 =
+0.469 per entry vs Portfolio 0.634 vs E[max] set 0.368. AT THE OPERATOR'S N (20, like for like):
+operator 0.469 vs Portfolio 0.549 vs E[max] 0.368. So at Cup the product's Portfolio beat the
+operator by 17% per entry and the operator beat the plain E[max] set by 27% - the opposite order from
+trucks. His exposure: Briscoe 55 (hit, 74.65), Larson 50, Hamlin 50 (47.2, fine), Bowman 50 (P33 ->
+18, modest), Bell 45, Reddick 35, Buescher 30 (P12 -> 23, bust), Jones 25, Stenhouse 25, Z. Smith 20,
+Allmendinger 20, Byron 20. Product exposure: Bowman 59, Byron 57, Hamlin 52, Larson 50, Reddick 45,
+Briscoe 43, Jones 40. The miss both sides shared: Blaney P25 -> 5 (70.80 at 35% owned) - product 22%,
+operator not in his top 12 - and Cindric P11 -> 2 (64.75 at 6.5%), nobody's.
+READ ACROSS THE TWO RACES: with practice and a real grid (Cup) the sim is first of three and the
+Portfolio beats the operator; with no practice and a metric grid (trucks) the sim is last of three
+and the operator beats the product 3.4x. The no-practice board is where the product is weakest and
+it is also where the operator's own judgment is strongest - the metric-start shading registration is
+the one piece of engine work both races point at.
+LEDGER after this entry: GPP 10 / cash 3 / tie 2. Portfolio 4 / 3 (cup 3 / 1, trucks 1 / 3 rules OFF,
+oreilly 0 / 0 counted elsewhere if any).
 
 ## 2026-10-01 — Weekend Config from NASCAR's schedule: "Use schedule" / "Sync all 3" + Monday cron
 Operator: "automate the pitboard weekend configurations so I don't have to do it every week". Every
