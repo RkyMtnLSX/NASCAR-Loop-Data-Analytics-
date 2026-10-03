@@ -3708,5 +3708,5 @@ Hobby plan caps a deployment at 12 functions and api/weekend-sync.js was #13), s
 api/admin-track.js as GET ?job=weekend-sync and vercel.json rewrites /api/weekend-sync there (cron path
 unchanged). RULE: api/ is at the 12-function cap - any new endpoint goes INSIDE an existing function
 (a ?type= / ?job= branch) or as an _underscore helper, never a new api/*.js file.
-OPERATOR TO DO ONCE: set CRON_SECRET in Vercel env (any long random string) - until then the cron is
-inert and the button is the path. Build clean, api files load.
+CRON_SECRET set 2026-10-03 (Vercel production env, sensitive; value lives only in Vercel) + redeploy;
+authorized ?dry=1 verified. Cron is armed; first firing Mon 2026-10-05 12:00 UTC. Build clean, api files load.
