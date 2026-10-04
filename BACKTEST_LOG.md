@@ -8038,3 +8038,12 @@ Score = pooled Spearman with finish, plus by series and per-race mean.
 DECISION RULE. The blend proceeds to a stage-2 sim registration if Blend_0.5 pooled rho >= rating
 pooled rho + 0.01 AND it is not below rating in more than one of the three series. Otherwise logged,
 nothing further. Written before running. PUSH before reading data.
+
+RESULT (run 2026-10-04, 172 races, same test set). Pooled Spearman with finish, percentile basis:
+rating only .4674; blend w=.25 .4705; w=.50 .4682; w=.75 .4608; Clean Pace only .4484. By series
+(rating / blend .5): cup .4087 / .4077, O'Reilly .5176 / .5162, trucks .4944 / .4988. Per-race mean
+rho: rating .4736, blend .5 .4707; the blend ranked the finish better than rating in 78 of 172
+races. DECISION: FAILS (needs +.01; the primary blend is +.0008 pooled and worse per race and in two
+of three series). The best reported weight (.25, +.003) is inside noise and was not the primary.
+Nothing further. READING: Clean Pace is almost entirely inside driver_rating - a 25% dose adds a
+third of a point of rho and a 50% dose adds nothing. Closed. The stat stays on the table for display.
