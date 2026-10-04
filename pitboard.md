@@ -3689,6 +3689,42 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
+## 2026-10-04 — First unattended sync verified; DFS O'Reilly Las Vegas R28 replay (N=20, 9,512-entry contest, Operator 70)
+SYNC: the 23:00 UTC run fired at 23:44 UTC (Hobby jitter, as documented) and did everything on its own:
+trucks config Kansas R20 -> Charlotte R21 (overrides cleared), cup + O'Reilly Vegas qualifying AND draw
+loaded, 36 each, lineup_source 'qualifying' (poles Hamlin / Corey Day). Entry lists were already in
+(operator's PDFs). Three stray qualifying_results rows with draw_order and NO position are the Jayski
+draw PDF's spellings ("Ricky Stenhouse", "John Hunter Nemechek" vs the entry list's "John H. Nemechek",
+"Andew Patterson" typo) - from the PDF load, not the feed loader (which maps names by car number);
+harmless, the sim's draw lookup normalises names. From here the draw PDF is not needed either.
+O'REILLY LAS VEGAS R28 (Focused Health 302): contest 9,512 entries, median 234.05, winner 375.25 = the
+PERFECT lineup (Day 99.7 / Sawalich 68.4 / Kvapil 61 / Mayer 59.9 / Clements 53.25 / Thompson 33) -
+second week running somebody drew the perfect. Cash 231.30 (4,900th, dead on the median) vs GPP
+best-of-20 343.80 (134th of 9,512, p98.6) - GPP by 112.50, ledger GPP 11 / cash 3 / tie 2. #2 319.60
+beat its p90 (288). Best lineup: Day (pole -> WIN) / Sawalich (P36 -> 8, 68.4 at 63.7% owned) / Mayer /
+Sieg / T. Gray / Sammy Smith. Cash died on Brandon Jones P3 -> 35 (-23.65 at 26.9% owned, proj 51.7 =
+the highest projection on the slate) and Creed P2 -> 13 (24.8).
+CALIBRATION: rho model .561 / salary .581 / own .620 - ownership first, model third, all three
+bunched. Portfolio rules ON 12.6 vs 39.6 for 3 x the E[max] set - a LOSS (best entry p95.4);
+Portfolio ledger 4 / 4 overall (cup 3/1, trucks 1/3, oreilly 0/... this is the first oreilly row with
+exact placement). Preset arm REF 12.63 / PRESET 7.43 / NULL 7.43 x5 - the preset collapsed to the
+null exactly (tier-two 50% minimum unreachable for Creed / Crews / Day); 09-13 CLOSED stands.
+OPERATOR ROW: 70 entries in one contest, best 356th (334.85), mean p55.4, 43/70 above median, prize
+29.54 = 0.422 per entry. AT N=70, like for like: E[max] set 0.464 > operator 0.422 > Portfolio 0.356.
+So the plain set beat the operator by 10% and the Portfolio lost to both - opposite of Cup Kansas
+(Portfolio > operator > set) and trucks Kansas (operator >> everything). His exposure: Day 60, Creed
+60 (P2 -> 13), Crews 51 (P4 -> ?), Sawalich 49 (under the field's 64%), Retzlaff 37 (25.15), S. Smith
+30, Mayer 27, Sieg 24, B. Jones 24 (he dodged most of the Jones crash: product 57%). Product
+exposure: Sieg 59, Smith 59, Jones 57, Day 57, Sawalich 57, Creed 57, Thompson 52. The product's set
+won DESPITE 57% Jones because Sawalich/Day/Mayer/Sieg carried the top lineups; the operator's lighter
+Sawalich (49 vs field 64) and heavier Creed is where his per-entry fell behind.
+THREE-RACE READ (Kansas trucks / Kansas cup / Vegas O'Reilly): no construction mode wins twice in a
+row - set 1, Portfolio 1, operator 1 - and the Portfolio is 4/4 on prize vs set but lost both this
+weekend in the two big fields. The stable finding is driver-level: the product over-exposes the
+highest-projection chalk car when it busts (Jones 57%, Enfinger 40%, Lara 48%) and the operator
+reads those better. Nothing to register from one weekend; the Portfolio-vs-set question now has 8
+rows and is worth a proper look before Charlotte.
+
 ## 2026-10-03 — Entry list / qualifying draw / qualifying result from NASCAR's weekend feed (no PDFs); sync runs daily x2
 Operator: "more process to automate the website so I don't have to manually upload so much such as
 entry lists, qualifying orders". PROBED the feed first (Chrome, cf.nascar.com):
