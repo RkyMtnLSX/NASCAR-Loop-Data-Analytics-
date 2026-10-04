@@ -232,9 +232,16 @@ function lapKey(obj, names) {
   return undefined
 }
 
+// 2026-10-04: the season archive path (cacher/{year}/{series}/{race}/lap-times.json) holds every year;
+// the live path only the recent ones (2024 races: 83 of 84 were 403 there). Archive first, live second.
+async function lapTimesJson(year, series, raceId) {
+  try { return await getJson(`${NASCAR}/cacher/${year}/${series}/${raceId}/lap-times.json`) }
+  catch (e) { return getJson(`${NASCAR}/cacher/live/series_${series}/${raceId}/lap-times.json`) }
+}
+
 async function laps(res, year, series, raceId) {
   const [rawLaps, weekRaw] = await Promise.all([
-    getJson(`${NASCAR}/cacher/live/series_${series}/${raceId}/lap-times.json`),
+    lapTimesJson(year, series, raceId),
     getJson(`${NASCAR}/cacher/${year}/${series}/${raceId}/weekend-feed.json`).catch(() => null),
   ])
   const list = Array.isArray(rawLaps) ? rawLaps
@@ -318,7 +325,7 @@ async function qorder(res, year, series, ids) {
 // clean_pace_pct = mean kept deviation, null unless kept >= 40% of racing laps; rank among non-null.
 async function cleanPace(res, year, series, raceId) {
   const [rawLaps, weekRaw] = await Promise.all([
-    getJson(`${NASCAR}/cacher/live/series_${series}/${raceId}/lap-times.json`),
+    lapTimesJson(year, series, raceId),
     getJson(`${NASCAR}/cacher/${year}/${series}/${raceId}/weekend-feed.json`).catch(() => null),
   ])
   const list = Array.isArray(rawLaps) ? rawLaps
