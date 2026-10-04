@@ -7979,3 +7979,28 @@ mechanism already does this for capped drivers), and an objective that is not mo
 draw - e.g. field score sampled per candidate from ownership-conditional lineups, or the
 Portfolio's own-weighted leg rules measured on prize. Not registered today. Arm kept in DfsReplay as
 a diagnostic.
+
+## 2026-10-04 — REGISTRATION: FLAGS-style field-adjusted green speed from the lap archive (stage 1: is it predictive?)
+TRIGGER. Operator: Action Network's "FLAGS" (Field-Level Adjusted Green Speed - race laps from a car
+while it is healthy, each lap compared to the healthy field on that same lap; Reddick 9th by NASCAR's
+avg green-flag speed, 4th by FLAGS). Our corrHistory term (weight .35-.60 by group) runs on
+loop_data driver_rating, which averages in the laps a damaged car ran. We hold every lap of every
+race 2022-26 (lap-times.json via api type=laps) so the metric is computable. The article gives no
+formula; this is OUR definition, frozen here.
+FROZEN FORM (flags_pct per driver per race). Racing laps = laps whose number is not inside any
+caution window (weekend-feed caution_segments start..end), minus lap 1 and the first lap after each
+window (the restart lap). For each racing lap L: T = every car's time on L; M0 = median(T); healthy
+field = cars with t <= 1.03 x M0; M = median(healthy times). A car's deviation on L is
+100 x (t - M) / M, kept only if the car is itself healthy on L. flags_pct = mean of the car's kept
+deviations (lower = faster), null unless kept laps >= 40% of racing laps. flags_rank = rank of
+flags_pct within the race among non-null drivers. Stored per (series, year, nascar_race_id,
+driver). Years 2024-2026, all three series (2022-23 later if stage 2 happens).
+STAGE-1 TEST (predictive, no sim). For every 2025-26 race with loop_data: for each driver, the
+trailing mean over his previous races (same series, same correlation group as the race's track, up
+to 10, any year >= 2024) of (a) flags_pct, (b) loop_data driver_rating, (c) finish position. Score =
+Spearman of each trailing mean with the race's finish positions, pooled over races, drivers with all
+three available. Also by series and by correlation group.
+DECISION RULE (stage 1). FLAGS "proceeds to stage 2" (a registered sim integration into corrHistory)
+if pooled |rho_a| >= |rho_b| + 0.02 and FLAGS is not worse than rating in more than one of the
+three series. Otherwise it is logged and nothing further is built. Nothing ships from stage 1
+either way. Written before any lap is pulled. PUSH before reading data.

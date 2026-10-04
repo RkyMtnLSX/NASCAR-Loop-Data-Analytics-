@@ -311,6 +311,62 @@ async function qorder(res, year, series, ids) {
   return res.status(200).json({ type: 'qorder', year, series_id: series, races: out })
 }
 
+// ---------------------------------------------------------------- flags (2026-10-04)
+// Frozen in BACKTEST_LOG 2026-10-04: racing laps = not inside a caution window, not lap 1, not the
+// first lap after a window; healthy field on a lap = cars within 3% of the lap's median; a car's
+// deviation = 100 x (t - median(healthy)) / median(healthy), kept only when the car is healthy;
+// flags_pct = mean kept deviation, null unless kept >= 40% of racing laps; rank among non-null.
+async function flags(res, year, series, raceId) {
+  const [rawLaps, weekRaw] = await Promise.all([
+    getJson(`${NASCAR}/cacher/live/series_${series}/${raceId}/lap-times.json`),
+    getJson(`${NASCAR}/cacher/${year}/${series}/${raceId}/weekend-feed.json`).catch(() => null),
+  ])
+  const list = Array.isArray(rawLaps) ? rawLaps
+    : Array.isArray(lapKey(rawLaps, ['laps'])) ? lapKey(rawLaps, ['laps'])
+    : Array.isArray(lapKey(rawLaps, ['drivers'])) ? lapKey(rawLaps, ['drivers']) : []
+  const wkRace = weekRaw?.weekend_race?.[0] || null
+  const cautions = ((wkRace && wkRace.caution_segments) || []).filter(c => Number.isInteger(c.start_lap) && Number.isInteger(c.end_lap))
+  const inCaution = new Set(), restart = new Set()
+  cautions.forEach(c => { for (let l = c.start_lap; l <= c.end_lap; l++) inCaution.add(l); restart.add(c.end_lap + 1) })
+  const cars = []
+  for (const d of list) {
+    const arr = lapKey(d, ['Laps', 'lap_times', 'laptimes'])
+    if (!Array.isArray(arr)) continue
+    const t = {}
+    for (const l of arr) {
+      const lap = Number(lapKey(l, ['Lap', 'lap', 'lap_number'])), time = Number(lapKey(l, ['LapTime', 'lap_time', 'time']))
+      if (Number.isInteger(lap) && lap >= 1 && Number.isFinite(time) && time > 0) t[lap] = time
+    }
+    cars.push({ number: String(lapKey(d, ['Number', 'number', 'car_number', 'vehicle_number']) ?? '').trim(),
+      name: String(lapKey(d, ['FullName', 'full_name', 'driver', 'name']) ?? '').replace(/\s*\([^)]*\)\s*$/, '').trim(),
+      driver_id: Number(lapKey(d, ['NASCARDriverID', 'driver_id', 'nascar_driver_id'])) || null, t })
+  }
+  if (!cars.length) return res.status(502).json({ error: 'lap archive had no drivers' })
+  const maxLap = Math.max.apply(null, cars.map(c => Math.max.apply(null, Object.keys(c.t).map(Number).concat([0]))))
+  const med = a => { const s = a.slice().sort((x, y) => x - y); const n = s.length; return n ? (n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2) : null }
+  const dev = cars.map(() => []), racing = []
+  for (let L = 2; L <= maxLap; L++) {
+    if (inCaution.has(L) || restart.has(L)) continue
+    const times = cars.map(c => c.t[L]).filter(v => v != null)
+    if (times.length < 10) continue
+    racing.push(L)
+    const m0 = med(times)
+    const healthy = times.filter(v => v <= 1.03 * m0)
+    if (healthy.length < 5) continue
+    const m = med(healthy)
+    cars.forEach((c, i) => { const v = c.t[L]; if (v != null && v <= 1.03 * m0) dev[i].push(100 * (v - m) / m) })
+  }
+  const rows = cars.map((c, i) => {
+    const kept = dev[i].length
+    const ok = racing.length > 0 && kept >= 0.4 * racing.length
+    return { driver_name: c.name, driver_id: c.driver_id, car_number: c.number, kept_laps: kept, racing_laps: racing.length,
+      flags_pct: ok ? +(dev[i].reduce((a, b) => a + b, 0) / kept).toFixed(4) : null, flags_rank: null }
+  })
+  rows.filter(r => r.flags_pct != null).sort((a, b) => a.flags_pct - b.flags_pct).forEach((r, i) => { r.flags_rank = i + 1 })
+  return res.status(200).json({ type: 'flags', year, series_id: series, series: SERIES_NAME[series], nascar_race_id: raceId,
+    track_name: wkRace ? wkRace.track_name : null, race_name: wkRace ? wkRace.race_name : null, cautions: cautions.length, racing_laps: racing.length, rows })
+}
+
 // ---------------------------------------------------------------- handler
 
 module.exports = async function handler(req, res) {
@@ -349,6 +405,12 @@ module.exports = async function handler(req, res) {
       }
       return await race(res, year, series, raceId)
     }
+    if (q.type === 'flags') {
+      // 2026-10-04 FLAGS-style field-adjusted green speed (BACKTEST_LOG registration). Shape only; the
+      // browser writes flags_race through the operator's session.
+      if (series === undefined || raceId === undefined) return res.status(400).json({ error: 'type=flags needs series and race' })
+      return await flags(res, year, series, raceId)
+    }
     if (q.type === 'bundle') {
       // 2026-10-03: entry list / draw / qualifying for one race, shaped only (src/lib/weekendBundle).
       // The Load Data panel writes it through the operator's session; the cron writes the same shape.
@@ -372,7 +434,7 @@ module.exports = async function handler(req, res) {
       }
       return await laps(res, year, series, raceId)
     }
-    return res.status(400).json({ error: "type must be 'schedule', 'race', 'qorder', 'laps', 'next' or 'bundle'" })
+    return res.status(400).json({ error: "type must be 'schedule', 'race', 'qorder', 'laps', 'next', 'bundle' or 'flags'" })
   } catch (err) {
     return res.status(err.status === 404 ? 404 : 502).json({
       error: err.message, url: err.url || null,
