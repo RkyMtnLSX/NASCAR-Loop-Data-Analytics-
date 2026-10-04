@@ -311,12 +311,12 @@ async function qorder(res, year, series, ids) {
   return res.status(200).json({ type: 'qorder', year, series_id: series, races: out })
 }
 
-// ---------------------------------------------------------------- flags (2026-10-04)
+// ---------------------------------------------------------------- clean pace (2026-10-04)
 // Frozen in BACKTEST_LOG 2026-10-04: racing laps = not inside a caution window, not lap 1, not the
 // first lap after a window; healthy field on a lap = cars within 3% of the lap's median; a car's
 // deviation = 100 x (t - median(healthy)) / median(healthy), kept only when the car is healthy;
-// flags_pct = mean kept deviation, null unless kept >= 40% of racing laps; rank among non-null.
-async function flags(res, year, series, raceId) {
+// clean_pace_pct = mean kept deviation, null unless kept >= 40% of racing laps; rank among non-null.
+async function cleanPace(res, year, series, raceId) {
   const [rawLaps, weekRaw] = await Promise.all([
     getJson(`${NASCAR}/cacher/live/series_${series}/${raceId}/lap-times.json`),
     getJson(`${NASCAR}/cacher/${year}/${series}/${raceId}/weekend-feed.json`).catch(() => null),
@@ -360,10 +360,10 @@ async function flags(res, year, series, raceId) {
     const kept = dev[i].length
     const ok = racing.length > 0 && kept >= 0.4 * racing.length
     return { driver_name: c.name, driver_id: c.driver_id, car_number: c.number, kept_laps: kept, racing_laps: racing.length,
-      flags_pct: ok ? +(dev[i].reduce((a, b) => a + b, 0) / kept).toFixed(4) : null, flags_rank: null }
+      clean_pace_pct: ok ? +(dev[i].reduce((a, b) => a + b, 0) / kept).toFixed(4) : null, clean_pace_rank: null }
   })
-  rows.filter(r => r.flags_pct != null).sort((a, b) => a.flags_pct - b.flags_pct).forEach((r, i) => { r.flags_rank = i + 1 })
-  return res.status(200).json({ type: 'flags', year, series_id: series, series: SERIES_NAME[series], nascar_race_id: raceId,
+  rows.filter(r => r.clean_pace_pct != null).sort((a, b) => a.clean_pace_pct - b.clean_pace_pct).forEach((r, i) => { r.clean_pace_rank = i + 1 })
+  return res.status(200).json({ type: 'cleanpace', year, series_id: series, series: SERIES_NAME[series], nascar_race_id: raceId,
     track_name: wkRace ? wkRace.track_name : null, race_name: wkRace ? wkRace.race_name : null, cautions: cautions.length, racing_laps: racing.length, rows })
 }
 
@@ -405,11 +405,11 @@ module.exports = async function handler(req, res) {
       }
       return await race(res, year, series, raceId)
     }
-    if (q.type === 'flags') {
-      // 2026-10-04 FLAGS-style field-adjusted green speed (BACKTEST_LOG registration). Shape only; the
-      // browser writes flags_race through the operator's session.
-      if (series === undefined || raceId === undefined) return res.status(400).json({ error: 'type=flags needs series and race' })
-      return await flags(res, year, series, raceId)
+    if (q.type === 'cleanpace') {
+      // 2026-10-04 CLEAN PACE (BACKTEST_LOG registration): field-adjusted green-lap pace while the car is
+      // healthy. Shape only; the browser writes clean_pace_race through the operator's session.
+      if (series === undefined || raceId === undefined) return res.status(400).json({ error: 'type=cleanpace needs series and race' })
+      return await cleanPace(res, year, series, raceId)
     }
     if (q.type === 'bundle') {
       // 2026-10-03: entry list / draw / qualifying for one race, shaped only (src/lib/weekendBundle).
@@ -434,7 +434,7 @@ module.exports = async function handler(req, res) {
       }
       return await laps(res, year, series, raceId)
     }
-    return res.status(400).json({ error: "type must be 'schedule', 'race', 'qorder', 'laps', 'next', 'bundle' or 'flags'" })
+    return res.status(400).json({ error: "type must be 'schedule', 'race', 'qorder', 'laps', 'next', 'bundle' or 'cleanpace'" })
   } catch (err) {
     return res.status(err.status === 404 ? 404 : 502).json({
       error: err.message, url: err.url || null,
