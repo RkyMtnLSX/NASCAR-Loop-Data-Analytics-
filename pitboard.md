@@ -3689,6 +3689,21 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
+## 2026-10-04 — Practice Report Card N-lap averages were wrong at double-visit tracks (Elliott 51.17 5-lap)
+Operator: "why are those averages so high? Chase Elliott, Blaney's 15-lap avg". Two causes, both
+fixed. (1) The Report Card's practice_laps read filtered by series / year / track / session but NOT
+race_number, so at Las Vegas it merged the SPRING session's laps (R5, plus a mis-tagged duplicate of
+the same laps stored as race_number 1 on 07-03) with the fall session's - three lap-1s, three lap-2s
+- and the N-lap windows ran across them. Elliott's 122 "laps" were 42 real ones x3. (2) The N-lap
+windows split runs on lap-NUMBER gaps only; a numbered pit / in-out lap (129-292 s) sat inside a run.
+Now scoped to the session's race_number and split with the grader's parseStints (a lap over 1.2 x
+the driver's median ends the run and is dropped) on both the Report Card and Lap Comparison.
+Verified on Vegas R31 S1: Elliott 5-lap 51.17 -> 30.04, 10-lap -> 30.22; Blaney 15-lap 38.38 ->
+30.94; SVG 15-lap 38.30 -> 30.97; Byron 10-lap 41.57 -> 30.21; Bell 30.39/30.50 -> 30.10/30.26/30.34.
+The grade / score columns were never affected (they come from the uploader's own per-race rows).
+DB HYGIENE (operator's call): practice_laps holds 2026 cup Las Vegas rows tagged race_number 1
+(created 07-03) that duplicate the R5 spring upload lap for lap; harmless now, delete when convenient.
+
 ## 2026-10-04 — Ownership-aware GPP objective: registered, run, FAILED (does not ship)
 Operator: "run it". Form (BACKTEST_LOG 10-04): per draw, field lineup score from projected ownership
 (mean / variance, independent inclusion), candidate percentile Phi((S-F)/sqrt V), rank in the real

@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { fetchAllRows } from '../lib/fetchAllRows'
-import { gradeColor } from '../lib/practiceGrader'
+import { gradeColor, parseStints } from '../lib/practiceGrader'
 
 const SERIES_COLOR = { cup: 'var(--series-cup)', xfinity: 'var(--series-oreilly)', trucks: 'var(--series-trucks)' }
 const SERIES_TABS = [
@@ -135,16 +135,19 @@ export default function PracticeReportCard({ isSubscriber }) {
         const { data: __pl } = await fetchAllRows(() => supabase.from('practice_laps')
           .select('driver_name, lap_number, lap_time')
           .eq('series', session.series).eq('year', session.year)
-          .eq('track_name', session.track_name).eq('session_number', session.session_number))
+          .eq('track_name', session.track_name).eq('session_number', session.session_number)
+          .eq('race_number', session.race_number))   // 2026-10-04: double-visit tracks - spring Vegas laps were merged into fall's N-lap windows
         const __byDrv = {}
         ;(__pl || []).forEach(l => { const k = l.driver_name; (__byDrv[k] = __byDrv[k] || []).push([+l.lap_number, +l.lap_time]) })
         const __lapAvgs = (arr) => {
           const laps = arr.filter(([n, tt]) => !isNaN(n) && !isNaN(tt) && tt > 10 && tt < 1200).sort((a, b) => a[0] - b[0])
           const res = {}
           if (!laps.length) return res
-          const stints = []; let cur = [laps[0]]
-          for (let i = 1; i < laps.length; i++) { if (laps[i][0] === laps[i - 1][0] + 1) cur.push(laps[i]); else { stints.push(cur); cur = [laps[i]] } }
-          stints.push(cur)
+          // 2026-10-04 (operator: "why are those averages so high? Elliott 51.17 5-lap, Blaney 38 15-lap"):
+          // runs were split on lap-NUMBER gaps only, so a numbered pit / in-out lap (51-136 s) sat inside a
+          // run and every N-lap window across it averaged it in. Use the grader's splitter: a lap over
+          // 1.2 x the driver's median ends the run and is dropped (parseStints), same rule the grade uses.
+          const stints = parseStints(Object.fromEntries(laps.map(([n2, t2]) => [n2, t2])))
           // NASCAR method: best (fastest) average over N consecutive laps within a single run
           ;[5, 10, 15, 20, 25, 30].forEach(N => {
             let best = null

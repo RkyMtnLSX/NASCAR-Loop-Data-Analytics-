@@ -1,4 +1,4 @@
-import { gradePracticeSession } from '../lib/practiceGrader'
+import { parseStints, gradePracticeSession } from '../lib/practiceGrader'
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { fetchAllRows } from '../lib/fetchAllRows'
@@ -10,13 +10,9 @@ import {
 // (pit/filtered laps break a run). Returns null when no run has n consecutive laps.
 const bestNAvg = (laps, n) => {
   if (!laps || laps.length < n) return null
-  const runs = []
-  let run = []
-  laps.forEach(l => {
-    if (run.length && l.lap !== run[run.length - 1].lap + 1) { runs.push(run); run = [] }
-    run.push(l)
-  })
-  if (run.length) runs.push(run)
+  // 2026-10-04: split with the grader's rule (pit / in-out lap > 1.2 x driver median ends a run and is
+  // dropped), not on lap-number gaps alone - a numbered 51 s pit lap was being averaged into windows.
+  const runs = parseStints(Object.fromEntries(laps.map(l => [l.lap, l.time]))).map(st => st.map(([lap, time]) => ({ lap, time })))
   let best = null
   runs.forEach(r => {
     if (r.length < n) return
