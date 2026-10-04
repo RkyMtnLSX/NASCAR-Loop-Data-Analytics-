@@ -3689,6 +3689,33 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
+## 2026-10-04 — CLV ledger brought current from odds_snapshots (pre-board flags -> post-board paste), 15 races
+Operator: "I haven't been logging CLV after the last few races but we store it". clv_log stops at
+Darlington R27 pre (09-03). Recomputed the automated version for every 2026 board: bet price = the
+odds stamped on the published PRE board (mv.best, same book), "close" = the last odds paste for the
+race (the post-board paste; the true closing line is only in clv_log when the operator pastes it), CLV
+in implied-probability points, plays = every ev > 0 flag on the board, field = every priced
+driver-market. Post boards score 0 by construction (their paste IS the last paste), so the ledger is
+PRE -> POST, the 08-24 5A-PRIME window. Cup Vegas R31 excluded (no later paste yet).
+RESULT, 15 races 07-24 -> 10-03, 212 flags: flagged plays +2.85 pts CLV vs field +0.81; race-level
+lift +2.33 pts, t = 3.52, positive in 13 of 15 (the 9/9 of 08-24 is now 13/15; the two misses are
+Daytona O'Reilly R24 -1.9 and Vegas O'Reilly R28 -0.6). The sim still moves the market its way.
+RESULTS ON THOSE FLAGS (flat 1u): 39/212 hit, -30.4u, -14% ROI. Per race: trucks Richmond R17 +10.1,
+cup Daytona R26 +15.0, cup Iowa R23 +6.4, O'Reilly Iowa R23 +6.3, Kansas cup R30 +0.4; the rest
+negative, worst cup Darlington R27 -16.3 (1/19), cup Indy R22 -10.7, cup Richmond R24 -9.4, Vegas
+O'Reilly R28 -9.0 (0/9), trucks Lucas R16 -9.0 (0/9).
+BY medge BAND (this slice): <5: 123 flags, 14 hits, -17.6u (-14%), CLV +2.4; 5-10: 49, 8 hits,
+-5.8u (-12%), CLV +3.2; 10-20: 28, 14 hits, +0.4u (+1%), CLV +4.5; 20+: 12, 3 hits, -7.4u (-61%),
+CLV +2.5. HONEST UPDATE TO THE 08-24 PROPOSAL: the medge-5 floor would NOT have helped here - the
+<5 band lost 14%, the same as 5-10, not the -57% of the 08-24 sample; a floor at 5 removes 123 flags
+and leaves 89 at the same -14%. The 10-20 band is break-even again (+1% here, +21% then) and 20+ is
+the loser both times. So the robust reading across both samples is: the sim's disagreements carry
+information (CLV), the market still prices the outcome better than the flag does (ROI), and the
+only band that has not lost money twice is 10-20 - n=78 combined, not enough to adopt. The medge
+floor registration stays proposed, not shipped; the number to beat is the field's +0.8.
+OPERATOR: the true-close ledger (clv_log) needs the closing-odds paste in Grade Center -> CLV each
+race; without it this pre->post window is the best we can do unattended.
+
 ## 2026-10-04 — Clean Pace (FLAGS-style) built from the lap archive and tested: predictive, but not more than driver rating
 Operator: "examine this guy's practice metric and see if we can't improve our practice stuff" (Action
 Network FLAGS: a healthy car's green laps vs the healthy field on the same lap). Named CLEAN PACE here
