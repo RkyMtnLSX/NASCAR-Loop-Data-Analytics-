@@ -7928,3 +7928,29 @@ E[max] value and the top lineup plateauing as more lineups are added, which is w
 objective does - the later lineups add little to the expected best but are still delivered. The
 selector keeps opts.levels (default 1, untouched behaviour) and the replay keeps the arm as a cheap
 diagnostic; the STATE open item is closed as a misdiagnosis (mine, 09-17).
+
+## 2026-10-04 — REGISTRATION: ownership-aware GPP objective (expected contest prize, not expected max points)
+TRIGGER. Three straight replays where the field's ownership ranked the finish better than the model
+(own rho .545 / .564 / .620 vs model .198 / .586 / .561) and the product put 40-57% of its set on
+the top-projection chalk car that busted. A GPP pays rank, and rank is points RELATIVE TO WHAT THE
+FIELD HOLDS; the E[max points] objective cannot see that Sawalich at 64% owned and Kvapil at 14%
+owned are different bets when both score 65. Operator 09-13: the mechanical "operator preset"
+(punt rules, tier minimums) FAILED and collapsed to the null - this is the math version of the same
+idea, so it is registered as its own form.
+FROZEN FORM. Per sim draw d, the field's lineup score is modelled from projected ownership (the
+shipped projectOwnership(), p_i = own_i / 100 clamped [.005, .95], sum ~ 6): mean F[d] = sum_i p_i
+s_id, variance V[d] = sum_i p_i (1 - p_i) s_id^2 (independent-inclusion approximation; the cap /
+6-slot correlation is ignored). A candidate's percentile in the field for draw d is Phi((S_cd -
+F[d]) / sqrt(V[d] + 1)); its rank is max(1, round((1 - pct) x E)) with E the real contest size; its
+prize is the replay's DK-like curve (E x r^-.75 / Z for r <= 0.2E, entry-fee units). Build the
+E[max] set exactly as today but on Pmat[c,d] = prize(c,d) instead of Smat[c,d] = points - the same
+greedy selector, same 2,000 candidates (projection cut, so B can only re-weight within the chalk-
+dominated pool), same draws, no caps, no top-up. Nothing else changes.
+ARMS. A = E[max points] (ships). B = E[max prize]. Scored on realized prize at exact rank in the real
+contest, same ladder and curve, at N = 20 (the ledger row) and N = 70 (the operator's range).
+17 contests (every ledger race with an uploaded contest). Also reported, not decisive: B's mean
+projected ownership of its set vs A's, and B's top exposures.
+DECISION RULE. Ship B as the GPP default if its total realized prize over the 17 >= A's at BOTH
+N = 20 and N = 70, and it is not below A in more than 10 of the 17 contests at N = 20 (a win driven
+by one contest does not ship). Otherwise it does not ship and the result is logged with the per-
+contest split. Written before the arm is run. PUSH before reading data.

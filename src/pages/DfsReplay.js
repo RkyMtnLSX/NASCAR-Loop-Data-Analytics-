@@ -497,6 +497,42 @@ export default function DfsReplay() {
       const same = cash.drivers.map(d => d.name).sort().join('|') === gpp.drivers.map(d => d.name).sort().join('|')
       const verdict = same ? 'tie' : (gpp.actual > cash.actual ? 'gpp' : gpp.actual < cash.actual ? 'cash' : 'tie')
 
+      // ---- OWNERSHIP ARM (2026-10-04, BACKTEST_LOG "ownership-aware GPP objective"; report only, not saved).
+      // A = E[max points] on Smat (ships). B = E[max prize] on Pmat: per draw, the field's lineup score
+      // from projected ownership (mean F, variance V, independent inclusion), the candidate's percentile
+      // Phi((S - F) / sqrt(V + 1)), rank in the real contest, prize on the DK-like curve. Same selector,
+      // same candidates and draws. N = 20 and 70.
+      let ownership = null
+      try {
+        if (ent) {
+          const __E4 = ent
+          const __prize4 = (() => { const R = Math.floor(0.2 * __E4); let Z = 0; for (let r = 1; r <= R; r++) Z += Math.pow(r, -0.75); return r => (__E4 && r >= 1 && r <= R) ? __E4 * Math.pow(r, -0.75) / Z : 0 })()
+          const __score4 = (lus) => lus.reduce((s2, ns) => { const a = ns.reduce((t, n) => t + byName[n].actual, 0); const p = placeIn(ladder, __E4, a, topScores); return s2 + (p.rank ? __prize4(p.rank) : 0) }, 0)
+          const __ownP = projectOwnership(pool)
+          const pOf = names.map(n => Math.max(0.005, Math.min(0.95, (+__ownP[n] || 0) / 100)))
+          const F = new Float64Array(nD2), V = new Float64Array(nD2)
+          for (let d2 = 0; d2 < nD2; d2++) {
+            const rw = drawRows[d2]; let f = 0, v = 0
+            for (let i = 0; i < names.length; i++) { const sc = +rw[i] || 0; f += pOf[i] * sc; v += pOf[i] * (1 - pOf[i]) * sc * sc }
+            F[d2] = f; V[d2] = v
+          }
+          const Phi = z => 0.5 * (1 + (z < 0 ? -1 : 1) * Math.sqrt(1 - Math.exp(-2 * z * z / Math.PI)))   // Williams approx, |err| < .004
+          const Pmat = new Float32Array(nC2 * nD2)
+          for (let c2 = 0; c2 < nC2; c2++) { const off = c2 * nD2
+            for (let d2 = 0; d2 < nD2; d2++) { const z = (Smat[off + d2] - F[d2]) / Math.sqrt(V[d2] + 1); const rk = Math.max(1, Math.round((1 - Phi(z)) * __E4)); Pmat[off + d2] = __prize4(rk) } }
+          const meanOwn = (lus) => lus.length ? lus.reduce((s2, ns) => s2 + ns.reduce((t, n) => t + (+__ownP[n] || 0), 0) / ns.length, 0) / lus.length : null
+          const topExpo = (lus) => { const ex = {}; lus.forEach(ns => ns.forEach(n => { ex[n] = (ex[n] || 0) + 1 })); return Object.entries(ex).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([n, c]) => n.split(' ').pop() + ' ' + Math.round(100 * c / lus.length)).join(', ') }
+          ownership = { byN: {} }
+          ;[20, 70].forEach(N => {
+            const sA = makeEmaxSelector(nC2, nD2, Smat, N, cands, () => Infinity, DFS_ROSTER); sA.step(0)
+            const sB = makeEmaxSelector(nC2, nD2, Pmat, N, cands, () => Infinity, DFS_ROSTER); sB.step(0)
+            const A = sA.chosen.map(c2 => cands[c2]), B = sB.chosen.map(c2 => cands[c2])
+            const bestA = Math.max.apply(null, A.map(ns => ns.reduce((t, n) => t + byName[n].actual, 0))), bestB = Math.max.apply(null, B.map(ns => ns.reduce((t, n) => t + byName[n].actual, 0)))
+            ownership.byN[N] = { aPrize: +__score4(A).toFixed(3), bPrize: +__score4(B).toFixed(3), aBest: +bestA.toFixed(2), bBest: +bestB.toFixed(2), aOwn: +meanOwn(A).toFixed(1), bOwn: +meanOwn(B).toFixed(1), bDelivered: B.length, aExpo: topExpo(A), bExpo: topExpo(B) }
+          })
+        }
+      } catch (e) { ownership = { error: String((e && e.message) || e) } }
+
       // ---- SATURATION ARM (2026-10-04, BACKTEST_LOG "E[max] set continuation"; report only, not saved).
       // A = levels 1 (ships), A-dup = A filled to N with duplicates of its first pick, B = levels 3.
       // Same candidates / draws / ladder / curve as the operator-N block. N = 70 and 100.
@@ -524,7 +560,7 @@ export default function DfsReplay() {
         series: sr, year, race, track: trk, samplesAt: samp.created_at, boardAt: board && board.published_at, stage: board && board.stage,
         nDraws: nD, nPool: pool.length, nCands: cands.length, nScoreDraws: nS,
         cash, gpp, alt, perfect, contest, cal, verdict, unmatched, same,
-        setN: setIdx.length, setUniq: setUniq.size, setEmax: sel.emax(), wantN: selN, portfolio, operator, saturation,
+        setN: setIdx.length, setUniq: setUniq.size, setEmax: sel.emax(), wantN: selN, portfolio, operator, saturation, ownership,
       })
       setProg('')
       setMsg((topScores ? 'Exact placement (top ' + topScores.length + ' scores stored). ' : 'DECILE placement only - re-upload this contest\'s standings file after running sql/dfs_operator_entries.sql for exact ranks. ') + 'Done. ' + cands.length.toLocaleString() + ' candidates, ' + nS.toLocaleString() +
@@ -682,6 +718,12 @@ export default function DfsReplay() {
               {[70, 100].map(N => { const r = b[N]; return r ? <span key={N}> N={N}: A {r.aDelivered} lineups prize <b>{r.aPrize}</b> (dup-filled {r.aDupPrize}) · B {r.bDelivered} lineups prize <b>{r.bPrize}</b> (finished at level {r.bLevel}, picks by level {r.bLevelPicks.join('/')}) ·</span> : null })}
             </div>) })()}
           {res.saturation && res.saturation.error && <div style={{ fontSize: 12, color: '#f5a623', marginBottom: 10 }}>Saturation arm failed: {res.saturation.error}</div>}
+          {res.ownership && !res.ownership.error && (() => { const b = res.ownership.byN; return (
+            <div id="ownership-arm" style={{ fontSize: 12, color: 'var(--text-secondary, #9aa0aa)', marginBottom: 10, padding: '6px 10px', border: '1px dashed var(--border, #22252b)', borderRadius: 6 }}>
+              <strong style={{ color: 'var(--text-primary, #e8eaed)' }}>Ownership arm</strong> (report only, not saved) ·
+              {[20, 70].map(N => { const r = b[N]; return r ? <span key={N}> N={N}: A prize <b>{r.aPrize}</b> best {r.aBest} own {r.aOwn}% [{r.aExpo}] · B prize <b>{r.bPrize}</b> best {r.bBest} own {r.bOwn}% [{r.bExpo}] ({r.bDelivered} lineups) ·</span> : null })}
+            </div>) })()}
+          {res.ownership && res.ownership.error && <div style={{ fontSize: 12, color: '#f5a623', marginBottom: 10 }}>Ownership arm failed: {res.ownership.error}</div>}
           <div style={{ ...lbl, marginBottom: 14 }}>ρ = Spearman of each ranking against actual DK points. Ownership above the model means the crowd out-ranked us.</div>
         </div>
       )}
