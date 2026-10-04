@@ -3689,6 +3689,17 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
+## 2026-10-04 — E[max] "saturation" registered, measured, and found NOT to exist (open item closed)
+Operator: "let's fix the E[max] saturation". Registered first (BACKTEST_LOG 10-04): lexicographic
+continuation on second/third-best per draw, decision on realized prize at N=70/100 across the ledger,
+with an explicit null clause - "if A is never short, the claim is wrong and nothing ships". Ran the
+report-only arm on 17 contests: the plain selector delivered N everywhere, B was identical, and the
+live Lineup Optimizer built 150 of 150 on the Vegas O'Reilly board at 100% exposure. So the 09-17
+note was wrong - what the operator saw was the E[max] number and the top lineup stop moving above
+~60, which is the objective working, not a short set. Closed in STATE; selector keeps opts.levels
+(default 1) and the replay keeps the arm. Lesson logged: an "open item" written from one observation
+without a measurement should say so.
+
 ## 2026-10-04 — Practice upload "RACE NUMBER MISMATCH: upload as R5" at Vegas R31; registry rows now created by the sync; Charlotte fall = OVAL
 Operator mid-upload: the practice guard said "R31 in the 2026 cup schedule is: no race. Las Vegas
 Motor Speedway is R5. OK = upload as R5". WRONG offer - R5 is the spring race. Cause: the guard reads

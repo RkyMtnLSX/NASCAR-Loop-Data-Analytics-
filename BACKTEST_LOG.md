@@ -7917,3 +7917,14 @@ DECISION RULE. Ship B (levels=3 default) if, summed over the races, B's total pr
 max(A, A-dup) AND at N=70 >= max(A, A-dup) x 0.95. If A is never short (delivers N everywhere), the
 saturation claim is wrong and nothing ships - logged as such. Written before the arm is run. PUSH
 before reading data.
+
+RESULT (run 2026-10-04, 17 races with contests, N = 70 and 100, 2,500 draws): arm A delivered N
+lineups at EVERY race and both sizes - it never saturated - so B was byte-identical to A (finished at
+level 1, 0 picks from levels 2-3) and every prize matched to the cent. Live-page check at the page's
+own 2,000 draws: O'Reilly Vegas board, 150 lineups at 100% max exposure -> "set of 150 chosen from
+3,750 candidates". DECISION: the null condition of the rule fires - THE SATURATION CLAIM WAS WRONG.
+Nothing ships. The 09-17 observation ("the optimal lineup peaks and doesn't change above 60") is the
+E[max] value and the top lineup plateauing as more lineups are added, which is what a best-of-N
+objective does - the later lineups add little to the expected best but are still delivered. The
+selector keeps opts.levels (default 1, untouched behaviour) and the replay keeps the arm as a cheap
+diagnostic; the STATE open item is closed as a misdiagnosis (mine, 09-17).
