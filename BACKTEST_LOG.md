@@ -8006,3 +8006,22 @@ DECISION RULE (stage 1). Clean Pace "proceeds to stage 2" (a registered sim inte
 if pooled |rho_a| >= |rho_b| + 0.02 and Clean Pace is not worse than rating in more than one of the
 three series. Otherwise it is logged and nothing further is built. Nothing ships from stage 1
 either way. Written before any lap is pulled. PUSH before reading data.
+
+RESULT (run 2026-10-04). Built clean_pace_race for 278 races 2024-26 (10,037 driver-races; the lap
+archive's season path cacher/{year}/{series}/{race}/lap-times.json holds every year, the live path
+only 2025-26). Joined to loop_data by series / year / race_number / name: 9,003 of 9,775 driver-rows
+matched (the rest are exhibition races with no race_number). Test set: 172 races in 2025-26 with a
+correlation group and >= 8 drivers carrying a trailing history; 5,884 driver-rows.
+POOLED SPEARMAN WITH FINISH: trailing Clean Pace .461, trailing driver_rating .479, trailing finish
+.436. By series - cup .403 / .414 / .380; O'Reilly .520 / .530 / .478; trucks .480 / .498 / .439.
+By group - Intermediate .523 / .533 / .508; Short & Flat .529 / .557 / .506; Road .446 / .457 / .410;
+Superspeedway .121 / .178 / .108. Per-race mean rho .455 vs .474; Clean Pace ranked the finish
+better than rating in 69 of 172 races (cup 24/66, O'Reilly 25/61, trucks 20/45).
+DECISION: FAILS stage 1 (needs rating + .02; it is rating - .018, and worse in all three series).
+Nothing further is built. READING: Clean Pace is a real predictor - clearly better than past finish
+everywhere - but driver_rating already carries the same speed information plus the things Clean Pace
+deliberately throws away (where the car actually ran, laps led, whether it finished), and those are
+predictive too: the "healthy laps only" filter trades a little bias for a lot of lost signal. The
+article's Reddick example (9th -> 4th) is the metric telling you a fast car crashed, which the sim's
+rating-plus-DNF structure already represents. Table and endpoint stay (type=cleanpace,
+clean_pace_race) - useful as a display stat and for any later test of a BLEND (not registered).

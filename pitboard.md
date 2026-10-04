@@ -3689,6 +3689,19 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
+## 2026-10-04 — Clean Pace (FLAGS-style) built from the lap archive and tested: predictive, but not more than driver rating
+Operator: "examine this guy's practice metric and see if we can't improve our practice stuff" (Action
+Network FLAGS: a healthy car's green laps vs the healthy field on the same lap). Named CLEAN PACE here
+(his name is his). Registered a stage-1 predictive test first, then built it: api type=cleanpace
+computes per race from lap-times.json + caution windows (racing laps, 3% healthy cut, deviation vs
+healthy median, >= 40% kept), table clean_pace_race, 278 races 2024-26 backfilled from the browser in
+~12 minutes. Result (BACKTEST_LOG): trailing Clean Pace ranks finishes at .461 vs driver_rating .479
+vs past finish .436, worse than rating in every series and group - FAILS, no sim integration. It beats
+"past finish" everywhere, so the article's idea is sound; it just does not add to what the sim's
+rating term already has. On practice: our grader already does the field-relative part (pit laps
+dropped, stint cleaning, time-of-session field residuals), so there was nothing to lift there. Three
+registrations today, three honest nulls; lap-archive path fix (season path first) shipped on the way.
+
 ## 2026-10-04 — Practice Report Card N-lap averages were wrong at double-visit tracks (Elliott 51.17 5-lap)
 Operator: "why are those averages so high? Chase Elliott, Blaney's 15-lap avg". Two causes, both
 fixed. (1) The Report Card's practice_laps read filtered by series / year / track / session but NOT
