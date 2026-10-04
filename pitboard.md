@@ -3689,6 +3689,19 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
+## 2026-10-04 — Ownership-aware GPP objective: registered, run, FAILED (does not ship)
+Operator: "run it". Form (BACKTEST_LOG 10-04): per draw, field lineup score from projected ownership
+(mean / variance, independent inclusion), candidate percentile Phi((S-F)/sqrt V), rank in the real
+contest, DK-like prize; the same E[max] selector on that prize matrix instead of points. 16 contests,
+N=20 and 70: B 230.7 vs A 231.1 and 724.7 vs 733.2 - below A on both, rule fails. The sets B built
+had the SAME mean projected ownership as A's (within 1 point at every race) - the objective never left
+the chalk. Why: the field score is a per-draw constant, so the prize is monotone in points inside a
+draw and only the draw weights move; and the candidate pool (top 2,000 by projection) hardly contains
+low-ownership lineups to choose. Lesson: the leverage idea needs the candidate pool to carry
+contrarian lineups first; the objective alone cannot conjure them. Logged; arm kept as a diagnostic.
+Two registrations today, two null results, both pushed before the data was read - that is the
+process working, and the product is unchanged by either.
+
 ## 2026-10-04 — E[max] "saturation" registered, measured, and found NOT to exist (open item closed)
 Operator: "let's fix the E[max] saturation". Registered first (BACKTEST_LOG 10-04): lexicographic
 continuation on second/third-best per draw, decision on realized prize at N=70/100 across the ledger,

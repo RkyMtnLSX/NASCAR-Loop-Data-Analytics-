@@ -7954,3 +7954,28 @@ DECISION RULE. Ship B as the GPP default if its total realized prize over the 17
 N = 20 and N = 70, and it is not below A in more than 10 of the 17 contests at N = 20 (a win driven
 by one contest does not ship). Otherwise it does not ship and the result is logged with the per-
 contest split. Written before the arm is run. PUSH before reading data.
+
+RESULT (run 2026-10-04, 16 contests - the ledger holds 16 with contests, not 17; O'Reilly R27 has
+none). Realized prize, entry-fee units, summed: N=20 A 231.1 vs B 230.7 (B ahead in 11 of 16, behind
+in 5); N=70 A 733.2 vs B 724.7 (B ahead in 7). Per contest N=20 (A -> B): cup30 7.4 -> 10.8,
+oreilly28 13.2 -> 5.7, cup28 17.5 -> 16.4, cup27 0 -> 3.7, oreilly26 6.4 -> 9.6, cup26 10.8 -> 12.1,
+cup25 5.0 -> 6.1, oreilly25 0 -> 1.6, oreilly24 6.4 -> 6.6, cup24 4.8 -> 4.1, oreilly23 6.6 -> 14.5,
+cup23 2.0 -> 5.0, trucks20 0 -> 2.2, trucks19 114.3 -> 107.1, trucks18 2.6 -> 2.7, trucks17 34.1 ->
+22.6. DECISION: FAILS the rule (B's total is below A at both sizes, by 0.2% and 1.2%). Does not ship.
+WHAT THE NUMBERS SAY. B's sets are barely different from A's: mean projected ownership of the set
+28.1% vs 27.9% (cup30), 28.2 vs 28.5 (oreilly28) - within a point everywhere - and the top exposures
+are the same cars at nearly the same rates. The objective did not move exposure off the chalk; it
+re-weighted draws. Two reasons, both structural and both visible only after running it: (1) within a
+draw the field score F[d] is one number for every candidate, so prize(rank) is MONOTONE in points
+within the draw - the best lineup per draw never changes, only how much each draw is worth, and the
+curve's convexity is not enough to overturn the points ranking; (2) the 2,000 candidates are the
+projection cut, which is chalk-dominated by construction (the 09-06 note: a top car sits in 70-100%
+of them), so a low-ownership lineup is rarely even available to pick. The leverage story (Kvapil at
+14% vs Sawalich at 64%) is real in the data but this form cannot express it on this candidate pool.
+B's many small wins and few large losses (oreilly28 -7.5, trucks17 -11.5) are the signature of a
+re-weighting that mostly adds noise. IF THIS IS TRIED AGAIN it needs a different registration: a
+candidate pool that includes low-projected-ownership lineups on purpose (the cap-diversification
+mechanism already does this for capped drivers), and an objective that is not monotone within a
+draw - e.g. field score sampled per candidate from ownership-conditional lineups, or the
+Portfolio's own-weighted leg rules measured on prize. Not registered today. Arm kept in DfsReplay as
+a diagnostic.
