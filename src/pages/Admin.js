@@ -2465,6 +2465,8 @@ export default function Admin() {
               lap_time: t,
               // 2026-08-14: per-lap capture timestamp from LAPS_RAW sheets (null for manual sheets)
               captured_at: (d.lapTs && d.lapTs[lapNum]) || null,
+              // 2026-10-04: watcher-reconstructed lap (feed skipped it). Vegas cup S1: 167 of 1,462 laps (11%).
+              est: (d.lapEst && d.lapEst[lapNum]) ? 1 : 0,
             })
           }
         }
@@ -2472,8 +2474,14 @@ export default function Admin() {
         if (lapRows.length > 0) {
           // Insert in batches of 500 to avoid request size limits
           for (let i = 0; i < lapRows.length; i += 500) {
-            const batch = lapRows.slice(i, i + 500)
-            const { error: lapErr } = await supabase.from('practice_laps').insert(batch)
+            let batch = lapRows.slice(i, i + 500)
+            let { error: lapErr } = await supabase.from('practice_laps').insert(batch)
+            // 2026-10-04: `est` column not migrated yet (sql/practice_laps_est.sql) - insert without it rather than
+            // silently dropping every lap of the session (the catch below only warns).
+            if (lapErr && /est/.test(lapErr.message || '') && /column|schema/i.test(lapErr.message || '')) {
+              batch = batch.map(({ est, ...rest }) => rest)
+              ;({ error: lapErr } = await supabase.from('practice_laps').insert(batch))
+            }
             if (lapErr) throw lapErr
           }
         }

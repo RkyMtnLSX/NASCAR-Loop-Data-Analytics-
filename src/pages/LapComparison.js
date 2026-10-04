@@ -12,18 +12,22 @@ const bestNAvg = (laps, n) => {
   if (!laps || laps.length < n) return null
   // 2026-10-04: split with the grader's rule (pit / in-out lap > 1.2 x driver median ends a run and is
   // dropped), not on lap-number gaps alone - a numbered 51 s pit lap was being averaged into windows.
+  const estOf = {}; laps.forEach(l => { if (l.est) estOf[l.lap] = 1 })
   const runs = parseStints(Object.fromEntries(laps.map(l => [l.lap, l.time]))).map(st => st.map(([lap, time]) => ({ lap, time })))
-  let best = null
+  // 2026-10-04: windows holding a watcher-estimated lap are a fallback only (returned as {avg, est:true}).
+  let best = null, bestAny = null
   runs.forEach(r => {
     if (r.length < n) return
-    let sum = 0
-    for (let i = 0; i < r.length; i++) {
-      sum += r[i].time
-      if (i >= n) sum -= r[i - n].time
-      if (i >= n - 1) { const avg = sum / n; if (best === null || avg < best) best = avg }
+    for (let i = 0; i + n <= r.length; i++) {
+      let sum = 0, hasEst = false
+      for (let j = 0; j < n; j++) { sum += r[i + j].time; if (estOf[r[i + j].lap]) hasEst = true }
+      const avg = sum / n
+      if (bestAny === null || avg < bestAny) bestAny = avg
+      if (!hasEst && (best === null || avg < best)) best = avg
     }
   })
-  return best
+  if (best !== null) return best
+  return bestAny === null ? null : { avg: bestAny, est: true }
 }
 
 const SERIES_COLOR = { cup: 'var(--series-cup)', oreilly: 'var(--series-oreilly)', xfinity: 'var(--series-oreilly)', trucks: 'var(--series-trucks)' }
@@ -143,7 +147,7 @@ export default function LapComparison({ isSubscriber }) {
       // number that grows with session length.
       const { data, error: err } = await fetchAllRows(() => supabase
         .from('practice_laps')
-        .select('driver_name, car_number, lap_number, lap_time, starting_position')
+        .select('driver_name, car_number, lap_number, lap_time, starting_position, est')
         .eq('series', selectedSession.series)
         .eq('year', selectedSession.year)
         .eq('track_name', selectedSession.track_name)
@@ -203,7 +207,7 @@ export default function LapComparison({ isSubscriber }) {
         if (!map[row.driver_name]) {
           map[row.driver_name] = { driver_name: row.driver_name, car_number: row.car_number || entryMap[__nn(row.driver_name)] || loopMap[__nn(row.driver_name)] || null, starting_position: (row.starting_position != null ? row.starting_position : loopStart[__nn(row.driver_name)]), laps: [], practice_group: __grpMap[__nn(row.driver_name)] || null }
         }
-        map[row.driver_name].laps.push({ lap: row.lap_number, time: row.lap_time })
+        map[row.driver_name].laps.push({ lap: row.lap_number, time: row.lap_time, est: row.est ? 1 : 0 })
       }
 
       // Filter pit/outlaps: any lap > 1.5x the driver's best is a pit stop lap
@@ -510,7 +514,7 @@ CREATE INDEX ON practice_laps (series, year, track_name, session_number);`}</pre
                                 <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{times.length}</td>
                                 <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--accent-text)', fontWeight: 600 }}>{fmtTime(best)}</td>
                                 <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{fmtTime(avg)}</td>
-                                {[5, 10, 15].map(n => { const v = bestNAvg(d.laps, n); return (<td key={n} style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>{v != null ? fmtTime(v) : '--'}</td>) })}
+                                {[5, 10, 15].map(n => { const v = bestNAvg(d.laps, n); return (<td key={n} style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }} title={v && v.est ? 'Includes a watcher-estimated lap - no clean ' + n + '-lap run' : undefined}>{v == null ? '--' : (v.est ? '~' + fmtTime(v.avg) : fmtTime(v))}</td>) })}
                                 
                               </tr>
                             )

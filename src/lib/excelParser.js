@@ -87,6 +87,7 @@ export function parsePracticeExcel(file, series = 'cup') {
             const rr = XLSX.utils.sheet_to_json(workbook.Sheets[rawName], { header: 1 })
             const hdr = (rr[0] || []).map(h => String(h || '').trim().toLowerCase())
             const di = hdr.indexOf('driver'), li = hdr.indexOf('lap'), ti = hdr.indexOf('lap_time'), ci = hdr.indexOf('captured_at')
+            const ei = hdr.indexOf('est')   // 2026-10-04: 1 = lap reconstructed by the watcher (feed skipped it; even split of the elapsed delta)
             if (di !== -1 && li !== -1 && ti !== -1) {
               const byDrv = {}
               for (let ri = 1; ri < rr.length; ri++) {
@@ -95,16 +96,17 @@ export function parsePracticeExcel(file, series = 'cup') {
                 const ln = parseInt(row[li])
                 const tv = parseFloat(row[ti])
                 if (!nm || isNaN(ln) || isNaN(tv) || tv < 10 || tv > 500) continue
-                const b = byDrv[nm] = byDrv[nm] || { lapData: {}, lapTs: {} }
+                const b = byDrv[nm] = byDrv[nm] || { lapData: {}, lapTs: {}, lapEst: {} }
                 b.lapData[ln] = tv
                 if (ci !== -1 && row[ci]) b.lapTs[ln] = String(row[ci])
+                if (ei !== -1 && String(row[ei]).trim() === '1') b.lapEst[ln] = 1
               }
               const nrm = x => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '')
               const rawIdx = {}
               Object.keys(byDrv).forEach(k => { rawIdx[nrm(k)] = byDrv[k] })
               drivers.forEach(d => {
                 const hit = rawIdx[nrm(d.driver)]
-                if (hit && Object.keys(hit.lapData).length > 0) { d.lapData = hit.lapData; d.lapTs = hit.lapTs }
+                if (hit && Object.keys(hit.lapData).length > 0) { d.lapData = hit.lapData; d.lapTs = hit.lapTs; d.lapEst = hit.lapEst }
               })
             }
           }

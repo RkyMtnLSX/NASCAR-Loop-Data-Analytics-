@@ -3689,6 +3689,26 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
+## 2026-10-04 — Practice vs NASCAR's own numbers: best laps identical; the real gap is ESTIMATED laps (now carried through)
+Operator: compare our practice data with nascar.com's live-results practice tab. RESULT: all 36 best
+laps identical to the thousandth (Byron 29.632 ... Berry 30.339). NASCAR's lap counts run 2-3 higher
+per driver because they number garage visits (Byron lap 15 = 390 s, lap 27 = 745 s) that the sheet
+builder drops at 300 s on purpose - nothing is lost. CORRECTION to what I said earlier today: the
+watcher polls every 4 s (ACTIVE_POLL), not 45; the ~33 s spacing in captured_at is NASCAR's live feed
+refreshing about once per lap during practice. Faster polling cannot help.
+THE REAL ISSUE: at ~30 s laps and ~33 s refreshes, cars often complete two laps between refreshes;
+the watcher reconstructs the skipped lap from the elapsed-time delta (even split, exact sum) and flags
+it est=1 in the CSV - Vegas cup S1: 167 of 1,462 laps (11%), e.g. Larson lap 15 "30.797". The flag
+never reached the site, so the grader and the N-lap windows treated estimates as measured laps.
+SHIPPED: pitboard_practice_sheet.py (his PC, NascarDataScrapperV3) writes est into LAPS_RAW; the
+parser carries lapEst; the uploader stores practice_laps.est (sql/practice_laps_est.sql; the insert
+falls back without the column until it exists); Report Card and Lap Comparison compute best-N over
+windows with NO estimated lap and fall back to an estimated window shown as ~x.xx with a tooltip.
+Best laps are unaffected (best-lap recovery is exact). The grader's stint means are unaffected
+(an even split preserves the mean); slopes/std are slightly smoothed - noted, not changed.
+BACKFILL: est for every session with a *_laps_FULL.csv on the PC (08-08 onward) is a browser job -
+Vegas cup/O'Reilly first. The Vegas cup SHEET.xlsx was regenerated with the est column.
+
 ## 2026-10-04 — CLV ledger brought current from odds_snapshots (pre-board flags -> post-board paste), 15 races
 Operator: "I haven't been logging CLV after the last few races but we store it". clv_log stops at
 Darlington R27 pre (09-03). Recomputed the automated version for every 2026 board: bet price = the
