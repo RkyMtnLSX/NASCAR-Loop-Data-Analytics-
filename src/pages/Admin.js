@@ -2307,7 +2307,16 @@ export default function Admin() {
         .eq('year', year).eq('series', series).eq('track_name', trackName)
       const { data: rnRaces } = await supabase.from('races').select('track_name')
         .eq('year', year).eq('series', series).eq('race_number', rn)
-      const exactMatch = (trackRaces || []).some(r => String(r.race_number) === String(rn))
+      let exactMatch = (trackRaces || []).some(r => String(r.race_number) === String(rn))
+      // 2026-10-04: a second visit (Vegas fall R31) with only the spring row in `races` made this guard
+      // offer "upload as R5". If the Weekend Config says this track IS this race number, that is the
+      // answer - accept it and let the stub-race logic below create the registry row.
+      if (!exactMatch) {
+        try {
+          const { data: __fw } = await supabase.from('featured_weekend').select('track_name,race_number').eq('series', series).limit(1)
+          if (__fw && __fw[0] && __fw[0].track_name === trackName && String(__fw[0].race_number) === String(rn)) exactMatch = true
+        } catch (e) { /* guard stays strict */ }
+      }
       if (!exactMatch) {
         const trackNums = [...new Set((trackRaces || []).map(r => parseInt(r.race_number)).filter(Boolean))].sort((a, b) => a - b)
         const other = (rnRaces || []).map(r => r.track_name).join(', ') || 'no race'

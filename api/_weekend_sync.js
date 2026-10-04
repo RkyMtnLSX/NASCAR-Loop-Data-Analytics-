@@ -54,6 +54,28 @@ module.exports = async function handler(req, res) {
       }
       result[series] = { action: dry ? 'would-set' : 'set', from: c.track_name ? `${c.track_label || c.track_name} R${c.race_number}` : null, to: `${p.track_label} R${p.race_number} · ${p.total_laps} laps · stages ${p.stage1_laps}/${p.stage2_laps} · ${p.race_date}`, overridesCleared: raceChanged }
     }
+    // 2026-10-04: make sure the races REGISTRY has a row for every featured race. The practice uploader's
+    // race-number guard reads `races`; at a second visit (Las Vegas fall = cup R31) only the spring row
+    // existed, so the guard offered "upload as R5" - wrong. Rows for a race that has not run yet are
+    // exactly what the O'Reilly schedule already had (Phoenix R30 etc.); cup lacked them. Insert-if-
+    // missing from the schedule: name, date, nascar id, laps, stage lengths (stage_*_end are generated).
+    const RR = { cup: 'W', oreilly: 'B', trucks: 'C' }
+    const registry = {}
+    for (const series of Object.keys(proposed)) {
+      const p = proposed[series]
+      if (!p.ok || !p.race_number) continue
+      try {
+        const { data: have } = await sb.from('races').select('id').eq('series', series).eq('year', year).eq('race_number', p.race_number).limit(1)
+        if (have && have.length) { registry[series] = 'exists'; continue }
+        const row = {
+          race_name: p.race_name, series, year, race_number: p.race_number, track_name: p.track_name, race_date: p.race_date || null,
+          racing_reference_id: `${year}-${String(p.race_number).padStart(2, '0')}-${RR[series]}`, nascar_race_id: p.nascar_race_id,
+          scheduled_laps: p.total_laps, stage_1_laps: p.stage1_laps, stage_2_laps: p.stage2_laps - p.stage1_laps, stage_3_laps: p.total_laps - p.stage2_laps, exhibition: false,
+        }
+        if (!dry) { const { error } = await sb.from('races').insert(row); if (error) throw error }
+        registry[series] = (dry ? 'would-create ' : 'created ') + `R${p.race_number} ${p.track_label}`
+      } catch (e) { registry[series] = 'error: ' + e.message }
+    }
     // 2026-10-03: entry list / qualifying draw / qualifying result from the same feed, per series, every
     // run (daily now, twice a day via vercel.json). Idempotent upserts, never deletes, skips a race
     // that has already run. Uses the PROPOSED race (= the config after this run).
@@ -67,7 +89,7 @@ module.exports = async function handler(req, res) {
         loads[series] = { race: `${p.track_label} R${p.race_number}`, ...(await B.applyBundle(sb, { series, year, race_number: p.race_number, track_name: p.track_name }, b, { dry })) }
       } catch (e) { loads[series] = { error: e.message } }
     }
-    return res.status(200).json({ ok: true, dry, year, result, loads })
+    return res.status(200).json({ ok: true, dry, year, result, registry, loads })
   } catch (e) {
     return res.status(502).json({ error: e.message })
   }

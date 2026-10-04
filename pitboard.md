@@ -3689,6 +3689,21 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
+## 2026-10-04 — Practice upload "RACE NUMBER MISMATCH: upload as R5" at Vegas R31; registry rows now created by the sync; Charlotte fall = OVAL
+Operator mid-upload: the practice guard said "R31 in the 2026 cup schedule is: no race. Las Vegas
+Motor Speedway is R5. OK = upload as R5". WRONG offer - R5 is the spring race. Cause: the guard reads
+the `races` registry and cup had no rows past R30 (the O'Reilly schedule had been seeded ahead -
+Phoenix R30 etc. - cup had not), so the only Vegas row was spring. Told him Cancel; inserted cup 2026
+R31 (South Point 400, 5630, 267 laps, 80/85/102; stage_*_end are GENERATED columns - do not insert
+them) and he re-uploaded as R31. FIXES SHIPPED: (1) the daily sync creates the registry row for every
+featured race that is missing it (from the schedule: name, date, nascar id, laps, stage lengths,
+racing_reference_id year-RR-W/B/C) and reports it as `registry`; (2) the practice guard accepts the
+race number when the Weekend Config says this track IS this number, instead of offering the other
+visit. CHARLOTTE FALL 2026 IS THE OVAL for all three series (NASCAR schedule: cup Bank of America 400
+267 laps / 400.5 mi, O'Reilly Blue Cross NC 300 200 laps, trucks Ecosave 200 167 laps / 250.5 mi) -
+the pre-seeded rows said "Charlotte Motor Speedway Road Course" with wrong laps; corrected trucks R21
+and O'Reilly R29 to the oval. The schedule sync had already set trucks to the oval correctly.
+
 ## 2026-10-04 — First unattended sync verified; DFS O'Reilly Las Vegas R28 replay (N=20, 9,512-entry contest, Operator 70)
 SYNC: the 23:00 UTC run fired at 23:44 UTC (Hobby jitter, as documented) and did everything on its own:
 trucks config Kansas R20 -> Charlotte R21 (overrides cleared), cup + O'Reilly Vegas qualifying AND draw
