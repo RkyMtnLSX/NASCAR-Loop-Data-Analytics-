@@ -8025,3 +8025,16 @@ predictive too: the "healthy laps only" filter trades a little bias for a lot of
 article's Reddick example (9th -> 4th) is the metric telling you a fast car crashed, which the sim's
 rating-plus-DNF structure already represents. Table and endpoint stay (type=cleanpace,
 clean_pace_race) - useful as a display stat and for any later test of a BLEND (not registered).
+
+## 2026-10-04 — REGISTRATION: Clean Pace + driver rating BLEND (stage 1b)
+TRIGGER. Operator, after the stage-1 null: "try rating plus clean pace blend". Clean Pace alone .461
+vs rating .479; the question is whether it carries anything rating does not.
+FROZEN FORM. Same test set and trailing means as stage 1 (172 races 2025-26, same-series same-group
+last-10 history, >= 8 drivers). Within each race, convert trailing rating (higher = better) and
+trailing Clean Pace (lower = better) to percentile ranks among that race's test drivers (ties
+averaged). Blend_w = w x pct_cleanpace + (1 - w) x pct_rating. PRIMARY w = 0.5. Also reported, not
+decisive: w = 0.25 and 0.75, and rating-only / Clean-Pace-only on the same percentile basis.
+Score = pooled Spearman with finish, plus by series and per-race mean.
+DECISION RULE. The blend proceeds to a stage-2 sim registration if Blend_0.5 pooled rho >= rating
+pooled rho + 0.01 AND it is not below rating in more than one of the three series. Otherwise logged,
+nothing further. Written before running. PUSH before reading data.
