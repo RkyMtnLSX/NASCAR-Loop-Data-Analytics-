@@ -497,11 +497,34 @@ export default function DfsReplay() {
       const same = cash.drivers.map(d => d.name).sort().join('|') === gpp.drivers.map(d => d.name).sort().join('|')
       const verdict = same ? 'tie' : (gpp.actual > cash.actual ? 'gpp' : gpp.actual < cash.actual ? 'cash' : 'tie')
 
+      // ---- SATURATION ARM (2026-10-04, BACKTEST_LOG "E[max] set continuation"; report only, not saved).
+      // A = levels 1 (ships), A-dup = A filled to N with duplicates of its first pick, B = levels 3.
+      // Same candidates / draws / ladder / curve as the operator-N block. N = 70 and 100.
+      let saturation = null
+      try {
+        if (ent) {
+          const __E3 = ent
+          const __prize3 = (() => { const R = Math.floor(0.2 * __E3); let Z = 0; for (let r = 1; r <= R; r++) Z += Math.pow(r, -0.75); return r => (__E3 && r >= 1 && r <= R) ? __E3 * Math.pow(r, -0.75) / Z : 0 })()
+          const __score3 = (lus) => lus.reduce((s2, ns) => { const a = ns.reduce((t, n) => t + byName[n].actual, 0); const p = placeIn(ladder, __E3, a, topScores); return s2 + (p.rank ? __prize3(p.rank) : 0) }, 0)
+          saturation = { byN: {} }
+          ;[70, 100].forEach(N => {
+            const sA = makeEmaxSelector(nC2, nD2, Smat, N, cands, () => Infinity, DFS_ROSTER, { levels: 1 }); sA.step(0)
+            const sB = makeEmaxSelector(nC2, nD2, Smat, N, cands, () => Infinity, DFS_ROSTER, { levels: 3 }); sB.step(0)
+            const A = sA.chosen.map(c2 => cands[c2]), B = sB.chosen.map(c2 => cands[c2])
+            const dupFill = A.length && A.length < N ? Array.from({ length: N - A.length }, () => A[0]) : []
+            saturation.byN[N] = {
+              aDelivered: A.length, aPrize: +__score3(A).toFixed(3), aDupPrize: +__score3(A.concat(dupFill)).toFixed(3),
+              bDelivered: B.length, bPrize: +__score3(B).toFixed(3), bLevel: sB.level, bLevelPicks: sB.levelPicks,
+            }
+          })
+        }
+      } catch (e) { saturation = { error: String((e && e.message) || e) } }
+
       setRes({
         series: sr, year, race, track: trk, samplesAt: samp.created_at, boardAt: board && board.published_at, stage: board && board.stage,
         nDraws: nD, nPool: pool.length, nCands: cands.length, nScoreDraws: nS,
         cash, gpp, alt, perfect, contest, cal, verdict, unmatched, same,
-        setN: setIdx.length, setUniq: setUniq.size, setEmax: sel.emax(), wantN: selN, portfolio, operator,
+        setN: setIdx.length, setUniq: setUniq.size, setEmax: sel.emax(), wantN: selN, portfolio, operator, saturation,
       })
       setProg('')
       setMsg((topScores ? 'Exact placement (top ' + topScores.length + ' scores stored). ' : 'DECILE placement only - re-upload this contest\'s standings file after running sql/dfs_operator_entries.sql for exact ranks. ') + 'Done. ' + cands.length.toLocaleString() + ' candidates, ' + nS.toLocaleString() +
@@ -653,6 +676,12 @@ export default function DfsReplay() {
               {o.preset.why.length ? ' · preset short: ' + o.preset.why.join(' | ') : ''}
             </div>) })()}
           {res.portfolio && res.portfolio.operator && res.portfolio.operator.error && <div style={{ fontSize: 12, color: '#f5a623', marginBottom: 10 }}>Operator arm failed: {res.portfolio.operator.error}</div>}
+          {res.saturation && !res.saturation.error && (() => { const b = res.saturation.byN; return (
+            <div id="saturation-arm" style={{ fontSize: 12, color: 'var(--text-secondary, #9aa0aa)', marginBottom: 10, padding: '6px 10px', border: '1px dashed var(--border, #22252b)', borderRadius: 6 }}>
+              <strong style={{ color: 'var(--text-primary, #e8eaed)' }}>Saturation arm</strong> (report only, not saved) ·
+              {[70, 100].map(N => { const r = b[N]; return r ? <span key={N}> N={N}: A {r.aDelivered} lineups prize <b>{r.aPrize}</b> (dup-filled {r.aDupPrize}) · B {r.bDelivered} lineups prize <b>{r.bPrize}</b> (finished at level {r.bLevel}, picks by level {r.bLevelPicks.join('/')}) ·</span> : null })}
+            </div>) })()}
+          {res.saturation && res.saturation.error && <div style={{ fontSize: 12, color: '#f5a623', marginBottom: 10 }}>Saturation arm failed: {res.saturation.error}</div>}
           <div style={{ ...lbl, marginBottom: 14 }}>ρ = Spearman of each ranking against actual DK points. Ownership above the model means the crowd out-ranked us.</div>
         </div>
       )}

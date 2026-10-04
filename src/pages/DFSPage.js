@@ -175,9 +175,18 @@ export function enforceMinExposure(picked, want, maxExp, locks, pool, excludes, 
 // (submodular) and has no tuning parameter: at N=1 it returns the highest-mean lineup.
 // Resumable by design - step(budgetMs) returns false while there is more to do, so the page can
 // yield to the browser between picks and the admin replay can just loop until done.
-export function makeEmaxSelector(nC, nD, Smat, want, cands, capOf, roster) {
+// 2026-10-04 (BACKTEST_LOG registration "E[max] set continuation"): opts.levels. Level 1 is the gain on
+// each draw's best (unchanged). When no candidate improves any draw the set used to STOP; with
+// levels >= 2 it continues on the SECOND-best per draw (gain2 = sum max(0, min(v, best1) - best2)),
+// then the third. Picks while level 1 has positive gain are byte-identical to before. Default 1
+// until the registered arm decides; `level` and `levelPicks` are exposed for the replay arm.
+export function makeEmaxSelector(nC, nD, Smat, want, cands, capOf, roster, opts) {
   const R = roster || ROSTER
+  const LEVELS = Math.max(1, Math.min(3, (opts && opts.levels) || 1))
   const best = new Float32Array(nD)
+  const best2 = new Float32Array(nD), best3 = new Float32Array(nD)
+  let level = 1
+  const levelPicks = [0, 0, 0]
   const taken = new Uint8Array(nC)
   const bound = new Float64Array(nC).fill(Infinity)
   const stale = new Uint8Array(nC).fill(1)
@@ -196,9 +205,12 @@ export function makeEmaxSelector(nC, nD, Smat, want, cands, capOf, roster) {
     }
   }
   const gainOf = c => { let g = 0; const off = c * nD
-    for (let d = 0; d < nD; d++) { const v = Smat[off + d] - best[d]; if (v > 0) g += v }
+    if (level === 1) { for (let d = 0; d < nD; d++) { const v = Smat[off + d] - best[d]; if (v > 0) g += v } }
+    else if (level === 2) { for (let d = 0; d < nD; d++) { let v = Smat[off + d]; if (v > best[d]) v = best[d]; v -= best2[d]; if (v > 0) g += v } }
+    else { for (let d = 0; d < nD; d++) { let v = Smat[off + d]; if (v > best2[d]) v = best2[d]; v -= best3[d]; if (v > 0) g += v } }
     return g }
   refreshOk()
+  const top0 = () => { for (let c = 0; c < nC; c++) if (ok[c]) return c; return -1 }
   const pickOne = () => {
     let pick = -1
     for (;;) {
@@ -211,10 +223,20 @@ export function makeEmaxSelector(nC, nD, Smat, want, cands, capOf, roster) {
       for (let c = 0; c < nC; c++) { if (!ok[c] || c === top) continue; if (bound[c] > sec) sec = bound[c] }
       if (g >= sec) { pick = top; break }
     }
-    if (pick < 0 || bound[pick] <= 0) return false
-    taken[pick] = 1; chosen.push(pick)
+    if (pick < 0 || bound[pick] <= 0) {
+      // Saturated at this level. Continue one level down (second-best, then third-best) if allowed.
+      if (level >= LEVELS || pick < 0 && top0() < 0) return false
+      level++; bound.fill(Infinity); stale.fill(1)
+      return pickOne()
+    }
+    taken[pick] = 1; chosen.push(pick); levelPicks[level - 1]++
     const off = pick * nD
-    for (let d = 0; d < nD; d++) { const v = Smat[off + d]; if (v > best[d]) best[d] = v }
+    for (let d = 0; d < nD; d++) {
+      const v = Smat[off + d]
+      if (v > best[d]) { best3[d] = best2[d]; best2[d] = best[d]; best[d] = v }
+      else if (v > best2[d]) { best3[d] = best2[d]; best2[d] = v }
+      else if (v > best3[d]) best3[d] = v
+    }
     cands[pick].forEach(nm => { used[nm] = (used[nm] || 0) + 1 })
     for (let i = 0; i < nC; i++) stale[i] = 1
     refreshOk()
@@ -231,6 +253,7 @@ export function makeEmaxSelector(nC, nD, Smat, want, cands, capOf, roster) {
       return true
     },
     emax() { let e = 0; for (let d = 0; d < nD; d++) e += best[d]; return e / nD },
+    get level() { return level }, get levelPicks() { return levelPicks.slice() },
     // 2026-09-06 (portfolio round-robin): one pick at a time, a cap refresh when the world outside
     // this selector changed (another leg's picks moved the portfolio cap), and a ban so a lineup
     // taken by another leg can never be chosen here. Pure additions - step() is untouched.

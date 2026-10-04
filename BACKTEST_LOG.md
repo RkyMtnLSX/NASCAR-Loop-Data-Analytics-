@@ -7890,3 +7890,30 @@ no practice -> no market fills exist), so it cannot score worse than what ran; i
 no-practice boards with odds loaded is UNMEASURED and is argued from consistency (the same missing
 information must not be two different numbers). (Operator, same day: FMV is published every race regardless of practice - the board is never
 withheld; the live no-practice effect stays an open measurement, not a publishing rule.)
+
+## 2026-10-04 — REGISTRATION: E[max] set continuation (second-best / third-best) above the saturation point
+TRIGGER. Operator 09-17: "if I increase the amount of lineups over 60 the optimal lineup it produces
+peaks and doesn't change"; STATE open item since. The E[max] selector adds the candidate with the
+largest sum over draws of (score - best-so-far)+; once every draw's best is attained by some chosen
+lineup, every candidate's gain is 0 and pickOne() returns false - the set stops. At 100% max exposure
+topUpLineups returns early, so the product delivers fewer lineups than asked. The operator entered 70
+(Vegas O'Reilly) and 80 (Bristol trucks); the "at the operator's N" rows compare against a set that
+may be short and are flattered by dividing prize by delivered entries.
+FROZEN FORM (lexicographic continuation). makeEmaxSelector(..., opts.levels = 3): level 1 is the
+existing gain on best1 (byte-identical picks while any candidate improves any draw). When no
+candidate has positive level-1 gain, continue at level 2: gain2(c) = sum over draws of
+max(0, min(score, best1[d]) - best2[d]) - the lineup that most raises the SECOND-best score across
+draws; when that saturates, level 3 on best3. On each commit every draw's top-3 is updated. emax()
+stays level 1. No change to candidates, draws, caps, top-up or minimum-exposure enforcement.
+ARMS. A = levels 1 (what ships: set as delivered, which may be short of N); A-dup = A filled to N
+with duplicates of its FIRST pick (what an operator who noticed the short set would most likely do);
+B = levels 3. Same candidates, same draws, same ladder and prize curve as the replay page (DK-like
+top-heavy curve, prize at exact rank). Sizes N = 70 and N = 100 (the operator's real range).
+Races: every replayable race in the ledger with stored draws and an uploaded contest (11 as of
+10-04). Harness: a report-only arm in DfsReplay (same pattern as the 09-13 preset arm), one line per
+race: A delivered / A prize / A-dup prize / B delivered / B prize at each N, plus the level at which B
+finished and B's lineup count that came from levels 2-3.
+DECISION RULE. Ship B (levels=3 default) if, summed over the races, B's total prize at N=100 >=
+max(A, A-dup) AND at N=70 >= max(A, A-dup) x 0.95. If A is never short (delivers N everywhere), the
+saturation claim is wrong and nothing ships - logged as such. Written before the arm is run. PUSH
+before reading data.
