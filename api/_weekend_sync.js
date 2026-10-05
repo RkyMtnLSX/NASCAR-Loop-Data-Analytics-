@@ -59,8 +59,7 @@ module.exports = async function handler(req, res) {
     // existed, so the guard offered "upload as R5" - wrong. Rows for a race that has not run yet are
     // exactly what the O'Reilly schedule already had (Phoenix R30 etc.); cup lacked them. Insert-if-
     // missing from the schedule: name, date, nascar id, laps, stage lengths (stage_*_end are generated).
-    const RR = { cup: 'W', oreilly: 'B', trucks: 'C' }
-    const registry = {}
+        const registry = {}
     for (const series of Object.keys(proposed)) {
       const p = proposed[series]
       if (!p.ok || !p.race_number) continue
@@ -69,7 +68,10 @@ module.exports = async function handler(req, res) {
         if (have && have.length) { registry[series] = 'exists'; continue }
         const row = {
           race_name: p.race_name, series, year, race_number: p.race_number, track_name: p.track_name, race_date: p.race_date || null,
-          racing_reference_id: `${year}-${String(p.race_number).padStart(2, '0')}-${RR[series]}`, nascar_race_id: p.nascar_race_id,
+          // racing_reference_id stays NULL until the race loader writes it: the loader's "already loaded"
+          // check and the Load Data status strip both key on it (Vegas R31 2026-10-04: a pre-filled id
+          // made the strip say "up to date" and the loader refuse the real load).
+          racing_reference_id: null, nascar_race_id: p.nascar_race_id,
           scheduled_laps: p.total_laps, stage_1_laps: p.stage1_laps, stage_2_laps: p.stage2_laps - p.stage1_laps, stage_3_laps: p.total_laps - p.stage2_laps, exhibition: false,
         }
         if (!dry) { const { error } = await sb.from('races').insert(row); if (error) throw error }

@@ -3689,6 +3689,17 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
+## 2026-10-05 — "Race not found in loop data" after Vegas Cup: the registry row I created looked like a loaded race
+Operator: Grade Center said the race was not in loop data while Load Data's status strip said cup
+was "up to date" with R31. Cause: both the status strip and the race loader's "already loaded" check
+key on races.racing_reference_id, and the registry row the sync (and I, by hand on 10-04) created
+for Vegas R31 pre-filled it ('2026-31-W'). The strip counted it as loaded; worse, the loader would
+have REFUSED the real load as a duplicate. Zero loop_data rows existed. FIXED: the sync writes
+racing_reference_id NULL on registry rows (the loader sets it when it loads); the strip and the dupe
+check require total_laps NOT NULL (a real load); the stub-adoption query likewise. Repaired the R31
+row (RR id -> null) and loaded Cup Vegas from the feed: 36 drivers, 267 laps, 4 cautions, Briscoe
+won from P4 (175 led). The automations otherwise worked end to end on their first weekend.
+
 ## 2026-10-04 — Practice vs NASCAR's own numbers: best laps identical; the real gap is ESTIMATED laps (now carried through)
 Operator: compare our practice data with nascar.com's live-results practice tab. RESULT: all 36 best
 laps identical to the thousandth (Byron 29.632 ... Berry 30.339). NASCAR's lap counts run 2-3 higher

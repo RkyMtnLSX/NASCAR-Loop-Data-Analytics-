@@ -61,7 +61,7 @@ function LoadedStatus({ year, tick }) {
     let live = true
     setRows(null)
     supabase.from('races').select('series, race_number, track_name, race_date')
-      .eq('year', parseInt(year, 10)).not('racing_reference_id', 'is', null)
+      .eq('year', parseInt(year, 10)).not('racing_reference_id', 'is', null).not('total_laps', 'is', null)   // 2026-10-05: a registry row is not a load
       .order('race_number', { ascending: false }).limit(200)
       .then(({ data }) => { if (live) setRows(data || []) })
     feed({ type: 'schedule', year }).then(j => { if (live) setSched(j.races || []) }).catch(() => { if (live) setSched([]) })
@@ -168,13 +168,13 @@ export function LoadRaceFromFeed() {
       const rrId = `${year}-${String(raceNum).padStart(2, '0')}-${seriesCode}`
 
       const { data: dupe } = await supabase.from('races').select('id, track_name')
-        .eq('racing_reference_id', rrId).maybeSingle()
+        .eq('racing_reference_id', rrId).not('total_laps', 'is', null).maybeSingle()   // 2026-10-05: a registry row with no results is not "already loaded"
       if (dupe) { setStatus({ err: `Already loaded: ${dupe.track_name} ${year} (${rrId})` }); return }
 
       // Adopt a stub row the practice uploader may have created for this weekend.
       const { data: stubs } = await supabase.from('races').select('id')
         .eq('series', series).eq('year', parseInt(year, 10)).eq('track_name', race.track_name)
-        .eq('race_number', parseInt(raceNum, 10)).is('racing_reference_url', null)
+        .eq('race_number', parseInt(raceNum, 10)).is('racing_reference_url', null).is('total_laps', null)
         .order('id', { ascending: true })
       const stubId = stubs && stubs.length ? stubs[0].id : null
 
