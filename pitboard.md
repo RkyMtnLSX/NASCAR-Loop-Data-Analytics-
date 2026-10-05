@@ -3717,8 +3717,14 @@ falls back without the column until it exists); Report Card and Lap Comparison c
 windows with NO estimated lap and fall back to an estimated window shown as ~x.xx with a tooltip.
 Best laps are unaffected (best-lap recovery is exact). The grader's stint means are unaffected
 (an even split preserves the mean); slopes/std are slightly smoothed - noted, not changed.
-BACKFILL: est for every session with a *_laps_FULL.csv on the PC (08-08 onward) is a browser job -
-Vegas cup/O'Reilly first. The Vegas cup SHEET.xlsx was regenerated with the est column.
+BACKFILL DONE 10-05 (sql/practice_laps_est.sql run; keys committed as
+scripts/backtest-data/practice_est_keys_2026.json and applied from the browser): cup Iowa R23 602/615,
+O'Reilly Iowa 78/82, cup Richmond R24 411/412, trucks Richmond R17 438/451, cup NH R25 294/294,
+O'Reilly Darlington R25 166/166, trucks Bristol R19 1,025/1,025, cup Vegas R31 167/167, O'Reilly
+Vegas R28 91/91 - 3,272 laps flagged. THE RATE IS THE STORY: Bristol trucks 44% of laps estimated
+(15 s laps vs ~33 s feed), Iowa cup 28%, Richmond 27%, intermediates ~11%. At short tracks nearly
+half the practice laps the grader has been reading are two-lap averages - exact in sum, smoothed in
+shape. Best laps are exact everywhere. Unmatched handfuls are > 300 s laps the sheet drops.
 
 ## 2026-10-04 — CLV ledger brought current from odds_snapshots (pre-board flags -> post-board paste), 15 races
 Operator: "I haven't been logging CLV after the last few races but we store it". clv_log stops at
