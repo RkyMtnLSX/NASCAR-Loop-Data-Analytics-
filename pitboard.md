@@ -3689,6 +3689,43 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
+## 2026-10-05 — Cup Las Vegas R31 (South Point 400): board check on Briscoe; DFS replay with 3 real contests (69 operator entries)
+Operator: "we had Briscoe 8% to win I believe and his best odds after practice was like 8-1; also run
+DFS replay" + three contest-standings files: two optimizer-built (20 entries in #196227899, 9,512
+field; 48 in #196227891, 19,024 field) and one hand-built single entry (#196227902, 588 field).
+BOARD (sim_results cup 2026 R31): PRE (10-03 18:31 UTC) Briscoe win 6.2%, top-5 32, proj finish 13,
+start P10, best +800 (DK/FD/HR all 800), medge -1.74 - no flag. POST (10-04 20:41 UTC, after practice
++ qualifying P4) win 8.5%, top-5 44.5, proj finish 10.8, best +800 (FD 700), medge +0.36 - a hair
+positive, not a play at his floor. He was the sim's 4th-5th winner (Hamlin 22.9 / Larson 22.2 / Byron
+16.6 / Briscoe 8.5 = Reddick 8.5 / Bell 8.1). The post board's real flags were Larson (medge +8.9 at
++410) and Byron (+11.0 at +1200): Larson finished 2nd (51.4 DK), Byron 6th. So the 8% / 8-1 memory
+is right and the sim had him priced at fair, not under: an +800 winner at 8.5% is a push, not a miss.
+DFS REPLAY (N=20, ladder = the 9,512 contest, exact placement): contest median 198.15, winner 347.15;
+PERFECT 370.25 (Briscoe 116.5 / Blaney 60.55 / Cindric 54.4 / SVG 51.9 / Logano 47.9 / Gragson 39) -
+nobody drew it this week. Cash 193.10 (5,176th, below the median: Hamlin P1 -> 16 at 56% owned, Zilisch
+2.0) vs GPP best-of-20 292.95 (329th, p96.6: Briscoe / Larson / Byron / Bowman / Allmendinger / E.
+Jones) - GPP by 99.85, ledger GPP 12 / cash 3 / tie 2. #2 277.80, #3 277.55. Portfolio rules ON 124.3
+vs 66.1 for 3 x the E[max] set - WIN (best entry p99.6); Portfolio ledger 5 / 4. rho salary .573 /
+model .452 / own .346 - salary first, model second, ownership last (the field was on Hamlin 56%, who
+finished 16th). Preset arm REF 124.28 / PRESET 51.96 / NULL 103.56 - 09-13 CLOSED stands.
+OPERATOR ROW, 69 entries in 3 contests, all scored on the same 9,512 ladder: prize 228.69 = 3.31 per
+entry vs Portfolio 2.38 (legs 48/14/1 = 63 entries, the 20-leg came up short under tier-two mins) vs
+E[max] set 1.07 (69). Operator > Portfolio > set, by 39% and 3.1x. Re-scored by hand on the 9,512
+ladder to check the cross-contest units: 20-entry contest 85.5 (4.27/entry, best 31st, 10 of 20
+cashed); 48-entry 121.3 (2.53/entry, best 57th-equivalent, 23 of 48 cashed); hand-built single 23.4
+(3rd of 588 = 46th-equivalent of 9,512) - total 230.2, same answer. His exposure: Briscoe 51%, Hamlin
+48, Larson 46, Chastain 41, Berry 32, Byron 32, Logano 26, Reddick 25, Blaney / Hill / Buescher /
+Elliott 22. The product's set had Briscoe at 49% too; the gap was the second winner - his Blaney
+(P20 -> 5, 60.55) and Logano (P23 -> 10, 47.9) at 22-26% vs the product's Berry 49 / Elliott 47 /
+Reddick 34; his 41% Chastain cost him nothing because the Blaney / Logano
+place-differential cars carried. The hand-built entry (Blaney / Briscoe / Logano / Buescher / Berry /
+Gragson, 320.85) was the single best construction he fielded - 3rd in its contest and p99.5 in the
+big one. Three races with Operator rows now: trucks Kansas operator 3.4x product, O'Reilly Vegas set
+> operator, cup Kansas Portfolio > operator, cup Vegas operator > Portfolio. No pattern that survives
+N=4; keep logging. Ingest note: the two extra contests were written to dfs_operator_entries by hand
+(contest_id from the filename, same math as the page) because the paste box has no filename and
+would have stored all three as 'unknown'; the 9,512 contest stays the ladder.
+
 ## 2026-10-05 — "Race not found in loop data" after Vegas Cup: the registry row I created looked like a loaded race
 Operator: Grade Center said the race was not in loop data while Load Data's status strip said cup
 was "up to date" with R31. Cause: both the status strip and the race loader's "already loaded" check
