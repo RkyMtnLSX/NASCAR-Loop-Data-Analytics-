@@ -3689,6 +3689,31 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
+## 2026-10-05 — Portfolio short legs filled (rule change); start-weight test registered and run: NULL
+Operator: "fix the concrete bug and then run the test". BUG: buildPortfolio stops when the rules
+(tier-two 50% minimum, portfolio 60% cap, per-leg caps) leave no legal lineup - the 09-06 "never
+pads" rule. At Vegas Cup R31 the 20-entry leg delivered 14. An un-entered slot pays exactly zero, so
+short legs can only lose. NOW: after the rules build the leg and the 'why short' diagnosis is
+written, the empty slots are filled in a fixed order - (1) next-best mean-optimal lineups under this
+leg's own caps with the portfolio cap lifted, (2) uncapped - never a lineup already used anywhere in
+the portfolio. Fillers carry lu.fill, the leg reports filled + filledWhy; the DFS page note says
+"FILLED - leg 2: 6 slots ... (4 under this leg's caps, 2 uncapped)", leg tabs show "(6 filled)", the
+replay card shows leg sizes as 48/20(6f)/1 and the fill's own realised prize so the ledger can judge
+whether the fill ever pays. input.fillShort false restores the old behaviour for arms. Build clean.
+TEST (BACKTEST_LOG 10-05, registered and pushed before the query): is the sim over-weighting
+starting position for fast cars that qualified badly (Blaney P20 -> 5, Logano P23 -> 10 at Vegas; Dye
+/ Leitz / Eckes at Kansas trucks)? 21 post boards 2026 x loop_data, 702 driver-races, tier by trailing
+5-race driver rating (A top 8, B 9-16, C rest), start buckets, residuals vs proj_finish and proj_dk.
+Tier A+B starting >= 16: DK +2.56 (t 1.11), finish -1.01 (t -1.06), n 109 - fails the +4 / -1.5 at
+|t| >= 2 rule on every count. Tier C starting >= 16 is flat too; all 702 rows DK -0.4, finish +0.1 -
+the boards are centred. Cup alone +4.7 (t 1.3), trucks -3.0. The one Vegas-shaped cell (B x 21-25,
++12.8, t 1.98, n 16) has negative neighbours and a tier-C cell beside it at +4.8 (t 2.15): the big
+residuals land wherever the week's from-the-back podium fell, not along the tier line. The top rows
+are the ledger's known wins from the back (Larson Darlington P25 -> 5, Bell Iowa P22 -> 2, Wallace NH
+P23 -> 2, Gibbs Darlington P28 -> 2, Blaney / Briscoe Kansas). NULL - two races of the tail. No
+engine change. Fifth null registration in two days; the mean projection is not where the product is
+losing - construction and timing are, which is what the Operator rows measure.
+
 ## 2026-10-05 — Cup Las Vegas R31 (South Point 400): board check on Briscoe; DFS replay with 3 real contests (69 operator entries)
 Operator: "we had Briscoe 8% to win I believe and his best odds after practice was like 8-1; also run
 DFS replay" + three contest-standings files: two optimizer-built (20 entries in #196227899, 9,512

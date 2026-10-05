@@ -8075,3 +8075,26 @@ starting back is under-projected" bias, a different fix). Confirmed -> stage 2 r
 rating-conditioned start weight in the finish model, fit on 2025, judged on 2026 (not shipped from
 this stage). Not confirmed -> logged null, Vegas + Kansas were two races of noise. Written before any
 query. PUSH before reading data.
+
+RESULT (run 2026-10-05, 21 post boards 2026 with loop data - cup 12 / O'Reilly 6 / trucks 3, boards
+exist from July; 702 driver-race rows after drops: 7 grid mismatches, 50 no trailing rating, 13 no
+finish). Tier A+B, start >= 16: n 109, DK residual +2.56 (t 1.11), finish residual -1.01 (t -1.06).
+Rule needs >= +4.0 / <= -1.5 with |t| >= 2 on both: FAILS on all four. Tier C, start >= 16: n 299, DK
++0.34 (t 0.39), finish -0.35 - no general back-of-grid bias either. Overall calibration: all 702 rows
+DK -0.42 (t -0.49), finish +0.10 - the boards are centred. By series the AB16 cut is cup +4.69 (n 57,
+t 1.29), O'Reilly +3.03 (n 28, t 0.88), trucks -3.02 (n 24, t -0.69) - cup carries the sign, trucks
+reverse it, none significant. Cells: the one cell that looks like Vegas is B x 21-25 (n 16, DK +12.8,
+t 1.98, finish -4.0) but its neighbours A x 16-20 (-1.4) and B x 16-20 (-2.1) are negative and C x
+16-20 is +4.8 (t 2.15) - the big residuals sit in whatever cell the week's back-starting winner fell
+in, not along the tier line. The other shape in the table is the fade side: tier B starting 1-5
+finish +4.2 worse than projected, DK -8.4 (n 28, t -1.3; Hamlin P1 -> 16 at Vegas is the latest) -
+same story, not significant. The top residual rows are the wins/podiums from the back the ledger
+already knows (Larson Darlington P25 -> 5, Bell Iowa P22 -> 2, Wallace NH P23 -> 2, Gibbs Darlington
+P28 -> 2, Blaney Kansas P25 -> 5, Briscoe Kansas P23 -> 4) - the fat right tail of DK scoring, which
+the sim's finish distribution already carries as a tail, not a mean shift.
+DECISION: NULL. Vegas + Kansas were two races of the tail, not a start-weight bias. Nothing changes
+in the engine; no stage 2. Re-judge only if the AB16 cut stays >= +4 with t >= 2 after the 2026
+season is complete (~30 boards). Four registrations in two days, four nulls (continuation, ownership
+objective, Clean Pace, blend) plus this: the stored boards are well calibrated on the mean, and the
+product's weak spots are construction and timing, not projection - which is what the Operator rows
+are measuring.
