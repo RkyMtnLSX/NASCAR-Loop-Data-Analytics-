@@ -674,8 +674,9 @@ export default function DFSPage() {
     setPortLeg(0)
     setLineups(res.legs[0] ? res.legs[0].lineups : [])
     const short = res.legs.map((l, i) => l.short ? 'leg ' + (i + 1) + ' delivered ' + l.lineups.length + ' of ' + (l.want || numLineups) + ' (' + (l.why || []).join('; ') + ')' : null).filter(Boolean)
+    const filledMsg = res.legs.map((l, i) => l.filled ? 'leg ' + (i + 1) + ': ' + l.filled + ' slot' + (l.filled > 1 ? 's' : '') + ' the rules could not fill (' + (l.filledWhy || []).join('; ') + ') filled with the next-best lineups (' + l.lineups.filter(x => x.fill === 'portfolio-cap').length + ' under this leg\'s caps, ' + l.lineups.filter(x => x.fill === 'uncapped').length + ' uncapped)' : null).filter(Boolean)
     setNote('PORTFOLIO: ' + res.legs.length + ' legs ' + (__wants ? '(' + __wants.join(' / ') + ')' : 'x ' + numLineups) + ' (' + res.total + ' entries), rules ' + (rulesOn ? 'ON' : 'OFF') + ', chalk ' + (CHALK_SCHEDULES[portSchedule] ? CHALK_SCHEDULES[portSchedule].label.split(' (')[0] : portSchedule) +
-      '. Chalk: ' + (res.cls.chalk.length ? res.cls.chalk.join(', ') : 'none over ' + PORTFOLIO_RULES.chalkOwnPct + '%') + '. Tier-two: ' + (res.cls.t2.join(', ') || 'none') + '.' + (short.length ? ' SHORT - ' + short.join('; ') + '.' : '') + ' Export each leg to its own contest.')
+      '. Chalk: ' + (res.cls.chalk.length ? res.cls.chalk.join(', ') : 'none over ' + PORTFOLIO_RULES.chalkOwnPct + '%') + '. Tier-two: ' + (res.cls.t2.join(', ') || 'none') + '.' + (short.length ? ' SHORT - ' + short.join('; ') + '.' : '') + (filledMsg.length ? ' FILLED - ' + filledMsg.join('; ') + '.' : '') + ' Export each leg to its own contest.')
     setBuilding(false)
   }
   // Rebuild the portfolio with a relaxation chosen from the 'why short' buttons. The relax is passed
@@ -904,7 +905,7 @@ export default function DFSPage() {
             <strong>Portfolio</strong>
             {portfolio.legs.map((l, i) => (
               <button key={i} onClick={() => { setPortLeg(i); setLineups(l.lineups) }} style={{ padding: '5px 12px', borderRadius: 8, cursor: 'pointer', border: '1px solid ' + (portLeg === i ? '#4caf50' : 'var(--border,#2a2d34)'), background: portLeg === i ? 'rgba(76,175,80,0.18)' : 'transparent', color: 'var(--text,#e8eaed)', fontWeight: portLeg === i ? 700 : 400 }}>
-                Leg {i + 1} &middot; {l.lineups.length}{l.short ? ' (short)' : ''}
+                Leg {i + 1} &middot; {l.lineups.length}{l.short ? ' (short)' : ''}{l.filled ? ' (' + l.filled + ' filled)' : ''}
               </button>
             ))}
             <span style={{ fontSize: 12, color: 'var(--text-secondary,#9aa0aa)' }}>Select a leg, then Export CSV - one file per contest. Rules {portfolio.rulesOn ? 'ON' : 'OFF'}{portRelax.portfolioMaxPct ? ' · portfolio cap ' + portRelax.portfolioMaxPct + '%' : ''}{portRelax.t2MinOffLegs.length ? ' · tier-two min off for leg ' + portRelax.t2MinOffLegs.map(i => i + 1).join(', ') : ''}.</span>

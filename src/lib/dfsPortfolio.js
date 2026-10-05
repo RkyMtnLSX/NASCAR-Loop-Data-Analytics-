@@ -213,7 +213,41 @@ export function buildPortfolio(deps, input) {
       if (left < wantL - picked.length) why.push('candidate pool exhausted (' + left + ' unused cap-legal lineups left)')
       if (!why.length) why.push('per-leg exposure caps leave no legal lineup')
     }
-    legs.push({ lineups: picked, short: picked.length < wantL, want: wantL, expo, why, selectorPicks: before })
+    // FILL (2026-10-05, replaces "never pads" 09-06): a short leg is an un-entered contest slot and an
+    // un-entered slot pays exactly zero, so fielding fewer lineups than the contest size can only lose
+    // (Vegas Cup R31 replay: the 20-entry leg delivered 14 under the tier-two minimum + portfolio cap).
+    // The rules still decide the SHAPE of the leg; the fill only decides what goes in the slots the
+    // rules could not fill, in a fixed order: (1) this leg's own caps with the portfolio cap lifted,
+    // (2) no caps at all - the next-best mean-optimal lineups not used anywhere in the portfolio.
+    // Every filler is tagged lu.fill ('portfolio-cap' | 'uncapped') and the leg reports `filled`, so
+    // the page and the replay can say how many slots the rules left empty. `why` is kept as-is.
+    const filledWhy = picked.length < wantL ? why.slice() : []
+    let filled = 0
+    if (picked.length < wantL && input.fillShort !== false) {
+      const haveAll = new Set(picked.map(keyOfLu)); used.forEach(k => haveAll.add(k))
+      const fillWith = (expoF, tag) => {
+        let guard = 0
+        while (picked.length < wantL && guard++ < wantL * 3) {
+          const usedF = {}; picked.forEach(lu => lu.drivers.forEach(d => { usedF[d.name] = (usedF[d.name] || 0) + 1 }))
+          const exF = new Set(ex)
+          if (expoF) Object.keys(usedF).forEach(n => { if (!(input.locks && input.locks.has(n)) && usedF[n] >= capFor(n, wantL, 1, expoF)) exF.add(n) })
+          const res = optimize(poolL, input.locks || new Set(), exF, 80)
+          if (res.error || !res.lineups || !res.lineups.length) break
+          const lu = res.lineups.find(l2 => !haveAll.has(keyOfLu(l2)))
+          if (!lu) break
+          lu.fill = tag; picked.push(lu); haveAll.add(keyOfLu(lu)); filled++
+        }
+      }
+      fillWith(legExpo[L] && Object.keys(legExpo[L]).length ? Object.fromEntries(Object.entries(legExpo[L]).map(([n, e]) => [n, { max: e.max }])) : null, 'portfolio-cap')
+      fillWith(null, 'uncapped')
+      if (filled) {
+        const cntF = {}; picked.forEach(lu => lu.drivers.forEach(d => { cntF[d.name] = (cntF[d.name] || 0) + 1 }))
+        Object.keys(legCount[L]).forEach(n => { running[n] -= legCount[L][n] }); legCount[L] = cntF; Object.keys(cntF).forEach(n => { running[n] = (running[n] || 0) + cntF[n] })
+        picked.forEach(lu => { if (lu.ceil == null) { const ids = lu.drivers.map(d => nmIdx[d.name]); let mu = 0; for (let d = 0; d < nD; d++) { const rw = drawRows[d]; const v = rw[ids[0]] + rw[ids[1]] + rw[ids[2]] + rw[ids[3]] + rw[ids[4]] + rw[ids[5]]; tmp[d] = v; mu += v } lu.proj = mu / nD; const t2s = tmp.slice(0, nD).sort(); lu.ceil = t2s[Math.floor(0.9 * (nD - 1))]; lu.floor = t2s[Math.floor(0.25 * (nD - 1))] } })
+        picked.forEach(lu => used.add(keyOfLu(lu)))
+      }
+    }
+    legs.push({ lineups: picked, short: picked.length < wantL, want: wantL, expo, why, selectorPicks: before, filled, filledWhy })
   }
   const total = legs.reduce((s, l) => s + l.lineups.length, 0)
   return { legs, exposure: running, total, cls }

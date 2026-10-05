@@ -8047,3 +8047,31 @@ races. DECISION: FAILS (needs +.01; the primary blend is +.0008 pooled and worse
 of three series). The best reported weight (.25, +.003) is inside noise and was not the primary.
 Nothing further. READING: Clean Pace is almost entirely inside driver_rating - a 25% dose adds a
 third of a point of rho and a 50% dose adds nothing. Closed. The stat stays on the table for display.
+
+## 2026-10-05 — REGISTRATION: does the sim over-weight STARTING POSITION for fast cars that qualified badly? (stage 1: calibration from stored boards)
+TRIGGER. Cup Vegas R31 replay: the cars that made the operator's week were Blaney P20 -> 5 (proj DK
+32.9, actual 60.55), Logano P23 -> 10 (31.9 vs 47.9), Cindric P7 -> 4; Kansas trucks R20 had the same
+shape (Dye P35 -> 15, Leitz P26 -> 7, Eckes P25 -> 2) which I attributed to the no-practice metric grid.
+Vegas had practice and a real grid and it happened again. Simplest explanation to test: the finish
+model weights starting position too heavily for cars whose equipment/form says they belong up front,
+at the exact spot where DK pays place differential. This stage uses ONLY data already stored - no
+engine change, no new input.
+DATA. Every 2026 published POST board (sim_results stage 'post', all three series) that has loop_data
+for the race. Per driver-race: proj_finish, proj_dk, start_pos from the board; actual finish_position,
+start_position (real grid), laps_led, fastest_laps from loop_data -> actual DK points by the replay's
+dkPoints(). Rows with a board start_pos that differs from the real grid by > 3 are dropped (the board
+was built on a stale grid - that is a different failure). DNS / no finish dropped.
+TIER (independent of this race): trailing mean driver_rating over the driver's previous 5 loop_data
+races in the same series and season (min 3); within each race, tier A = top 8 by trailing rating,
+B = 9-16, C = the rest. No trailing data -> excluded.
+START BUCKETS: 1-5, 6-10, 11-15, 16-20, 21-25, 26+.
+MEASURES: finish residual = actual finish - proj_finish (negative = better than projected); DK
+residual = actual DK - proj_dk (positive = better). Reported per tier x bucket: n, mean, t of the
+mean, and the series / track-type split (short, intermediate, SS, road) as a report, not a decision.
+DECISION RULE. The claim is confirmed if, pooled over 2026 all series, tier A+B rows with start >= 16
+have mean DK residual >= +4.0 points AND finish residual <= -1.5 positions, with |t| >= 2.0 on both
+and n >= 25, AND tier C rows with start >= 16 do NOT show both (otherwise it is a general "everyone
+starting back is under-projected" bias, a different fix). Confirmed -> stage 2 registration: a
+rating-conditioned start weight in the finish model, fit on 2025, judged on 2026 (not shipped from
+this stage). Not confirmed -> logged null, Vegas + Kansas were two races of noise. Written before any
+query. PUSH before reading data.

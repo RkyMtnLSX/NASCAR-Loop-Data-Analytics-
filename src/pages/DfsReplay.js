@@ -411,7 +411,12 @@ export default function DfsReplay() {
         const __pfPrize = __pfLegs.reduce((s, lus) => s + __score(lus), 0)
         const __basePrize = __legs * __score(setIdx.map(c2 => cands[c2]))
         const __pfBest = Math.max.apply(null, __pfLegs.flat().map(ns => placeIn(ladder, __E, ns.reduce((t, n) => t + byName[n].actual, 0), topScores).pct || 0))
+        // FILL (2026-10-05): prize contributed by the slots the rules could not fill, so the ledger can show
+        // what the fill is worth on its own (a filler that never cashes is harmless; one that does is the point)
+        const __fillLegs = __pf.legs.map(l => l.lineups.filter(lu => lu.fill).map(lu => lu.drivers.map(d => d.name)))
+        const __fillPrize = __fillLegs.reduce((s, lus) => s + __score(lus), 0)
         portfolio = { legs: __legs, n: __N, rulesOn: __rulesOn, prize: __pfPrize, basePrize: __basePrize, bestPct: __pfBest, entries: __pf.total,
+          filled: __pf.legs.reduce((a, l) => a + (l.filled || 0), 0), fillPrize: +__fillPrize.toFixed(3), legSizes: __pf.legs.map(l => l.lineups.length + (l.filled ? '(' + l.filled + 'f)' : '')).join('/'),
           exposure: Object.entries(__pf.exposure).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([n, c]) => ({ name: n, pct: Math.round(100 * c / Math.max(1, __pf.total)) })), chalk: __pf.cls.chalk, t2: __pf.cls.t2 }
         // ---- OPERATOR PRESET arm (registered 2026-09-13, BACKTEST_LOG): rules ON + OPERATOR_PRESET
         // (floor 0%, mid punts only if projected own <= 12%, >= 1 punt per lineup), scored exactly like the
@@ -475,7 +480,7 @@ export default function DfsReplay() {
               atN = { wants: wantsN, pfEntries: pfN.total, pfPrize: +pfNPrize.toFixed(3), pfPer: pfN.total ? +(pfNPrize / pfN.total).toFixed(4) : null,
                 emaxEntries, emaxPrize: +emaxPrize.toFixed(3), emaxPer: emaxEntries ? +(emaxPrize / emaxEntries).toFixed(4) : null,
                 opEntries: opGppEntries, opPrize: +opGppPrize.toFixed(3), opPer: opGppEntries ? +(opGppPrize / opGppEntries).toFixed(4) : null,
-                pfLegs: pfN.legs.map(l => l.lineups.length).join('/') }
+                pfLegs: pfN.legs.map(l => l.lineups.length + (l.filled ? '(' + l.filled + 'f)' : '')).join('/'), pfFilled: pfN.legs.reduce((a, l) => a + (l.filled || 0), 0) }
             }
           } catch (e2) { atN = { error: String((e2 && e2.message) || e2) } }
           operator = { atN, contests: opRows.length, entries: tot, prize: +prize.toFixed(3), perEntry: perEntry != null ? +perEntry.toFixed(4) : null, pfPer: pfPer != null ? +pfPer.toFixed(4) : null, basePer: basePer != null ? +basePer.toFixed(4) : null,
@@ -688,7 +693,7 @@ export default function DfsReplay() {
           </div>
           {res.portfolio && !res.portfolio.error && (
             <div style={{ fontSize: 12.5, color: 'var(--text-secondary, #9aa0aa)', marginBottom: 12, padding: '8px 10px', border: '1px solid var(--border, #1c1f25)', borderRadius: 8 }}>
-              <strong style={{ color: 'var(--text-primary, #e8eaed)' }}>Portfolio</strong> {res.portfolio.legs} legs x {res.portfolio.n}, rules {res.portfolio.rulesOn ? 'ON' : 'OFF (trucks default)'}: realised prize <strong style={{ color: res.portfolio.prize > res.portfolio.basePrize ? '#4ade80' : res.portfolio.prize < res.portfolio.basePrize ? '#f5a623' : 'inherit' }}>{res.portfolio.prize.toFixed(1)}</strong> vs {res.portfolio.basePrize.toFixed(1)} for {res.portfolio.legs} x the E[max] set (entry-fee units, DK-like curve) · best entry pctile {res.portfolio.bestPct.toFixed(1)}
+              <strong style={{ color: 'var(--text-primary, #e8eaed)' }}>Portfolio</strong> {res.portfolio.legs} legs x {res.portfolio.n}, rules {res.portfolio.rulesOn ? 'ON' : 'OFF (trucks default)'}: realised prize <strong style={{ color: res.portfolio.prize > res.portfolio.basePrize ? '#4ade80' : res.portfolio.prize < res.portfolio.basePrize ? '#f5a623' : 'inherit' }}>{res.portfolio.prize.toFixed(1)}</strong> vs {res.portfolio.basePrize.toFixed(1)} for {res.portfolio.legs} x the E[max] set (entry-fee units, DK-like curve) · best entry pctile {res.portfolio.bestPct.toFixed(1)}{res.portfolio.legSizes ? ' · legs ' + res.portfolio.legSizes : ''}{res.portfolio.filled ? ' · ' + res.portfolio.filled + ' slot' + (res.portfolio.filled > 1 ? 's' : '') + ' filled past the rules, worth ' + res.portfolio.fillPrize.toFixed(1) : ''}
               <div>Chalk: {res.portfolio.chalk.join(', ') || 'none'} · tier-two: {res.portfolio.t2.join(', ') || 'none'} · exposure: {res.portfolio.exposure.map(e => e.name.split(' ').pop() + ' ' + e.pct + '%').join(', ')}</div>
             </div>
           )}
