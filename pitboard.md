@@ -3700,8 +3700,13 @@ row: salaries matched to loop_data names (accent-folded; first+last fallback), D
 from loop_data with the archive's formula, best cap-legal six by branch-and-bound, inserted with
 source 'sync:<date>' plus the priced field into dfs_race_field, then race_seq / race_cnt refreshed
 for that track-year. Never overwrites an existing row; a race with no salary file is named in the
-result and picked up the day the file is pasted. Verified by hand on a toy field; first live run
-below.
+result and picked up the day the file is pasted. FIRST RUN (10-06, dry then live): 11 rows written -
+cup Daytona R26 364.35, Darlington R27 407.15, Gateway R28 401.50, Kansas R30 423.90, Vegas R31
+370.25; O'Reilly Darlington R25 324.35, Gateway R26 342.95, Bristol R27 352.55, Vegas R28 375.25;
+trucks Bristol R19 360.25, Kansas R20 360.40 - every one matches the replay ledger's PERFECT column
+to the cent (same formula, independent code). Archive 2026 now 74 races. Five races stay out for
+lack of a DK salary file (trucks R5 / R13, cup R20 / R29, O'Reilly R18) - paste the salary CSV in
+Salary Admin and the next sync fills them. Vegas now labels "Las Vegas 1 / 2" via race_seq.
 
 ## 2026-10-06 — Optimal Lineup Archive: browse by season in schedule order, or by track
 Operator: "the optimal lineup page needs polish, it's hard to navigate. You need to easily sort by
