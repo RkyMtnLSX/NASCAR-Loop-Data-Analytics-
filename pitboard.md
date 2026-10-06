@@ -3702,8 +3702,10 @@ proj, share of the set; locked drivers tinted; fillers tagged), with a set summa
 · 22 drivers used · Byron 80%, Larson 70%, Hamlin 65%, Gragson 30% · ranked by tournament upside";
 (3) the driver board keeps every column (operator, same day: hiding Value / Optimal% / Win% etc.
 behind a toggle was wrong - "we are missing useful columns we had before"; reverted within the hour);
-an "Exposure limits" toggle shows the per-driver min/max boxes (limits still show as a small tag when
-it is off); default sort projected DK; Lock / Out are labeled buttons with a visible state;
+the per-driver min/max boxes are always on and so are the portfolio construction rules - operator:
+"anyone using this kind of tool is more than likely an advanced user in the space... there doesn't
+need to be a basic mode, every user will want to tune their exposure"; no toggle; default sort
+projected DK; Lock / Out are labeled buttons with a visible state;
 (4) a progress bar: GPP candidate scoring now runs in 250-candidate slices so the page paints
 ("Scoring candidate lineups across the sim draws · 1,250 / 2,000", then "Choosing the set · 12 / 20");
 portfolio and entries-file builds show an indeterminate bar; (5) the status line is plain English -

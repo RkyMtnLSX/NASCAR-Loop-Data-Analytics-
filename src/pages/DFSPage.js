@@ -377,7 +377,6 @@ export default function DFSPage() {
   const [cashSet, setCashSet] = useState([])
   const [sortKey, setSortKey] = useState('projDK')   // 2026-10-06 polish: projection first (Value sorted P36 cars to the top of the page)
   const [progress, setProgress] = useState(null)      // { phase, done, total } while a build runs
-  const [advanced, setAdvanced] = useState(false)     // driver table: min/max exposure boxes + portfolio rules on request (all columns always show - operator 10-06)
   const [showHow, setShowHow] = useState(false)
   const [sortDir, setSortDir] = useState('desc')
   // BUILD CANCELLATION (2026-09-05 review fix). buildGpp/step2 run across many setTimeout ticks and
@@ -939,13 +938,11 @@ export default function DFSPage() {
               style={{ marginTop: 4, width: 72, background: 'var(--bg,#0e0f13)', color: 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 6, padding: '5px 7px' }} /></label>
             {mode === 'portfolio' && <>
               <label style={{ fontSize: 13 }} title="How many contests you are entering (up to 6). Load your DK entries file and this is read from it.">Contests{plan ? ' (from file)' : ''}<br /><input type="number" disabled={!!plan} value={plan ? plan.wants.length : portLegs} min={1} max={6} onChange={e => setPortLegs(Math.max(1, Math.min(6, +e.target.value || 1)))} style={{ width: 56, marginTop: 4, background: 'var(--bg,#0e0f13)', color: 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 6, padding: '5px 7px' }} /></label>
-              {advanced && <>
               <label style={{ fontSize: 13 }} title="Tier-two studs 50-80% per leg, floor cars <= 10%, mid punts <= 25%, at most 2 punts per lineup, salary >= $48,800, no lineup reused across legs, 60% portfolio cap. Backtested +14% (7/2) on cup + O'Reilly; lost both truck races, so trucks default OFF.">Construction rules<br />
                 <input type="checkbox" checked={portRules == null ? portfolioRulesDefault(series) : portRules} onChange={e => setPortRules(e.target.checked)} style={{ marginTop: 8 }} /> {(portRules == null ? portfolioRulesDefault(series) : portRules) ? 'on' : 'off'}{portRules == null ? ' (series default)' : ''}</label>
               <label style={{ fontSize: 13 }} title="Max exposure to any driver projected over 35% owned, per leg. The fade schedule finds a higher peak (best-of-60 pctile 89 -> 94) and returned zero in 5 of 9 races - high variance by design.">Chalk stance<br /><select value={portSchedule} onChange={e => setPortSchedule(e.target.value)} style={{ marginTop: 4, background: 'var(--bg,#0e0f13)', color: 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 6, padding: '5px 7px' }}>
                 {Object.keys(CHALK_SCHEDULES).map(k => <option key={k} value={k}>{CHALK_SCHEDULES[k].label}</option>)}
               </select></label>
-              </>}
             </>}
               </div>
             </div>
@@ -1018,7 +1015,7 @@ export default function DFSPage() {
               {showHow && <div style={{ marginTop: 6, lineHeight: 1.5 }}>
                 Projections come from the latest published simulation for this race - the post-practice board uses the real qualified starting positions, never a projected grid. DraftKings Classic: $50,000 cap, 6 drivers, points for finish, places gained, laps led and fastest laps.
                 <b> Tournament</b> picks the set of lineups whose best one is expected to score highest across the sim's race outcomes - built for top-heavy payouts. <b>Cash</b> picks the highest-average lineups. <b>Several contests</b> builds one set per contest at once so they do not all ride the same bet.
-                Use <b>Lock</b> to force a driver into every lineup, <b>Out</b> to leave him out, and the exposure boxes (Advanced) to set a floor or ceiling on how many lineups he is in. <b>Load DK entries file</b> (DraftKings &rarr; Lineups &rarr; Edit entries &rarr; download) reads your contests and entry counts, builds for each, and writes a file you upload straight back.
+                Use <b>Lock</b> to force a driver into every lineup, <b>Out</b> to leave him out, and the min / max boxes to set a floor or ceiling on how many lineups he is in. <b>Load DK entries file</b> (DraftKings &rarr; Lineups &rarr; Edit entries &rarr; download) reads your contests and entry counts, builds for each, and writes a file you upload straight back.
                 {samples ? ' Optimal% is how often a driver is in the single best lineup across ' + samples.rows.length.toLocaleString() + ' simulated races; Ceiling is his 90th-percentile score; Value is extra points per extra $1K over the cheapest car.' : ''}
               </div>}
             </div>
@@ -1101,13 +1098,12 @@ export default function DFSPage() {
         <div style={card}>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
             <strong>Driver board</strong>
-            <span style={{ fontSize: 12, color: 'var(--text-secondary,#9aa0aa)' }}>Lock a driver into every lineup, leave one out, or just build and let the sim choose. Click a column to sort.</span>
-            <button onClick={() => setAdvanced(a => !a)} title="Per-driver min / max exposure boxes and the portfolio construction rules" style={{ marginLeft: 'auto', padding: '4px 12px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: advanced ? 'rgba(232,185,35,0.15)' : 'transparent', color: 'var(--text,#e8eaed)', fontSize: 12 }}>{advanced ? 'Exposure limits: on' : 'Exposure limits'}</button>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary,#9aa0aa)' }}>Lock a driver into every lineup, leave one out, or set his min / max share of the set. Click a column to sort.</span>
           </div>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead><tr style={{ color: 'var(--text-secondary,#9aa0aa)' }}>
-                <th style={{ padding: '7px 8px', textAlign: 'left' }}>{advanced ? 'Lock / Out \u00b7 Min / Max %' : 'Lock / Out'}</th>
+                <th style={{ padding: '7px 8px', textAlign: 'left' }}>Lock / Out &middot; Min / Max %</th>
                 {th('name', 'Driver', 'left')}
                 <th style={{ padding: '7px 8px', textAlign: 'right' }} title="Share of the built lineups this driver is in">In lineups</th>
                 {th('startPos', 'Start')}{th('sal', 'Salary')}{th('projDK', 'Proj DK')}{th('ceil', 'Ceiling')}{th('value', 'Value')}{th('opt', 'Optimal%')}{th('pOwn', 'Proj Own%')}
@@ -1123,15 +1119,14 @@ export default function DFSPage() {
                       <td style={{ padding: '4px 8px', whiteSpace: 'nowrap' }}>
                         <button onClick={() => toggle(setLocks, d.name)} title={locked ? 'Locked into every lineup - click to release' : 'Lock into every lineup'} style={{ marginRight: 4, padding: '2px 9px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontWeight: 600, border: '1px solid ' + (locked ? 'var(--accent,#e11d2a)' : 'var(--border,#2a2d34)'), background: locked ? 'var(--accent,#e11d2a)' : 'transparent', color: locked ? '#fff' : 'var(--text-secondary,#9aa0aa)' }}>{locked ? 'Locked' : 'Lock'}</button>
                         <button onClick={() => toggle(setExcludes, d.name)} title={excl ? 'Left out of every lineup - click to allow' : 'Leave out of every lineup'} style={{ padding: '2px 9px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontWeight: 600, border: '1px solid ' + (excl ? '#888' : 'var(--border,#2a2d34)'), background: excl ? '#555' : 'transparent', color: excl ? '#fff' : 'var(--text-secondary,#9aa0aa)' }}>{excl ? 'Out' : 'Out'}</button>
-                        {advanced && <><input type="number" min={0} max={100} placeholder="min" title="Min exposure % - forces this driver into at least this share of lineups without locking to 100%"
+                        <input type="number" min={0} max={100} placeholder="min" title="Min exposure % - forces this driver into at least this share of lineups without locking to 100%"
                           value={expo[d.name] && expo[d.name].min != null ? expo[d.name].min : ''}
                           onChange={e => { const v = e.target.value === '' ? null : Math.max(0, Math.min(100, +e.target.value || 0)); setExpo(prev => ({ ...prev, [d.name]: { ...(prev[d.name] || {}), min: v } })) }}
                           style={{ width: 44, marginLeft: 6, background: 'var(--bg,#0e0f13)', color: expo[d.name] && expo[d.name].min > 0 ? 'var(--accent,#e11d2a)' : 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 5, padding: '2px 4px', fontSize: 12 }} />
                         <input type="number" min={0} max={100} placeholder="max" title="Max exposure % - per-driver cap, overrides the global max exposure for this driver"
                           value={expo[d.name] && expo[d.name].max != null ? expo[d.name].max : ''}
                           onChange={e => { const v = e.target.value === '' ? null : Math.max(0, Math.min(100, +e.target.value || 0)); setExpo(prev => ({ ...prev, [d.name]: { ...(prev[d.name] || {}), max: v } })) }}
-                          style={{ width: 44, marginLeft: 4, background: 'var(--bg,#0e0f13)', color: expo[d.name] && expo[d.name].max != null && expo[d.name].max < 100 ? '#e8b923' : 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 5, padding: '2px 4px', fontSize: 12 }} /></>}
-                        {!advanced && expo[d.name] && (expo[d.name].min > 0 || (expo[d.name].max != null && expo[d.name].max < 100)) && <span style={{ marginLeft: 6, fontSize: 11, color: '#e8b923' }} title="Exposure limits set">{expo[d.name].min > 0 ? 'min ' + expo[d.name].min + '%' : ''}{expo[d.name].min > 0 && expo[d.name].max != null ? ' ' : ''}{expo[d.name].max != null && expo[d.name].max < 100 ? 'max ' + expo[d.name].max + '%' : ''}</span>}
+                          style={{ width: 44, marginLeft: 4, background: 'var(--bg,#0e0f13)', color: expo[d.name] && expo[d.name].max != null && expo[d.name].max < 100 ? '#e8b923' : 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 5, padding: '2px 4px', fontSize: 12 }} />
                       </td>
                       <td style={{ padding: '4px 8px', textAlign: 'left', whiteSpace: 'nowrap' }}><CarNum car={d.car} series={series} />{d.name}</td>
                       {/* 2026-09-05: exposure moved next to the driver - it sat last and was off-screen at 1180px */}
