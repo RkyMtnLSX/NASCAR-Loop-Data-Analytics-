@@ -3689,6 +3689,37 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
+## 2026-10-06 — Lineup Optimizer polish pass 1 (user-facing; no engine change)
+Operator: "how can we polish the DFS optimizer to be more user friendly" -> "do the first polish pass".
+Walked /dfs as a first-time user: it opened on a 36-row table sorted by Value (P36 cars first), the
+mode select was our objective names, the build froze the tab, results rendered above the controls,
+sixteen columns, L / X buttons with unlabeled min/max boxes, and a gray paragraph of our own notes.
+SHIPPED (DFSPage.js): (1) a three-step strip at the top - 1 "What are you entering?" Tournament /
+Cash 50-50 / Several contests (the objective is in the tooltip; switching clears the old result),
+2 "How many lineups?" + max exposure (+ Contests in portfolio mode), 3 Build / Export / Clear /
+Load DK entries file; (2) results sit BELOW the controls, lineups as driver chips (hover = salary,
+proj, share of the set; locked drivers tinted; fillers tagged), with a set summary line - "20 lineups
+· 22 drivers used · Byron 80%, Larson 70%, Hamlin 65%, Gragson 30% · ranked by tournament upside";
+(3) the driver board defaults to the five building columns (Start, Salary, Proj DK, Ceiling, Proj
+Own%) plus Lock / Out and "In lineups"; an Advanced toggle adds Value, Optimal%, Win%, Laps Led, Fast
+Laps, Proj Fin and the min/max exposure boxes (limits set in Advanced still show as a small tag
+when it is off); default sort projected DK; Lock / Out are labeled buttons with a visible state;
+(4) a progress bar: GPP candidate scoring now runs in 250-candidate slices so the page paints
+("Scoring candidate lineups across the sim draws · 1,250 / 2,000", then "Choosing the set · 12 / 20");
+portfolio and entries-file builds show an indeterminate bar; (5) the status line is plain English -
+"20 lineups built for a tournament from the post-practice board · expected best lineup 323 pts" with
+the candidates / draws / E[max] in parentheses, and the portfolio note "3 contests built (20 / 20 /
+20 lineups, 60 entries) ... 5 lineups filled past the exposure rules" with the rules / chalk / tier-two
+text behind a hover "details"; errors stay red, results are white; (6) the notes paragraph is a "How
+this works" toggle written for a customer; (7) portfolio wording: legs -> contests, Operator rules ->
+Construction rules (Advanced only, with the chalk schedule), the short-leg panel now says the slots
+were filled and offers the looser rebuilds as an alternative. Two literal "\u00b7" / "\u2026" JSX
+text escapes fixed (one pre-existing on the Loading line). Verified live on the Vegas post board:
+tournament build 20 / 22 drivers, portfolio 3 x 20 with 5 filled. NOT done (second pass, pending the
+decision whether customers get Portfolio at all): the chalk-schedule option (a documented loser)
+still exists under Advanced; the portfolio card's chalk / tier-two / floor line is still our language;
+entries-file flow has no "20 of 20 entry IDs matched" confirmation; no help page yet.
+
 ## 2026-10-05 — Portfolio short legs filled (rule change); start-weight test registered and run: NULL
 Operator: "fix the concrete bug and then run the test". BUG: buildPortfolio stops when the rules
 (tier-two 50% minimum, portfolio 60% cap, per-leg caps) leave no legal lineup - the 09-06 "never
