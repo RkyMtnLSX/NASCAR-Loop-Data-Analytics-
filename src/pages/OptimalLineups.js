@@ -49,6 +49,11 @@ export default function OptimalLineups() {
   const [series, setSeries] = useState('all')
   const [open, setOpen] = useState(() => new Set())
   const [sortBy, setSortBy] = useState('sal')
+  // 2026-10-06 (operator: "hard to navigate ... sort by year, each year in schedule order, and a track
+  // sort option"): the archive is browsed by YEAR in schedule order (race number IS the schedule
+  // order within a season), or by TRACK across every year. year 'all' only makes sense with a track.
+  const [year, setYear] = useState(null)        // null until the data says which year is newest
+  const [track, setTrack] = useState('all')
 
   useEffect(() => {
     let alive = true
@@ -63,8 +68,10 @@ export default function OptimalLineups() {
       if (!alive) return
       if (o.error || f.error) setErr('Could not load: ' + ((o.error && o.error.message) || (f.error && f.error.message)))
       const rows = (o.data || []).slice().sort(
-        (a, b) => b.race_year - a.race_year || b.race_number - a.race_number
+        (a, b) => b.race_year - a.race_year || a.race_number - b.race_number
       )
+      const newest = rows.reduce((m, r) => Math.max(m, +r.race_year || 0), 0)
+      setYear(y => y == null ? (newest || 'all') : y)
       const map = {}
       ;(f.data || []).forEach((r) => {
         map[r.series + '-' + r.race_year + '-' + r.race_number] = r.field || []
@@ -76,10 +83,19 @@ export default function OptimalLineups() {
     return () => { alive = false }
   }, [])
 
-  const shown = useMemo(
-    () => (series === 'all' ? opt : opt.filter((r) => r.series === series)),
-    [opt, series]
-  )
+  const years = useMemo(() => [...new Set(opt.map(r => +r.race_year).filter(Boolean))].sort((a, b) => b - a), [opt])
+  const tracks = useMemo(() => {
+    const pool = series === 'all' ? opt : opt.filter(r => r.series === series)
+    return [...new Set(pool.map(r => r.track_name).filter(Boolean))].sort((a, b) => a.localeCompare(b))
+  }, [opt, series])
+  const shown = useMemo(() => {
+    let rows = series === 'all' ? opt : opt.filter((r) => r.series === series)
+    if (track !== 'all') rows = rows.filter(r => r.track_name === track)
+    if (year !== 'all' && year != null) rows = rows.filter(r => +r.race_year === +year)
+    // one year: schedule order (race number ascending). Several years (a track across seasons): newest season first, schedule order within it
+    const seriesRank = { cup: 0, oreilly: 1, trucks: 2 }
+    return rows.slice().sort((a, b) => (year === 'all' ? b.race_year - a.race_year : 0) || a.race_number - b.race_number || (seriesRank[a.series] ?? 9) - (seriesRank[b.series] ?? 9))
+  }, [opt, series, track, year])
 
   const stats = useMemo(() => {
     if (!shown.length) return null
@@ -103,14 +119,15 @@ export default function OptimalLineups() {
     <div className="page" style={{ maxWidth: 1100, margin: '0 auto', padding: '24px 16px 60px' }}>
       <h1 style={{ color: 'var(--text-primary, #e8eaed)', marginBottom: 4 }}>Optimal Lineup Archive</h1>
       <p style={{ color: 'var(--text-secondary, #9aa0aa)', fontSize: 14, marginTop: 0, marginBottom: 18 }}>
-        Every 2026 race: the highest-scoring DraftKings lineup that fit under the $50,000 cap,
+        Every race: the highest-scoring DraftKings lineup that fit under the $50,000 cap,
         plus the full field — what every driver was priced at and what they actually scored.
+        Pick a season to browse it in schedule order, or pick a track to see every visit.
         Free to browse.
       </p>
 
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10, alignItems: 'center' }}>
         {SERIES.map((s) => (
-          <button key={s.v} onClick={() => setSeries(s.v)}
+          <button key={s.v} onClick={() => { setSeries(s.v); setTrack('all') }}
             style={{
               padding: '6px 14px', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 13,
               border: '1px solid var(--border, #2a2d34)',
@@ -120,6 +137,36 @@ export default function OptimalLineups() {
             {s.label}
           </button>
         ))}
+      </div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16, alignItems: 'center' }}>
+        <span style={{ color: 'var(--text-muted, #6b7078)', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>Season</span>
+        {years.map((y) => (
+          <button key={y} onClick={() => setYear(y)}
+            style={{
+              padding: '5px 12px', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 13,
+              border: '1px solid ' + (year === y ? 'var(--text-primary, #e8eaed)' : 'var(--border, #2a2d34)'),
+              background: year === y ? 'var(--text-primary, #e8eaed)' : 'transparent',
+              color: year === y ? 'var(--bg, #0e0f13)' : 'var(--text-secondary, #9aa0aa)',
+            }}>
+            {y}
+          </button>
+        ))}
+        <button onClick={() => setYear('all')} title="Every season - most useful with a track picked"
+          style={{
+            padding: '5px 12px', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 13,
+            border: '1px solid ' + (year === 'all' ? 'var(--text-primary, #e8eaed)' : 'var(--border, #2a2d34)'),
+            background: year === 'all' ? 'var(--text-primary, #e8eaed)' : 'transparent',
+            color: year === 'all' ? 'var(--bg, #0e0f13)' : 'var(--text-secondary, #9aa0aa)',
+          }}>
+          All seasons
+        </button>
+        <span style={{ color: 'var(--text-muted, #6b7078)', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5, marginLeft: 12 }}>Track</span>
+        <select value={track} onChange={(e) => { setTrack(e.target.value); if (e.target.value !== 'all' && year !== 'all') setYear('all') }}
+          style={{ background: 'var(--bg, #0e0f13)', color: 'var(--text-primary, #e8eaed)', border: '1px solid var(--border, #2a2d34)', borderRadius: 8, padding: '5px 8px', fontSize: 13, maxWidth: 280 }}>
+          <option value="all">All tracks</option>
+          {tracks.map((t) => <option key={t} value={t}>{t}</option>)}
+        </select>
+        {track !== 'all' && <button onClick={() => setTrack('all')} style={{ padding: '4px 10px', borderRadius: 8, cursor: 'pointer', fontSize: 12, border: '1px solid var(--border, #2a2d34)', background: 'transparent', color: 'var(--text-secondary, #9aa0aa)' }}>clear</button>}
       </div>
 
       {stats && (
@@ -132,10 +179,12 @@ export default function OptimalLineups() {
 
       {loading && <div style={{ color: 'var(--text-secondary, #9aa0aa)' }}>Loading archive…</div>}
       {err && <div style={{ padding: '10px 14px', background: '#922B2120', border: '1px solid #922B2140', borderRadius: 8, color: '#E74C3C', fontSize: '0.8125rem', marginBottom: 12 }}>{err}</div>}
-      {!loading && !shown.length && <div style={card}>No races recorded yet for this series.</div>}
+      {!loading && !shown.length && <div style={card}>No races recorded for {track !== 'all' ? track : 'this series'}{year !== 'all' && year != null ? ' in ' + year : ''}.</div>}
 
-      {!loading && shown.map((r) => {
+      {!loading && shown.map((r, ri) => {
         const k = keyOf(r)
+        const prev = shown[ri - 1]
+        const newSeason = year === 'all' && (!prev || prev.race_year !== r.race_year)
         const isOpen = open.has(k)
         const lu = Array.isArray(r.lineup) ? r.lineup : []
         const field = fields[k] || []
@@ -149,7 +198,9 @@ export default function OptimalLineups() {
           return (b.sal || 0) - (a.sal || 0)
         })
         return (
-          <div key={k} style={card}>
+          <React.Fragment key={k}>
+          {newSeason && <div style={{ color: 'var(--text-muted, #6b7078)', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.6, margin: '14px 0 6px' }}>{r.race_year} season</div>}
+          <div style={{ ...card, padding: isOpen ? 16 : '10px 16px', marginBottom: isOpen ? 16 : 8 }}>
             <div onClick={() => toggle(k)}
               style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', cursor: 'pointer' }}>
               <span style={{
@@ -162,7 +213,7 @@ export default function OptimalLineups() {
                 {r.track_name || 'Race ' + r.race_number}
               </strong>
               <span style={{ color: 'var(--text-muted, #6b7078)', fontSize: 12 }}>
-                {r.race_year} · Race {r.race_number}
+                {year === 'all' ? r.race_year + ' · ' : ''}Race {r.race_number}
               </span>
               <span style={{ marginLeft: 'auto', display: 'flex', gap: 18, alignItems: 'center' }}>
                 <span style={{ color: 'var(--text-secondary, #9aa0aa)', fontSize: 12 }}>{money(r.salary)}</span>
@@ -276,6 +327,7 @@ export default function OptimalLineups() {
               </>
             )}
           </div>
+          </React.Fragment>
         )
       })}
 

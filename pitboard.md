@@ -3689,6 +3689,18 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
+## 2026-10-06 — Optimal Lineup Archive: browse by season in schedule order, or by track
+Operator: "the optimal lineup page needs polish, it's hard to navigate. You need to easily sort by
+year and each year needs to populate with the races in the same order as the NASCAR schedule so
+people can quickly find what they are looking for, and even a track sort option." The page was one
+flat list, every season mixed, newest race first. NOW (OptimalLineups.js): a Season row (newest
+season selected on load; "All seasons") and a Track dropdown (tracks in the selected series,
+alphabetical). One season = races in schedule order (race number ascending, cup / O'Reilly / trucks
+together when All is selected). Picking a track switches to All seasons automatically and shows every
+visit, newest season first with a season divider, schedule order within. Closed rows are compact so
+a 36-race season fits on a screen or two; the subtitle no longer says "Every 2026 race". Stats card
+(races / avg optimal / best) follows the selection. Public page, no data change.
+
 ## 2026-10-06 — Lineup Optimizer polish pass 1 (user-facing; no engine change)
 Operator: "how can we polish the DFS optimizer to be more user friendly" -> "do the first polish pass".
 Walked /dfs as a first-time user: it opened on a 36-row table sorted by Value (P36 cars first), the
