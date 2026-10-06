@@ -377,7 +377,7 @@ export default function DFSPage() {
   const [cashSet, setCashSet] = useState([])
   const [sortKey, setSortKey] = useState('projDK')   // 2026-10-06 polish: projection first (Value sorted P36 cars to the top of the page)
   const [progress, setProgress] = useState(null)      // { phase, done, total } while a build runs
-  const [advanced, setAdvanced] = useState(false)     // driver table: the five building columns by default, everything on request
+  const [advanced, setAdvanced] = useState(false)     // driver table: min/max exposure boxes + portfolio rules on request (all columns always show - operator 10-06)
   const [showHow, setShowHow] = useState(false)
   const [sortDir, setSortDir] = useState('desc')
   // BUILD CANCELLATION (2026-09-05 review fix). buildGpp/step2 run across many setTimeout ticks and
@@ -1102,7 +1102,7 @@ export default function DFSPage() {
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
             <strong>Driver board</strong>
             <span style={{ fontSize: 12, color: 'var(--text-secondary,#9aa0aa)' }}>Lock a driver into every lineup, leave one out, or just build and let the sim choose. Click a column to sort.</span>
-            <button onClick={() => setAdvanced(a => !a)} style={{ marginLeft: 'auto', padding: '4px 12px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: advanced ? 'rgba(232,185,35,0.15)' : 'transparent', color: 'var(--text,#e8eaed)', fontSize: 12 }}>{advanced ? 'Advanced: on' : 'Advanced'}</button>
+            <button onClick={() => setAdvanced(a => !a)} title="Per-driver min / max exposure boxes and the portfolio construction rules" style={{ marginLeft: 'auto', padding: '4px 12px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: advanced ? 'rgba(232,185,35,0.15)' : 'transparent', color: 'var(--text,#e8eaed)', fontSize: 12 }}>{advanced ? 'Exposure limits: on' : 'Exposure limits'}</button>
           </div>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
@@ -1110,8 +1110,8 @@ export default function DFSPage() {
                 <th style={{ padding: '7px 8px', textAlign: 'left' }}>{advanced ? 'Lock / Out \u00b7 Min / Max %' : 'Lock / Out'}</th>
                 {th('name', 'Driver', 'left')}
                 <th style={{ padding: '7px 8px', textAlign: 'right' }} title="Share of the built lineups this driver is in">In lineups</th>
-                {th('startPos', 'Start')}{th('sal', 'Salary')}{th('projDK', 'Proj DK')}{th('ceil', 'Ceiling')}{th('pOwn', 'Proj Own%')}
-                {advanced && <>{th('value', 'Value')}{th('opt', 'Optimal%')}{th('winPct', 'Win%')}{th('lapsLed', 'Laps Led')}{th('avgFast', 'Fast Laps')}{th('projFinish', 'Proj Fin')}</>}
+                {th('startPos', 'Start')}{th('sal', 'Salary')}{th('projDK', 'Proj DK')}{th('ceil', 'Ceiling')}{th('value', 'Value')}{th('opt', 'Optimal%')}{th('pOwn', 'Proj Own%')}
+                {th('winPct', 'Win%')}{th('lapsLed', 'Laps Led')}{th('avgFast', 'Fast Laps')}{th('projFinish', 'Proj Fin')}
               </tr></thead>
               <tbody>
                 {sorted.map(d => {
@@ -1131,7 +1131,7 @@ export default function DFSPage() {
                           value={expo[d.name] && expo[d.name].max != null ? expo[d.name].max : ''}
                           onChange={e => { const v = e.target.value === '' ? null : Math.max(0, Math.min(100, +e.target.value || 0)); setExpo(prev => ({ ...prev, [d.name]: { ...(prev[d.name] || {}), max: v } })) }}
                           style={{ width: 44, marginLeft: 4, background: 'var(--bg,#0e0f13)', color: expo[d.name] && expo[d.name].max != null && expo[d.name].max < 100 ? '#e8b923' : 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 5, padding: '2px 4px', fontSize: 12 }} /></>}
-                        {!advanced && expo[d.name] && (expo[d.name].min > 0 || (expo[d.name].max != null && expo[d.name].max < 100)) && <span style={{ marginLeft: 6, fontSize: 11, color: '#e8b923' }} title="Exposure limits set (Advanced)">{expo[d.name].min > 0 ? 'min ' + expo[d.name].min + '%' : ''}{expo[d.name].min > 0 && expo[d.name].max != null ? ' ' : ''}{expo[d.name].max != null && expo[d.name].max < 100 ? 'max ' + expo[d.name].max + '%' : ''}</span>}
+                        {!advanced && expo[d.name] && (expo[d.name].min > 0 || (expo[d.name].max != null && expo[d.name].max < 100)) && <span style={{ marginLeft: 6, fontSize: 11, color: '#e8b923' }} title="Exposure limits set">{expo[d.name].min > 0 ? 'min ' + expo[d.name].min + '%' : ''}{expo[d.name].min > 0 && expo[d.name].max != null ? ' ' : ''}{expo[d.name].max != null && expo[d.name].max < 100 ? 'max ' + expo[d.name].max + '%' : ''}</span>}
                       </td>
                       <td style={{ padding: '4px 8px', textAlign: 'left', whiteSpace: 'nowrap' }}><CarNum car={d.car} series={series} />{d.name}</td>
                       {/* 2026-09-05: exposure moved next to the driver - it sat last and was off-screen at 1180px */}
@@ -1140,15 +1140,13 @@ export default function DFSPage() {
                       <td style={{ padding: '4px 8px', textAlign: 'right' }}>{d.out ? <span style={{ fontSize: 10, fontWeight: 800, color: '#ff5148', border: '1px solid #ff5148', borderRadius: 4, padding: '1px 5px' }}>OUT</span> : d.sal ? '$' + d.sal.toLocaleString() : '\u2014'}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right', fontWeight: 600 }}>{d.projDK.toFixed(1)}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right', color: 'var(--text-secondary,#9aa0aa)' }} title="90th-percentile DK score across the sim draws - tournament upside">{d.ceil ? d.ceil.toFixed(0) : '\u2014'}</td>
-                      <td style={{ padding: '4px 8px', textAlign: 'right', color: 'var(--text-secondary,#9aa0aa)' }} title="Projected field ownership - a monotone map off our own projection ranking, normalised so the board sums to 600%. Measured accuracy: 6.1 ownership points MAE across 8 races. It is derived from our projection, so the gap to Optimal% is not a leverage edge.">{d.pOwn ? d.pOwn.toFixed(1) + '%' : '\u2014'}</td>
-                      {advanced && <>
-                      <td style={{ padding: '4px 8px', textAlign: 'right', background: vBg, fontWeight: 600 }} title={d.sal ? (d.punt ? 'Floor-salary punt: compare on Proj DK. ' : 'Marginal DK pts per $1K above the floor. ') + 'Pts per $1K: ' + d.ptsPerK.toFixed(2) : ''}>{!d.sal ? '\u2014' : d.punt ? <span style={{ fontSize: 10, color: 'var(--text-secondary,#9aa0aa)', fontWeight: 700 }}>PUNT</span> : d.value.toFixed(2)}</td>
+                      <td style={{ padding: '4px 8px', textAlign: 'right', background: vBg, fontWeight: 600 }} title={d.sal ? (d.punt ? 'Floor-salary punt: compare on Proj DK. ' : 'Extra DK points per extra $1K above the cheapest car - what the money buys. ') + 'Pts per $1K: ' + d.ptsPerK.toFixed(2) : ''}>{!d.sal ? '\u2014' : d.punt ? <span style={{ fontSize: 10, color: 'var(--text-secondary,#9aa0aa)', fontWeight: 700 }}>PUNT</span> : d.value.toFixed(2)}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right', background: oBg }} title="How often this driver is in the single best lineup across the simulated races">{d.opt ? d.opt.toFixed(1) + '%' : '\u2014'}</td>
+                      <td style={{ padding: '4px 8px', textAlign: 'right', color: 'var(--text-secondary,#9aa0aa)' }} title="Projected field ownership - a monotone map off our own projection ranking, normalised so the board sums to 600%. Measured accuracy: 6.1 ownership points MAE across 8 races. It is derived from our projection, so the gap to Optimal% is not a leverage edge.">{d.pOwn ? d.pOwn.toFixed(1) + '%' : '\u2014'}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right' }}>{d.winPct.toFixed(1)}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right' }}>{d.lapsLed.toFixed(0)}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right' }}>{d.avgFast.toFixed(0)}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right' }}>{d.projFinish.toFixed(1)}</td>
-                      </>}
                     </tr>
                   )
                 })}

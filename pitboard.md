@@ -3700,10 +3700,10 @@ Cash 50-50 / Several contests (the objective is in the tooltip; switching clears
 Load DK entries file; (2) results sit BELOW the controls, lineups as driver chips (hover = salary,
 proj, share of the set; locked drivers tinted; fillers tagged), with a set summary line - "20 lineups
 · 22 drivers used · Byron 80%, Larson 70%, Hamlin 65%, Gragson 30% · ranked by tournament upside";
-(3) the driver board defaults to the five building columns (Start, Salary, Proj DK, Ceiling, Proj
-Own%) plus Lock / Out and "In lineups"; an Advanced toggle adds Value, Optimal%, Win%, Laps Led, Fast
-Laps, Proj Fin and the min/max exposure boxes (limits set in Advanced still show as a small tag
-when it is off); default sort projected DK; Lock / Out are labeled buttons with a visible state;
+(3) the driver board keeps every column (operator, same day: hiding Value / Optimal% / Win% etc.
+behind a toggle was wrong - "we are missing useful columns we had before"; reverted within the hour);
+an "Exposure limits" toggle shows the per-driver min/max boxes (limits still show as a small tag when
+it is off); default sort projected DK; Lock / Out are labeled buttons with a visible state;
 (4) a progress bar: GPP candidate scoring now runs in 250-candidate slices so the page paints
 ("Scoring candidate lineups across the sim draws · 1,250 / 2,000", then "Choosing the set · 12 / 20");
 portfolio and entries-file builds show an indeterminate bar; (5) the status line is plain English -
