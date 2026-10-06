@@ -3689,6 +3689,20 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
+## 2026-10-06 — Optimal Lineup Archive had frozen at cup R25: perfect lineups now written by the daily sync
+Operator: "how come the optimal archive stops at New Hampshire? 2026?" Because the 2022-2026 corpus
+was loaded once from workbooks (08-29 / 08-30) and NOTHING wrote a row when a new race loaded - six
+cup races (Daytona R26 .. Vegas R31) and the matching O'Reilly / trucks races ran with no archive
+entry. SHIPPED: api/_perfects.js `syncPerfects(sb, year, {dry})`, called at the end of the daily
+weekend-sync (service role, reported under `perfects` in the run result). For every race of the
+season with loop data (total_laps set, not exhibition) and a stored DK salary file but no 'perfect'
+row: salaries matched to loop_data names (accent-folded; first+last fallback), DK points recomputed
+from loop_data with the archive's formula, best cap-legal six by branch-and-bound, inserted with
+source 'sync:<date>' plus the priced field into dfs_race_field, then race_seq / race_cnt refreshed
+for that track-year. Never overwrites an existing row; a race with no salary file is named in the
+result and picked up the day the file is pasted. Verified by hand on a toy field; first live run
+below.
+
 ## 2026-10-06 — Optimal Lineup Archive: browse by season in schedule order, or by track
 Operator: "the optimal lineup page needs polish, it's hard to navigate. You need to easily sort by
 year and each year needs to populate with the races in the same order as the NASCAR schedule so

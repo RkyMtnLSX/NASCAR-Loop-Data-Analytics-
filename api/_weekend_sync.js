@@ -16,6 +16,7 @@
 const { createClient } = require('@supabase/supabase-js')
 const W = require('./_weekend')
 const B = require('../src/lib/weekendBundle')
+const P = require('./_perfects')
 
 module.exports = async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store')
@@ -91,7 +92,11 @@ module.exports = async function handler(req, res) {
         loads[series] = { race: `${p.track_label} R${p.race_number}`, ...(await B.applyBundle(sb, { series, year, race_number: p.race_number, track_name: p.track_name }, b, { dry })) }
       } catch (e) { loads[series] = { error: e.message } }
     }
-    return res.status(200).json({ ok: true, dry, year, result, registry, loads })
+    // 2026-10-06: Optimal Lineup Archive - perfect lineup + priced field for every loaded race that has a
+    // DK salary file and no row yet (the archive had frozen at cup R25 because nothing wrote new rows).
+    let perfects = null
+    try { perfects = await P.syncPerfects(sb, year, { dry }) } catch (e) { perfects = { error: e.message } }
+    return res.status(200).json({ ok: true, dry, year, result, registry, loads, perfects })
   } catch (e) {
     return res.status(502).json({ error: e.message })
   }
