@@ -903,7 +903,7 @@ export default function DFSPage() {
         {race && <span style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 13 }}>{race.track} &middot; {race.year} &middot; Race {race.rn} &middot; <span style={{ color: '#4caf50', fontWeight: 700 }} title="Post-practice / post-qualifying board: starting positions are the real qualified or DK-listed starts, never projected.">POST board</span>{race.at ? ' \u00b7 published ' + new Date(race.at).toLocaleString() : ''}</span>}
       </div>
 
-      {loading && <div style={{ color: 'var(--text-secondary,#9aa0aa)' }}>Loading projections\u2026</div>}
+      {loading && <div style={{ color: 'var(--text-secondary,#9aa0aa)' }}>Loading projections&hellip;</div>}
       {!loading && !drivers.length && <div style={{ ...card, borderLeft: '4px solid #e8b923' }}>
         <div style={{ fontWeight: 700, marginBottom: 6 }}>No post-practice / post-qualifying board is published for this series.</div>
         <div style={{ fontSize: 13, color: 'var(--text-secondary,#9aa0aa)' }}>
@@ -924,7 +924,7 @@ export default function DFSPage() {
                 {[['gpp', 'Tournament', 'A GPP / top-heavy contest. Builds the set that maximises your best lineup\'s expected score across the sim draws.'],
                   ['cash', 'Cash / 50-50', 'Double-ups, 50/50s, head-to-heads. Builds the highest-average lineups.'],
                   ['portfolio', 'Several contests', 'Entering more than one contest: each gets its own set, built together so your money is not six copies of one bet.']].map(([v, label, tip]) => (
-                  <button key={v} onClick={() => setMode(v)} disabled={!!plan && v !== mode} title={tip}
+                  <button key={v} onClick={() => { if (v === mode) return; setMode(v); if (!plan) { buildIdRef.current++; setLineups([]); setPortfolio(null); setCashSet([]); setNote(''); setProgress(null); setBuilding(false) } }} disabled={!!plan && v !== mode} title={tip}
                     style={{ padding: '7px 14px', borderRadius: 8, cursor: 'pointer', fontWeight: mode === v ? 700 : 500, border: '1px solid ' + (mode === v ? 'var(--accent,#e11d2a)' : 'var(--border,#2a2d34)'), background: mode === v ? 'rgba(225,29,42,0.16)' : 'transparent', color: 'var(--text,#e8eaed)' }}>{label}</button>
                 ))}
               </div>
@@ -1062,8 +1062,8 @@ export default function DFSPage() {
             const core = Object.entries(cnt).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([nm, c]) => nm.split(' ').slice(-1)[0] + ' ' + Math.round(100 * c / n) + '%')
             const under = lineups.filter(lu => lu.salary < CAP - 500).length
             return <div style={{ marginBottom: 10, display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
-              <span><strong>{n} lineup{n === 1 ? '' : 's'}</strong>{mode === 'portfolio' && portfolio ? <span style={{ color: 'var(--text-secondary,#9aa0aa)' }}> \u00b7 contest {portLeg + 1}</span> : null}</span>
-              <span style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 13 }}>{Object.keys(cnt).length} drivers used \u00b7 {core.join(', ')}{under ? ' \u00b7 ' + under + ' under $' + ((CAP - 500) / 1000).toFixed(1) + 'k' : ''} \u00b7 {lineups[0] && lineups[0].ceil != null ? 'ranked by tournament upside (p90)' : 'ranked by projected points'}</span>
+              <span><strong>{n} lineup{n === 1 ? '' : 's'}</strong>{mode === 'portfolio' && portfolio ? <span style={{ color: 'var(--text-secondary,#9aa0aa)' }}> &middot; contest {portLeg + 1}</span> : null}</span>
+              <span style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 13 }}>{Object.keys(cnt).length} drivers used &middot; {core.join(', ')}{under ? ' \u00b7 ' + under + ' under $' + ((CAP - 500) / 1000).toFixed(1) + 'k' : ''} &middot; {lineups[0] && lineups[0].ceil != null ? 'ranked by tournament upside (p90)' : 'ranked by projected points'}</span>
               <button onClick={() => setLineupsHidden(h => !h)} style={{ marginLeft: 'auto', padding: '3px 10px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: 'transparent', color: 'var(--text-secondary,#9aa0aa)', fontSize: 12 }}>{lineupsHidden ? 'Show' : 'Collapse'}</button>
             </div>
           })()}
