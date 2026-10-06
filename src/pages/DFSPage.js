@@ -375,7 +375,10 @@ export default function DFSPage() {
   // the cash lineups built for the plan. Manual mode (no file) is unchanged.
   const [plan, setPlan] = useState(null)
   const [cashSet, setCashSet] = useState([])
-  const [sortKey, setSortKey] = useState('value')
+  const [sortKey, setSortKey] = useState('projDK')   // 2026-10-06 polish: projection first (Value sorted P36 cars to the top of the page)
+  const [progress, setProgress] = useState(null)      // { phase, done, total } while a build runs
+  const [advanced, setAdvanced] = useState(false)     // driver table: the five building columns by default, everything on request
+  const [showHow, setShowHow] = useState(false)
   const [sortDir, setSortDir] = useState('desc')
   // BUILD CANCELLATION (2026-09-05 review fix). buildGpp/step2 run across many setTimeout ticks and
   // closed over the OLD series' rows/samples; switching series mid-build used to land last series'
@@ -384,7 +387,7 @@ export default function DFSPage() {
 
   useEffect(() => {
     let alive = true
-    buildIdRef.current++; setBuilding(false)
+    buildIdRef.current++; setProgress(null); setBuilding(false)
     setLoading(true); setLineups([]); setOptPct({}); setSimCands(null); setLocks(new Set()); setExcludes(new Set()); setExpo({}); setSalaries({}); setSamples(null); setNote(''); setPlan(null); setCashSet([]); setPortfolio(null); setEntFile(null)
     ;(async () => {
       // POST BOARDS ONLY (2026-09-05, owner rule): the optimizer must never build on projected
@@ -571,7 +574,7 @@ export default function DFSPage() {
     const meanRes = optimize(pool2, locks, excludes, Math.max(300, numLineups * 4))
     if (!meanRes.error) meanRes.lineups.forEach(lu => addCand(lu.drivers.map(d2 => d2.name)))
     let cands2 = Array.from(candMap2.values())
-    if (!cands2.length) { setNote('No cap-legal candidate lineups under current locks/excludes.'); setBuilding(false); return }
+    if (!cands2.length) { setNote('No cap-legal candidate lineups under current locks/excludes.'); setProgress(null); setBuilding(false); return }
     // candidate pool scales with the request - 150 entries needs more to choose from than 20
     const CAND_MAX = Math.min(6000, Math.max(2000, numLineups * 25))
     const __allByProj = cands2.map(n3 => [n3, n3.reduce((a3, nm) => a3 + (projByN[nm] || 0), 0)]).sort((x3, y3) => y3[1] - x3[1])
@@ -610,27 +613,35 @@ export default function DFSPage() {
     const Smat = new Float32Array(nC * nD)
     const cMean = new Float64Array(nC), cCeil = new Float64Array(nC), cFloor = new Float64Array(nC)
     const tmp = new Float64Array(nD)
-    for (let c = 0; c < nC; c++) {
-      const ids = idxCands[c], off = c * nD
-      let mu = 0
-      for (let d = 0; d < nD; d++) {
-        const rw = drawRows[d]
-        const v = rw[ids[0]] + rw[ids[1]] + rw[ids[2]] + rw[ids[3]] + rw[ids[4]] + rw[ids[5]]
-        Smat[off + d] = v; tmp[d] = v; mu += v
-      }
-      cMean[c] = mu / nD
-      tmp.sort()
-      cCeil[c] = tmp[Math.min(nD - 1, Math.floor(0.9 * (nD - 1)))]
-      cFloor[c] = tmp[Math.min(nD - 1, Math.floor(0.25 * (nD - 1)))]
-    }
+    // 2026-10-06 polish: candidate scoring runs in slices so the page paints a progress bar instead of
+    // freezing for several seconds (a frozen tab reads as a crash to anyone who is not us).
     const want = numLineups
+    const scoreSlice = (c0, after) => {
+      const c1 = Math.min(nC, c0 + 250)
+      for (let c = c0; c < c1; c++) {
+        const ids = idxCands[c], off = c * nD
+        let mu = 0
+        for (let d = 0; d < nD; d++) {
+          const rw = drawRows[d]
+          const v = rw[ids[0]] + rw[ids[1]] + rw[ids[2]] + rw[ids[3]] + rw[ids[4]] + rw[ids[5]]
+          Smat[off + d] = v; tmp[d] = v; mu += v
+        }
+        cMean[c] = mu / nD
+        tmp.sort()
+        cCeil[c] = tmp[Math.min(nD - 1, Math.floor(0.9 * (nD - 1)))]
+        cFloor[c] = tmp[Math.min(nD - 1, Math.floor(0.25 * (nD - 1)))]
+      }
+      if (myBuild !== buildIdRef.current) return
+      setProgress({ phase: 'Scoring candidate lineups across the sim draws', done: c1, total: nC })
+      if (c1 < nC) setTimeout(() => scoreSlice(c1, after), 0); else after()
+    }
     const capOf = nm => (locks.has(nm) ? Infinity : __capFor(nm, want, maxExp, expo))
-    const sel = makeEmaxSelector(nC, nD, Smat, want, cands2, capOf)
-    const chosen = sel.chosen
+    let sel = null, chosen = null
     const step2 = () => {
       if (myBuild !== buildIdRef.current) return   // series/mode changed underneath us - drop this build
+      if (!sel) { sel = makeEmaxSelector(nC, nD, Smat, want, cands2, capOf); chosen = sel.chosen }
       const done = sel.step(60)
-      setNote('Building set... ' + chosen.length + ' of ' + want + ' lineups')
+      setProgress({ phase: 'Choosing the set', done: chosen.length, total: want })
       if (!done) { setTimeout(step2, 0); return }
       let picked = chosen.map(c => ({
         drivers: cands2[c].map(nm => ({ name: nm, car: carByN[nm], sal: salByN[nm], projDK: projByN[nm] || 0 })),
@@ -650,19 +661,20 @@ export default function DFSPage() {
       const short = picked.length < want
         ? 'ONLY ' + picked.length + ' of ' + want + ' lineups possible at ' + Math.round(maxExp * 100) + '% max exposure - lock/exclude settings leave too few drivers. '
         : ''
-      setNote(short + 'GPP: set of ' + picked.length + ' chosen from ' + nC.toLocaleString() +
-        ' candidates to maximise E[best lineup] across ' + nD.toLocaleString() + ' sim draws (E[max] ' +
-        em.toFixed(1) + ').')
-      setBuilding(false)
+      setNote(short + picked.length + ' lineup' + (picked.length === 1 ? '' : 's') + ' built for a tournament from the ' + (race && race.at ? 'post-practice board' : 'board') +
+        ' \u00b7 expected best lineup ' + em.toFixed(0) + ' pts' +
+        ' (' + nC.toLocaleString() + ' candidates, ' + nD.toLocaleString() + ' sim draws, E[max] objective).')
+      setProgress(null); setBuilding(false)
     }
-    step2()
+    setProgress({ phase: 'Scoring candidate lineups across the sim draws', done: 0, total: nC })
+    scoreSlice(0, step2)
   }
   const buildPortfolioUI = (myBuild, relaxArg, wantsArg) => {
     const relax = relaxArg || portRelax
     const __wants = wantsArg || (plan && plan.wants && plan.wants.length ? plan.wants : null)
     const __legsN = __wants ? __wants.length : Math.max(1, Math.min(6, portLegs))
     if (myBuild !== buildIdRef.current) return
-    if (!samples || !samples.drivers || !samples.rows || !samples.rows.length) { setNote('Portfolio needs the stored sim draws (post board) - none loaded.'); setBuilding(false); return }
+    if (!samples || !samples.drivers || !samples.rows || !samples.rows.length) { setNote('Portfolio needs the stored sim draws (post board) - none loaded.'); setProgress(null); setBuilding(false); return }
     const rulesOn = portRules == null ? portfolioRulesDefault(series) : portRules
     const res = buildPortfolio(
       { optimize, bestLineup, makeEmaxSelector, topUpLineups, enforceMinExposure, capFor: __capFor, ROSTER, CAP },
@@ -670,35 +682,38 @@ export default function DFSPage() {
         rulesOn, schedule: portSchedule, locks, excludes, userExpo: expo, projOwn: ownMap,
         rules: relax.portfolioMaxPct ? { portfolioMaxPct: relax.portfolioMaxPct } : {}, t2MinOffLegs: relax.t2MinOffLegs })
     if (myBuild !== buildIdRef.current) return
+    setProgress(null)
     setPortfolio({ ...res, rulesOn })
     setPortLeg(0)
     setLineups(res.legs[0] ? res.legs[0].lineups : [])
     const short = res.legs.map((l, i) => l.short ? 'leg ' + (i + 1) + ' delivered ' + l.lineups.length + ' of ' + (l.want || numLineups) + ' (' + (l.why || []).join('; ') + ')' : null).filter(Boolean)
+    const filledN = res.legs.reduce((a, l) => a + (l.filled || 0), 0)
     const filledMsg = res.legs.map((l, i) => l.filled ? 'leg ' + (i + 1) + ': ' + l.filled + ' slot' + (l.filled > 1 ? 's' : '') + ' the rules could not fill (' + (l.filledWhy || []).join('; ') + ') filled with the next-best lineups (' + l.lineups.filter(x => x.fill === 'portfolio-cap').length + ' under this leg\'s caps, ' + l.lineups.filter(x => x.fill === 'uncapped').length + ' uncapped)' : null).filter(Boolean)
-    setNote('PORTFOLIO: ' + res.legs.length + ' legs ' + (__wants ? '(' + __wants.join(' / ') + ')' : 'x ' + numLineups) + ' (' + res.total + ' entries), rules ' + (rulesOn ? 'ON' : 'OFF') + ', chalk ' + (CHALK_SCHEDULES[portSchedule] ? CHALK_SCHEDULES[portSchedule].label.split(' (')[0] : portSchedule) +
-      '. Chalk: ' + (res.cls.chalk.length ? res.cls.chalk.join(', ') : 'none over ' + PORTFOLIO_RULES.chalkOwnPct + '%') + '. Tier-two: ' + (res.cls.t2.join(', ') || 'none') + '.' + (short.length ? ' SHORT - ' + short.join('; ') + '.' : '') + (filledMsg.length ? ' FILLED - ' + filledMsg.join('; ') + '.' : '') + ' Export each leg to its own contest.')
-    setBuilding(false)
+    setNote(res.legs.length + ' contest' + (res.legs.length === 1 ? '' : 's') + ' built (' + (__wants ? __wants.join(' / ') : res.legs.map(() => numLineups).join(' / ')) + ' lineups, ' + res.total + ' entries) from the post-practice board - select a contest below and export it to its own file.' +
+      (filledN ? ' ' + filledN + ' lineup' + (filledN === 1 ? '' : 's') + ' filled past the exposure rules.' : '') + (short.length ? ' SHORT - ' + short.join('; ') + '.' : '') +
+      ' [details: rules ' + (rulesOn ? 'ON' : 'OFF') + ', chalk ' + (CHALK_SCHEDULES[portSchedule] ? CHALK_SCHEDULES[portSchedule].label.split(' (')[0] : portSchedule) + '; chalk: ' + (res.cls.chalk.length ? res.cls.chalk.join(', ') : 'none over ' + PORTFOLIO_RULES.chalkOwnPct + '%') + '; tier-two: ' + (res.cls.t2.join(', ') || 'none') + (filledMsg.length ? '; ' + filledMsg.join('; ') : '') + ']')
+    setProgress(null); setBuilding(false)
   }
   // Rebuild the portfolio with a relaxation chosen from the 'why short' buttons. The relax is passed
   // explicitly because setState + setTimeout(build) would rebuild on the stale closure.
   const rebuildPortfolio = (relax) => {
     setPortRelax(relax)
     const myBuild = ++buildIdRef.current
-    setBuilding(true); setLineups([]); setNote(''); setPortfolio(null)
+    setBuilding(true); setLineups([]); setNote(''); setPortfolio(null); setProgress({ phase: 'Building the contests together', done: 0, total: 0 })
     setTimeout(() => buildPortfolioUI(myBuild, relax, plan && plan.wants && plan.wants.length ? plan.wants : null), 30)
   }
   const build = () => {
     const myBuild = ++buildIdRef.current
     setBuilding(true); setLineups([]); setNote('')
-    if (mode === 'portfolio') { setPortfolio(null); setTimeout(() => buildPortfolioUI(myBuild), 30); return }
-    if (mode === 'gpp' && samples && samples.drivers && samples.rows && samples.rows.length) { setTimeout(() => buildGpp(myBuild), 30); return }
+    if (mode === 'portfolio') { setPortfolio(null); setProgress({ phase: 'Building the contests together', done: 0, total: 0 }); setTimeout(() => buildPortfolioUI(myBuild), 30); return }
+    if (mode === 'gpp' && samples && samples.drivers && samples.rows && samples.rows.length) { setProgress({ phase: 'Finding candidate lineups', done: 0, total: 0 }); setTimeout(() => buildGpp(myBuild), 30); return }
     setTimeout(() => {
       if (myBuild !== buildIdRef.current) return
       const r2 = buildCashSet(numLineups)
-      if (r2.error) { setNote(r2.error); setBuilding(false); return }
+      if (r2.error) { setNote(r2.error); setProgress(null); setBuilding(false); return }
       setLineups(r2.picked)
       setNote(r2.msg)
-      setBuilding(false)
+      setProgress(null); setBuilding(false)
     }, 30)
   }
   // Cash build (mean optimizer + exposure), shared by manual Cash mode and the contest plan.
@@ -724,14 +739,14 @@ export default function DFSPage() {
     const newPlan = { gpp: gpp.map(g => g.name), cash: cash.map(g => g.name), wants, cashN: cash.length ? Math.max.apply(null, cash.map(g => g.rows.length)) : 0 }
     setPlan(newPlan)
     const myBuild = ++buildIdRef.current
-    setBuilding(true); setLineups([]); setNote(''); setPortfolio(null); setCashSet([])
+    setBuilding(true); setLineups([]); setNote(''); setPortfolio(null); setCashSet([]); setProgress({ phase: 'Building for the contests in your entries file', done: 0, total: 0 })
     setTimeout(() => {
       if (myBuild !== buildIdRef.current) return
       if (newPlan.cashN) {
         const r2 = buildCashSet(newPlan.cashN)
-        if (r2.error) { setNote(r2.error); setBuilding(false); return }
+        if (r2.error) { setNote(r2.error); setProgress(null); setBuilding(false); return }
         setCashSet(r2.picked)
-        if (!wants.length) { setMode('cash'); setLineups(r2.picked); setNote('CASH: ' + r2.picked.length + ' lineups for ' + cash.length + ' contest(s). ' + r2.msg); setBuilding(false); return }
+        if (!wants.length) { setMode('cash'); setLineups(r2.picked); setNote('CASH: ' + r2.picked.length + ' lineups for ' + cash.length + ' contest(s). ' + r2.msg); setProgress(null); setBuilding(false); return }
       }
       setMode('portfolio')
       buildPortfolioUI(myBuild, null, wants)
@@ -899,86 +914,44 @@ export default function DFSPage() {
       </div>}
 
       {!loading && drivers.length > 0 && <>
-        {/* 2026-08-14: lineups render ABOVE the driver pool - post-build result first */}
-        {mode === 'portfolio' && portfolio && <div style={{ ...card, borderLeft: '4px solid #4caf50' }}>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 }}>
-            <strong>Portfolio</strong>
-            {portfolio.legs.map((l, i) => (
-              <button key={i} onClick={() => { setPortLeg(i); setLineups(l.lineups) }} style={{ padding: '5px 12px', borderRadius: 8, cursor: 'pointer', border: '1px solid ' + (portLeg === i ? '#4caf50' : 'var(--border,#2a2d34)'), background: portLeg === i ? 'rgba(76,175,80,0.18)' : 'transparent', color: 'var(--text,#e8eaed)', fontWeight: portLeg === i ? 700 : 400 }}>
-                Leg {i + 1} &middot; {l.lineups.length}{l.short ? ' (short)' : ''}{l.filled ? ' (' + l.filled + ' filled)' : ''}
-              </button>
-            ))}
-            <span style={{ fontSize: 12, color: 'var(--text-secondary,#9aa0aa)' }}>Select a leg, then Export CSV - one file per contest. Rules {portfolio.rulesOn ? 'ON' : 'OFF'}{portRelax.portfolioMaxPct ? ' · portfolio cap ' + portRelax.portfolioMaxPct + '%' : ''}{portRelax.t2MinOffLegs.length ? ' · tier-two min off for leg ' + portRelax.t2MinOffLegs.map(i => i + 1).join(', ') : ''}.</span>
-          </div>
-          {portfolio.legs.some(l => l.short) && (
-            <div style={{ fontSize: 12, margin: '4px 0 8px', padding: '8px 10px', border: '1px solid #e8b923', borderRadius: 8 }}>
-              {portfolio.legs.map((l, i) => l.short ? <div key={i}><b>Leg {i + 1} is short ({l.lineups.length} of {numLineups}):</b> {(l.why || []).join('; ')}.</div> : null)}
-              <div style={{ marginTop: 6, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                <span style={{ color: 'var(--text-secondary,#9aa0aa)' }}>It will not pad with junk. Rebuild with:</span>
-                {[65, 70].map(pc => <button key={pc} onClick={() => rebuildPortfolio({ ...portRelax, portfolioMaxPct: pc })} disabled={building || portRelax.portfolioMaxPct === pc} style={{ padding: '4px 10px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: 'transparent', color: 'var(--text,#e8eaed)' }}>portfolio cap {pc}%</button>)}
-                {portfolio.rulesOn && portfolio.legs.map((l, i) => l.short && (l.why || []).some(w => w.indexOf('tier-two') === 0) && portRelax.t2MinOffLegs.indexOf(i) === -1 ? <button key={'t2' + i} onClick={() => rebuildPortfolio({ ...portRelax, t2MinOffLegs: portRelax.t2MinOffLegs.concat([i]) })} disabled={building} style={{ padding: '4px 10px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: 'transparent', color: 'var(--text,#e8eaed)' }}>drop tier-two minimum for leg {i + 1}</button> : null)}
-                {(portRelax.portfolioMaxPct || portRelax.t2MinOffLegs.length) ? <button onClick={() => rebuildPortfolio({ portfolioMaxPct: null, t2MinOffLegs: [] })} disabled={building} style={{ padding: '4px 10px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: 'transparent', color: 'var(--text-secondary,#9aa0aa)' }}>reset to defaults</button> : null}
+        <div style={card}>
+          {/* 2026-10-06 polish: the page opens on three steps, not on a 36-row table. Step 1 is the contest
+              type in the user's words (the objective behind each is in the title), step 2 the size, step 3 Build. */}
+          <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 12 }}>
+            <div>
+              <div style={{ fontSize: 11, letterSpacing: 0.6, textTransform: 'uppercase', color: 'var(--text-secondary,#9aa0aa)', marginBottom: 6 }}>1 &middot; What are you entering?</div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {[['gpp', 'Tournament', 'A GPP / top-heavy contest. Builds the set that maximises your best lineup\'s expected score across the sim draws.'],
+                  ['cash', 'Cash / 50-50', 'Double-ups, 50/50s, head-to-heads. Builds the highest-average lineups.'],
+                  ['portfolio', 'Several contests', 'Entering more than one contest: each gets its own set, built together so your money is not six copies of one bet.']].map(([v, label, tip]) => (
+                  <button key={v} onClick={() => setMode(v)} disabled={!!plan && v !== mode} title={tip}
+                    style={{ padding: '7px 14px', borderRadius: 8, cursor: 'pointer', fontWeight: mode === v ? 700 : 500, border: '1px solid ' + (mode === v ? 'var(--accent,#e11d2a)' : 'var(--border,#2a2d34)'), background: mode === v ? 'rgba(225,29,42,0.16)' : 'transparent', color: 'var(--text,#e8eaed)' }}>{label}</button>
+                ))}
               </div>
             </div>
-          )}
-          <div style={{ fontSize: 12, color: 'var(--text-secondary,#9aa0aa)', marginBottom: 6 }}>
-            Chalk (proj own &gt; {PORTFOLIO_RULES.chalkOwnPct}%): {portfolio.cls.chalk.length ? portfolio.cls.chalk.join(', ') : 'none'} &middot; Tier-two studs: {portfolio.cls.t2.join(', ') || 'none'} &middot; Floor cars: {portfolio.cls.floor.join(', ') || 'none'}
-          </div>
-          <div style={{ fontSize: 12, display: 'flex', flexWrap: 'wrap', gap: '4px 12px', alignItems: 'baseline' }}>
-            <span style={{ color: 'var(--text-secondary,#9aa0aa)' }}>Portfolio exposure ({portfolio.total} entries):</span>
-            {Object.entries(portfolio.exposure).sort((a, b) => b[1] - a[1]).map(([n, c]) => <span key={n} style={{ whiteSpace: 'nowrap', fontWeight: c / portfolio.total >= 0.5 ? 700 : 400 }}>{n} {Math.round(100 * c / portfolio.total)}%</span>)}
-          </div>
-        </div>}
-        {lineups.length > 0 && <div style={card}>
-          <div style={{ marginBottom: 10, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-            <span><strong>{lineups.length} lineup{lineups.length === 1 ? '' : 's'}</strong> <span style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 13 }}>{lineups[0] && lineups[0].ceil != null ? 'ranked by 90th-percentile total across sim draws' : 'ranked by projected DK points'}</span></span>
-            <button onClick={() => setLineupsHidden(h => !h)} style={{ padding: '4px 12px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: 'transparent', color: 'var(--text,#e8eaed)', fontSize: 12 }}>
-              {lineupsHidden ? 'Show lineups' : 'Hide lineups'}
-            </button>
-          </div>
-          <div style={{ overflowX: 'auto', display: lineupsHidden ? 'none' : 'block' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-              <thead><tr style={{ color: 'var(--text-secondary,#9aa0aa)' }}>
-                <th style={{ padding: '6px 8px', textAlign: 'left' }}>#</th>
-                <th style={{ padding: '6px 8px', textAlign: 'left' }}>Drivers</th>
-                <th style={{ padding: '6px 8px', textAlign: 'right' }}>Salary</th>
-                <th style={{ padding: '6px 8px', textAlign: 'right' }}>Proj DK</th>
-                <th style={{ padding: '6px 8px', textAlign: 'right' }}>Ceil (p90)</th>
-                <th style={{ padding: '6px 8px', textAlign: 'right' }}>Floor (p25)</th>
-              </tr></thead>
-              <tbody>
-                {lineups.map((lu, i) => (
-                  <tr key={i} style={{ borderBottom: '1px solid var(--border,#22252b)' }}>
-                    <td style={{ padding: '5px 8px', color: 'var(--text-secondary,#9aa0aa)' }}>{i + 1}</td>
-                    <td style={{ padding: '5px 8px' }}>{lu.drivers.slice().sort((a, b) => b.projDK - a.projDK).map(d => (d.car ? '#' + d.car + ' ' : '') + d.name).join(',  ')}</td>
-                    <td style={{ padding: '5px 8px', textAlign: 'right' }}>{'$' + lu.salary.toLocaleString()}</td>
-                    <td style={{ padding: '5px 8px', textAlign: 'right', fontWeight: 600 }}>{lu.proj.toFixed(1)}</td>
-                    <td style={{ padding: '5px 8px', textAlign: 'right', fontWeight: 600, color: 'var(--accent,#e11d2a)' }}>{lu.ceil != null ? lu.ceil.toFixed(1) : '-'}</td>
-                    <td style={{ padding: '5px 8px', textAlign: 'right', color: 'var(--text-secondary,#9aa0aa)' }}>{lu.floor != null ? lu.floor.toFixed(1) : '-'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>}
-        <div style={card}>
-          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 12 }}>
-            <label style={{ fontSize: 13 }} title={mode === 'portfolio' ? 'Per leg. Legs are contests: set this to the largest contest\'s entry count; each contest is filled from its own leg.' : undefined}>{mode === 'portfolio' ? 'Lineups per leg' : 'Lineups'}{plan ? ' (from file)' : ''}<br /><input type="number" disabled={!!plan} value={plan && plan.wants.length ? Math.max.apply(null, plan.wants) : numLineups} min={1} max={150} onChange={e => setNumLineups(Math.max(1, Math.min(150, +e.target.value || 1)))} style={{ width: 70, marginTop: 4, background: 'var(--bg,#0e0f13)', color: 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 6, padding: '5px 7px' }} /></label>
-            <label style={{ fontSize: 13 }}>Max exposure %<br /><input type="number" min={10} max={100} step={5}
+            <div>
+              <div style={{ fontSize: 11, letterSpacing: 0.6, textTransform: 'uppercase', color: 'var(--text-secondary,#9aa0aa)', marginBottom: 6 }}>2 &middot; How many lineups?</div>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end' }}>
+            <label style={{ fontSize: 13 }} title={mode === 'portfolio' ? 'Per contest. Set this to the largest contest\'s entry count; each contest is filled from its own set.' : 'How many entries you are putting in this contest.'}>{mode === 'portfolio' ? 'Per contest' : 'Lineups'}{plan ? ' (from file)' : ''}<br /><input type="number" disabled={!!plan} value={plan && plan.wants.length ? Math.max.apply(null, plan.wants) : numLineups} min={1} max={150} onChange={e => setNumLineups(Math.max(1, Math.min(150, +e.target.value || 1)))} style={{ width: 70, marginTop: 4, background: 'var(--bg,#0e0f13)', color: 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 6, padding: '5px 7px' }} /></label>
+            <label style={{ fontSize: 13 }} title="The most lineups any one driver may appear in. 100% lets the sim decide; lower it to spread your entries across more drivers.">Max exposure %<br /><input type="number" min={10} max={100} step={5}
               value={Math.round(maxExp * 100)}
               onChange={e => { const v = Math.max(10, Math.min(100, +e.target.value || 100)); setMaxExp(v / 100) }}
               style={{ marginTop: 4, width: 72, background: 'var(--bg,#0e0f13)', color: 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 6, padding: '5px 7px' }} /></label>
-            <label style={{ fontSize: 13 }}>Mode<br /><select value={mode} onChange={e => setMode(e.target.value)} style={{ marginTop: 4, background: 'var(--bg,#0e0f13)', color: 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 6, padding: '5px 7px' }}>
-              <option value="gpp">GPP (ceiling)</option><option value="cash">Cash (average)</option><option value="portfolio">Portfolio (N contests)</option>
-            </select></label>
             {mode === 'portfolio' && <>
-              <label style={{ fontSize: 13 }}>Legs{plan ? ' (from file)' : ''}<br /><input type="number" disabled={!!plan} value={plan ? plan.wants.length : portLegs} min={1} max={6} onChange={e => setPortLegs(Math.max(1, Math.min(6, +e.target.value || 1)))} style={{ width: 56, marginTop: 4, background: 'var(--bg,#0e0f13)', color: 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 6, padding: '5px 7px' }} /></label>
-              <label style={{ fontSize: 13 }} title="Tier-two studs 50-80% per leg, floor cars <= 10%, mid punts <= 25%, at most 2 punts per lineup, salary >= $48,800, no lineup reused across legs, 60% portfolio cap. Backtested +14% (7/2) on cup + O'Reilly; lost both truck races, so trucks default OFF.">Operator rules<br />
+              <label style={{ fontSize: 13 }} title="How many contests you are entering (up to 6). Load your DK entries file and this is read from it.">Contests{plan ? ' (from file)' : ''}<br /><input type="number" disabled={!!plan} value={plan ? plan.wants.length : portLegs} min={1} max={6} onChange={e => setPortLegs(Math.max(1, Math.min(6, +e.target.value || 1)))} style={{ width: 56, marginTop: 4, background: 'var(--bg,#0e0f13)', color: 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 6, padding: '5px 7px' }} /></label>
+              {advanced && <>
+              <label style={{ fontSize: 13 }} title="Tier-two studs 50-80% per leg, floor cars <= 10%, mid punts <= 25%, at most 2 punts per lineup, salary >= $48,800, no lineup reused across legs, 60% portfolio cap. Backtested +14% (7/2) on cup + O'Reilly; lost both truck races, so trucks default OFF.">Construction rules<br />
                 <input type="checkbox" checked={portRules == null ? portfolioRulesDefault(series) : portRules} onChange={e => setPortRules(e.target.checked)} style={{ marginTop: 8 }} /> {(portRules == null ? portfolioRulesDefault(series) : portRules) ? 'on' : 'off'}{portRules == null ? ' (series default)' : ''}</label>
               <label style={{ fontSize: 13 }} title="Max exposure to any driver projected over 35% owned, per leg. The fade schedule finds a higher peak (best-of-60 pctile 89 -> 94) and returned zero in 5 of 9 races - high variance by design.">Chalk stance<br /><select value={portSchedule} onChange={e => setPortSchedule(e.target.value)} style={{ marginTop: 4, background: 'var(--bg,#0e0f13)', color: 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 6, padding: '5px 7px' }}>
                 {Object.keys(CHALK_SCHEDULES).map(k => <option key={k} value={k}>{CHALK_SCHEDULES[k].label}</option>)}
               </select></label>
+              </>}
             </>}
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 11, letterSpacing: 0.6, textTransform: 'uppercase', color: 'var(--text-secondary,#9aa0aa)', marginBottom: 6 }}>3 &middot; Build</div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <button onClick={build} disabled={building || !canBuild} style={{ padding: '8px 18px', borderRadius: 8, cursor: building || !canBuild ? 'not-allowed' : 'pointer', border: 'none', background: !canBuild ? 'var(--border,#2a2d34)' : 'var(--accent,#e11d2a)', color: '#fff', fontWeight: 600 }}>
               {building ? 'Building\u2026' : 'Build lineups'}
             </button>
@@ -993,6 +966,15 @@ export default function DFSPage() {
               {entFile ? 'Replace DK entries file' : 'Load DK entries file'}
               <input type="file" accept=".csv,text/csv" style={{ display: 'none' }} onChange={e => { parseEntriesFile(e.target.files && e.target.files[0]); e.target.value = '' }} />
             </label>
+              </div>
+            </div>
+            {progress && <div style={{ width: '100%' }}>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary,#9aa0aa)', marginBottom: 4 }}>{progress.phase}{progress.total ? ' \u00b7 ' + progress.done.toLocaleString() + ' / ' + progress.total.toLocaleString() : '\u2026'}</div>
+              <div style={{ height: 6, borderRadius: 3, background: 'var(--border,#2a2d34)', overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: progress.total ? Math.round(100 * progress.done / progress.total) + '%' : '35%', background: 'var(--accent,#e11d2a)', transition: 'width 120ms linear', animation: progress.total ? 'none' : 'pbIndet 1.2s ease-in-out infinite alternate' }} />
+              </div>
+              <style>{'@keyframes pbIndet { from { margin-left: 0 } to { margin-left: 65% } }'}</style>
+            </div>}
             {entFile && <div style={{ width: '100%', marginTop: 10, padding: '10px 12px', border: '1px solid ' + (plan ? '#4caf50' : 'var(--border,#2a2d34)'), borderRadius: 8 }}>
               <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Contests in {entFile.fileName || 'the entries file'} <span style={{ color: 'var(--text-secondary,#9aa0aa)', fontWeight: 400 }}>- tick what to play, set GPP or Cash, then Build</span></div>
               {entFile.groups.map(g => {
@@ -1027,18 +1009,109 @@ export default function DFSPage() {
                 <button onClick={() => { setEntFile(null); setPlan(null); setCashSet([]) }} style={{ padding: '6px 14px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: 'transparent', color: 'var(--text,#e8eaed)' }}>Remove file</button>
               </div>
             </div>}
-            <span style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 12 }}>{canBuild ? 'Cap $50,000 \u00b7 6 drivers \u00b7 Lock/Excl to steer' + (samples ? ' \u00b7 Optimal% from ' + samples.rows.length + ' sims \u00b7 Value = extra DK pts per extra $1K above the salary floor (what the money buys; floor cars = PUNT, compare on Proj DK) \u00b7 Ceiling = 90th-percentile DK score (tournament upside)' : '') : 'Salaries not posted yet'}</span>
-            {note && <span style={{ color: 'var(--accent,#e11d2a)', fontSize: 12 }}>{note}</span>}
+            {note && <div style={{ width: '100%', fontSize: 13, color: /^(ONLY|Could not|No |That is|Entries parse|Tick|At most|Nothing|Salaries)/.test(note) ? 'var(--accent,#e11d2a)' : 'var(--text,#e8eaed)' }}>
+              {note.indexOf(' [details: ') === -1 ? note : <>{note.split(' [details: ')[0]} <span title={note.split(' [details: ')[1].replace(/\]$/, '')} style={{ color: 'var(--text-secondary,#9aa0aa)', cursor: 'help', borderBottom: '1px dotted' }}>details</span></>}
+            </div>}
+            {!canBuild && <span style={{ color: 'var(--accent,#e11d2a)', fontSize: 12 }}>DraftKings salaries are not posted for this race yet - the build turns on once they are.</span>}
+            <div style={{ width: '100%', fontSize: 12, color: 'var(--text-secondary,#9aa0aa)' }}>
+              <button onClick={() => setShowHow(h => !h)} style={{ padding: 0, border: 'none', background: 'transparent', color: 'var(--text-secondary,#9aa0aa)', cursor: 'pointer', textDecoration: 'underline', fontSize: 12 }}>{showHow ? 'Hide' : 'How this works'}</button>
+              {showHow && <div style={{ marginTop: 6, lineHeight: 1.5 }}>
+                Projections come from the latest published simulation for this race - the post-practice board uses the real qualified starting positions, never a projected grid. DraftKings Classic: $50,000 cap, 6 drivers, points for finish, places gained, laps led and fastest laps.
+                <b> Tournament</b> picks the set of lineups whose best one is expected to score highest across the sim's race outcomes - built for top-heavy payouts. <b>Cash</b> picks the highest-average lineups. <b>Several contests</b> builds one set per contest at once so they do not all ride the same bet.
+                Use <b>Lock</b> to force a driver into every lineup, <b>Out</b> to leave him out, and the exposure boxes (Advanced) to set a floor or ceiling on how many lineups he is in. <b>Load DK entries file</b> (DraftKings &rarr; Lineups &rarr; Edit entries &rarr; download) reads your contests and entry counts, builds for each, and writes a file you upload straight back.
+                {samples ? ' Optimal% is how often a driver is in the single best lineup across ' + samples.rows.length.toLocaleString() + ' simulated races; Ceiling is his 90th-percentile score; Value is extra points per extra $1K over the cheapest car.' : ''}
+              </div>}
+            </div>
           </div>
+        </div>
 
+                {mode === 'portfolio' && portfolio && <div style={{ ...card, borderLeft: '4px solid #4caf50' }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 }}>
+            <strong>Portfolio</strong>
+            {portfolio.legs.map((l, i) => (
+              <button key={i} onClick={() => { setPortLeg(i); setLineups(l.lineups) }} style={{ padding: '5px 12px', borderRadius: 8, cursor: 'pointer', border: '1px solid ' + (portLeg === i ? '#4caf50' : 'var(--border,#2a2d34)'), background: portLeg === i ? 'rgba(76,175,80,0.18)' : 'transparent', color: 'var(--text,#e8eaed)', fontWeight: portLeg === i ? 700 : 400 }}>
+                Contest {i + 1} &middot; {l.lineups.length}{l.short ? ' (short)' : ''}{l.filled ? ' (' + l.filled + ' filled)' : ''}
+              </button>
+            ))}
+            <span style={{ fontSize: 12, color: 'var(--text-secondary,#9aa0aa)' }}>Select a contest, then Export DK CSV - one file per contest. Rules {portfolio.rulesOn ? 'ON' : 'OFF'}{portRelax.portfolioMaxPct ? ' · portfolio cap ' + portRelax.portfolioMaxPct + '%' : ''}{portRelax.t2MinOffLegs.length ? ' · tier-two min off for leg ' + portRelax.t2MinOffLegs.map(i => i + 1).join(', ') : ''}.</span>
+          </div>
+          {portfolio.legs.some(l => l.short) && (
+            <div style={{ fontSize: 12, margin: '4px 0 8px', padding: '8px 10px', border: '1px solid #e8b923', borderRadius: 8 }}>
+              {portfolio.legs.map((l, i) => l.short ? <div key={i}><b>Contest {i + 1} is short ({l.lineups.length} of {l.want || numLineups}):</b> {(l.why || []).join('; ')}.</div> : null)}
+              <div style={{ marginTop: 6, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                <span style={{ color: 'var(--text-secondary,#9aa0aa)' }}>Slots the rules could not fill were given the next-best lineups. To rebuild under looser rules instead:</span>
+                {[65, 70].map(pc => <button key={pc} onClick={() => rebuildPortfolio({ ...portRelax, portfolioMaxPct: pc })} disabled={building || portRelax.portfolioMaxPct === pc} style={{ padding: '4px 10px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: 'transparent', color: 'var(--text,#e8eaed)' }}>portfolio cap {pc}%</button>)}
+                {portfolio.rulesOn && portfolio.legs.map((l, i) => l.short && (l.why || []).some(w => w.indexOf('tier-two') === 0) && portRelax.t2MinOffLegs.indexOf(i) === -1 ? <button key={'t2' + i} onClick={() => rebuildPortfolio({ ...portRelax, t2MinOffLegs: portRelax.t2MinOffLegs.concat([i]) })} disabled={building} style={{ padding: '4px 10px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: 'transparent', color: 'var(--text,#e8eaed)' }}>drop tier-two minimum for leg {i + 1}</button> : null)}
+                {(portRelax.portfolioMaxPct || portRelax.t2MinOffLegs.length) ? <button onClick={() => rebuildPortfolio({ portfolioMaxPct: null, t2MinOffLegs: [] })} disabled={building} style={{ padding: '4px 10px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: 'transparent', color: 'var(--text-secondary,#9aa0aa)' }}>reset to defaults</button> : null}
+              </div>
+            </div>
+          )}
+          <div style={{ fontSize: 12, color: 'var(--text-secondary,#9aa0aa)', marginBottom: 6 }}>
+            Chalk (proj own &gt; {PORTFOLIO_RULES.chalkOwnPct}%): {portfolio.cls.chalk.length ? portfolio.cls.chalk.join(', ') : 'none'} &middot; Tier-two studs: {portfolio.cls.t2.join(', ') || 'none'} &middot; Floor cars: {portfolio.cls.floor.join(', ') || 'none'}
+          </div>
+          <div style={{ fontSize: 12, display: 'flex', flexWrap: 'wrap', gap: '4px 12px', alignItems: 'baseline' }}>
+            <span style={{ color: 'var(--text-secondary,#9aa0aa)' }}>Portfolio exposure ({portfolio.total} entries):</span>
+            {Object.entries(portfolio.exposure).sort((a, b) => b[1] - a[1]).map(([n, c]) => <span key={n} style={{ whiteSpace: 'nowrap', fontWeight: c / portfolio.total >= 0.5 ? 700 : 400 }}>{n} {Math.round(100 * c / portfolio.total)}%</span>)}
+          </div>
+        </div>}
+        {lineups.length > 0 && <div style={{ ...card, borderLeft: '4px solid var(--accent,#e11d2a)' }}>
+          {/* 2026-10-06 polish: the set summary is the line a user screenshots - count, unique drivers, the core, cap use */}
+          {(() => {
+            const n = lineups.length
+            const cnt = {}; lineups.forEach(lu => lu.drivers.forEach(d => { cnt[d.name] = (cnt[d.name] || 0) + 1 }))
+            const core = Object.entries(cnt).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([nm, c]) => nm.split(' ').slice(-1)[0] + ' ' + Math.round(100 * c / n) + '%')
+            const under = lineups.filter(lu => lu.salary < CAP - 500).length
+            return <div style={{ marginBottom: 10, display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+              <span><strong>{n} lineup{n === 1 ? '' : 's'}</strong>{mode === 'portfolio' && portfolio ? <span style={{ color: 'var(--text-secondary,#9aa0aa)' }}> \u00b7 contest {portLeg + 1}</span> : null}</span>
+              <span style={{ color: 'var(--text-secondary,#9aa0aa)', fontSize: 13 }}>{Object.keys(cnt).length} drivers used \u00b7 {core.join(', ')}{under ? ' \u00b7 ' + under + ' under $' + ((CAP - 500) / 1000).toFixed(1) + 'k' : ''} \u00b7 {lineups[0] && lineups[0].ceil != null ? 'ranked by tournament upside (p90)' : 'ranked by projected points'}</span>
+              <button onClick={() => setLineupsHidden(h => !h)} style={{ marginLeft: 'auto', padding: '3px 10px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: 'transparent', color: 'var(--text-secondary,#9aa0aa)', fontSize: 12 }}>{lineupsHidden ? 'Show' : 'Collapse'}</button>
+            </div>
+          })()}
+          <div style={{ overflowX: 'auto', display: lineupsHidden ? 'none' : 'block' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead><tr style={{ color: 'var(--text-secondary,#9aa0aa)' }}>
+                <th style={{ padding: '6px 8px', textAlign: 'left' }}>#</th>
+                <th style={{ padding: '6px 8px', textAlign: 'left' }}>Drivers</th>
+                <th style={{ padding: '6px 8px', textAlign: 'right' }}>Salary</th>
+                <th style={{ padding: '6px 8px', textAlign: 'right' }}>Proj DK</th>
+                <th style={{ padding: '6px 8px', textAlign: 'right' }}>Ceil (p90)</th>
+                <th style={{ padding: '6px 8px', textAlign: 'right' }}>Floor (p25)</th>
+              </tr></thead>
+              <tbody>
+                {lineups.map((lu, i) => (
+                  <tr key={i} style={{ borderBottom: '1px solid var(--border,#22252b)' }}>
+                    <td style={{ padding: '5px 8px', color: 'var(--text-secondary,#9aa0aa)' }}>{i + 1}</td>
+                    <td style={{ padding: '5px 8px' }}>
+                      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                        {lu.drivers.slice().sort((a, b) => b.projDK - a.projDK).map(d => <span key={d.name} title={(d.sal ? '$' + d.sal.toLocaleString() + ' \u00b7 ' : '') + 'proj ' + (+d.projDK).toFixed(1) + ' \u00b7 in ' + Math.round(100 * (exposure[d.name] || 0) / (lineups.length || 1)) + '% of these lineups'}
+                          style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 12, fontSize: 12, whiteSpace: 'nowrap', border: '1px solid var(--border,#2a2d34)', background: locks.has(d.name) ? 'rgba(225,29,42,0.16)' : 'var(--bg,#0e0f13)', color: 'var(--text,#e8eaed)' }}>{d.car ? <span style={{ color: 'var(--text-secondary,#9aa0aa)', marginRight: 4 }}>#{d.car}</span> : null}{d.name}</span>)}
+                        {lu.fill ? <span title={lu.fill === 'portfolio-cap' ? 'Filled past the portfolio cap' : 'Filled with no exposure caps'} style={{ fontSize: 10, color: '#e8b923', alignSelf: 'center' }}>filled</span> : null}
+                      </div>
+                    </td>
+                    <td style={{ padding: '5px 8px', textAlign: 'right' }}>{'$' + lu.salary.toLocaleString()}</td>
+                    <td style={{ padding: '5px 8px', textAlign: 'right', fontWeight: 600 }}>{lu.proj.toFixed(1)}</td>
+                    <td style={{ padding: '5px 8px', textAlign: 'right', fontWeight: 600, color: 'var(--accent,#e11d2a)' }}>{lu.ceil != null ? lu.ceil.toFixed(1) : '-'}</td>
+                    <td style={{ padding: '5px 8px', textAlign: 'right', color: 'var(--text-secondary,#9aa0aa)' }}>{lu.floor != null ? lu.floor.toFixed(1) : '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>}
+        <div style={card}>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
+            <strong>Driver board</strong>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary,#9aa0aa)' }}>Lock a driver into every lineup, leave one out, or just build and let the sim choose. Click a column to sort.</span>
+            <button onClick={() => setAdvanced(a => !a)} style={{ marginLeft: 'auto', padding: '4px 12px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: advanced ? 'rgba(232,185,35,0.15)' : 'transparent', color: 'var(--text,#e8eaed)', fontSize: 12 }}>{advanced ? 'Advanced: on' : 'Advanced'}</button>
+          </div>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead><tr style={{ color: 'var(--text-secondary,#9aa0aa)' }}>
-                <th style={{ padding: '7px 8px', textAlign: 'left' }}>Lock/Excl · Min/Max %</th>
+                <th style={{ padding: '7px 8px', textAlign: 'left' }}>{advanced ? 'Lock / Out \u00b7 Min / Max %' : 'Lock / Out'}</th>
                 {th('name', 'Driver', 'left')}
-                <th style={{ padding: '7px 8px', textAlign: 'right' }} title="Share of the built lineups this driver is in">Expo</th>
-                {th('startPos', 'Start')}{th('sal', 'Salary')}{th('projDK', 'Proj DK')}{th('ceil', 'Ceiling')}{th('value', 'Value')}{th('opt', 'Optimal%')}{th('pOwn', 'Proj Own%')}
-                {th('winPct', 'Win%')}{th('lapsLed', 'Laps Led')}{th('avgFast', 'Fast Laps')}{th('projFinish', 'Proj Fin')}
+                <th style={{ padding: '7px 8px', textAlign: 'right' }} title="Share of the built lineups this driver is in">In lineups</th>
+                {th('startPos', 'Start')}{th('sal', 'Salary')}{th('projDK', 'Proj DK')}{th('ceil', 'Ceiling')}{th('pOwn', 'Proj Own%')}
+                {advanced && <>{th('value', 'Value')}{th('opt', 'Optimal%')}{th('winPct', 'Win%')}{th('lapsLed', 'Laps Led')}{th('avgFast', 'Fast Laps')}{th('projFinish', 'Proj Fin')}</>}
               </tr></thead>
               <tbody>
                 {sorted.map(d => {
@@ -1048,16 +1121,17 @@ export default function DFSPage() {
                   return (
                     <tr key={d.name} style={{ borderBottom: '1px solid var(--border,#22252b)', opacity: excl ? 0.4 : 1 }}>
                       <td style={{ padding: '4px 8px', whiteSpace: 'nowrap' }}>
-                        <button onClick={() => toggle(setLocks, d.name)} title="Lock" style={{ marginRight: 4, padding: '2px 7px', borderRadius: 5, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: locked ? 'var(--accent,#e11d2a)' : 'transparent', color: locked ? '#fff' : 'var(--text-secondary,#9aa0aa)' }}>L</button>
-                        <button onClick={() => toggle(setExcludes, d.name)} title="Exclude" style={{ padding: '2px 7px', borderRadius: 5, cursor: 'pointer', border: '1px solid var(--border,#2a2d34)', background: excl ? '#555' : 'transparent', color: '#fff' }}>X</button>
-                        <input type="number" min={0} max={100} placeholder="min" title="Min exposure % - forces this driver into at least this share of lineups without locking to 100%"
+                        <button onClick={() => toggle(setLocks, d.name)} title={locked ? 'Locked into every lineup - click to release' : 'Lock into every lineup'} style={{ marginRight: 4, padding: '2px 9px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontWeight: 600, border: '1px solid ' + (locked ? 'var(--accent,#e11d2a)' : 'var(--border,#2a2d34)'), background: locked ? 'var(--accent,#e11d2a)' : 'transparent', color: locked ? '#fff' : 'var(--text-secondary,#9aa0aa)' }}>{locked ? 'Locked' : 'Lock'}</button>
+                        <button onClick={() => toggle(setExcludes, d.name)} title={excl ? 'Left out of every lineup - click to allow' : 'Leave out of every lineup'} style={{ padding: '2px 9px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontWeight: 600, border: '1px solid ' + (excl ? '#888' : 'var(--border,#2a2d34)'), background: excl ? '#555' : 'transparent', color: excl ? '#fff' : 'var(--text-secondary,#9aa0aa)' }}>{excl ? 'Out' : 'Out'}</button>
+                        {advanced && <><input type="number" min={0} max={100} placeholder="min" title="Min exposure % - forces this driver into at least this share of lineups without locking to 100%"
                           value={expo[d.name] && expo[d.name].min != null ? expo[d.name].min : ''}
                           onChange={e => { const v = e.target.value === '' ? null : Math.max(0, Math.min(100, +e.target.value || 0)); setExpo(prev => ({ ...prev, [d.name]: { ...(prev[d.name] || {}), min: v } })) }}
                           style={{ width: 44, marginLeft: 6, background: 'var(--bg,#0e0f13)', color: expo[d.name] && expo[d.name].min > 0 ? 'var(--accent,#e11d2a)' : 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 5, padding: '2px 4px', fontSize: 12 }} />
                         <input type="number" min={0} max={100} placeholder="max" title="Max exposure % - per-driver cap, overrides the global max exposure for this driver"
                           value={expo[d.name] && expo[d.name].max != null ? expo[d.name].max : ''}
                           onChange={e => { const v = e.target.value === '' ? null : Math.max(0, Math.min(100, +e.target.value || 0)); setExpo(prev => ({ ...prev, [d.name]: { ...(prev[d.name] || {}), max: v } })) }}
-                          style={{ width: 44, marginLeft: 4, background: 'var(--bg,#0e0f13)', color: expo[d.name] && expo[d.name].max != null && expo[d.name].max < 100 ? '#e8b923' : 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 5, padding: '2px 4px', fontSize: 12 }} />
+                          style={{ width: 44, marginLeft: 4, background: 'var(--bg,#0e0f13)', color: expo[d.name] && expo[d.name].max != null && expo[d.name].max < 100 ? '#e8b923' : 'var(--text,#e8eaed)', border: '1px solid var(--border,#2a2d34)', borderRadius: 5, padding: '2px 4px', fontSize: 12 }} /></>}
+                        {!advanced && expo[d.name] && (expo[d.name].min > 0 || (expo[d.name].max != null && expo[d.name].max < 100)) && <span style={{ marginLeft: 6, fontSize: 11, color: '#e8b923' }} title="Exposure limits set (Advanced)">{expo[d.name].min > 0 ? 'min ' + expo[d.name].min + '%' : ''}{expo[d.name].min > 0 && expo[d.name].max != null ? ' ' : ''}{expo[d.name].max != null && expo[d.name].max < 100 ? 'max ' + expo[d.name].max + '%' : ''}</span>}
                       </td>
                       <td style={{ padding: '4px 8px', textAlign: 'left', whiteSpace: 'nowrap' }}><CarNum car={d.car} series={series} />{d.name}</td>
                       {/* 2026-09-05: exposure moved next to the driver - it sat last and was off-screen at 1180px */}
@@ -1065,14 +1139,16 @@ export default function DFSPage() {
                       <td style={{ padding: '4px 8px', textAlign: 'right', fontWeight: 600 }}>{d.startPos ? 'P' + d.startPos : '\u2014'}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right' }}>{d.out ? <span style={{ fontSize: 10, fontWeight: 800, color: '#ff5148', border: '1px solid #ff5148', borderRadius: 4, padding: '1px 5px' }}>OUT</span> : d.sal ? '$' + d.sal.toLocaleString() : '\u2014'}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right', fontWeight: 600 }}>{d.projDK.toFixed(1)}</td>
-                      <td style={{ padding: '4px 8px', textAlign: 'right', color: 'var(--text-secondary,#9aa0aa)' }}>{d.ceil ? d.ceil.toFixed(0) : '\u2014'}</td>
-                      <td style={{ padding: '4px 8px', textAlign: 'right', background: vBg, fontWeight: 600 }} title={d.sal ? (d.punt ? 'Floor-salary punt: compare on Proj DK. ' : 'Marginal DK pts per $1K above the floor. ') + 'Pts per $1K: ' + d.ptsPerK.toFixed(2) : ''}>{!d.sal ? '\u2014' : d.punt ? <span style={{ fontSize: 10, color: 'var(--text-secondary,#9aa0aa)', fontWeight: 700 }}>PUNT</span> : d.value.toFixed(2)}</td>
-                      <td style={{ padding: '4px 8px', textAlign: 'right', background: oBg }}>{d.opt ? d.opt.toFixed(1) + '%' : '\u2014'}</td>
+                      <td style={{ padding: '4px 8px', textAlign: 'right', color: 'var(--text-secondary,#9aa0aa)' }} title="90th-percentile DK score across the sim draws - tournament upside">{d.ceil ? d.ceil.toFixed(0) : '\u2014'}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right', color: 'var(--text-secondary,#9aa0aa)' }} title="Projected field ownership - a monotone map off our own projection ranking, normalised so the board sums to 600%. Measured accuracy: 6.1 ownership points MAE across 8 races. It is derived from our projection, so the gap to Optimal% is not a leverage edge.">{d.pOwn ? d.pOwn.toFixed(1) + '%' : '\u2014'}</td>
+                      {advanced && <>
+                      <td style={{ padding: '4px 8px', textAlign: 'right', background: vBg, fontWeight: 600 }} title={d.sal ? (d.punt ? 'Floor-salary punt: compare on Proj DK. ' : 'Marginal DK pts per $1K above the floor. ') + 'Pts per $1K: ' + d.ptsPerK.toFixed(2) : ''}>{!d.sal ? '\u2014' : d.punt ? <span style={{ fontSize: 10, color: 'var(--text-secondary,#9aa0aa)', fontWeight: 700 }}>PUNT</span> : d.value.toFixed(2)}</td>
+                      <td style={{ padding: '4px 8px', textAlign: 'right', background: oBg }} title="How often this driver is in the single best lineup across the simulated races">{d.opt ? d.opt.toFixed(1) + '%' : '\u2014'}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right' }}>{d.winPct.toFixed(1)}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right' }}>{d.lapsLed.toFixed(0)}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right' }}>{d.avgFast.toFixed(0)}</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right' }}>{d.projFinish.toFixed(1)}</td>
+                      </>}
                     </tr>
                   )
                 })}
