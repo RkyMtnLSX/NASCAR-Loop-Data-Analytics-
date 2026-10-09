@@ -15,7 +15,7 @@ const { buildSpeedScores, runRaceSim, getCautionPresets, resolveDnfRate, DEFAULT
   ROAD_COURSE_WEIGHTS, SUPERSPEEDWAY_WEIGHTS, __trackGroup, isSuperspeedway, isRoadCourse } = E
 const SIMS = Number(process.env.SIMS || 4000)
 const PHASE = process.env.PHASE || 'all'
-const SERIES = process.env.SERIES || 'cup'   // 2026-09-05: 'oreilly' runs the registered O'Reilly extension on its own data/fit
+const SERIES = process.env.SERIES || 'cup'   // 2026-09-05: 'oreilly' runs the registered O'Reilly extension on its own data/fit; 2026-10-09: 'trucks' likewise
 const D = p => path.join(__dirname, 'backtest-data', p)
 const num = s => (s === '' || s == null ? null : Number(s))
 function seedRandom(seed) { let a = seed >>> 0; Math.random = function () { a += 0x6D2B79F5; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296 } }
@@ -74,7 +74,7 @@ function reportM1(label, set, beta, arms) {
 }
 
 // ---- M2/M3: the sim with projected grids (reconstruction boards, fingerprint-matched)
-function weightsFor(track) { if (isRoadCourse(track)) return ROAD_COURSE_WEIGHTS; if (isSuperspeedway(track)) return SERIES === 'oreilly' ? E.ONEILLY_SUPERSPEEDWAY_WEIGHTS : SUPERSPEEDWAY_WEIGHTS; return DEFAULT_WEIGHTS }
+function weightsFor(track) { if (isRoadCourse(track)) return SERIES === 'trucks' ? E.TRUCK_ROAD_WEIGHTS : ROAD_COURSE_WEIGHTS; if (isSuperspeedway(track)) return SERIES === 'oreilly' ? E.ONEILLY_SUPERSPEEDWAY_WEIGHTS : SUPERSPEEDWAY_WEIGHTS; if (SERIES === 'trucks' && __trackGroup(track) === 'SHORT') return TRUCK_SHORT_WEIGHTS; return DEFAULT_WEIGHTS }   // 2026-10-09: trucks weight tables for the trucks extension
 function loadBoards() {
   const out = []
   for (const line of fs.readFileSync(D('holdout.txt'), 'utf8').split('\n')) {

@@ -8447,3 +8447,31 @@ curves. Revert triggers as registered (two straight weekends of negative CLV lif
 replay GPP best-of-20 percentile below its pre-change mean three races running). Forward watch: cup SHORT top-3
 over-projection (+2.2 DK, era drift in the 2022-24 pool). Nine registrations since 10-04: two ships (trucks per-car
 DNF, dominator bootstrap INT + SHORT), one operator call open (O'Reilly lapped traffic), six closed.
+
+## 2026-10-09 — PRE-REGISTERED: START PROJECTION v4 for TRUCKS — same form, refit on trucks, judged on its own 2026. Written before any fit. DO NOT MODIFY.
+TRIGGER. Charlotte trucks pre board: Eckes projected P18 (real P8), +1983 FMV on a projected grid;
+trucks is the series with the most projected-grid boards and still runs trail10-v3.5 (cup and
+O'Reilly shipped v4 on 09-03 / 09-05). NASCAR's 2025+ qualifying-order metric (previous finish +
+owner points, worst first) applies to all three national series by the published procedure; the
+diagnostic below is what says the effect exists in trucks, the test below is what decides.
+DIAGNOSTIC made before this registration (not the test), trucks 2025-26, leak-free trailing-10
+start pctile per production rules (same series, min 3, hybrid SS / ROAD category, history reaching
+into 2024), residual = actual start pctile - trailing: corr(previous-round finish pctile, residual)
+INT +0.43 (n 430), SHORT +0.31 (n 381), SS +0.02 (n 72), ROAD +0.13 (n 92). Cup's were +0.39 / +0.22
+/ +0.21 / +0.09 - the trucks effect is at least as large at ovals and absent at SS.
+SCOPE. Trucks 2025-26. TRAIN = 2025 (25 races), HOLDOUT = 2026 (20 races), read once. Data
+scripts/backtest-data/start-v4-trucks-2025-26.txt (45 races), built from loop_data by the same rules
+as the cup / O'Reilly files. Form, arms, metrics, gates and decision rule EXACTLY as the cup v4
+registration (09-03) with the O'Reilly (09-05) clarifications, plus:
+  - ROAD beta fixed at 0; SS beta FITTED but the diagnostic says ~0 - if it fits above 0.05 on
+    n 5 train races it is set to 0 (too few races to trust; written now).
+  - No ARM O (no trucks draw_order rows); judged forward when loaded.
+  - Pooled gate: improves in >= 55% of races WHERE THE TERM IS LIVE (ROAD excluded).
+  - M2 rail on the trucks boards in holdout.txt (fingerprint-matched 2026 trucks boards), with the
+    TRUCKS weight tables (TRUCK_SHORT_WEIGHTS at short tracks, TRUCK_ROAD_WEIGHTS at road) - the
+    harness is corrected for that in this commit; it previously ran cup weights for any series.
+  - Ships as a trucks entry in SimulationCenter's __V4_BETA with its own betas; cup / O'Reilly untouched.
+DECISION RULE: ship if HOLDOUT M1 pooled improves, live-race share >= 55%, no fitted group worse by
+> 0.10, M2 win / top-5 / top-10 not worse than control by more than the null floor, M3 no overshoot.
+Cannot be used for tonight's trucks race (already started, lineups in); ships for the next trucks
+pre board. PUSH before the fit.
