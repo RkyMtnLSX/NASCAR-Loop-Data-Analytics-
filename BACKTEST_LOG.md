@@ -8671,3 +8671,26 @@ all - front is a rating-compression problem, deep is a start-term one - and the 
 engine; O'Reilly -3.4. The stretch closes it (trucks +0.4 at l1, +4.7 at l1.5) with better in-sample t10 and
 win LL up to l1 and worse at l1.5. The registered fit picks 1.5 by the cell sum; the favourite-gap guard
 (b, <= +5.0) and rail (c) are what stand between that and a ship. FROZEN {"cup":0,"oreilly":0.75,"trucks":1.5}.
+
+## 2026-10-09 — TOP-END STRETCH EXECUTED AS REGISTERED: FAILS — NOT SHIPPED (O'Reilly fails a, b, c; trucks fails a, c)
+Holdout-practice (94 boards), 20k sims, two runs, control = shipped. Mean of the two runs, A -> S:
+  O'REILLY (26, l .75)  rho .6035 -> .6037 (ok)   t10 .13458 -> .13546 (WORSE .0009, floor .0001)   winLL .0832 -> .0820 (+)
+                        t5LL .2624 -> .2609 (+)   eliteFront -1.62 -> +0.01   eliteDeep -3.39 -> -3.38   sum 5.01 -> 3.39 (-32.4%: short of a third)
+                        fav gap -1.0 -> +10.0 (stated 33% vs realised 23%: (b) FAILS)   neP26 1.40 -> 1.38
+  TRUCKS (29, l 1.5)    rho .5529 -> .5570 (+, 20/9)   t10 .15254 -> .15420 (WORSE .0017)   winLL .0923 -> .0940 (WORSE .0017)
+                        t5LL .3038 -> .3165 (WORSE .0127)   eliteFront -1.86 -> +0.59 (overshoots past +0.50: (a) FAILS)
+                        eliteDeep -0.74 -> -0.68   fav gap -24.3 -> -6.8 (better)   neP26 1.57 -> 1.51
+  CUP                   fitted 0, not tested (A fav 29.6% stated / 28.2% realised, gap +1.3: cup favourites are calibrated)
+VERDICT by the registered rule: NOT SHIPPED for either series. Flag stays in, default off.
+FINDING (control arm, the number that matters): TRUCKS 2025-26 - the sim favourite is stated at 22.3% and WINS
+48.3% of the 29 holdout boards (14 of 29); 2022-24 train 15.4% stated / 25.4% realised. The shipped engine
+under-states the trucks favourite by ~10 pts on 2022-24 and ~25 pts on 2025-26. O'Reilly is calibrated (-1.0),
+cup is calibrated (+1.3). This is the largest calibration miss found in the engine since the SS noise fit
+(08-29) and it is series-specific. The stretch failed because its SHAPE is wrong for it: lifting the top
+fifth (~7 cars) uniformly moves the favourite half way (22 -> 42%) but also inflates cars 2-7 past what
+they earn (t5LL +.013, eliteFront overshoots), so the probability rails lose even as the favourite gets
+better. The honest next form is a FAVOURITE-CONCENTRATION dial for trucks, not a tier stretch: the SS
+precedent (one outcome-noise multiplier per track group, fit 2022-24, validated 2025-26, GROUP_NOISE_MULT
+SS 1.75) applied per SERIES - a trucks noise multiplier < 1 steepens the whole rank->win curve at once,
+with the favourite gap, win LL and t5 LL as the judges, and the SS multiplier untouched. New registration.
+Fourteen registrations since 10-04: two ships, one call open, eleven closed.

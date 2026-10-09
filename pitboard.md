@@ -3689,6 +3689,21 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
+## 2026-10-09 — Top-end stretch: fails, and surfaces the trucks favourite problem
+Operator: "register it." Form: widen the gaps among the top fifth of the composite (one lambda per
+series, mean preserved, ranks preserved), fitted on 2022-24 by the two elite cells, judged on the
+holdout with a favourite-gap guard. Fit: cup 0, O'Reilly 0.75, trucks 1.5. Holdout: O'Reilly fixes the
+elites-up-front cell exactly (-1.6 -> 0.0) but over-states its favourite by 10 points and loses top-10;
+trucks overshoots the front cell and loses win, top-5 and top-10. Not shipped. The stretch also never
+touched the elites-starting-deep cell - the start term pulls those cars out of the top fifth before
+the stretch sees them, so the two Eckes cells are two different mechanisms. The real finding is in the
+control column: in 2025-26 trucks the sim favourite is stated at 22% and wins 48% of the boards (14
+of 29); on 2022-24 it was 15% stated against 25%. Cup and O'Reilly favourites are calibrated. The
+trucks engine is too flat at the very top - a dominant-era series (Eckes, Heim) run through a noise
+width tuned for cup. Next form: a per-series outcome-noise multiplier for trucks, the SS-fit precedent
+applied by series, judged on favourite gap / win LL / top-5 LL. Fourteen registrations since 10-04:
+two ships, one call open, eleven closed.
+
 ## 2026-10-09 — Tier-conditioned start weight (the Eckes cell): fails the rails, but it found the real bias
 Operator: "yes start the first one register and push it." Form: the share of start weight a car keeps
 falls with its strength, the withheld share replaced by its own non-start rating; one gamma per
