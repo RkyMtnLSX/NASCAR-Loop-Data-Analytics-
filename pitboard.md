@@ -3689,6 +3689,20 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
+## 2026-10-09 — Trucks favourite: the noise multiplier fit chose "no change", and the control table says why
+Operator: "do both" - register the per-series noise multiplier and write the interim rule (no win-
+market fade on the top-rated car of a trucks board, in the MANUAL until this closes). Live boards
+confirmed the finding first: 2026 trucks post boards, the sim favourite won 4 of 5 at ~27% stated,
+and at Richmond and New Hampshire the sim's favourite was not the book's and won anyway. The
+registration failed at the fit: win log-loss was the wrong criterion (it is tail-dominated, so taking
+probability from the tail to give to the favourite always loses it) and the cup placebo failed (2022-24
+cup without practice over-states its favourite, the opposite of 2025-26). Trucks fitted to 1 and was
+never tested; cup at 1.2 failed the holdout. Closed. The control-arm calibration table is the payoff:
+trucks' missing favourite probability is in the 3-10% bucket (cars 2-8 over-stated ~1.8 pts each), the
+tail is calibrated. A uniform multiplier can't make that move. Next form: strength-dependent noise -
+tighter draw at the top of the composite, unchanged below - fit by win + top-5 Brier, tail guarded. The
+interim no-fade rule stays. Sixteen registrations since 10-04: two ships, one call open, thirteen closed.
+
 ## 2026-10-09 — Top-end stretch: fails, and surfaces the trucks favourite problem
 Operator: "register it." Form: widen the gaps among the top fifth of the composite (one lambda per
 series, mean preserved, ranks preserved), fitted on 2022-24 by the two elite cells, judged on the

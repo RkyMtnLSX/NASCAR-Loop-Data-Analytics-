@@ -8759,3 +8759,23 @@ meaningful share of races) and a uniform steepening pays for the favourite out o
 fit on the favourite-and-top-5 (Brier on win + top-5, or the favourite gap with a tail guard) and / or make
 the noise strength-dependent (tight at the top, wide in the tail) so the favourite and the tail are not one
 dial. Not registered here.
+
+## 2026-10-09 — PER-SERIES NOISE MULTIPLIER EXECUTED AS REGISTERED: CUP (m 1.2) FAILS b and c; O'REILLY / TRUCKS FITTED 1, NOT TESTED — CLOSED
+Holdout-practice, 20k sims, two runs, mean A -> N:
+  CUP (39, m 1.2)  winLL .0882 -> .0879 (better .0003, floor .0008: (b) FAILS)  t5LL .2880 -> .2877  t10 .14998 -> .14980  rho .4869 -> .4870
+                   fav gap -1.3 -> -5.8 (moves AWAY from zero: (c) FAILS)  tail .47/.76 -> .60/.78  mid 5.3/3.8 -> 5.3/3.3
+VERDICT: NOT SHIPPED. Trucks and O'Reilly never reached the holdout (fit = 1). Flag stays in, default off.
+CONTROL-ARM CALIBRATION TABLE, 2025-26 holdout (the useful output of this registration):
+                 favourite stated/realised   mid 3-10% stated/realised   tail <3% stated/realised
+  cup            29.5 / 30.8  (gap -1.3)     5.3 / 3.8  (over by 1.5)     .47 / .76  (under by .29)
+  O'Reilly       22.2 / 23.1  (gap -0.9)     5.5 / 4.9  (over by 0.6)     .53 / .28  (over by .25)
+  trucks         22.2 / 48.3  (gap -26)      5.2 / 3.4  (over by 1.8)     .64 / .63  (calibrated)
+Reading: in trucks the missing favourite probability is sitting in the 3-10% bucket (the 5-8 cars behind
+the favourite are over-stated by ~1.8 pts each, ~12-14 pts in total), NOT in the tail, which is calibrated.
+A uniform noise multiplier cannot do that move - it takes from the tail first (the fit showed it). The
+form that matches the table is STRENGTH-DEPENDENT noise: a narrower draw for the top of the composite and
+an unchanged draw for the rest, so probability flows from the 3-10% cars to the favourite and the tail
+is untouched. One shape constant per series, fit by win + top-5 Brier (not log-loss), tail guard kept.
+Cup's own table (mid over 1.5, tail under .29) says cup would take the opposite sign in the tail, so the
+mechanism must not touch the tail at all. Sixteen registrations since 10-04: two ships, one call open,
+thirteen closed.
