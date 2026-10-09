@@ -8407,3 +8407,35 @@ ships for all three series (the pool is per series where the data allows, pooled
 not); boards stamp config.domBoot 'v1-<groups>'. Revert trigger: two straight weekends of negative
 CLV lift on stamped boards, OR the DFS replay ledger's GPP best-of-20 percentile falling below its
 pre-change mean for three straight races. PUSH before reading data.
+
+RESULT (run 2026-10-09, 94 boards 2025-26, 20k sims, two runs each arm; pools from 274 races 2022-24 -
+own-series pools for cup/O'Reilly/trucks INT and SHORT, all-series pools for ROAD and SS; engine 41e140279d70):
+  GROUP  run | LL PIT mean, >.9, <.1 (A -> B)   | fav proj -> B / actual | top-3 DK err  | maeLL / maeFL      | win LL        | t5 LL         | t10 Brier         | rhoFin
+  INT    r1  | .54 -> .49, 54% -> 11%, 46% -> 11% | 39.6 -> 42.8 / 55.1   | -4.16 -> -3.30 | 6.01->5.88 3.56->3.47 | .0862->.0859 (30/16) | .2835->.2839 (18/28) | .14517->.14516 | .5186->.5202 (29/17)
+  INT    r2  | .54 -> .49, 54% -> 11%, 46% ->  9% | 39.6 -> 42.8          | -4.15 -> -3.31 | same                | .0864->.0861 (17/29) | .2840->.2835 (27/19) | .14522->.14509 | .5203->.5195 (22/24)
+  SHORT  r1  | .74 -> .57, 70% -> 18%, 22% ->  8% | 40.5 -> 51.2 / 91.7   | -5.91 -> -2.01 | 11.04->10.43 6.34->6.03 | .0916->.0919 (13/27) | .2851->.2851 (21/19) | .14450->.14449 | .5857->.5856 (17/23)
+  SHORT  r2  | .74 -> .57, 70% -> 20%, 20% ->  8% | 40.5 -> 51.3          | -5.67 -> -1.79 | same                | .0922->.0915 (19/21) | .2852->.2851 (19/21) | .14441->.14456 | .5865->.5851 (18/22)
+  ROAD   r1  | .66 -> .52, 62% -> 12%, 12% -> 12% | 23.3 -> 28.7 / 47.0   | -2.17 -> -0.17 | 3.27->3.00 2.30->2.18 | .0786->.0778 (8/0)   | .3020->.3015 (5/3)   | .16459->.16448 | .4243->.4253 (5/3)
+  ROAD   r2  | .66 -> .52                         | 23.2 -> 28.6          | -2.11 -> -0.18 | same                | .0788->.0781 (7/1)   | .3019->.3027 (1/7)   | .16464->.16466 | .4245->.4226 (3/5)
+  SS: fewer than 8 practice-covered boards in the test set - cannot be judged; not shipped.
+  Spread restored: within-race sd of the sim's top share INT 2.4 -> 14.8 pts (actual across races 16.5), SHORT 5.8 -> 17.4
+  (19.3), ROAD 6.7 -> 17.4 (23.2); FL likewise. FL PIT: INT .52 -> .44, SHORT .64 -> .55, ROAD .57 -> .48.
+  By series x group (B): cup SHORT PIT .59 -> .64 and top-3 error crosses to +2.2 (over-projected - the cup SHORT pool's
+  2022-24 top share is 44% vs 53% actual in 2025-26, era drift again, but the fixed curve was worse at -0.4 only because
+  its favourite was under-projected 63 vs 95); O'Reilly SHORT .68 -> .40, top-3 -8.0 -> -3.8; trucks SHORT .94 -> .65,
+  -9.7 -> -4.7, favourite 39 vs 105 actual (still half); trucks INT .73 -> .52.
+VERDICT by the registered rule, per group, both runs:
+  Dominator conditions (1)-(5) PASS in INT, SHORT and ROAD, both runs, every one: PIT mean .49 / .57 / .52 with tails
+  8-20%, the favourite moves toward actual, top-3 DK error shrinks (INT -4.2 -> -3.3, SHORT -5.9 -> -2.0, ROAD -2.2 ->
+  -0.2), LL / FL MAE improve everywhere, ordering unchanged.
+  Guard (6) - by the letter - MISSES in each group in ONE of two runs by .0001-.0008: INT top-5 log-loss +.0004 in run
+  1 (run 2 -.0005); SHORT win log-loss +.0003 in run 1 (run 2 -.0007); ROAD top-5 +.0008 in run 2 (n 8). The tie band
+  I registered (.0002) is TIGHTER than the engine's own run-to-run noise on these metrics: arm A against ITSELF moves
+  .0002-.0006 between runs on the same boards (INT t5 .2835 vs .2840, SHORT win .0916 vs .0922). So the misses are
+  inside the A-vs-A noise floor for INT and SHORT; ROAD (n 8) is inconclusive either way. I did not define the noise
+  floor in the registration, so by the letter this is NOT a pass. It is an operator call, stated plainly: the
+  dominator fix works exactly as designed in every group and the betting probabilities are a tie within noise.
+  Recommendation: SHIP for INT and SHORT (n 46 / 40, every probability guard a tie or better in mean across the two
+  runs: INT win -.0003 t5 -.0001 t10 -.0001; SHORT win -.0002 t5 -.0001 t10 +.0001; rho +.0004 / -.0008); HOLD ROAD and
+  SS (n 8 / < 8) on the shipped curves until there are boards to judge them. The cup SHORT over-projection (+2.2 on the
+  top 3) is the one soft spot inside a shipping group and goes on the forward watch with the revert triggers.

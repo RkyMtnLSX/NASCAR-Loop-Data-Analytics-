@@ -3689,6 +3689,27 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
+## 2026-10-09 — Dominator bootstrap (stage 2) run as registered: the fix works in every group; the probability guard is a tie inside noise — operator call
+Operator: "register and run stage 2." Pools built from 274 races 2022-24 (own-series for cup /
+O'Reilly / trucks at INT and SHORT; all-series for ROAD and SS), per caution bucket; the engine's
+existing domBoot path draws one real race's share vector per draw. Judged on the 94 practice
+boards 2025-26, 20k sims, two runs. DOMINATOR SIDE, every group, both runs: the top-share
+distribution is calibrated (PIT .49 INT / .57 SHORT / .52 ROAD, tails 8-20% - was 70% and 93%
+above the sim's 90th percentile), spread restored (within-race sd 2-7 pts -> 15-17, matching the
+14-23 real), the sim's #1 dominator projected closer to what he leads (INT 40 -> 43 of 55; SHORT
+41 -> 51 of 92), the top-3 DK dominator error shrinks (INT -4.2 -> -3.3, SHORT -5.9 -> -2.0, ROAD
+-2.2 -> -0.2), laps-led and fastest-laps MAE better everywhere, ordering unchanged. GUARDS: finish
+rho and top-10 Brier ties; win and top-5 log-loss ties in mean across the two runs - but my
+registered tie band (.0002) was tighter than the engine's own run-to-run noise (.0002-.0006, measured
+A against A), so each group misses one band in one run by .0001-.0008. By the letter: not a pass.
+By the evidence: the dominator fix does exactly what it was built for and the betting probabilities
+do not move. RECOMMENDED: ship INT and SHORT (n 46 / 40); hold ROAD (n 8) and SS (< 8 boards) on the
+shipped curves. Soft spot: cup SHORT over-projects its top 3 by 2.2 DK points on the 2022-24 pool
+(era drift - the pool's top share is 44%, the 2025-26 actual 53%); forward watch. WHAT THIS MEANS FOR
+THE PRODUCT: the stored DK draws would, for the first time, contain the 70%-laps-led days and the
+no-dominator days, so the E[max] set can build toward the Briscoe-116 outcome instead of a ceiling
+that never contains it. Nothing shipped yet - operator's call, same as the O'Reilly lapped item.
+
 ## 2026-10-09 — Dominator concentration: the sim knows WHO leads, not HOW MUCH, and every draw hands out the same share
 Operator: "what other test can we do to improve the engine?" -> "start with 1" (dominator
 concentration). Registered as a stage-1 diagnostic, run on the 94 practice-holdout boards with
