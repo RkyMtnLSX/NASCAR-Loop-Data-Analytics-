@@ -8166,3 +8166,26 @@ deep cell (-1.6, the Eckes / Larson case) does not move under any lapped form; i
 smaller effect (n 102) and no knob tested so far fixes it without breaking the back of the field.
 Engine: simConfig.lappedTraffic + LAPPED_RATE stay in simEngine.js as a tested-OFF arm (default
 null, no production path sets it); scripts/backtest-lapped-half.js is the harness.
+
+## 2026-10-09 — REGISTRATION: lapped-traffic HALF strength, judged on PROBABILITY metrics (operator decision, discount stated)
+WHY A SECOND REGISTRATION. The 10-09 run above fixed the back-of-field calibration and improved every
+probability metric while losing .003 finish rho, and was CLOSED because its rule made rho primary.
+Operator, shown the trade-off: "so should we make this change? it sounds like we should." The product
+sells probabilities (win / top-5 / top-10 flags, DFS draws), not finish ordering, so a probability-
+primary rule is defensible on the merits - but it is being written AFTER the result was seen, on the
+SAME 94 boards. That is a forking-paths move and is logged as one: this registration carries a
+discount (it must clear a STRICTER bar than the ordinary one), and the forward ledger is the real test.
+FORM: unchanged - simEngine.runRaceSim lappedTraffic { series, k: 1 }, the frozen 09-07 rate table,
+same harness (scripts/backtest-lapped-half.js), 20k sims, two runs, arm H vs A. Per-series read-out of
+the probability metrics added to the harness output (reporting only; no new arm).
+DECISION (written before the per-series read-out is run), PER SERIES:
+  ship for a series if, in BOTH runs, (1) win log-loss and top-5 log-loss each improve in mean with
+  per-race W/L >= 55/45 (i.e. W / (W+L) >= 0.55), (2) t10 Brier does not lose in mean, (3) finish rho
+  loses no more than .005 in mean, (4) P26+ mean projected finish lands within 0.5 of actual.
+  Pooled (all series) must also satisfy (1)-(4). A series that fails any one stays on the shipped engine.
+SHIP MECHANICS if it passes: SimulationCenter sets simConfig.lappedTraffic = { series, k: 1 } for the
+passing series at INT / SHORT / ROAD (SS is a no-op by table); published boards carry
+config.lapTraffic 'v1-half' / 'off' so sim_grades and the CLV ledger can split boards by engine.
+REVERT TRIGGER (forward): two consecutive weekends in which the flagged plays on 'v1-half' boards
+show negative CLV lift against the pre-change ledger mean (+2.33 / race, 10-04) -> flag off, logged.
+PUSH before reading data.

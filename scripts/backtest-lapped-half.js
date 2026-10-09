@@ -41,7 +41,7 @@ const spearman = (a, b) => { const n = a.length; const rk = v => { const o = v.m
 const cl = p => Math.max(1e-6, Math.min(1 - 1e-6, p))
 function arm(k) {
   const per = []   // per race: rho, t10 Brier, winLL, t5LL
-  const cells = { eliteDeep: [], neP26: [], neP31: [] }, p26 = { proj: 0, act: 0, n: 0 }
+  const cells = { eliteDeep: [], neP26: [], neP31: [] }, p26 = { proj: 0, act: 0, n: 0 }, p26s = {}
   for (const b of boards) {
     const sc = buildSpeedScores(b.base, b.w)
     const rows = runRaceSim(sc, { numSims: SIMS, cautionPreset: b.preset, dnfRate: b.rate, totalRaceLaps: 300, trackGroup: b.g,
@@ -57,7 +57,7 @@ function arm(k) {
       const d = sc[r.simIdx], sp = d.startPos, res = f - r.projFinish
       if (sp != null && b.g !== 'SS') {
         if (elite.has(r.simIdx) && sp >= 16) cells.eliteDeep.push(res)
-        if (!elite.has(r.simIdx) && sp >= 26) { cells.neP26.push(res); p26.proj += r.projFinish; p26.act += f; p26.n++ }
+        if (!elite.has(r.simIdx) && sp >= 26) { cells.neP26.push(res); p26.proj += r.projFinish; p26.act += f; p26.n++; const q = p26s[b.series] = p26s[b.series] || { proj: 0, act: 0, n: 0 }; q.proj += r.projFinish; q.act += f; q.n++ }
         if (!elite.has(r.simIdx) && sp >= 31) cells.neP31.push(res)
       }
     }
@@ -66,7 +66,8 @@ function arm(k) {
   const mean = a => a.reduce((s, x) => s + x, 0) / Math.max(1, a.length)
   return { per, rho: mean(per.map(p => p.rho)), t10: mean(per.map(p => p.t10)), wll: mean(per.map(p => p.wll)), t5ll: mean(per.map(p => p.t5ll)),
     eliteDeep: mean(cells.eliteDeep), neP26: mean(cells.neP26), neP31: mean(cells.neP31), nED: cells.eliteDeep.length, n26: cells.neP26.length,
-    p26proj: p26.proj / Math.max(1, p26.n), p26act: p26.act / Math.max(1, p26.n) }
+    p26proj: p26.proj / Math.max(1, p26.n), p26act: p26.act / Math.max(1, p26.n),
+    p26bySeries: Object.fromEntries(Object.entries(p26s).map(([k, q]) => [k, { proj: q.proj / q.n, act: q.act / q.n }])) }
 }
 const wl = (x, a, key, better) => { let w = 0, l = 0; x.per.forEach((p, i) => { const d = better === 'high' ? p[key] - a.per[i][key] : a.per[i][key] - p[key]; if (d > 0) w++; else if (d < 0) l++ }); return w + '/' + l }
 const bySeries = (x, a, key, better) => ['cup', 'oreilly', 'trucks'].map(s => { const ix = x.per.map((p, i) => p.series === s ? i : -1).filter(i => i >= 0); const m = v => ix.reduce((t, i) => t + v.per[i][key], 0) / Math.max(1, ix.length); let w = 0, l = 0; ix.forEach(i => { const d = better === 'high' ? x.per[i][key] - a.per[i][key] : a.per[i][key] - x.per[i][key]; if (d > 0) w++; else if (d < 0) l++ }); return s + ' ' + m(a).toFixed(4) + '->' + m(x).toFixed(4) + ' (' + w + '/' + l + ')' }).join('  ')
@@ -84,6 +85,12 @@ for (let run = 1; run <= RUNS; run++) {
     console.log(`     rho by series: ${bySeries(x, A, 'rho', 'high')}`)
     console.log(`     rho by group:  ${byGroup(x, A, 'rho')}`)
     console.log(`     t10 by series: ${bySeries(x, A, 't10', 'low')}`)
+    // 2026-10-09 second registration (probability-primary, per series): win / t5 log-loss by series
+    console.log(`     winLL by series: ${bySeries(x, A, 'wll', 'low')}`)
+    console.log(`     t5LL by series:  ${bySeries(x, A, 't5ll', 'low')}`)
   }
+  // per-series P26+ calibration (proj vs actual) for arms A and H
+  const calib = (x) => ['cup', 'oreilly', 'trucks'].map(s => s + ' ' + (x.p26bySeries[s] ? x.p26bySeries[s].proj.toFixed(2) + '/' + x.p26bySeries[s].act.toFixed(2) : '-')).join('  ')
+  console.log(`  P26+ proj/act by series  A: ${calib(A)}   H: ${calib(H)}`)
   console.log('')
 }
