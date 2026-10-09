@@ -1,0 +1,14 @@
+{
+  "lapped": {
+    "cup": 0.75,
+    "oreilly": 1.5,
+    "trucks": 2
+  },
+  "carDnf": {
+    "cup": null,
+    "oreilly": null,
+    "trucks": 32
+  },
+  "sims": 1000,
+  "engine": "41c0d8da3be3"
+}

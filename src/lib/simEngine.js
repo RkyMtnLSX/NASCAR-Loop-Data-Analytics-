@@ -654,6 +654,25 @@ function runRaceSim(drivers, simConfig) {
   const __curve = skillTilt ? (simConfig.tiltCurve || DNF_TILT_CURVE[trackGroup] || null) : null
   const __tilt = __tiltMults(__pct, __curve, simConfig.tiltRescale)
   if (skillTilt && simConfig.tiltCurve == null) dnfRate = Math.min(0.6, dnfRate * DNF_TILT_LEVEL)
+  // PER-CAR DNF (registered 09-07, protocol 10-09; OFF unless simConfig.carDnf = { k }). d.ownDnf = the
+  // driver's recency-weighted share of prior same-series races not finished running, d.ownDnfN = how
+  // many prior races (null -> neutral). m_i = ((n x own + k x mean) / (n + k)) / mean, clamped [0.5, 2],
+  // RESCALED TO MEAN 1 so the calibrated attrition budget is unchanged and only its allocation moves;
+  // multiplies both the accident draw and the mechanical draw through __tilt. k is the per-series
+  // shrinkage constant (prior weight in races); larger k = closer to the field rate.
+  if (simConfig.carDnf && simConfig.carDnf.k != null && isFinite(+simConfig.carDnf.k)) {
+    const k = +simConfig.carDnf.k
+    const have = drivers.map((d, i) => i).filter(i => drivers[i].ownDnf != null && !isNaN(drivers[i].ownDnf) && (drivers[i].ownDnfN || 0) >= 3)
+    if (have.length >= 3) {
+      const mean = have.reduce((a, i) => a + drivers[i].ownDnf, 0) / have.length
+      if (mean > 0) {
+        const m = new Float64Array(n).fill(1)
+        have.forEach(i => { const nn = Math.min(30, drivers[i].ownDnfN || 0); m[i] = Math.max(0.5, Math.min(2.0, ((nn * drivers[i].ownDnf + k * mean) / (nn + k)) / mean)) })
+        let s = 0; for (let i = 0; i < n; i++) s += m[i]; const sc = n / s
+        for (let i = 0; i < n; i++) __tilt[i] *= m[i] * sc
+      }
+    }
+  }
 
   // CAUTION MIX (2026-08-31). Optional. Without it this runs exactly as before: ONE bucket,
   // no extra RNG draw, byte-for-byte the old behaviour.

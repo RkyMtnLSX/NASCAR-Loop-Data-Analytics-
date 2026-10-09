@@ -8252,3 +8252,8 @@ nothing (that is the protocol's answer for it). Ships as per-series constants on
 mechanism, stamped on boards (config.lapTraffic 'v2-k<series>' / config.carDnf 'v1-k<series>').
 Revert trigger as 10-09: two straight weekends of negative CLV lift on stamped boards.
 PUSH before reading data.
+CORRECTION before any result is read (10-09, same session): the registration names the TRAIN file as
+holdout.txt "162 races 2022-24". That file is the 2025 practice-free holdout (fingerprints match 2025
+races), and overlaps the test years. The 2022-24 set is scripts/backtest-data/train.txt (274 races:
+cup 108 / O'Reilly 99 / trucks 67). Fit on train.txt; test stays holdout-practice.txt >= 50% coverage
+(94 boards, 2025-26). Principle unchanged (fit years disjoint from test years); file name corrected.
