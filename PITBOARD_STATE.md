@@ -812,6 +812,7 @@ before stating n.
 - BOARD CALIBRATION IS SOUND (2026-08-24, 644 driver-rows/market over 9 races, both stages). Top-5 lands within ~5pts of truth in EVERY band (says 1.2/happens 1.0 ... says 67.9/happens 66.7); top-10 close and mildly UNDER-confident at 10-20; win fine where n supports it. Known exception: cup favourites at the top of the win market are over-confident (12 picks, 20.8% stated v 8.3% realised). THE FLAGS' -35% ROI IS NOT EVIDENCE OF A MISCALIBRATED SIM - flagging selects where model>market, which selects the model's own upward errors (winner's curse, arithmetic not defect). Different objects, different measurements. Do not let one be quoted against the other. BACKTEST_LOG 2026-08-24.
 
 ## Queue (rough priority)
+0. [QUEUED 2026-10-06, agreed order] (a) DRIVER GROUPS / STACKS in the optimizer (at least one of / at most N of a group, manufacturer stacks) - the 150-max gap vs competitors; selector cap mechanism, no objective change. (b) RIVAL RECON - opponent scouting from the contest-standings files already ingested weekly (shared drivers, builds, how often you meet). Then: scoring-weights panel with ledger defaults, selection-variance dial, non-driver props + Kelly column on the betting side, Discord push for flags. DECLINED: a separate Driver Projections / distributions page (operator 10-06 - overkill; the optimizer board is the cheat sheet); a p25 Floor column only if a user asks. Second polish pass items: drop the 0/50/50 chalk schedule?, entries-file "N of N IDs matched" confirmation, help page. Standing: replay tool + ledger stay internal; no projection-side registrations until the data points at one (five nulls 10-04/05).
 1. [CLOSED 2026-09-06] Payout-aware (duplication-weighted) GPP objective: TESTED, LOSES to E[max]
    - realised prize 6.32 -> 4.59 entry-fees per 20 (2/6/1), best-of-20 pctile 89.2 -> 78.7 (2/7);
    worse still with actual ownership as the field (2.11). Failure is the FIELD MODEL: lineups
@@ -848,6 +849,7 @@ before stating n.
 8. Mech DNF tiered by equipment; tire-management earned/dashed column; matchup pricer; RR+LR loop-data merge mode; PENALTIES_BACKFILL_ALL history run (operator); best-5 tooltip wording.
 
 ## Loose ends
+- [2026-10-06] Archive gaps: no DK salary file for trucks R5 / R13, cup R20 / R29, O'Reilly R18 - paste in Salary Admin and the daily sync writes the perfect lineups. Stale practice_laps rows (cup Vegas race_number 1, 07-03) still to delete. Metric-start shading registration owed before the next no-practice week. Multi-contest standings upload: the paste box has no filename, so contest_id stores as 'unknown' - a contest-id field next to the paste box is a small fix if multi-contest uploads become routine.
 - [NEW 2026-08-30] `loop_data.car_number` stamping is a NAME join against the rolling `entry_list`
   (Admin.js ~903) and `api/load-race.js` never writes it at all - 1,962 rows over 72 races had NULL,
   which silently drops those drivers from every pit-crew analysis (crew key = car+org+season). 650

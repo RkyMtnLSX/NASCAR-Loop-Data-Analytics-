@@ -3689,6 +3689,64 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
+## 2026-10-06 — Product direction after Vegas: what was decided, what was declined, what is queued
+A long operator conversation on where the DFS product goes; the decisions, so they are not re-argued.
+CAN THE OPTIMIZER WIN A CONTEST? The ledger's answer: the best-of-20 entry has landed in the top
+1-4% of the field in 9 of 9 current GPP replays, one outright win (Bristol trucks R19, 1st of 845),
+and 134th / 329th / 649th in 5,900-9,500 fields. A top-percentile engine wins mid-size fields
+(500-1,500) regularly and big fields rarely - a top-1% entry is first about 1 in 100 big contests,
+by the format, not by a flaw. "Win the top prize every week" is not a goal any product can hold;
+the measurable goals are top-1% rate and prize per entry fee. Profitability after rake is
+UNKNOWN at four races of operator rows (product portfolio 2.38 / 0.55 / 0.36 / 0 per entry, operator
+3.31 / 0.47 / 0.42 / 0.43) - the ledger is built to find out. Five registrations in two days, five
+nulls (E[max] continuation, ownership objective, Clean Pace, blend, start weight): the stored boards
+are well calibrated on the mean; the product's gaps are CONSTRUCTION and TIMING, not projection. No
+more projection-side registrations until the data points at one.
+WHAT IS NOT PUBLISHED (operator): the replay ledger and the replay tool stay internal - a tuning
+bench, not a feature. A public results card (board vs finish, top-lineup placement) is the trust
+asset if one is needed; CLV is the strongest verifiable number and the one betting figure that could
+be shown. Other users will pull different levers on the same board and get different results - the
+product is the sim + construction logic, not a promised outcome - so the ledger's job is to make the
+DEFAULTS as strong as possible.
+WHO THE USER IS (operator, 10-06): "anyone using this kind of tool is more than likely an advanced
+user in the space... there doesn't need to be a basic mode, every user will want to tune their
+exposure." Consequences shipped the same day: every driver-board column on by default, min/max
+exposure boxes always on, portfolio construction rules and chalk stance visible, no Advanced toggle.
+COMPETITOR CHECK (speed-geeks.com/explore-tools, marketing copy only): same architecture (one sim
+feeding betting + DFS). At parity or better: sim-backed lineups, locks/fades, exposure caps, CSV +
+DK entries-file round trip (they do not list it), projected ownership, Optimal%, ceiling/floor, cash
+build, multi-contest portfolio (they do not list it), practice grading (their "Practice Model" is
+the Report Card / Clean Pace ground, where the fancier metric already tested null). Gaps, ranked:
+(1) per-driver DK point distributions - DECLINED 10-06 after discussion (operator: p10..p90 is
+overkill, few would read a separate page; the optimizer's driver board already is the cheat sheet).
+If anything, a FLOOR (p25) column beside Ceiling on the existing board - not built, waits for a
+user to ask. The "Driver Projections" page idea is CLOSED. (2) Lineup comparison (2v2 / 3v3 across
+draws) - not built, same reason; cheap if asked for. (3) DRIVER GROUPS / STACKS (at least one of,
+at most N of, manufacturer stacks) - QUEUED, the real gap for a 150-max builder, fits the selector's
+cap mechanism without touching the objective. (4) User-tunable scoring weights (avg / ceiling /
+floor / optimal / ownership fade) with the ledger-tested defaults locked as the default - queued
+behind groups. (5) Selection variance dial - cheap, default zero, queued low. (6) RIVAL RECON - who
+you keep running into and how they build, from the contest-standings files the replay already
+ingests every week - QUEUED, the one differentiator on their list we can do from data we already
+store. Betting side: non-driver props (manufacturer win, top-10 counts, car number odd/even) are
+one function over the draws; a Kelly column next to medge is trivial; "sportsbook scanner with
+Discord alerts" is our odds-snapshot flagging plus a push - the alert is the only missing piece.
+Not chased: "Cash Core Scores" (= Optimal% + cash build), practice-grade elaborations (tested null).
+NEXT BUILD ORDER (agreed 10-06): driver groups / stacks, then Rival Recon. Second polish pass items
+still open: the 0/50/50 chalk schedule (documented loser) is still an option; entries-file flow has
+no "20 of 20 entry IDs matched" confirmation; help page ("How to use the Lineup Optimizer" - one
+five-minute walkthrough + FAQ, linked from the page; the manual stays ours) - all deferred.
+OPERATOR WEEKEND REMINDERS (Charlotte oval week: cup R32 / O'Reilly R29 / trucks R21, entry lists
+already synced 38 / 37 / 35): practice sheet upload per series after practice; DK salary paste per
+series (Salary Admin - the board guard will warn if the Weekend Config and the board disagree); the
+post board publishes from Sim Admin after qualifying; after the races: Load Race from NASCAR feed
+(status strip keys on total_laps now), contest-standings upload per contest (filename carries the
+contest id - paste box stores 'unknown'), replay + save, clv_log true-close paste. Archive gaps to
+fill when convenient: DK salary CSVs for trucks R5 / R13, cup R20 / R29, O'Reilly R18 (the sync
+writes the perfect lineups the next morning). Stale practice_laps rows (cup Vegas race_number 1,
+07-03) still to delete. Metric-start shading registration still owed before the next no-practice
+week.
+
 ## 2026-10-06 — Optimal Lineup Archive had frozen at cup R25: perfect lineups now written by the daily sync
 Operator: "how come the optimal archive stops at New Hampshire? 2026?" Because the 2022-2026 corpus
 was loaded once from workbooks (08-29 / 08-30) and NOTHING wrote a row when a new race loaded - six
