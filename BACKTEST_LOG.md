@@ -8694,3 +8694,42 @@ precedent (one outcome-noise multiplier per track group, fit 2022-24, validated 
 SS 1.75) applied per SERIES - a trucks noise multiplier < 1 steepens the whole rank->win curve at once,
 with the favourite gap, win LL and t5 LL as the judges, and the SS multiplier untouched. New registration.
 Fourteen registrations since 10-04: two ships, one call open, eleven closed.
+
+## 2026-10-09 — PRE-REGISTERED: PER-SERIES OUTCOME-NOISE MULTIPLIER (trucks favourite under-statement). Written before the fit. DO NOT MODIFY.
+TRIGGER. Top-stretch control arm: trucks 2025-26 holdout sim favourite stated 22.3%, wins 48.3% (14/29);
+2022-24 train 15.4% / 25.4%. Cup +1.3, O'Reilly -1.0 (calibrated).
+LIVE-BOARD CHECK (sim_results, latest board per race/stage, 2026 trucks POST boards with results, run
+before this registration, read-only): favourite stated / result - R16 Indy Riggs 29.6% (book -105) WON from
+P1; R17 Richmond Honeycutt 27.8% (book +380; book fav Majeski) WON; R18 NH Riggs 17.1% (book +325; book fav
+Honeycutt) WON; R19 Bristol Riggs 34.6% lost (Garcia from P12); R20 Kansas Honeycutt 24.8% WON. 4 of 5 at a
+mean stated 26.8%. Series means across all 2026 boards with markets: trucks post sim fav 28.5% vs book
+favourite implied 30.2% (with vig; n 6); cup post 25.2% vs 20.7%; O'Reilly post 23.2% vs 25.0%. So the live
+engine identifies the trucks favourite (better than the book at Richmond and NH) and under-states him;
+the finding is not a harness artefact. PRE boards are a separate problem (no grid: Christopher Bell was the
+sim favourite at 13-17% twice, book +800) - the deferred pre-board projected-grid item, not this one.
+FORM (engine, flagged, default off: runRaceSim simConfig.seriesNoiseMult = m). noiseWidth = preset noise x
+GROUP_NOISE_MULT[trackGroup] x m. The SS precedent (08-29: one multiplier per track group, fit 2022-24,
+validated 2025-26, SS 1.75) applied per SERIES; stacks multiplicatively on SS. m = 1 is the shipped engine;
+m < 1 steepens the whole rank -> win curve at once (favourite up, tail down) instead of lifting a bracket.
+FIT: train.txt (2022-24, no practice), 10k sims, m in {.6, .7, .8, .9, 1, 1.1, 1.2} per series, chosen by the
+smallest WIN LOG-LOSS (tie within 1e-5 -> closer to 1). All three series are fitted: cup and O'Reilly are the
+PLACEBO - their favourites are calibrated, so a fitted m far from 1 there is a warning about the fit, not a
+discovery. Written to noise-fit.json and COMMITTED before the holdout is read.
+TEST: holdout-practice.txt (94 boards), 20k sims, RUNS=2, control A = shipped (trucks carDnf k32, domBoot),
+N = A + seriesNoiseMult at the frozen m. Null floor per metric = |A run1 - A run2|. Metrics: rho, top-10
+Brier, win LL, top-5 LL; favourite gap (stated - realised, sim favourite); TAIL bucket (drivers stated < 3%:
+mean stated vs realised win share, gap = stated - realised, negative = tail under-stated); MID bucket
+(3-10%); elite cells and neP26 for the record.
+DECISION RULE (per series, mean of two runs): SHIP N at the fitted m if (a) fitted m != 1; (b) win LL is
+BETTER than A by at least the null floor AND top-5 LL is not worse than A by more than its null floor;
+(c) the favourite gap moves toward zero by at least a THIRD of A's gap and does not cross to beyond +5.0;
+(d) the tail gap is not worse (more negative) than A by more than 0.30 pts and the mid-bucket gap stays
+within 1.5 pts of zero; (e) rho and top-10 Brier each not worse than A by more than the null floor. Fails any
+one -> not shipped for that series. Ships as simConfig.seriesNoiseMult in SimulationCenter's runRaceSim
+call per series; stamp seriesNoise 'v1-m<m>'. Revert trigger: the series' favourites 0-for-2 weekends vs
+the books while the tail hits.
+HARNESS SMOKE (train only, 100 sims, cup block, throwaway): m .6 winLL .1678 / .7 .1493 / .8 .1352 vs the
+10k control ~.111 - at 100 sims the LL is dominated by draw noise; nothing to read. No holdout numbers seen.
+INTERIM OPERATOR RULE shipped with this registration (PITBOARD_MANUAL, Model doctrine): until this closes,
+no win-market FADE on the top-rated car of a trucks board - a negative medge there is more likely our bias
+than the book's (Indy: Riggs -105, sim 29.6%, medge -6.84 "fade", won from the pole). PUSH before the fit.

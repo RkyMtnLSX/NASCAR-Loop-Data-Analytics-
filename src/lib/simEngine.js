@@ -788,7 +788,12 @@ function runRaceSim(drivers, simConfig) {
     const wm = __wmFor(p)
     return {
       cautionValue: p.value,
-      noiseWidth: p.noise * (GROUP_NOISE_MULT[trackGroup] || 1),
+      // SERIES NOISE MULTIPLIER (registered 2026-10-09, BACKTEST_LOG; OFF unless simConfig.seriesNoiseMult).
+      // The SS precedent (one outcome-noise multiplier per track group, fit 2022-24, validated 2025-26)
+      // applied per SERIES: the trucks sim favourite is stated ~22% and wins ~48% of 2025-26 boards
+      // (15% / 25% on 2022-24) while cup and O'Reilly favourites are calibrated. A multiplier < 1 steepens
+      // the whole rank -> win curve at once. Stacks multiplicatively on the SS group multiplier.
+      noiseWidth: p.noise * (GROUP_NOISE_MULT[trackGroup] || 1) * (simConfig.seriesNoiseMult > 0 ? simConfig.seriesNoiseMult : 1),
       LLC: ((LL_CURVES_G[trackGroup] || {})[cb]) || LL_CURVES[cb],
       FLC: ((FL_CURVES_G[trackGroup] || {})[cb]) || FL_CURVES[cb],
       // 2026-09-03 INT dominance-level study (BACKTEST_LOG, pre-registered). EXPERIMENTAL, OFF
