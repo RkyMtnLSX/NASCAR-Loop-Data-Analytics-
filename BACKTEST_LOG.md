@@ -8528,3 +8528,26 @@ in __V4_BETA (SimulationCenter) and TRUCK_SHORT_WEIGHTS removed from the trucks 
 tracks use DEFAULT_WEIGHTS like every other oval); stamp startProj 'trail10-v4-form' on trucks boards
 and weights startPos .23. Revert trigger: trucks boards 0-fer top-5 / top-10 vs the books two straight
 weekends (the 08-20 watch rule). PUSH before the run.
+
+## 2026-10-09 — COMBINED FORM (trucks v4 + short-track start weight 0.23) EXECUTED AS REGISTERED: FAILS THE TOP-10 RAIL — NOT SHIPPED
+Betas frozen as registered. Same 18 matched 2026 trucks boards, same seeds, 20k sims, one read:
+  CONTROL  win .02427  t5 .0975  t10 .1606  favGap -15.70   (v3.5 grid, short startPos .33 - ships today)
+  NULL     win .02427  t5 .0975  t10 .1606  favGap -15.69   (second seed: the MC floor is .0000 on all three rails)
+  F        win .02424  t5 .0977  t10 .1618  favGap -20.91   (v4 grid alone - the 10-09 arm, reproduced exactly)
+  W        win .02438  t5 .0975  t10 .1611  favGap -15.70   (weight change alone)
+  G        win .02435  t5 .0978  t10 .1620  favGap -15.56   (the candidate)
+G vs CONTROL: win +.00008, top-5 +.0003, TOP-10 +.0014 - worse on all three, the top-10 deficit is the
+same size F lost by. M3 passes (favGap -15.56, the weight change undoes F's -20.9 under-statement).
+VERDICT by the registered rule: NOT SHIPPED. W (the weight alone) is also not better than control
+(t10 +.0005, win +.0001) - so there is no lead to carry forward from it either.
+NOTE on the floor: the harness seeds the engine, so NULL (seed 2) matches CONTROL to four decimals at
+20k x 18 boards - the Monte-Carlo noise is averaged out and the .0014 is signal, not noise.
+READING (not a decision): the hypothesis "a sharper grid hurts because the model leans on it too hard"
+is REJECTED by this run - easing the start weight repairs the favourite gap but not the top-10 Brier.
+The v4 grid for trucks is better rank-for-rank (M1) and worse as a sim input (M2) under either weight.
+Which means the trucks grid error that v4 removes is NOT the error the finish model is paying for; the
+top-10 cost comes from somewhere else in how trucks boards use the start term (candidate: the
+last_fp residual term is pulling drivers with a good last finish up the grid, and in trucks a good
+last finish already enters the finish model through form, so it double-counts). That is a new form,
+not a re-read. Trucks stay on trail10-v3.5 and TRUCK_SHORT_WEIGHTS; cup / O'Reilly v4 untouched.
+Twelve registrations since 10-04: two ships, one call open, nine closed.

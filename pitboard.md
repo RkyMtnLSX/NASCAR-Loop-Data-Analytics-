@@ -3689,6 +3689,18 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
+## 2026-10-09 — Trucks v4 + lighter short-track start weight, combined: still loses the top-10 rail — not shipped
+Operator: "yes combine them and see." Registered the combined form (frozen betas, five arms, same 18
+boards and seeds), pushed, ran once. Easing the short-track start weight from 0.33 to 0.23 fixes the
+favourite gap that the v4 grid had opened (-20.9 back to -15.6) but the top-10 Brier is .1620 against
+.1606 - the same .0014 the grid alone lost by, and the weight change on its own is a tie-to-worse too.
+Not shipped; nothing to carry forward from W. The useful part is what it rules out: "the sim leans
+on the grid too hard" is not why a better trucks grid makes worse trucks forecasts. The candidate
+mechanism now is double-counting - v4's recent-form term and the finish model's form input are the
+same signal, and trucks fields are thin enough that counting it twice over-sharpens the top-10. Cup
+and O'Reilly v4 are unaffected (they passed their own rails). Trucks stay on v3.5 with the 0.33
+short-track start weight. Twelve registrations since 10-04: two ships, one call open, nine closed.
+
 ## 2026-10-09 — Start projection v4 for trucks: grid error -0.4 (intermediates -1.0), but the top-10 rail fails — not shipped
 Operator: "do it, we won't be able to use it for this truck race ... but if it's something we need to
 do let's do it." Registered (same form as cup / O'Reilly, own fit on 2025, holdout 2026, trucks
