@@ -8216,3 +8216,39 @@ that must be done on a TRAIN set and judged on a holdout it never saw, not on th
 again. The rho cost is largest in trucks (-.004) and that is also where the calibration gain is
 largest; that trade is the decision a third registration would have to make explicit. Not run today.
 Engine unchanged in production (flag default null). Seven registrations since 10-04, seven closed.
+
+## 2026-10-09 — REGISTRATION: the 09-07 SHRINKAGE PROTOCOL, executed — (1) lapped traffic, (2) per-car DNF, one constant per series
+PROTOCOL (operator ruling 09-07, verbatim intent): no series ON/OFF gates; every car-specific
+feature runs in every series through ONE per-series constant, FITTED on 2022-24 and SCORED on
+2025-26 boards the fit never saw. Both items below follow it exactly. Written before any data is
+read; the fit set and the test set are disjoint by year.
+DATA. Train = scripts/backtest-data/holdout.txt (162 races 2022-24, practice-free; SS boards pass
+through unchanged in both arms). Test = holdout-practice.txt filtered to >= 50% practice coverage
+(94 boards 2025-26, the set every 09-07 and 10-09 result used). Boards are matched to loop_data by
+the (start:finish) fingerprint (>= 0.85 of the field must match, else the board is dropped and
+named) to recover driver names, from which the per-car features are computed from loop_data rows
+dated BEFORE the race (same series, 2022 onward, 0.85^age recency, up to 30 prior races, >= 3 else
+null). Harness scripts/backtest-protocol.js; 20k sims / race / arm; the test set is run TWICE.
+(1) LAPPED TRAFFIC, per-series strength k. Mechanism exactly as 10-09 (simConfig.lappedTraffic
+{ series, k }, frozen 09-07 rate table, p_i = min(0.9, k x p_band x (1 - spdPct))). FIT: k per
+series from {0, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2} on TRAIN by minimising |non-elite P26+ finish
+residual| (the laps-down family's protocol metric), ties to the smaller k; k = 0 is a legitimate
+answer (= off). FROZEN, then scored on TEST.
+(2) PER-CAR DNF, per-series prior weight k. Mechanism as registered 09-07: ownDnf = recency-
+weighted share of prior same-series races not finished running (finish_status != Running);
+m_i = ((n_i x own_i + k x mean) / (n_i + k)) / mean, null -> 1, clamped [0.5, 2.0], rescaled to
+mean 1 over the field (the DNF budget is unchanged, only its allocation moves), multiplying both the
+accident draw and the mechanical draw through __tilt. Flag simConfig.carDnf { k }. FIT: k per
+series from {2, 4, 8, 16, 32, off} on TRAIN by minimising per-driver DNF Brier (sim dnfPct vs
+actual non-running finish); FROZEN, then scored on TEST. (09-07 used k = 4 everywhere; it passed
+trucks and over-corrected cup by 5 points and O'Reilly by 13 - the protocol exists to fit that.)
+DECISION, per series, each item on its own, on the TEST set in BOTH runs (the ordinary bar - the
+fit never saw these boards, so no discount): SHIP a series if win log-loss, top-5 log-loss and t10
+Brier each do not lose in mean (worse by no more than 0.0002 counts as a tie) AND finish rho does
+not lose by more than .005 in mean AND the item's own target moves toward zero / improves: (1) the
+non-elite P26+ residual shrinks in magnitude; (2) per-driver DNF Brier improves in mean and the
+ownDnf > 0.30 cell's sim DNF% moves toward its actual. A series whose fitted k is 0 / off ships
+nothing (that is the protocol's answer for it). Ships as per-series constants on one shared
+mechanism, stamped on boards (config.lapTraffic 'v2-k<series>' / config.carDnf 'v1-k<series>').
+Revert trigger as 10-09: two straight weekends of negative CLV lift on stamped boards.
+PUSH before reading data.
