@@ -8301,3 +8301,32 @@ Revert trigger (registered): two straight weekends of negative CLV lift on 'v1-k
 NOT SHIPPED: lapped traffic in any series. O'Reilly at k 1.5 is the operator's call (misses the rho guard by
 .0004 in one of two runs with every probability metric better and the calibration exact). Eight registrations
 since 10-04: one ship (trucks per-car DNF), one operator call (O'Reilly lapped), six closed.
+
+## 2026-10-09 — REGISTRATION: DOMINATOR CONCENTRATION (laps led / fastest laps) — stage 1, calibration only
+WHY. DK pays 0.25 / lap led and 0.45 / fastest lap, so the top of a GPP slate is dominator points
+(Larson 110 at Darlington, Briscoe 116.5 at Vegas). Whether the E[max] set can contain that outcome
+depends on whether the race sim concentrates laps led in one or two cars the way real races do, or
+spreads them. The INT allocator was rebuilt 09-03 (INT_DOM_V2); SHORT / ROAD / SS run older curves.
+Nobody has tested the SHAPE of the dominator distribution, only means. Stage 1 is a diagnostic: no
+form, nothing ships from it; a failing cell earns a stage-2 registration with a named form.
+DATA. The 94 practice-holdout boards (2025-26, >= 50% practice coverage), shipped engine, 20k sims,
+with the trucks per-car DNF flag ON (= production as of 6eedbd4). Actual laps led / fastest laps
+per driver from loop_data for the fingerprint-matched races (protocol-features.json race ids).
+Sim per-draw top share from the engine's existing __domDiag hook, extended to record the top laps-
+led share and top fastest-laps share every 10th draw (diagnostic only; no engine behaviour change).
+METRICS, per series x track group (INT / SHORT / ROAD / SS), reported only for cells with >= 8 races:
+  (a) PIT of the ACTUAL top laps-led share within the sim's per-draw top-share distribution for that
+      race: F_sim(actual). Calibrated = mean PIT ~0.5 with ~10% of races above 0.9 and ~10% below 0.1.
+      Mean PIT > 0.6 or > 25% of races above 0.9 = sim UNDER-concentrated (real dominators dominate
+      more than the sim lets them); mean PIT < 0.4 or > 25% below 0.1 = OVER-concentrated.
+  (b) the same for fastest laps.
+  (c) per-driver Spearman of projLapsLed vs actual laps led and avgFastLaps vs actual fastest laps,
+      mean over races (ordering: does the sim pick the right dominator).
+  (d) the sim's #1 projected dominator per race: his projected laps led vs his actual (mean over
+      races; negative = he led MORE than projected) - the favourite's calibration.
+  (e) DK dominator-point error: mean over drivers of (0.25 x LL + 0.45 x FL) projected minus actual,
+      and the same for the top-3 projected dominators only.
+READ-OUT (written before the run): a cell is "under-concentrated" or "over-concentrated" by (a)/(b)
+above; stage 2 is registered ONLY for a cell that fails (a) or (b) with >= 15 races, with the form
+named then (e.g. a steeper LL curve / stronger elite kick for that group), fit on 2022-24 and scored
+on 2025-26 per the protocol. No constant is changed from stage 1. PUSH before reading data.
