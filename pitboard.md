@@ -3689,6 +3689,20 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
+## 2026-10-09 — Two more forms for the trucks favourite: the right mechanism, the wrong era to fit it on
+Operator: "do the next registration." Strength-dependent noise (narrower draws for the top fifth) fitted
+to zero everywhere, and a synthetic check showed why: a finish is the max of 36 draws, so clipping the
+favourite's own upside makes him LESS likely to win while making him more consistent. My construction
+error, closed at the fit. The corrected form - a second-tier upside clip, cars 2-8 keep less of an
+upside draw, favourite and tail untouched - does exactly the move the calibration table asks for
+(trucks favourite 15 -> 21 across the grid, cars 2-4 down, tail flat) and the 2022-24 fit still refuses it
+for trucks, because on 2022-24 the trucks mid bucket is nearly calibrated and the favourite gap is a
+third of what it is now. O'Reilly's 0.15 was a wash on the holdout, as a calibrated series should be. So
+the finding stands and the protocol can't reach it: the trucks favourite problem lives in 2025-26 and the
+fit set ends in 2024. The operator-approved variant from trucks v4 (fit 2025, holdout 2026, trucks only)
+is the honest next step, thin as it is; that's a call, not a registration. Eighteen registrations since
+10-04: two ships, one call open, fifteen closed.
+
 ## 2026-10-09 — Trucks favourite: the noise multiplier fit chose "no change", and the control table says why
 Operator: "do both" - register the per-series noise multiplier and write the interim rule (no win-
 market fade on the top-rated car of a trucks board, in the MANUAL until this closes). Live boards

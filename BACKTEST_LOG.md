@@ -8873,3 +8873,26 @@ from those cars costs more than the favourite earns. Written before the holdout:
 favourite problem (22 / 48, mid 5.2 / 3.4) is NOT in the 2022-24 train set at the same size (15 / 25, mid
 5.3 / 4.7). A fit on 2022-24 cannot find a 2025-26 phenomenon, by construction. O'Reilly's 0.15 goes to the
 holdout as registered (favourite already -1.0 there, so (c) will be close). FROZEN {"cup":0,"oreilly":0.15,"trucks":0}.
+
+## 2026-10-09 — SECOND-TIER CLIP EXECUTED AS REGISTERED: O'REILLY (c .15) IS A WASH, FAILS (b); CUP / TRUCKS FITTED 0 — CLOSED
+Holdout-practice, 20k sims, two runs, mean A -> T:
+  O'REILLY (26, c .15)  winB .02181 -> .02186 (worse .00004, floor .00004: (b) FAILS)   t5B .08272 -> .08265 (better .00007, floor .0001: not by the floor)
+                        t10 .13467 -> .13455   rho .6025 -> .6034   winLL .0831 -> .0836   t5LL .2626 -> .2625
+                        fav gap -1.0 -> +0.6 ((c) passes)   mid 5.55/5.1 -> 5.5/5.0   tail .53/.28 -> .50/.29
+VERDICT: NOT SHIPPED. A calibrated series given a favourite dial moves its favourite from -1.0 to +0.6 and
+nothing else - the mechanism is sound and the series did not need it. Trucks never reached the holdout.
+Flag stays in, default off.
+WHERE THIS LEAVES THE TRUCKS FAVOURITE (four registrations today, all closed, the finding intact):
+  2022-24 train:    favourite 15.4 / 25.4   mid 3-10% 5.3 / 4.7   tail .84 / .62
+  2025-26 holdout:  favourite 22.2 / 48.3   mid 3-10% 5.2 / 3.4   tail .64 / .63
+The second-tier clip moves exactly the right mass (favourite up, cars 2-4 down, tail flat; trucks fav 15.4 ->
+21.1 across the grid) and the 2022-24 fit refuses it because on 2022-24 the trucks mid bucket is close to
+calibrated and the favourite gap is a third the size. The 09-07 protocol (fit 2022-24, score 2025-26) cannot
+find a mechanism whose need is concentrated in 2025-26. This is the rolling-refit question (STATE, deferred)
+arriving with a concrete case. The trucks v4 start projection (10-09) was registered on the operator-approved
+variant: own fit on 2025, holdout 2026. The same split here: fit c on the 2025 trucks practice boards
+(~15 after the coverage filter), score once on the 2026 trucks practice boards (~14), same decision rule,
+thin but honest. If it passes it ships for trucks only, with a dated constant and the revert trigger; if the
+2026 boards do not support it, the favourite problem is a 2025 (Heim) phenomenon and the interim rule is
+withdrawn. OPERATOR CALL - not registered here.
+Eighteen registrations since 10-04: two ships, one call open, fifteen closed.
