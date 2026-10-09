@@ -3703,7 +3703,10 @@ zone (Intl, with zone name), "(impound)" marked, past sessions dimmed, race date
 underneath. A feed error renders nothing rather than breaking the home page. LOGOS: NASCAR's series
 marks are trademarks, so the component renders public/series-logos/{cup,oreilly,trucks}.png if the
 operator drops files he has rights to, and falls back to a PitBoard-styled wordmark in the series
-colour (README in that folder). Charlotte week on first render: Cup Bank of America 400 - practice
+colour (README in that folder). SAME DAY: operator supplied the official marks as SVG ("Speed Geeks
+puts NASCAR's logos on their website just fine" - his call, logged as such); installed as
+public/series-logos/{cup,oreilly,trucks}.svg, component tries .svg, then .png, then the wordmark;
+cards render them at 56px. Charlotte week on first render: Cup Bank of America 400 - practice
 Sat 11:00 ET, qualifying 12:05, race Sun 3:00 PM ET on USA; O'Reilly and trucks likewise.
 
 ## 2026-10-06 — Product direction after Vegas: what was decided, what was declined, what is queued

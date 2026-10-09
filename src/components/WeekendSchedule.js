@@ -18,11 +18,13 @@ const SERIES = [
 ]
 const RUN_LABEL = { 1: 'Practice', 2: 'Qualifying', 3: 'Race' }
 
+// 2026-10-09: the operator supplied the official marks as SVG (public/series-logos/{cup,oreilly,trucks}.svg).
+// .svg is tried first, then .png, then the wordmark.
 export function SeriesLogo({ series, height = 44 }) {
   const s = SERIES.find(x => x.key === series) || SERIES[0]
-  const [img, setImg] = useState(true)
-  if (img) {
-    return <img src={`/series-logos/${s.key}.png`} alt={s.label} height={height} style={{ height, width: 'auto', display: 'block' }} onError={() => setImg(false)} />
+  const [ext, setExt] = useState('svg')
+  if (ext) {
+    return <img src={`/series-logos/${s.key}.${ext}`} alt={s.label} height={height} style={{ height, width: 'auto', display: 'block' }} onError={() => setExt(ext === 'svg' ? 'png' : null)} />
   }
   return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height }}>
@@ -62,7 +64,7 @@ export default function WeekendSchedule() {
           const w = data ? data[s.key] : null
           return (
             <div key={s.key} style={{ background: 'var(--bg-card, #14161b)', border: '1px solid var(--border, #22252b)', borderTop: `3px solid ${s.color}`, borderRadius: 12, padding: 16 }}>
-              <SeriesLogo series={s.key} height={44} />
+              <SeriesLogo series={s.key} height={56} />
               {!data && <div style={{ color: 'var(--text-muted, #6b7078)', fontSize: 13, marginTop: 12 }}>Loading schedule…</div>}
               {data && !w && <div style={{ color: 'var(--text-muted, #6b7078)', fontSize: 13, marginTop: 12 }}>No race on the schedule.</div>}
               {w && <>

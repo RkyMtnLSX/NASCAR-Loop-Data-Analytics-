@@ -1,3 +1,2 @@
-Drop official series marks here as cup.png, oreilly.png, trucks.png (transparent PNG, ~44px tall when
-rendered) and the home page uses them; without a file the page shows a PitBoard-styled wordmark in
-the series colour. The marks are NASCAR's trademarks - only add files you have the rights to use.
+Official series marks supplied by the operator (2026-10-09): cup.svg, oreilly.svg, trucks.svg. The home
+page tries {series}.svg, then {series}.png, then falls back to a PitBoard-styled wordmark.
