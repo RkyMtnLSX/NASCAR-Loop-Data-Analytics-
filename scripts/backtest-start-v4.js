@@ -74,7 +74,7 @@ function reportM1(label, set, beta, arms) {
 }
 
 // ---- M2/M3: the sim with projected grids (reconstruction boards, fingerprint-matched)
-function weightsFor(track) { if (isRoadCourse(track)) return SERIES === 'trucks' ? E.TRUCK_ROAD_WEIGHTS : ROAD_COURSE_WEIGHTS; if (isSuperspeedway(track)) return SERIES === 'oreilly' ? E.ONEILLY_SUPERSPEEDWAY_WEIGHTS : SUPERSPEEDWAY_WEIGHTS; if (SERIES === 'trucks' && __trackGroup(track) === 'SHORT') return TRUCK_SHORT_WEIGHTS; return DEFAULT_WEIGHTS }   // 2026-10-09: trucks weight tables for the trucks extension
+function weightsFor(track, shortW) { if (isRoadCourse(track)) return SERIES === 'trucks' ? E.TRUCK_ROAD_WEIGHTS : ROAD_COURSE_WEIGHTS; if (isSuperspeedway(track)) return SERIES === 'oreilly' ? E.ONEILLY_SUPERSPEEDWAY_WEIGHTS : SUPERSPEEDWAY_WEIGHTS; if (SERIES === 'trucks' && __trackGroup(track) === 'SHORT') return shortW === 'default' ? DEFAULT_WEIGHTS : TRUCK_SHORT_WEIGHTS; return DEFAULT_WEIGHTS }   // 2026-10-09: trucks weight tables; shortW 'default' = the combined-form arms (startPos .23 at short)
 function loadBoards() {
   const out = []
   for (const line of fs.readFileSync(D('holdout.txt'), 'utf8').split('\n')) {
@@ -95,12 +95,15 @@ function loadBoards() {
   return out
 }
 function simArm(boards, arm, beta, seed) {
+  // 2026-10-09 combined-form registration: W = CONTROL grid + default short weights; G = F grid + default short weights
+  const shortW = (arm === 'W' || arm === 'G') ? 'default' : null
+  const gridArm = arm === 'NULL' || arm === 'W' ? 'CONTROL' : arm === 'G' ? 'F' : arm
   seedRandom(seed)
   let wb = 0, t5 = 0, t10 = 0, n = 0, favStated = 0, favHit = 0, k = 0
   for (const b of boards) {
-    const proj = project(b.R, arm === 'NULL' ? 'CONTROL' : arm, beta); const pr = rankOf(proj)
+    const proj = project(b.R, gridArm, beta); const pr = rankOf(proj)
     const dr = b.drivers.map(d => ({ ...d, startPos: d.__ri != null && pr[d.__ri] != null ? pr[d.__ri] : null }))
-    const sc = buildSpeedScores(dr, weightsFor(b.track))
+    const sc = buildSpeedScores(dr, weightsFor(b.track, shortW))
     const rows = runRaceSim(sc, { numSims: SIMS, cautionPreset: b.preset, dnfRate: b.dnfRate, totalRaceLaps: 300, trackGroup: __trackGroup(b.track), startSampling: null })
     let fav = null
     for (const r of rows) {
@@ -125,5 +128,5 @@ if (PHASE !== 'train') {
   reportM1('HOLDOUT 2026, races carrying the Jayski order (ARM O, report only)', withOrd, beta, ['CONTROL', 'F', 'O'])
   const boards = loadBoards()
   console.log(`\n--- M2/M3 sim rail on ${boards.length} matched holdout ${SERIES} boards, projected grids as startPos ---`)
-  for (const [arm, seed] of [['CONTROL', 1], ['NULL', 2], ['F', 1]]) { const r = simArm(boards, arm, beta, seed); console.log(`  ${arm.padEnd(8)} win ${r.win.toFixed(5)}  t5 ${r.t5.toFixed(4)}  t10 ${r.t10.toFixed(4)}  favGap ${r.favGap.toFixed(2)} pts`) }
+  for (const [arm, seed] of (SERIES === 'trucks' && process.env.COMBINED ? [['CONTROL', 1], ['NULL', 2], ['F', 1], ['W', 1], ['G', 1]] : [['CONTROL', 1], ['NULL', 2], ['F', 1]])) { const r = simArm(boards, arm, beta, seed); console.log(`  ${arm.padEnd(8)} win ${r.win.toFixed(5)}  t5 ${r.t5.toFixed(4)}  t10 ${r.t10.toFixed(4)}  favGap ${r.favGap.toFixed(2)} pts`) }
 }

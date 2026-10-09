@@ -8506,3 +8506,25 @@ PROJECTION one, and it is the 08-20 sweep's "trucks short keeps 0.33" cell plus 
 pointing the same way. A follow-up registration that tests v4 + a trucks start weight of 0.23 at short tracks
 (dropping the TRUCK_SHORT_WEIGHTS exception) on the same holdout would be the honest next form - a different
 form, a new registration, not a re-read. Cup and O'Reilly v4 are untouched. Trucks stay on trail10-v3.5.
+
+## 2026-10-09 — PRE-REGISTERED: TRUCKS v4 + short-track start weight 0.23 (combined form). Written before the run. DO NOT MODIFY.
+TRIGGER. The trucks v4 run above: the grid improves a position (M1 passes every gate) and the top-10
+rail loses .0012 - a sharper grid into a finish model that leans on it. Trucks short tracks are the
+one cell still on startPos 0.33 (TRUCK_SHORT_WEIGHTS, 08-20 exception kept on 31 races, t5 12W/19L);
+every other oval cell runs 0.23. Operator: "yes combine them and see."
+FORM. Betas FROZEN as fitted above (INT .2222, SHORT .2427, SS -.0164, ROAD 0) - no refit. Arms on
+the M2 rail (same 18 matched 2026 trucks boards, same seeds, 20k sims):
+  CONTROL  v3.5 grid, TRUCK_SHORT_WEIGHTS at short (startPos .33) - what ships today
+  NULL     CONTROL on a second seed - the MC floor
+  F        v4 grid, weights unchanged (the arm that just failed)
+  W        v3.5 grid, DEFAULT_WEIGHTS at short (startPos .23) - the weight change alone
+  G        v4 grid + DEFAULT_WEIGHTS at short - the combined form, the candidate
+M1 is identical to F (the grid is the same); it already passed.
+DECISION RULE: SHIP G (both parts, trucks only) if on the M2 rail G's win, top-5 and top-10 Brier are
+each not worse than CONTROL by more than the null floor AND M3 (favourite gap) does not overshoot.
+If G fails but W passes on its own, W is NOT shipped from this registration (the weight alone was not
+the question; it would need its own, and it is logged as the lead). If G passes, ships as: trucks entry
+in __V4_BETA (SimulationCenter) and TRUCK_SHORT_WEIGHTS removed from the trucks auto-apply (short
+tracks use DEFAULT_WEIGHTS like every other oval); stamp startProj 'trail10-v4-form' on trucks boards
+and weights startPos .23. Revert trigger: trucks boards 0-fer top-5 / top-10 vs the books two straight
+weekends (the 08-20 watch rule). PUSH before the run.
