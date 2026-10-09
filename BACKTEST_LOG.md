@@ -8655,3 +8655,19 @@ HARNESS SMOKE (train.txt only, 200 sims, in-sample, cup block only, throwaway): 
 eliteDeep +0.82 fav 18.8%/12.0% -> l1 +3.48 / +0.39 fav 30.6%/9.3%. The stretch over-states cup favourites
 hard and cup elites are already over-rated on 2022-24, so cup is expected to fit to 0; the favourite-gap
 guard (b) exists because of this. No holdout numbers were seen. PUSH before the fit.
+
+## 2026-10-09 — TOP-END STRETCH: FIT (train.txt 2022-24, 10k sims) — FROZEN before the holdout is read
+  CUP (108)     -> lambda 0 (cup elites already over-rated on 2022-24; every lambda worsens the sum) - not tested
+  O'REILLY (99) l0 front -1.51 deep -7.30 fav gap -3.4 | l.25 -0.99/-7.31/-1.6 | l.5 -0.52/-7.32/+2.2 | l.75 -0.09/-7.32/+4.9
+                l1 +0.28/-7.29/+7.5 | l1.5 +0.89/-7.32/+12.0        -> lambda 0.75 (sum 7.41)
+  TRUCKS (67)   l0 front -4.32 deep -4.96 fav 15.4%/25.4% gap -10.0 | l.25 -3.83/-5.04/-7.7 | l.5 -3.36/-5.09/-5.5
+                l.75 -2.94/-5.17/-1.8 | l1 -2.53/-5.19/+0.4 | l1.5 -1.87/-5.32/+4.7   -> lambda 1.5 (sum 7.19)
+Written before the holdout: (1) The stretch moves eliteFront and does NOT move eliteDeep at all (O'Reilly
+-7.3 at every lambda): an elite car starting deep is dragged out of the top fifth of the composite by the
+start term itself, so a top-fifth stretch never reaches it. The two cells are different mechanisms after
+all - front is a rating-compression problem, deep is a start-term one - and the registered fit criterion
+(their sum) is therefore mostly fitting eliteFront. (2) TRUCKS CONTROL: the sim favourite is stated at
+15.4% and wins 25.4% of 2022-24 boards - a 10-point under-statement of trucks favourites in the shipped
+engine; O'Reilly -3.4. The stretch closes it (trucks +0.4 at l1, +4.7 at l1.5) with better in-sample t10 and
+win LL up to l1 and worse at l1.5. The registered fit picks 1.5 by the cell sum; the favourite-gap guard
+(b, <= +5.0) and rail (c) are what stand between that and a ship. FROZEN {"cup":0,"oreilly":0.75,"trucks":1.5}.

@@ -1,0 +1,9 @@
+{
+  "lambda": {
+    "cup": 0,
+    "oreilly": 0.75,
+    "trucks": 1.5
+  },
+  "sims": 10000,
+  "engine": "adcba5258bf1"
+}
