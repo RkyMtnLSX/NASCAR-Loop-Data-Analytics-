@@ -8830,3 +8830,33 @@ What the fit does say: the direction that moves the favourite UP without touchin
 UPSIDE of the cars in the 3-10% bucket (ranks ~2-8), not to narrow everyone at the top - the exact analogue
 of the shipped asymNoise (upside clip on below-median cars, 09-07), one tier up. Registered next.
 Seventeen registrations since 10-04: two ships, one call open, fourteen closed.
+
+## 2026-10-09 — PRE-REGISTERED: SECOND-TIER UPSIDE CLIP (the corrected favourite form). Written before the fit. DO NOT MODIFY.
+TRIGGER. The strength-dependent-noise closure above: symmetric narrowing of the top cars lowers the
+favourite's win share because a finish is the max of 36 draws. The move the 2025-26 control table asks for
+(trucks favourite 22 -> 48, the 3-10% bucket over by ~1.8 a car, tail calibrated) is to take UPSIDE from
+the cars right behind the favourite. Same trigger as the two registrations above; the construction is fixed.
+FORM (engine, flagged, default off: runRaceSim simConfig.tierClip = { c }). Per draw, a car in the top fifth of
+the composite that is NOT the top-rated car keeps (1 - c x (pct - .8) / .2) of an UPSIDE noise draw (the
+2nd-rated car ~(1 - c), the ~8th ~all of it); downside draws untouched, the top-rated car untouched, every
+car below the top fifth untouched. The analogue of the shipped asymNoise (upside clip on below-median cars)
+one tier up; stacks on it, carCeilFloor and the SS multiplier. c = 0 is shipped. One constant per series.
+UNIT CHECK (36-car synthetic, 20k draws, INT, before registration - the thing I failed to do last time):
+c 0 favourite 22.9% / #2 18.4 / #3 14.6 / #8 3.5, tail<3% total 9.6 -> c .3 27.3 / 15.7 / 12.6 / 4.1, tail 7.6
+-> c .6 31.3 / 12.9 / 10.1 / 5.1, tail 9.4. Favourite up, cars 2-4 down, cars 7-9 up a little (the taper
+edge), tail roughly unchanged, favourite top-5 64 -> 65. Direction is the one the table asks for.
+FIT: train.txt (2022-24), 10k sims, c in {0, .15, .3, .45, .6, .75} per series, smallest WIN BRIER + TOP-5
+BRIER (tie within 1e-5 -> smaller c). Written to tierclip-fit.json and COMMITTED before the holdout is read.
+Fitted 0 -> nothing to test for that series. Cup is the placebo with the known 2022-24 caveat.
+TEST: holdout-practice.txt (94 boards), 20k sims, RUNS=2, control A = shipped (trucks carDnf k32, domBoot),
+T = A + tierClip at the frozen c. Null floor per metric = |A run1 - A run2|. Metrics as the two registrations
+above (win Brier, top-5 Brier, top-10 Brier, rho, win LL, top-5 LL, favourite gap, mid 3-10% gap, tail gap,
+elite cells, neP26).
+DECISION RULE (per series, mean of two runs): SHIP T at the fitted c if (a) fitted c > 0; (b) win Brier AND
+top-5 Brier are each better than A by at least the null floor; (c) the favourite gap moves toward zero by
+at least a THIRD of A's gap and does not cross to beyond +5.0; (d) the mid 3-10% gap moves toward zero or
+stays within 0.5 of A, AND the tail gap changes by no more than 0.15 pts either way; (e) top-10 Brier, rho,
+win LL and top-5 LL each not worse than A by more than the null floor. Fails any one -> not shipped for that
+series. Ships as simConfig.tierClip in SimulationCenter's runRaceSim call per series; stamp tierClip
+'v1-c<c>'. Revert trigger: that series' favourites 0-for-2 weekends vs the books while cars 2-8 win both.
+No holdout numbers seen. PUSH before the fit.

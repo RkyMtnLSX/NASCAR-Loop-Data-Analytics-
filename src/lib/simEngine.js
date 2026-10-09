@@ -919,8 +919,26 @@ function runRaceSim(drivers, simConfig) {
       __o.forEach((x, r) => { const pct = n > 1 ? r / (n - 1) : 0.5; if (pct > 0.8) out[x] = 1 - sh * (pct - 0.8) / 0.2 })
       return out
     })()
+    // SECOND-TIER UPSIDE CLIP (registered 2026-10-09, BACKTEST_LOG; OFF unless simConfig.tierClip = { c }).
+    // The corrected form after topNoise (above) failed at the fit: symmetric narrowing of the top cars
+    // LOWERS the favourite's win share, because a finish is the max of 36 draws and his clipped upside
+    // loses to full-width outliers from below. Here the cars in the top fifth EXCEPT the top-rated car
+    // keep (1 - c x (pct - .8) / .2) of an UPSIDE draw (the 2nd-rated car ~(1 - c), the ~8th car ~all);
+    // downside untouched, favourite untouched, everyone below the top fifth untouched. The analogue of the
+    // shipped asymNoise (upside clip on below-median cars) one tier up: it takes win share from the 3-10%
+    // bucket, which the 2025-26 control table shows over-stated by ~1.8 pts a car in trucks, and gives it
+    // to whoever beats them - the favourite first. One constant per series, fit 2022-24 by win + top-5 Brier.
+    const __clipW = (() => {
+      const tc = simConfig.tierClip; if (!tc || !(tc.c > 0)) return null
+      const c = Math.min(0.9, +tc.c)
+      const __o = drivers.map((d, x) => x).sort((a, b) => (drivers[a].speedScore || 0) - (drivers[b].speedScore || 0))
+      const out = new Float64Array(n).fill(1)
+      __o.forEach((x, r) => { const pct = n > 1 ? r / (n - 1) : 0.5; if (pct > 0.8 && r < n - 1) out[x] = 1 - c * (pct - 0.8) / 0.2 })
+      return out
+    })()
     const __noise = (i) => { let e = gaussNoise()
       if (__topW) e *= __topW[i]
+      if (__clipW && e > 0) e *= __clipW[i]
       if (simConfig.carCeilFloor && e > 0) { const lr = drivers[i].lappedRate; if (lr != null && !isNaN(lr) && lr > CEIL_FLOOR) e *= Math.max(0.1, 1 - lr) }
       if (__spd && __spd[i] < 0.5 && e > 0) e *= (0.5 + __spd[i]); return e }
     const scored = drivers.map((d, i) => {
