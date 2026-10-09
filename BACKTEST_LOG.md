@@ -8589,3 +8589,17 @@ T .6064 .13508 .0858 .2626 eliteDeep -2.49; trucks A .5564 .15251 .0923 .3024 el
 still blind (train only) and the registered rule is unchanged by the peek. Read it as: the cell moves,
 the probability rails look costly, and gamma .5 may be too strong - the fit decides, not this.
 PUSH before the fit.
+
+## 2026-10-09 — TIER-CONDITIONED START WEIGHT: FIT (train.txt 2022-24, 10k sims) — FROZEN before the holdout is read
+  CUP (108)    g0 eliteDeep +0.71 | g.25 +1.34 | g.5 +1.96 | g.75 +2.60 | g1 +3.20   -> gamma 0 (nothing to test)
+  O'REILLY (99) g0 -7.34 | g.25 -6.71 | g.5 -6.12 | g.75 -5.47 | g1 -4.92            -> gamma 1
+  TRUCKS (67)  g0 -4.96 | g.25 -4.30 | g.5 -3.66 | g.75 -3.05 | g1 -2.44            -> gamma 1
+Two things the fit shows that the registration did not anticipate, written down before the holdout:
+(1) On 2022-24 cup (no practice in the file) the elite-deep cell is already +0.71 - elites starting deep
+finish slightly WORSE than projected on train, the opposite sign to the 2025-26 practice holdout. The
+mechanism only moves the cell one way, so cup fits to 0 and is out of this test by the registered rule.
+(2) Every gamma > 0 degrades every probability rail monotonically in-sample for all three series (e.g.
+O'Reilly t10 .14392 -> .14600 at g1, trucks rho .5369 -> .5263), and eliteFront (elites starting up front)
+gets MORE under-stated, not less - so the withheld start weight is being replaced by a composite that
+is itself biased low for elites. The rule fits by the cell, so gamma 1 is frozen for O'Reilly and trucks;
+rail (c) of the decision rule is expected to bite. FROZEN {"cup":0,"oreilly":1,"trucks":1}, committed.

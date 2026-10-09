@@ -1,0 +1,9 @@
+{
+  "gamma": {
+    "cup": 0,
+    "oreilly": 1,
+    "trucks": 1
+  },
+  "sims": 10000,
+  "engine": "c6882ab6fbe3"
+}
