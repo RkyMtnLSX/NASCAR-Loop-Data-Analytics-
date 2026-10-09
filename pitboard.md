@@ -3710,6 +3710,17 @@ positions, n 102 - Eckes from P25, Larson from P25) does not move under any form
 small, and unfixed. What is NOT closed and is the honest next registration if the operator wants
 it: the same form judged on probability metrics as primary (the flags and the DFS draws consume
 probabilities, not ordering) - a different pre-registration with a discount, not a re-read.
+SECOND REGISTRATION, same day (operator: "so should we make this change? it sounds like we should"):
+probability metrics primary, per series, discount stated, pushed before the run. NO SERIES PASSES -
+cup's top-5 log-loss and Brier get worse and its back of field goes 1.4 too pessimistic (cup P26+
+was already 0.5 pessimistic: 25.15 projected vs 24.64 actual); O'Reilly misses the win W/L bar by
+one race and the calibration band by 0.1; trucks loses win log-loss in one run and lands 0.8 short.
+Pooled passes everything but t10 Brier by .00001. CLOSED, nothing ships. THE FINDING: the back-of-
+field over-projection lives in O'Reilly (1.4 too optimistic) and trucks (1.7), not cup, and half
+strength under-corrects them while full strength overshoots - the right form is series-specific
+(off for cup, a fitted strength 1-2 for the other two), which needs a train / holdout split and a
+third registration, not another pass over the same 94 boards. Seven registrations since 10-04,
+seven closed; the engine is unchanged in production.
 PRODUCT NOTE still open from this thread: a pre-board FMV on a projected grid should not sit on the
 page looking like a post-board number (label + no trucks flags until the grid is real) - not built.
 

@@ -8189,3 +8189,30 @@ config.lapTraffic 'v1-half' / 'off' so sim_grades and the CLV ledger can split b
 REVERT TRIGGER (forward): two consecutive weekends in which the flagged plays on 'v1-half' boards
 show negative CLV lift against the pre-change ledger mean (+2.33 / race, 10-04) -> flag off, logged.
 PUSH before reading data.
+
+RESULT (run 2026-10-09, same harness, 20k sims, two runs; per-series read-out). H vs A:
+  POOLED  run 1: winLL .0879 -> .0879 (56/38)  t5LL .2859 -> .2855 (58/36)  t10 .14649 -> .14650  rho -.0028  P26+ 25.50 / 25.26
+          run 2: winLL .0880 -> .0878 (60/34)  t5LL .2857 -> .2856 (55/39)  t10 .14648 -> .14650  rho -.0030  P26+ 25.50 / 25.26
+  CUP     winLL .0878 -> .0878 (26/13) / .0880 -> .0877 (20/19)   t5LL .2880 -> .2881 (22/17) / .2878 -> .2884 (20/19)
+          t10 .1499 -> .1502 / .1500 -> .1502   rho -.0013 / -.0021   P26+ proj 25.15 -> 26.06 vs ACTUAL 24.64
+  OREILLY winLL .0832 -> .0830 (14/12) / .0832 -> .0831 (20/6)     t5LL .2626 -> .2614 (19/7) / .2621 -> .2615 (18/8)
+          t10 .1347 -> .1345 / .1345 -> .1345   rho -.0037 / -.0026   P26+ proj 24.87 -> 25.67 vs ACTUAL 26.27
+  TRUCKS  winLL .0921 -> .0925 (16/13) / .0923 -> .0923 (20/9)     t5LL .3038 -> .3038 (17/12) / .3040 -> .3036 (17/12)
+          t10 .1526 -> .1523 / .1525 -> .1523   rho -.0036 / -.0046   P26+ proj 23.40 -> 24.33 vs ACTUAL 25.11
+VERDICT by the registered per-series rule: NO SERIES PASSES. Cup fails (1) t5 log-loss worse in mean
+both runs, (2) t10 Brier worse, (4) P26+ lands 1.4 too pessimistic. O'Reilly fails (1) win W/L 14/12 in
+run 1 (0.54 < 0.55) and (4) P26+ 0.6 off (needs 0.5). Trucks fails (1) win log-loss worse in run 1
+and (4) P26+ 0.8 off. Pooled passes (1), (3), (4) and misses (2) by .00001 - a tie in any practical
+sense, but the rule said "does not lose in mean" and the per-series rule is the ship rule. CLOSED.
+Nothing ships. The 'v1-half' stamp and the revert trigger are not needed.
+WHAT THE PER-SERIES READ-OUT REVEALED (the real finding of the day): the back-of-field over-
+projection is NOT a cup problem. Cup's P26+ starters are already projected 0.5 too PESSIMISTIC
+(25.15 vs 24.64 actual - the 09-07 "P26-34 finish better than projected" cell), and the mechanism
+pushes cup the wrong way. O'Reilly (24.87 vs 26.27, 1.4 too optimistic) and trucks (23.40 vs 25.11,
+1.7) are where the over-projection lives, and there HALF strength does not go far enough (0.6 and
+0.8 still short) while FULL strength overshoots (09-07). The honest next form is series-specific:
+OFF for cup, and for O'Reilly / trucks a strength between 1 and 2 - which is a one-parameter fit
+that must be done on a TRAIN set and judged on a holdout it never saw, not on these 94 boards
+again. The rho cost is largest in trucks (-.004) and that is also where the calibration gain is
+largest; that trade is the decision a third registration would have to make explicit. Not run today.
+Engine unchanged in production (flag default null). Seven registrations since 10-04, seven closed.
