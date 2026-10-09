@@ -8860,3 +8860,16 @@ win LL and top-5 LL each not worse than A by more than the null floor. Fails any
 series. Ships as simConfig.tierClip in SimulationCenter's runRaceSim call per series; stamp tierClip
 'v1-c<c>'. Revert trigger: that series' favourites 0-for-2 weekends vs the books while cars 2-8 win both.
 No holdout numbers seen. PUSH before the fit.
+
+## 2026-10-09 — SECOND-TIER CLIP: FIT (train.txt 2022-24, 10k sims) — FROZEN before the holdout is read
+  CUP (108)     c0 winB .02582 t5B .10283 fav 18.2/10.2 | c.15 .02587/.10288 fav 19.6 | ... c.75 .02664/.10324 fav 25.5   -> 0 (expected: 2022-24 cup favourite already over-stated)
+  O'REILLY (99) c0 .02380/.09241 fav 19.9/24.2 gap -4.4 | c.15 .02381/.09237 fav 21.2 gap -2.0 (sum .11619 vs .11621) | c.3 .02393/.09255 gap -0.5 | c.45 gap +1.1  -> 0.15
+  TRUCKS (67)   c0 .02528/.09618 fav 15.4/25.4 gap -10.0 mid 5.3/4.7 | c.15 .02527/.09633 gap -7.4 | c.3 .02543/.09666 gap -6.3 | c.45 .02558/.09713 gap -5.1
+                | c.6 .02577/.09758 gap -4.0 | c.75 .02594/.09826 gap -2.8   -> 0
+The mechanism does what it was built to do (trucks favourite 15.4 -> 21.1 across the grid, tail flat, cars
+2-4 down) and the fit still returns 0 for trucks because on 2022-24 the Brier sum rises monotonically with
+c: the 2022-24 trucks mid bucket is nearly calibrated (5.3 stated / 4.7 realised) and taking win share
+from those cars costs more than the favourite earns. Written before the holdout: the 2025-26 trucks
+favourite problem (22 / 48, mid 5.2 / 3.4) is NOT in the 2022-24 train set at the same size (15 / 25, mid
+5.3 / 4.7). A fit on 2022-24 cannot find a 2025-26 phenomenon, by construction. O'Reilly's 0.15 goes to the
+holdout as registered (favourite already -1.0 there, so (c) will be close). FROZEN {"cup":0,"oreilly":0.15,"trucks":0}.
