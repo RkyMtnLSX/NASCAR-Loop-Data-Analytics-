@@ -119,6 +119,13 @@ function isSuperspeedway(trackName) {
   return t.indexOf('daytona') >= 0 || t.indexOf('talladega') >= 0 || t.indexOf('atlanta') >= 0 || t.indexOf('echopark') >= 0
 }
 
+// Lapped-running rate by series x track group x start band (P1-10 / 11-20 / 21-25 / 26-30 / 31+), loop_data
+// 2023+, running finishers only, computed and frozen 2026-09-07 (BACKTEST_LOG). Superspeedways excluded.
+export const LAPPED_RATE = {
+  cup:     { INT: [0.11, 0.19, 0.26, 0.32, 0.45], SHORT: [0.22, 0.38, 0.53, 0.62, 0.78], ROAD: [0.04, 0.07, 0.05, 0.10, 0.24] },
+  oreilly: { INT: [0.14, 0.26, 0.40, 0.46, 0.59], SHORT: [0.12, 0.21, 0.37, 0.46, 0.61], ROAD: [0.06, 0.09, 0.14, 0.15, 0.17] },
+  trucks:  { INT: [0.19, 0.24, 0.36, 0.56, 0.59], SHORT: [0.17, 0.32, 0.51, 0.58, 0.76], ROAD: [0.08, 0.09, 0.15, 0.32, 0.36] },
+}
 function __trackGroup(trackName) {
   const t = (trackName || '').toLowerCase()
   if (isSuperspeedway(trackName)) return 'SS'
@@ -811,6 +818,28 @@ function runRaceSim(drivers, simConfig) {
     // on top of asymNoise. Flag: simConfig.carCeilFloor. Requires d.lappedRate (SimulationCenter
     // attaches it for every series; buildSpeedScores' mean penalty stays O'Reilly / trucks only).
     const CEIL_FLOOR = 0.70
+    // LAPPED TRAFFIC (registered 2026-10-09, BACKTEST_LOG; OFF unless simConfig.lappedTraffic = { series, k }).
+    // The race sim has no lapped state: a running P32 starter's finish is ordered purely by score noise, so
+    // he lands mid-pack as often as the score says - the back of the field is projected 1.2 positions too
+    // well (non-elite P26+, n 1,059). Per draw a running lead-lap car is lapped with p_i = min(0.9, k x
+    // p_band x (1 - spdPct)); p_band = loop_data 2023+ share of running finishers laps down by series x
+    // track group x start band (table below, frozen 09-07); spdPct = speedScore percentile (fastest 1 ->
+    // never). k = 1 is the registered half strength; k = 2 is the 09-07 full-strength arm (CLOSED). A lapped
+    // car gets effLap 1 and finishes behind every lead-lap car (existing sort). SS: no table -> no-op.
+    const __lapP = (() => {
+      const lt = simConfig.lappedTraffic
+      if (!lt || !lt.series || !LAPPED_RATE[lt.series] || !LAPPED_RATE[lt.series][trackGroup]) return null
+      const tbl = LAPPED_RATE[lt.series][trackGroup], k = lt.k == null ? 1 : +lt.k
+      const __o = drivers.map((d, x) => x).sort((a, b) => (drivers[a].speedScore || 0) - (drivers[b].speedScore || 0))
+      const pct = new Float64Array(n); __o.forEach((x, r) => { pct[x] = n > 1 ? r / (n - 1) : 0.5 })
+      const out = new Float64Array(n)
+      for (let x = 0; x < n; x++) {
+        const sp = drivers[x].startPos
+        const band = sp == null || isNaN(+sp) ? 1 : +sp <= 10 ? 0 : +sp <= 20 ? 1 : +sp <= 25 ? 2 : +sp <= 30 ? 3 : 4
+        out[x] = Math.min(0.9, k * tbl[band] * (1 - pct[x]))
+      }
+      return out
+    })()
     const __noise = (i) => { let e = gaussNoise()
       if (simConfig.carCeilFloor && e > 0) { const lr = drivers[i].lappedRate; if (lr != null && !isNaN(lr) && lr > CEIL_FLOOR) e *= Math.max(0.1, 1 - lr) }
       if (__spd && __spd[i] < 0.5 && e > 0) e *= (0.5 + __spd[i]); return e }
@@ -822,6 +851,7 @@ function runRaceSim(drivers, simConfig) {
         for (let __c = 0; __c < S.cautionValue; __c++) if (Math.random() < 0.06) __rec++
         effLap = Math.max(0, __ld - __rec)
       }
+      if (__lapP && effLap === 0 && Math.random() < __lapP[i]) effLap = 1
       return {
         i,
         score: d.speedScore + (__adj ? __adj[i] : 0) + __noise(i) * S.noiseWidth,

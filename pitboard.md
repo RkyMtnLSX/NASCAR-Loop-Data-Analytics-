@@ -3689,6 +3689,30 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
+## 2026-10-09 — "The sim puts too much weight on start position" — the lapped-traffic follow-up, run as registered: CLOSED
+Operator, Charlotte trucks week: Eckes FMV +1983 on the pre board ("laughable"; 2.89 ARP at Charlotte
+in May), qualified 8th; Kansas P25 -> 2. "I still think the simulation as a whole is putting too much
+weight in start position." WHAT THE RECORD SAYS: the pre board was built on a PROJECTED grid (Eckes
+P18 projected, 0.23 start weight) and the post board carries the real P8. His hunch already moved
+the weight once (08-20, 0.33 -> 0.23 on 230 races). The further cut for deep starters was CLOSED
+09-07 (fixes the elite-deep cell, lifts the P32 backmarker as much, rho down) and the 10-05 tier
+test was null. The prerequisite the 09-07 result named - give the race sim a lapped state so the
+back of the field stops being projected too well, THEN re-test the start weight - had one
+unrun follow-up form: the lapped-traffic mechanism at HALF strength. Registered (BACKTEST_LOG
+10-09, pushed before the run), built as a flagged, default-off block in runRaceSim with the frozen
+09-07 rate table, run on the 94 practice-holdout boards at 20k sims twice. RESULT: the back of
+the field is calibrated (P26+ projected 24.6 -> 25.5 vs actual 25.3; P31+ residual +1.48 -> +0.37)
+and every probability metric holds or improves (win log-loss 55/39, top-5 59/35, t10 Brier tie),
+but finish ORDERING loses .003 rho (38/56, 42/52), most at short tracks and trucks. The registered
+rule needed rho to improve 1.5:1; the DFS-layer fallback needed a rho tie; it is neither. CLOSED
+as registered. The deep-starter start weight is not re-registered. The elite-deep cell (-1.6
+positions, n 102 - Eckes from P25, Larson from P25) does not move under any form tried; it is real,
+small, and unfixed. What is NOT closed and is the honest next registration if the operator wants
+it: the same form judged on probability metrics as primary (the flags and the DFS draws consume
+probabilities, not ordering) - a different pre-registration with a discount, not a re-read.
+PRODUCT NOTE still open from this thread: a pre-board FMV on a projected grid should not sit on the
+page looking like a post-board number (label + no trucks flags until the grid is real) - not built.
+
 ## 2026-10-09 — Home page: three series + this weekend's on-track schedule, self-refreshing
 Operator: "on the home page can we put all three series logos and list the schedule for all track
 activities this weekend ... and it'll just refresh every week automatically". SHIPPED: api

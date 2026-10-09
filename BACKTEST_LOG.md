@@ -8137,3 +8137,32 @@ betting board) if rho is a tie (mean within +-.002, W/L between 0.8 and 1.25) AN
 lose AND the P26+ residual at least halves - then a second registration puts the mechanism on the
 DFS draws only. Anything else: CLOSED, and the lapped line ends; the deep-starter start weight is
 re-registered ONLY if the mechanism ships somewhere. PUSH before reading data.
+
+RESULT (run 2026-10-09, 94 practice-holdout boards: cup 39 / O'Reilly 26 / trucks 29; 20k sims; two
+runs; engine 0c0f14d2ba58 with the flag OFF in production):
+  run 1   A ship  rho .5404  t10 .14653  winLL .0880  t5LL .2863 | eliteDeep -1.60  neP26 +0.64  neP31 +1.48 | P26+ proj 24.62 / act 25.26
+          H k=1   rho .5367  t10 .14648  winLL .0878  t5LL .2855 | eliteDeep -1.64  neP26 -0.24  neP31 +0.37 | 25.50 / 25.26
+          F k=2   rho .5348  t10 .14731  winLL .0877  t5LL .2863 | eliteDeep -1.44  neP26 -1.16  neP31 -0.56 | 26.42 / 25.26
+          H vs A: rho W/L 38/56, t10 51/43, winLL 55/39, t5LL 59/35; rho by series cup .4867->.4841 (17/22),
+          O'Reilly .6029->.5994 (10/16), trucks .5566->.5512 (11/18); by group INT .5245->.5202, SHORT
+          .5838->.5790, ROAD .4150->.4205.
+  run 2   A .5399 / .14645 / .0879 / .2857 | -1.61 +0.64 +1.48 | 24.61     H .5374 / .14650 / .0878 / .2857 | -1.64 -0.24 +0.37 | 25.50
+          H vs A: rho 42/52, t10 46/48, winLL 59/35, t5LL 55/39.  F reproduces 09-07 (rho .5351, P26+ 26.42, overshoot).
+VERDICT by the registered rule: SHIP fails (rho must improve 1.5:1; it loses .0025-.0037 in mean,
+38/56 and 42/52). DFS-LAYER CANDIDATE fails too (rho tie needs mean within +-.002 and W/L 0.8-1.25;
+it is -.003 and 0.68-0.81). CLOSED. The lapped-traffic line ends here as registered; the
+deep-starter start weight is NOT re-registered (its condition was that this ships somewhere).
+READING (not a decision): half strength does exactly what the 09-07 read-out predicted - the back
+of the field is now calibrated (P26+ projected 25.50 vs actual 25.26, was 24.62; non-elite P26+
+residual +0.64 -> -0.24, P31+ +1.48 -> +0.37) without the overshoot - and every PROBABILITY metric
+holds or improves (t10 Brier tie, win log-loss 55/39 and 59/35, top-5 log-loss 59/35 and 55/39),
+while finish ORDERING loses ~.003 rho, concentrated at short tracks and in trucks (the random
+lapped draw scrambles mid-pack order where half the field gets lapped). Same tension as 09-07: the
+sim's ordering metric and its probability calibration pull in different directions on this
+mechanism. A future registration that makes the probability metrics primary (they are what the
+betting flags and the DFS draws consume) could legitimately pass this form - but that is a
+different pre-registration with a forking-paths discount, not a re-read of this one. The elite-
+deep cell (-1.6, the Eckes / Larson case) does not move under any lapped form; it is a separate,
+smaller effect (n 102) and no knob tested so far fixes it without breaking the back of the field.
+Engine: simConfig.lappedTraffic + LAPPED_RATE stay in simEngine.js as a tested-OFF arm (default
+null, no production path sets it); scripts/backtest-lapped-half.js is the harness.
