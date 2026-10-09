@@ -3689,6 +3689,21 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
+## 2026-10-09 — Tier-conditioned start weight (the Eckes cell): fails the rails, but it found the real bias
+Operator: "yes start the first one register and push it." Form: the share of start weight a car keeps
+falls with its strength, the withheld share replaced by its own non-start rating; one gamma per
+series fitted on 2022-24 by the elite-deep cell, scored on the 94-board practice holdout. Disclosed
+in the registration: I smoked the harness on the holdout at 300 sims before writing the rule - the
+numbers are logged verbatim and the rule is the standard one. Fit: cup 0 (on 2022-24 cup elites
+starting deep finish slightly worse than projected - opposite sign to 2025-26), O'Reilly 1, trucks 1.
+Holdout: the elite-deep cell does shrink (O'Reilly -3.4 -> -1.4) but elites starting UP FRONT get
+more under-stated in both series, win and top-5 log-loss get worse, and in trucks the cell
+overshoots to +1.4. Not shipped. What it exposed: in the shipped engine O'Reilly and trucks elites
+beat the sim from the front AND from deep (cup elites do not), so this was never a start-weight
+problem - the composite under-rates the top 3-4 cars in the thin lower-series fields and a bad grid
+just makes it visible. Next form: a top-end stretch of the composite for O'Reilly / trucks, new
+registration. Thirteen registrations since 10-04: two ships, one call open, ten closed.
+
 ## 2026-10-09 — Trucks v4 + lighter short-track start weight, combined: still loses the top-10 rail — not shipped
 Operator: "yes combine them and see." Registered the combined form (frozen betas, five arms, same 18
 boards and seeds), pushed, ran once. Easing the short-track start weight from 0.33 to 0.23 fixes the

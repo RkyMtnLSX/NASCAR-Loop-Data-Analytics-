@@ -8603,3 +8603,27 @@ O'Reilly t10 .14392 -> .14600 at g1, trucks rho .5369 -> .5263), and eliteFront 
 gets MORE under-stated, not less - so the withheld start weight is being replaced by a composite that
 is itself biased low for elites. The rule fits by the cell, so gamma 1 is frozen for O'Reilly and trucks;
 rail (c) of the decision rule is expected to bite. FROZEN {"cup":0,"oreilly":1,"trucks":1}, committed.
+
+## 2026-10-09 — TIER-CONDITIONED START WEIGHT EXECUTED AS REGISTERED: FAILS — NOT SHIPPED (O'Reilly fails b and c, trucks fails a, b and c)
+Holdout-practice (94 boards), 20k sims, two runs, control = shipped (trucks carDnf k32, domBoot INT+SHORT).
+Mean of the two runs, A (ship) -> T (gamma 1):
+  O'REILLY (26)  rho .6030 -> .6057 (+)   t10 .13466 -> .13370 (+)   winLL .0831 -> .0863 (WORSE .0032, floor .0001)
+                 t5LL .2626 -> .2644 (WORSE .0018, floor .0002)
+                 eliteDeep -3.39 -> -1.39 (shrinks 59%: (a) PASSES)   eliteFront -1.60 -> -2.40 (worse .80 > .50: (b) FAILS)
+                 neP26 1.41 -> 1.73   per-race W/L: rho 12/14,13/13  t10 11/15  winLL 10/16  t5LL 11/15
+  TRUCKS (29)    rho .5552 -> .5622 (+)   t10 .15254 -> .15420 (WORSE .0017, floor .0003)   winLL .0918 -> .0923 (worse .0005, floor 0)
+                 t5LL .3036 -> .3066 (WORSE .0030, floor .0003)
+                 eliteDeep -0.75 -> +1.42 (overshoots and flips sign: (a) FAILS)   eliteFront -1.87 -> -2.66 (worse .79: (b) FAILS)
+                 neP26 1.57 -> 1.98   per-race W/L: rho 15/14  t10 14/15  winLL 14/15  t5LL 13/16
+  CUP            fitted gamma 0 - not tested (holdout A for the record: rho .4873 t10 .14995 winLL .0879 t5LL .2880, eliteDeep -1.12, eliteFront +0.17)
+VERDICT by the registered rule: NOT SHIPPED for either series. Engine flag stays in, default off.
+READING (not a decision) - and this one is worth more than the test: in the CONTROL arm, O'Reilly and trucks
+elites beat the sim whether they start deep OR up front (O'Reilly eliteFront -1.60 / eliteDeep -3.39; trucks
+-1.87 / -0.75), and cup elites do not (eliteFront +0.17). So the "elite-deep" bias is mostly an ELITE bias in
+the two lower series: the composite under-rates the top cars relative to the pack, and the start term just
+makes it visible when the grid is bad. Re-weighting start against a composite that is itself low for elites
+spreads the under-statement around (eliteFront got worse in both series) - which is exactly what the test
+showed. The lead is a top-end stretch of the strength composite for O'Reilly / trucks (thin fields: the
+percentile normaliser compresses the gap between the 3-4 dominant cars and the pack), judged on
+eliteFront + eliteDeep together with the favourite-gap guard; a new form, new registration. Cup is not in it.
+Thirteen registrations since 10-04: two ships, one call open, ten closed.
