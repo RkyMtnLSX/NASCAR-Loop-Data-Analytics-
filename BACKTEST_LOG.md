@@ -8098,3 +8098,42 @@ season is complete (~30 boards). Four registrations in two days, four nulls (con
 objective, Clean Pace, blend) plus this: the stored boards are well calibrated on the mean, and the
 product's weak spots are construction and timing, not projection - which is what the Operator rows
 are measuring.
+
+## 2026-10-09 — REGISTRATION: LAPPED-TRAFFIC mechanism, HALF strength (the single follow-up the 09-07 result named)
+TRIGGER. Operator (Charlotte trucks week, Eckes P8 after a projected P18 pre board; Kansas P25 -> 2):
+"I still think the simulation as a whole is putting too much weight in start position." The record:
+08-20 cut startPos 0.33 -> 0.23 on 230 races (his hunch, confirmed); 09-07 deep-starter shift
+(0.23 -> 0.13 for P16+) CLOSED - fixed the elite-deep cell, lifted the P32 backmarker just as much,
+rho down; 10-05 tier test null (AB start >= 16: finish -1.0, t -1.1). The 09-07 deep-starter result
+named the prerequisite: the back of the field is over-projected (non-elite P26+ +1.23 positions /
+-3.3 DK, n 1,059, CI clear of zero) because the race sim has no lapped state; fix that, THEN re-test
+the start weight for deep starters. The 09-07 lapped-traffic mechanism at FULL strength (p = p_band
+x 2 x (1 - spdPct)) moved P26+ from 1.1 too good to 0.8 too bad and cost rho (.5435 -> .538); its
+read-out named exactly one follow-up form and did not run it. This is that form. One form, no sweep.
+FORM (frozen before data is read). simEngine.runRaceSim, flag simConfig.lappedTraffic = { series,
+k }. Rate table = the 09-07 table (loop_data 2023+, running finishers laps down, bands P1-10 / 11-20 /
+21-25 / 26-30 / 31+): cup INT .11/.19/.26/.32/.45, SHORT .22/.38/.53/.62/.78, ROAD .04/.07/.05/.10/
+.24; O'Reilly INT .14/.26/.40/.46/.59, SHORT .12/.21/.37/.46/.61, ROAD .06/.09/.14/.15/.17; trucks
+INT .19/.24/.36/.56/.59, SHORT .17/.32/.51/.58/.76, ROAD .08/.09/.15/.32/.36; SS = no-op. Per
+driver, once per sim call: spdPct = speedScore percentile in the field (fastest 1, slowest 0);
+p_i = min(0.9, k x p_band(series, group, startBand(d.startPos)) x (1 - spdPct)). k = 1 is the
+registered HALF strength (median car = half the band rate, fastest never, slowest the band rate); k
+= 2 reproduces the 09-07 full-strength arm as a check. Per draw, per running driver with effLap 0:
+lapped with probability p_i -> effLap 1, so he finishes behind every lead-lap car, ordered by score
+among the lapped (the existing effLap sort). DNF, wreck, noise, dominator, DK layers untouched.
+HARNESS. scripts/backtest-lapped-half.js: the 91-board practice holdout (holdout-practice.txt,
+boards with >= 50% practice coverage; SS boards pass through unchanged), practice on, production
+weight sets, asymNoise on for O'Reilly / trucks INT+SHORT in every arm (shipped behaviour), 20k
+sims / race / arm, TWO runs. Arms: A = shipped; H = k 1; F = k 2 (reference, must reproduce the
+09-07 direction). Elite := top 5 corrAvgRating in the race; deep := start >= 16.
+METRICS per arm: finish rho (Spearman projFinish vs actual, mean over races, per-race W/L vs A),
+t10 Brier, win / t5 log-loss, per series and per track group; residuals (actual - projected
+finish, negative = beat the sim): elite-deep, non-elite P26+, non-elite P31+; P26+ mean projected
+vs actual finish.
+DECISION (written before the run). SHIP TO THE SIM if, in both runs, finish rho improves in mean
+with per-race W/L >= 1.5:1 AND t10 Brier does not lose in mean AND the non-elite P26+ residual
+shrinks toward zero AND the elite-deep residual does not grow. DFS-LAYER CANDIDATE (not the
+betting board) if rho is a tie (mean within +-.002, W/L between 0.8 and 1.25) AND Brier does not
+lose AND the P26+ residual at least halves - then a second registration puts the mechanism on the
+DFS draws only. Anything else: CLOSED, and the lapped line ends; the deep-starter start weight is
+re-registered ONLY if the mechanism ships somewhere. PUSH before reading data.
