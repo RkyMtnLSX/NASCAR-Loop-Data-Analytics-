@@ -8627,3 +8627,31 @@ showed. The lead is a top-end stretch of the strength composite for O'Reilly / t
 percentile normaliser compresses the gap between the 3-4 dominant cars and the pack), judged on
 eliteFront + eliteDeep together with the favourite-gap guard; a new form, new registration. Cup is not in it.
 Thirteen registrations since 10-04: two ships, one call open, ten closed.
+
+## 2026-10-09 — PRE-REGISTERED: TOP-END STRETCH of the strength composite (O'Reilly / trucks elite under-rating). Written before the fit. DO NOT MODIFY.
+TRIGGER. The tier-start test's control arm: O'Reilly and trucks top-5-rated cars beat the shipped sim from
+the FRONT (eliteFront -1.60 / -1.87) and from deep (eliteDeep -3.39 / -0.75); cup elites do not (+0.17 /
+-1.12). Every slot in buildSpeedScores is min-max scaled to 0-100, so in a thin field the gap between the
+3-4 dominant cars and the pack is compressed to the same width as any other gap. Operator: "register it."
+FORM (engine, flagged, default off: buildSpeedScores(drivers, weights, { topStretch: { lambda } })). After
+the composite is built, cars in the top fifth of it get + lambda x fieldSD x (pct - 0.8) / 0.2, re-centred so
+the field mean is unchanged. Ranks are preserved; only the gaps at the top widen. lambda 0 = shipped. Unit
+check (36-car synthetic): mean 50.000 -> 50.000, ranks identical, top-5 96.8/94.1/91.5/88.8/86.1 ->
+121.5/114.9/108.2/101.6/94.9 at lambda 1. One constant per series (09-07 ruling).
+FIT: train.txt (2022-24, no practice), 10k sims, lambda in {0, .25, .5, .75, 1, 1.5} per series, chosen by the
+smallest |eliteFront| + |eliteDeep| (tie -> smaller lambda). Written to topstretch-fit.json and COMMITTED
+before the holdout is read. Fitted 0 -> nothing to test for that series.
+TEST: holdout-practice.txt (94 boards), 20k sims, RUNS=2, control A = shipped (trucks carDnf k32, domBoot
+INT+SHORT in all arms), S = A + topStretch at the frozen lambda. Null floor per metric = |A run1 - A run2|.
+Metrics: rho, top-10 Brier, win LL, top-5 LL; cells eliteFront / eliteDeep / neP26 (actual minus projected);
+FAVOURITE GAP = mean stated win% of the sim favourite minus the share of boards the favourite won.
+DECISION RULE (per series, mean of two runs): SHIP S if (a) |eliteFront| + |eliteDeep| shrinks by at least a
+THIRD vs A and neither cell overshoots past +0.50; (b) favourite gap is not worse (more positive) than A by
+more than 2.0 pts and does not exceed +5.0 pts; (c) rho, top-10 Brier, win LL, top-5 LL each not worse than
+A by more than that metric's null floor; (d) neP26 within 0.50 of A. Fails any one -> not shipped for that
+series. Ships as opts.topStretch in SimulationCenter's buildSpeedScores call with the per-series lambda;
+stamp topStretch 'v1-l<lambda>'. Revert trigger: favourite 0-fer vs the books two straight weekends.
+HARNESS SMOKE (train.txt only, 200 sims, in-sample, cup block only, throwaway): cup l0 eliteFront +1.48
+eliteDeep +0.82 fav 18.8%/12.0% -> l1 +3.48 / +0.39 fav 30.6%/9.3%. The stretch over-states cup favourites
+hard and cup elites are already over-rated on 2022-24, so cup is expected to fit to 0; the favourite-gap
+guard (b) exists because of this. No holdout numbers were seen. PUSH before the fit.

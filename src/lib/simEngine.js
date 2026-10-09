@@ -561,18 +561,36 @@ function buildSpeedScores(drivers, weights, opts) {
   // replaced by that same non-start composite, so the score scale and the field mean are untouched and
   // a weak car (pct ~ 0) is scored exactly as before. gamma = 0 is the shipped engine. One constant
   // per series, fitted on 2022-24 train, scored on 2025-26 holdout - see the registration.
+  // TOP-END STRETCH (registered 2026-10-09, BACKTEST_LOG; OFF unless opts.topStretch = { lambda }). The
+  // tier-start test showed O'Reilly / trucks elites beat the shipped sim from the FRONT as well as from
+  // deep (cup elites do not): the composite under-rates the 3-4 dominant cars in a thin field because
+  // every slot is min-max scaled, so the gap between them and the pack is compressed. Cars in the top
+  // fifth of the composite get + lambda x fieldSD x (pct - 0.8) / 0.2, re-centred so the field mean is
+  // unchanged; ranks are preserved, only the gaps at the top widen. lambda = 0 is the shipped engine.
+  // One constant per series, fitted on 2022-24 train, scored on 2025-26 holdout - see the registration.
+  const __tsL = opts && opts.topStretch && opts.topStretch.lambda > 0 ? opts.topStretch.lambda : 0
   const __tsG = opts && opts.tierStart && opts.tierStart.gamma > 0 && w.startPos > 0 ? Math.min(1, opts.tierStart.gamma) : 0
-  if (!__tsG) return __scored
+  const __stretch = (arr) => {
+    if (!__tsL || arr.length < 3) return arr
+    const vals = arr.map(d => d.speedScore), m = vals.reduce((a, b) => a + b, 0) / vals.length
+    const sd = Math.sqrt(vals.reduce((a, v) => a + (v - m) ** 2, 0) / vals.length) || 0
+    const ord = vals.map((v, i) => ({ i, v })).sort((a, b) => b.v - a.v)
+    const add = new Array(arr.length).fill(0)
+    ord.forEach((o, r) => { const pct = ord.length > 1 ? 1 - r / (ord.length - 1) : 0.5; add[o.i] = __tsL * sd * Math.max(0, (pct - 0.8) / 0.2) })
+    const am = add.reduce((a, b) => a + b, 0) / arr.length
+    return arr.map((d, i) => ({ ...d, speedScore: d.speedScore + add[i] - am, __stretch: add[i] - am }))
+  }
+  if (!__tsG) return __stretch(__scored)
   const __nsW = 1 - w.startPos
   const __ord = __scored.map((d, i) => ({ i, s: d.__nonStart })).sort((a, b) => b.s - a.s)
   const __pctNS = new Array(__scored.length).fill(0.5)
   __ord.forEach((o, r) => { __pctNS[o.i] = __ord.length > 1 ? 1 - r / (__ord.length - 1) : 0.5 })
-  return __scored.map((d, i) => {
+  return __stretch(__scored.map((d, i) => {
     const g = 1 - __tsG * __pctNS[i]
     const baseNorm = __nsW > 0 ? d.__nonStart / __nsW : d.__spUsed
     const sc = d.__nonStart + w.startPos * (g * d.__spUsed + (1 - g) * baseNorm)
     return { ...d, speedScore: sc - d.__lapPen, __tierG: g }
-  })
+  }))
 }
 
 // SS NOISE CALIBRATION (2026-08-29, pre-registered - BACKTEST_LOG same date): the MC's
