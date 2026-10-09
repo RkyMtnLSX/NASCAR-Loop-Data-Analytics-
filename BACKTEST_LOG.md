@@ -8330,3 +8330,43 @@ READ-OUT (written before the run): a cell is "under-concentrated" or "over-conce
 above; stage 2 is registered ONLY for a cell that fails (a) or (b) with >= 15 races, with the form
 named then (e.g. a steeper LL curve / stronger elite kick for that group), fit on 2022-24 and scored
 on 2025-26 per the protocol. No constant is changed from stage 1. PUSH before reading data.
+
+RESULT (run 2026-10-09, 94 boards, 20k sims, engine 41e140279d70, trucks carDnf ON; cells >= 8 races):
+  cell           n | LL PIT mean  >.9   <.1 | top LL share sim/act | FL PIT  >.9  <.1 | top FL sim/act | rhoLL rhoFL | fav proj/act LL | DK dom err all/top3
+  ALL INT       46 |  .54         54%  46%  |  41% / 47%           |  .52    43%  43% |  24% / 27%     | .460 .602   |  39.6 / 55.9     |  -0.05 / -4.15
+  ALL SHORT     40 |  .74         70%  23%  |  41% / 57%           |  .64    53%  25% |  25% / 30%     | .476 .650   |  40.6 / 91.7     |  +0.80 / -5.68
+  ALL ROAD       8 |  .66         63%  13%  |  47% / 57%           |  .57    50%  38% |  31% / 38%     | .462 .509   |  23.3 / 47.0     |  +0.29 / -2.57
+  cup INT       21 |  .52         52%  48%  |  40% / 44%           |  .34    29%  62% |  25% / 21%     | .466 .580   |  50.5 / 65.9     |  -0.20 / -3.83
+  cup SHORT     14 |  .59         50%  43%  |  41% / 53%           |  .36    29%  64% |  25% / 24%     | .486 .574   |  63.0 / 95.1     |  +0.89 / -0.38
+  oreilly INT   14 |  .43         43%  57%  |  41% / 46%           |  .76    57%  21% |  24% / 30%     | .481 .640   |  35.3 / 47.7     |  +0.07 / -5.50
+  oreilly SHORT 12 |  .68         67%  25%  |  38% / 49%           |  .64    50%   8% |  25% / 30%     | .542 .701   |  27.4 / 71.7     |  +0.86 / -7.64
+  trucks INT    11 |  .72         73%  27%  |  42% / 53%           |  .56    55%  36% |  25% / 32%     | .424 .594   |  24.2 / 47.2     |  +0.11 / -3.06
+  trucks SHORT  14 |  .94         93%   0%  |  42% / 69%           |  .92    79%   0% |  24% / 36%     | .408 .681   |  29.6 / 105.4    |  +0.65 / -9.31
+  SPREAD (the finding the registered metric did not anticipate): the sim's top laps-led share barely
+  varies ACROSS DRAWS - within-race sd 2.4 pts at INT, 5.8 SHORT, 6.7 ROAD - while the ACTUAL top share
+  varies 14-23 pts across races. Every draw hands the leader ~41% of the laps by construction: the LL
+  curve is a fixed mean share vector by rank (INT_DOM_V2 curves[0] = 0.405; other groups' LL_CURVES
+  likewise) and only the leader's IDENTITY changes draw to draw. That is why the PIT splits to the
+  extremes in every cell (54% of races above the sim's 90th percentile AND 46% below its 10th at INT):
+  the real race is almost never inside the sim's top-share band because the band is a few points wide.
+  Fastest laps: same structure, sd 1.4-4 pts vs 7-19 actual.
+READ-OUT by the registered rule: UNDER-CONCENTRATED in every SHORT cell (ALL SHORT PIT .74, 70% above
+.9, n 40; trucks SHORT .94 / 93%, n 14; O'Reilly SHORT .68 / 67%), in trucks INT (.72 / 73%, n 11) and
+in O'Reilly fastest laps (.70 / 54%, n 26). INT laps led is calibrated in LEVEL (cup 40% vs 44%) - the
+09-03 INT_DOM_V2 ship did its job - but has the same missing spread. Cup fastest laps is the one
+OVER-concentrated cell (PIT .34, 64% below .1; sim 25% vs actual 21-24%).
+THE FAVOURITE: the sim's #1 projected dominator is projected 38.6 laps led and actually leads 70.4 on
+average (cup SHORT 63 vs 95; trucks SHORT 30 vs 105; O'Reilly SHORT 27 vs 72) - under-projected by
+nearly half everywhere outside cup INT, with ordering fine (rhoLL .47, rhoFL .61: the sim knows WHO,
+not HOW MUCH). DK dominator points are near zero in mean across the field (+0.3) and -4.7 per driver
+for the top-3 projected dominators (-9.3 trucks SHORT): the DFS slate's top is systematically under-
+projected, and with no draw-to-draw spread the E[max] set never sees the 100-point dominator day.
+STAGE 2 (to be registered separately, named here as the rule requires): per-draw BOOTSTRAP of real
+race share vectors - the engine's existing domBoot path (09-03 ARM C, left OFF "for a ceiling-targeted
+registration later"; this is that registration) - with pools built from 2022-24 loop_data per series
+x track group x caution bucket, for ALL groups (SHORT / ROAD / SS get pools; INT keeps the v2 strength
+pool for identity and draws its share vector from the bootstrap), judged on 2025-26 by: top-share
+PIT calibration (mean .4-.6, <= 25% beyond either tail), favourite calibration, top-3 DK dominator
+error, LL / FL MAE not worse, and the win / top-5 / top-10 / rho guards. Nothing ships from stage 1.
+Engine: __domDiag hook extended (diagnostic only); scripts/backtest-dominators.js; data
+dominator-actuals.json (loop_data laps led / fastest laps for the 162 fingerprint-matched races).

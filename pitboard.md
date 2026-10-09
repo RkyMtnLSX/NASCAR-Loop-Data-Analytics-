@@ -3689,6 +3689,25 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
+## 2026-10-09 — Dominator concentration: the sim knows WHO leads, not HOW MUCH, and every draw hands out the same share
+Operator: "what other test can we do to improve the engine?" -> "start with 1" (dominator
+concentration). Registered as a stage-1 diagnostic, run on the 94 practice-holdout boards with
+actual laps led / fastest laps from loop_data. TWO FINDINGS. (1) LEVEL: outside cup intermediates
+(where the 09-03 INT_DOM_V2 ship made the top share honest, 40% vs 44%) the sim under-concentrates:
+real leaders at short tracks lead 57% of laps, the sim's 41%; trucks short 69% vs 42% (93% of real
+races sit above the sim's 90th percentile). The sim's own #1 projected dominator is projected 39
+laps led and leads 70 on average - 63 vs 95 at cup short tracks, 30 vs 105 at trucks short tracks.
+The ordering is fine (rho .47 laps led, .61 fastest laps). (2) SPREAD, the bigger one: the sim's
+top laps-led share barely varies draw to draw (sd 2-7 pts) while real races vary 14-23 pts,
+because the laps-led curve is a FIXED share vector by rank - every draw gives the leader ~41%, only
+his identity changes. So the stored DK draws contain no "one car leads 70%" days and no "nobody
+dominates" days; the E[max] set cannot select for an outcome that is not in the draws, and the top-3
+projected dominators are under-projected by 4.7 DK points each (9.3 in trucks short). This is the
+first engine finding in a week that points straight at the DFS product's ceiling. STAGE 2 named in
+the log: per-draw bootstrap of real race share vectors (the engine's domBoot path, built 09-03 as
+ARM C and left off "for a ceiling-targeted registration later" - this is it), pools from 2022-24,
+judged on 2025-26 with DFS-ceiling metrics plus the usual guards. Not yet registered or run.
+
 ## 2026-10-09 — The 09-07 shrinkage protocol, executed: per-car DNF SHIPS for trucks; lapped traffic is an O'Reilly call
 Operator: "start on 1 and 2." Registered, pushed, then run: two car-specific mechanisms, one constant
 per series, FITTED on 2022-24 (train.txt, 274 races) and SCORED on 2025-26 (94 practice boards) -

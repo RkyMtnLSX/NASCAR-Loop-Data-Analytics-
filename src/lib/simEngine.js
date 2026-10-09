@@ -967,13 +967,16 @@ function runRaceSim(drivers, simConfig) {
       for (let r = __pool.length - 1; r >= 0; r--) { if (r === __lead) continue; const ll = llW > 0 ? Math.max(0, Math.min(Math.round(llw[r] / llW * totalRaceLaps), remLL)) : 0; simLL[__pool[r].i] = ll; remLL -= ll }
       simLL[__pool[__lead].i] = remLL
       scored.forEach((s) => { sumLapsLed[s.i] += simLL[s.i] })
-      if (simConfig.__domDiag) { let mx = 0; for (let x = 0; x < n; x++) if (simLL[x] > mx) mx = simLL[x]; simConfig.__domDiag.topShare = (simConfig.__domDiag.topShare || 0) + mx / totalRaceLaps; simConfig.__domDiag.draws = (simConfig.__domDiag.draws || 0) + 1 }
+      if (simConfig.__domDiag) { let mx = 0; for (let x = 0; x < n; x++) if (simLL[x] > mx) mx = simLL[x]; simConfig.__domDiag.topShare = (simConfig.__domDiag.topShare || 0) + mx / totalRaceLaps; simConfig.__domDiag.draws = (simConfig.__domDiag.draws || 0) + 1
+        // 2026-10-09 dominator-concentration diagnostic (BACKTEST_LOG): sample the per-draw top laps-led share every 10th draw
+        if (simConfig.__domDiag.draws % 10 === 0) (simConfig.__domDiag.topLL = simConfig.__domDiag.topLL || []).push(mx / totalRaceLaps) }
       let flWt = 0
       const flw = __poolFL.map((s, r) => { const c = r < __FLC.length ? __FLC[r] : __FLC[__FLC.length - 1] * Math.pow(0.85, r - __FLC.length + 1); const sp = __domSp(s.i); const w = c * __flTilt(sp) * __wLL(s); flWt += w; return w })
       let remFL = __flTotal
       for (let r = __poolFL.length - 1; r >= 0; r--) { if (r === __leadFL) continue; const fl = flWt > 0 ? Math.max(0, Math.min(Math.round(flw[r] / flWt * __flTotal), remFL)) : 0; simFastLaps[__poolFL[r].i] = fl; remFL -= fl }
       simFastLaps[__poolFL[__leadFL].i] = remFL
       scored.forEach((s) => { sumFastLaps[s.i] += simFastLaps[s.i] })
+      if (simConfig.__domDiag && simConfig.__domDiag.draws % 10 === 0) { let mf = 0; for (let x = 0; x < n; x++) if (simFastLaps[x] > mf) mf = simFastLaps[x]; (simConfig.__domDiag.topFL = simConfig.__domDiag.topFL || []).push(mf / Math.max(1, __flTotal)) }
     }
 
     const __srow = (sim % sampleStride === 0 && dkSamples.length < SAMPLE_TARGET) ? new Array(n).fill(0) : null
