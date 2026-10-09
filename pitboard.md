@@ -3689,6 +3689,29 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
+## 2026-10-09 — The 09-07 shrinkage protocol, executed: per-car DNF SHIPS for trucks; lapped traffic is an O'Reilly call
+Operator: "start on 1 and 2." Registered, pushed, then run: two car-specific mechanisms, one constant
+per series, FITTED on 2022-24 (train.txt, 274 races) and SCORED on 2025-26 (94 practice boards) -
+his own 09-07 ruling (no series on/off gates; constants on a shared mechanism; fit years disjoint
+from test years). Data: the Supabase connector now works from this session, so per-driver DNF
+history was computed in SQL (recency-weighted, prior same-series races only) and fingerprint-joined
+to every board - 274/274 and 162/162 matched. Engine gained simConfig.carDnf (flagged).
+FIT: lapped strength cup .75 / O'Reilly 1.5 / trucks 2; per-car DNF prior weight cup OFF / O'Reilly
+OFF / trucks 32 - in cup and O'Reilly a driver's own DNF history carries no information (own > .30
+cars retire at the field rate), in trucks it does.
+TEST (both runs): PER-CAR DNF TRUCKS k 32 PASSES everything - DNF Brier .1437 -> .1423, the bad-
+history cell 16% -> 23% vs 29% actual, win log-loss 19/10 and 22/7, top-5 15/14 and 19/10, Brier and
+rho inside the tie bands. SHIPPED: tonight's trucks post board is the first on it (config.carDnf
+'v1-k32'). LAPPED: cup FAILS (its back of field flipped from +0.76 optimistic on 2022-24 to -0.50
+pessimistic on 2025-26, so the train-fitted k is wrong-signed; Brier worse); trucks FAILS (rho -.0085,
+the largest ordering cost anywhere, though win log-loss 22/7 and calibration exact); O'REILLY at k 1.5
+improves every probability metric in both runs (win 17/9, 20/6; top-5 17/9, 19/7; Brier better) and
+puts the back of the field within 0.04 of actual, and misses the rho guard by .0004 in one run
+(-.0047, -.0054 vs .005). By the letter it does not pass; it is the operator's call, like start-v4 on
+09-03. Eight registrations since 10-04: one ship, one call, six closed. Engine files: simEngine.js
+(carDnf block, lappedTraffic block + LAPPED_RATE both flagged), SimulationCenter.js (ownDnf feature
+for all series, flag trucks), scripts/backtest-protocol.js + protocol-features.json + protocol-fit.json.
+
 ## 2026-10-09 — "The sim puts too much weight on start position" — the lapped-traffic follow-up, run as registered: CLOSED
 Operator, Charlotte trucks week: Eckes FMV +1983 on the pre board ("laughable"; 2.89 ARP at Charlotte
 in May), qualified 8th; Kansas P25 -> 2. "I still think the simulation as a whole is putting too much

@@ -8257,3 +8257,47 @@ holdout.txt "162 races 2022-24". That file is the 2025 practice-free holdout (fi
 races), and overlaps the test years. The 2022-24 set is scripts/backtest-data/train.txt (274 races:
 cup 108 / O'Reilly 99 / trucks 67). Fit on train.txt; test stays holdout-practice.txt >= 50% coverage
 (94 boards, 2025-26). Principle unchanged (fit years disjoint from test years); file name corrected.
+FIT (train.txt 2022-24, 274 boards: cup 108 / O'Reilly 99 / trucks 67; 10k sims; boards fingerprint-
+matched 274/274, test 162/162):
+  LAPPED k by |neP26 residual|:  cup 0.75 (k0 +0.76 -> +0.12; P26+ 23.95 -> 24.59 vs 24.71)
+                                 O'Reilly 1.5 (k0 +1.33 -> -0.06; 24.44 -> 25.83 vs 25.77)
+                                 trucks 2 (k0 +2.72 -> +0.13; 22.75 -> 25.34 vs 25.47) - at the top of the grid
+  PER-CAR DNF k by DNF Brier:    cup OFF (every k worse than off; own>.30 cars DNF 16.1%, n 367 - no information)
+                                 O'Reilly OFF (same shape; own>.30 cars 21.1% actual, k=2 sim 28.8%)
+                                 trucks 32 (Brier .13115 -> .13053; own>.30 cell sim 16.6% -> 23.4% vs 23.3% actual, n 219)
+  FROZEN: lapped {cup .75, oreilly 1.5, trucks 2}; carDnf {cup off, oreilly off, trucks 32}. Per the
+  registration, cup and O'Reilly ship nothing on per-car DNF (the protocol's answer: the history
+  carries no cup / O'Reilly information on 2022-24, which is what the 09-07 result looked like).
+TEST (holdout-practice.txt 2025-26, 94 boards: cup 39 / O'Reilly 26 / trucks 29; 20k sims; two runs;
+engine 41c0d8da3be3; frozen constants above; each item on its own vs A = shipped):
+ (1) LAPPED, fitted k per series
+  CUP k .75   run1 rho .4868->.4859 (19/20)  t10 .14979->.15022  winLL .0881->.0876 (21/18)  t5LL .2880->.2881 | neP26 -0.50 -> -1.13  P26+ 25.15 -> 25.77 vs 24.64
+              run2 rho .4860->.4861 (21/18)  t10 .14979->.15018  winLL .0880->.0879          t5LL .2877->.2883 | neP26 -0.50 -> -1.12
+              FAILS: t10 Brier worse by .0004 both runs; the P26+ residual moves AWAY from zero. (On 2022-24 cup's back
+              of field was +0.76 optimistic; on 2025-26 it is -0.50 pessimistic - the cup calibration flipped between eras,
+              so the train-fitted k is wrong-signed on the test years. Protocol answer for cup: nothing ships.)
+  OREILLY 1.5 run1 rho .6027->.5980 (-.0047, 12/14)  t10 .13467->.13460 (14/12)  winLL .0831->.0830 (17/9)  t5LL .2623->.2613 (17/9) | neP26 +1.39 -> -0.04  P26+ 24.88 -> 26.31 vs 26.27
+              run2 rho .6027->.5973 (-.0054, 12/14)  t10 .13470->.13466 (12/14)  winLL .0830->.0826 (20/6)  t5LL .2627->.2612 (19/7) | neP26 +1.40 -> -0.04
+              Every probability metric improves in both runs; the back of the field lands within 0.04 of actual; finish rho
+              loses .0047 and .0054 - the .005 guard is MISSED BY .0004 IN RUN 2. By the letter: does not pass. Same
+              shape as 09-03 start-v4 ("letter of the gate missed by one race") - OPERATOR DECISION, not a ship.
+  TRUCKS 2    run1 rho .5549->.5463 (-.0086, 11/18)  t10 .15255->.15290  winLL .0922->.0922 (22/7)  t5LL .3039->.3046 | neP26 +1.71 -> -0.14  P26+ 23.40 -> 25.25 vs 25.11
+              run2 rho .5556->.5471 (-.0085, 10/19)  t10 .15258->.15285  winLL .0924->.0918 (21/8)  t5LL .3045->.3044
+              FAILS: rho loses .0085 (guard .005), t10 Brier worse by .0003-.0004. The calibration is fixed and the win
+              log-loss is clearly better (22/7, 21/8) but the ordering cost at trucks is the largest of any series, as
+              every lapped run has shown. Not shipped.
+ (2) PER-CAR DNF, trucks k = 32 (cup / O'Reilly fitted OFF - nothing to test)
+  TRUCKS 32   run1 dnfBrier .14374->.14230  own>.30 cell sim 16.3% -> 23.0% vs 29.2% actual (n 113)  rho .5549->.5552 (11/18)
+              t10 .15255->.15266 (+.0001, 17/12)  winLL .0922->.0920 (19/10)  t5LL .3039->.3040 (+.0001, 15/14)
+              run2 dnfBrier .14365->.14229  cell 16.3% -> 23.0%  rho .5556->.5536 (-.0020, 12/17)  t10 .15258->.15276 (+.0002, 15/14)
+              winLL .0924->.0919 (22/7)  t5LL .3045->.3041 (19/10)
+              PASSES every condition in both runs: DNF Brier improves, the cell moves toward actual, win and top-5 log-loss
+              improve, t10 Brier within the .0002 tie band, rho within .005. SHIPPED for trucks.
+SHIPPED (this commit): SimulationCenter attaches ownDnf / ownDnfN for every driver in every series (per-driver
+prior same-series races, most recent first, up to 30, 0.85^age, >= 3) and sets simConfig.carDnf { k: 32 } for
+TRUCKS only; boards stamp config.carDnf 'v1-k32' / 'off'. Engine: simEngine.runRaceSim carDnf block (multiplier
+clamped [0.5, 2], rescaled to mean 1, through __tilt). Cup / O'Reilly: feature attached, flag off, per the fit.
+Revert trigger (registered): two straight weekends of negative CLV lift on 'v1-k32' trucks boards.
+NOT SHIPPED: lapped traffic in any series. O'Reilly at k 1.5 is the operator's call (misses the rho guard by
+.0004 in one of two runs with every probability metric better and the calibration exact). Eight registrations
+since 10-04: one ship (trucks per-car DNF), one operator call (O'Reilly lapped), six closed.
