@@ -3708,7 +3708,10 @@ shipped curves. Soft spot: cup SHORT over-projects its top 3 by 2.2 DK points on
 (era drift - the pool's top share is 44%, the 2025-26 actual 53%); forward watch. WHAT THIS MEANS FOR
 THE PRODUCT: the stored DK draws would, for the first time, contain the 70%-laps-led days and the
 no-dominator days, so the E[max] set can build toward the Briscoe-116 outcome instead of a ceiling
-that never contains it. Nothing shipped yet - operator's call, same as the O'Reilly lapped item.
+that never contains it. OPERATOR: "ship it." SHIPPED for INT + SHORT, all series (66efba4): src/lib/
+domPools.js carries the harness's exact vectors (verified one for one), SimulationCenter sets domBoot and
+stamps config.domBoot 'v1-INT' / 'v1-SHORT'; ROAD / SS stay on the fixed curves. Tonight's trucks board and
+tomorrow's Cup Charlotte post board are the first on it. The O'Reilly lapped-traffic call is still open.
 
 ## 2026-10-09 — Dominator concentration: the sim knows WHO leads, not HOW MUCH, and every draw hands out the same share
 Operator: "what other test can we do to improve the engine?" -> "start with 1" (dominator
