@@ -8370,3 +8370,40 @@ PIT calibration (mean .4-.6, <= 25% beyond either tail), favourite calibration, 
 error, LL / FL MAE not worse, and the win / top-5 / top-10 / rho guards. Nothing ships from stage 1.
 Engine: __domDiag hook extended (diagnostic only); scripts/backtest-dominators.js; data
 dominator-actuals.json (loop_data laps led / fastest laps for the 162 fingerprint-matched races).
+
+## 2026-10-09 — REGISTRATION: DOMINATOR BOOTSTRAP (stage 2) — per-draw real share vectors for every track group
+WHY. Stage 1 (above): the sim's laps-led / fastest-laps curves are fixed mean share vectors by rank,
+so every draw hands the leader ~41% of the laps (within-race sd 2-7 pts vs 14-23 across real races)
+and, outside cup INT, the level is low (SHORT 41% vs 57%; trucks SHORT 42% vs 69%); the sim's #1
+projected dominator is projected 39 laps led and leads 70. The engine already has the mechanism:
+simConfig.domBoot (09-03 ARM C) draws ONE real race's sorted share vector per draw from a pool by
+caution bucket instead of the bucket mean. It was left OFF for INT because the 09-03 study judged
+MAE / ordering, where it tied; "its per-draw variance (the 80% nights) is a DFS-ceiling property this
+study did not judge" - this is that registration.
+FORM (frozen before data is read). Pools: from loop_data 2022-24 (every race with >= 20 rows and a
+caution count from caution_segments), per SERIES x TRACK GROUP (INT / SHORT / ROAD / SS) x caution
+bucket (low <= 5 / mid <= 8 / high), the race's laps-led shares sorted descending (padded to 40,
+renormalised) and the same for fastest laps; a bucket with < 20 races uses the group's pooled set;
+a series x group with < 20 races in total uses ALL series' races for that group (cup / O'Reilly /
+trucks pooled - the 09-03 INT pool was cup-only and O'Reilly / trucks inherited it). Per draw the
+engine picks one vector at random (existing code path; no engine behaviour change beyond setting
+domBoot). Identity ordering unchanged: INT keeps the v2 strength pool (alpha / k as shipped); other
+groups keep the finish-order pool; the SS tilts stay. INT's per-draw vector comes from the bootstrap
+instead of INT_DOM_V2.curves - that is the only change there. FL budget unchanged (INT 0.7794, others
+every lap). Nothing fitted - the pools ARE the fit, and they come from 2022-24 only.
+HARNESS. scripts/backtest-dominators.js arm B = shipped + domBoot (pools built by scripts/build-dom-
+pools.js into backtest-data/dom-pools.json), 94 practice-holdout boards 2025-26, 20k sims, two runs;
+trucks carDnf ON in both arms (production).
+METRICS. Stage-1 set: top-share PIT (mean, tails) LL and FL; favourite proj / actual LL; top-3 DK
+dominator error; rhoLL / rhoFL; plus LL MAE and FL MAE (per driver, mean over races) and the sim
+guards: win log-loss, top-5 log-loss, t10 Brier, finish rho - per series x group and pooled.
+DECISION (per track group, pooled over series; written before the run). SHIP a group if, in both
+runs: (1) LL top-share PIT mean lands in [0.40, 0.60] with <= 25% of races beyond EITHER tail (was
+up to 70% / 93%), (2) the favourite's projected laps led moves toward his actual, (3) top-3 DK
+dominator error shrinks in magnitude, (4) LL MAE and FL MAE do not get worse by more than 0.3 laps,
+(5) rhoLL / rhoFL do not lose more than .02, (6) win log-loss, top-5 log-loss, t10 Brier each do not
+lose in mean (0.0002 tie band) and finish rho does not lose more than .005. A group that passes
+ships for all three series (the pool is per series where the data allows, pooled where it does
+not); boards stamp config.domBoot 'v1-<groups>'. Revert trigger: two straight weekends of negative
+CLV lift on stamped boards, OR the DFS replay ledger's GPP best-of-20 percentile falling below its
+pre-change mean for three straight races. PUSH before reading data.
