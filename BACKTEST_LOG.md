@@ -8551,3 +8551,41 @@ last_fp residual term is pulling drivers with a good last finish up the grid, an
 last finish already enters the finish model through form, so it double-counts). That is a new form,
 not a re-read. Trucks stay on trail10-v3.5 and TRUCK_SHORT_WEIGHTS; cup / O'Reilly v4 untouched.
 Twelve registrations since 10-04: two ships, one call open, nine closed.
+
+## 2026-10-09 — PRE-REGISTERED: TIER-CONDITIONED START WEIGHT (elite-deep cell). Written before the fit. DO NOT MODIFY.
+TRIGGER. On the 94-board practice holdout a top-5-rated car (corrAvgRating) starting P16 or worse beats
+the sim by ~1.6 positions (102 rows, pooled) and that number did not move under lapped traffic, per-car
+DNF, or either trucks start form - every start test so far changed WHERE the grid is projected or how
+much the whole field leans on it, none changed WHO the start term applies to. Operator: "yes start the
+first one register and push it."
+FORM (engine, flagged, default off: buildSpeedScores(drivers, weights, { tierStart: { gamma } })). The
+share of the start weight a car keeps falls with its strength: g_i = 1 - gamma * pct_i, pct_i = the car's
+percentile on the composite WITHOUT the start term (1 = strongest). The withheld share is replaced by that
+same non-start composite, so the score scale and the field mean are untouched and a weak car is scored
+exactly as before; only strong cars are pulled less toward their grid spot. gamma = 0 is the shipped
+engine; gamma = 1 ignores the grid for the strongest car. One constant per series (09-07 ruling: one
+shared mechanism, per-series constants, no series on/off gates).
+FIT: train.txt (2022-24, no practice), 10k sims, gamma in {0, .25, .5, .75, 1} per series, chosen by the
+smallest |eliteDeep residual| (tie -> smaller gamma). Written to tierstart-fit.json and COMMITTED before
+the holdout is read. A fitted gamma of 0 means nothing to test for that series.
+TEST: holdout-practice.txt (2025-26, >= 50% practice coverage, 94 boards: cup 39 / O'Reilly 26 / trucks
+29), 20k sims, RUNS=2. Control A = what ships today (trucks carDnf k=32, domBoot INT+SHORT, all arms).
+T = A + tierStart at the frozen gamma. Null floor per metric = |A run1 - A run2|. Metrics: rho (finish
+order), top-10 Brier, win log-loss, top-5 log-loss; cells eliteDeep (top-5 rated, start >= 16, actual minus
+projected, negative = beats the sim), eliteFront (top-5 rated, start <= 5: the over-statement guard),
+neP26 (non-elite, start >= 26: must not move, the mechanism does not touch it).
+DECISION RULE (per series, mean of the two runs): SHIP T at the fitted gamma if (a) |eliteDeep| shrinks
+by at least HALF vs A, (b) eliteFront is not worse (more negative or more positive) than A by more than
+0.50 position, (c) rho, top-10 Brier, win LL and top-5 LL are each not worse than A by more than that
+metric's null floor. Fails any one -> not shipped for that series. Ships as opts.tierStart in
+SimulationCenter's buildSpeedScores call with the per-series gamma; stamp tierStart 'v1-g<gamma>'.
+DISCLOSURE (before the rule was written, and the rule above is the standard one, not tailored): to
+verify the harness ran end to end I smoked PHASE=test at 300 sims, RUNS=1, with a throwaway gamma .5 for
+all three series - on the HOLDOUT, which should have been train.txt. Those numbers were seen and are
+recorded here verbatim so nothing is hidden: cup A rho .4842 t10 .15014 winLL .0993 t5LL .2891 eliteDeep
+-1.35 / T .4824 .15085 .1007 .2920 eliteDeep +0.24; O'Reilly A .5991 .13390 .0825 .2641 eliteDeep -3.38 /
+T .6064 .13508 .0858 .2626 eliteDeep -2.49; trucks A .5564 .15251 .0923 .3024 eliteDeep -0.43 / T .5655
+.15320 .0987 .3035 eliteDeep +0.27. At 300 sims the Brier / LL columns are noise-dominated; the fit is
+still blind (train only) and the registered rule is unchanged by the peek. Read it as: the cell moves,
+the probability rails look costly, and gamma .5 may be too strong - the fit decides, not this.
+PUSH before the fit.

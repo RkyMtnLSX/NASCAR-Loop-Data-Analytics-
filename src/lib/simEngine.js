@@ -476,7 +476,7 @@ function buildSpeedScores(drivers, weights, opts) {
     winConversion:(__wIn.winConversion || 0) / wTotal,
   }
 
-  return drivers.map((d, i) => {
+  const __scored = drivers.map((d, i) => {
     const rs = corrRatingScores[i]
     const fs = corrFinishScores[i]
     const hasR = d.corrAvgRating != null
@@ -540,6 +540,7 @@ function buildSpeedScores(drivers, weights, opts) {
       __lapPen,
       __spW: w.startPos,
       __spUsed: sp,
+      __nonStart: speedScore - sp * w.startPos,
       scores: {
         corr: Math.round(c),
         lrp:  Math.round(lrp),
@@ -550,6 +551,27 @@ function buildSpeedScores(drivers, weights, opts) {
         anchored: { corr: d.marketFill != null && conf < 1 && __eqS == null, lrp: d.marketFill != null && __thinD && lrpScores[i] == null, sp: d.marketFill != null && __thinD && startScores[i] == null }, // '*' in breakdown = market-anchored fill, not measured data
       },
     }
+  })
+  // TIER-CONDITIONED START WEIGHT (registered 2026-10-09, BACKTEST_LOG; OFF unless opts.tierStart =
+  // { gamma }). The start term pulls every car toward its grid spot with the same weight. Measured on
+  // the 94-board practice holdout: a top-5-rated car starting P16 or worse beats the sim by ~1.6
+  // positions (102 rows) under every mechanism tested so far - the Eckes / Larson case. Here the share
+  // of the start weight a car keeps falls with its strength: g_i = 1 - gamma * pct_i, where pct_i is the
+  // car's percentile on the composite WITHOUT the start term (1 = strongest). The withheld share is
+  // replaced by that same non-start composite, so the score scale and the field mean are untouched and
+  // a weak car (pct ~ 0) is scored exactly as before. gamma = 0 is the shipped engine. One constant
+  // per series, fitted on 2022-24 train, scored on 2025-26 holdout - see the registration.
+  const __tsG = opts && opts.tierStart && opts.tierStart.gamma > 0 && w.startPos > 0 ? Math.min(1, opts.tierStart.gamma) : 0
+  if (!__tsG) return __scored
+  const __nsW = 1 - w.startPos
+  const __ord = __scored.map((d, i) => ({ i, s: d.__nonStart })).sort((a, b) => b.s - a.s)
+  const __pctNS = new Array(__scored.length).fill(0.5)
+  __ord.forEach((o, r) => { __pctNS[o.i] = __ord.length > 1 ? 1 - r / (__ord.length - 1) : 0.5 })
+  return __scored.map((d, i) => {
+    const g = 1 - __tsG * __pctNS[i]
+    const baseNorm = __nsW > 0 ? d.__nonStart / __nsW : d.__spUsed
+    const sc = d.__nonStart + w.startPos * (g * d.__spUsed + (1 - g) * baseNorm)
+    return { ...d, speedScore: sc - d.__lapPen, __tierG: g }
   })
 }
 
