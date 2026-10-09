@@ -8779,3 +8779,36 @@ is untouched. One shape constant per series, fit by win + top-5 Brier (not log-l
 Cup's own table (mid over 1.5, tail under .29) says cup would take the opposite sign in the tail, so the
 mechanism must not touch the tail at all. Sixteen registrations since 10-04: two ships, one call open,
 thirteen closed.
+
+## 2026-10-09 — PRE-REGISTERED: STRENGTH-DEPENDENT NOISE (top fifth draws narrower). Written before the fit. DO NOT MODIFY.
+TRIGGER. The noise-multiplier closure's control calibration table (2025-26 holdout): trucks favourite stated
+22.2% / realised 48.3%; the 3-10% bucket over-stated by ~1.8 pts a car; the under-3% tail CALIBRATED (.64 /
+.63). The favourite's missing mass is on the cars right behind him, not in the tail, and a uniform width
+change takes from the tail first (fit refused it). Cup's tail is UNDER-stated (.47 / .76), so the mechanism
+must not touch the tail at all. Operator: "do the next registration."
+FORM (engine, flagged, default off: runRaceSim simConfig.topNoise = { shrink }). Per draw, the outcome-noise
+width for a car in the top fifth of the composite (speedScore percentile > .8) is scaled by
+1 - shrink x (pct - .8) / .2: the favourite keeps (1 - shrink) of the width, the ~8th car ~all of it, every
+car below the top fifth is untouched; both sides of the draw, no mean shift. Stacks on carCeilFloor and
+asymNoise (those act on upside draws of weak cars; disjoint). shrink 0 = shipped. One constant per series.
+FIT: train.txt (2022-24), 10k sims, shrink in {0, .15, .3, .45, .6} per series, chosen by the smallest WIN
+BRIER + TOP-5 BRIER (per-driver squared error, tail-insensitive by construction - the 10-09 lesson; tie
+within 1e-5 -> smaller shrink). Written to topnoise-fit.json and COMMITTED before the holdout is read. A
+fitted 0 means nothing to test. Cup and O'Reilly are fitted too: their favourites are calibrated on the
+holdout, so a large shrink for them would be a warning, as before - but the 2022-24 cup regime (favourite
+over-stated without practice) is already known to differ from the holdout, so a cup fit of 0 is the
+expected placebo outcome and a cup fit > 0 is read with that in mind.
+TEST: holdout-practice.txt (94 boards), 20k sims, RUNS=2, control A = shipped (trucks carDnf k32, domBoot),
+T = A + topNoise at the frozen shrink. Null floor per metric = |A run1 - A run2|. Metrics: win Brier, top-5
+Brier, top-10 Brier, rho, win LL, top-5 LL; favourite gap (stated - realised); mid 3-10% bucket gap; tail
+< 3% gap; elite cells / neP26 for the record.
+DECISION RULE (per series, mean of two runs): SHIP T at the fitted shrink if (a) fitted shrink > 0;
+(b) win Brier AND top-5 Brier are each better than A by at least the null floor; (c) the favourite gap moves
+toward zero by at least a THIRD of A's gap and does not cross to beyond +5.0; (d) the mid 3-10% bucket gap
+moves toward zero (or stays within 0.5 of A) AND the tail gap changes by no more than 0.15 pts in either
+direction; (e) top-10 Brier, rho, win LL and top-5 LL each not worse than A by more than the null floor
+(win LL is a guard here, not the judge). Fails any one -> not shipped for that series. Ships as
+simConfig.topNoise in SimulationCenter's runRaceSim call per series; stamp topNoise 'v1-s<shrink>'. Revert
+trigger: that series' favourites 0-for-2 weekends vs the books while the 3-10% cars win both.
+HARNESS SMOKE (train only, 100 sims, cup block, two rows, throwaway): s0 winB .02594 t5B .10332 / s.15 .02605
+.10387 - draw-noise at 100 sims, nothing to read. No holdout numbers seen. PUSH before the fit.

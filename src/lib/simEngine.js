@@ -904,7 +904,23 @@ function runRaceSim(drivers, simConfig) {
       }
       return out
     })()
+    // STRENGTH-DEPENDENT NOISE (registered 2026-10-09, BACKTEST_LOG; OFF unless simConfig.topNoise = { shrink }).
+    // 2025-26 control calibration: trucks favourite stated 22% / realised 48%, the 3-10% bucket over-stated
+    // ~1.8 pts a car, tail CALIBRATED - the favourite's missing mass sits on the cars right behind him, not
+    // in the tail, so a uniform width change cannot make the move (it takes from the tail first; CLOSED
+    // 10-09). Here the draw width for the top fifth of the composite is scaled by 1 - shrink x (pct - .8)/.2
+    // (the favourite keeps 1 - shrink, the 8th car ~1, everyone below the top fifth untouched); both sides
+    // of the draw, no mean shift. One constant per series, fit 2022-24 by win + top-5 Brier, holdout 2025-26.
+    const __topW = (() => {
+      const tn = simConfig.topNoise; if (!tn || !(tn.shrink > 0)) return null
+      const sh = Math.min(0.9, +tn.shrink)
+      const __o = drivers.map((d, x) => x).sort((a, b) => (drivers[a].speedScore || 0) - (drivers[b].speedScore || 0))
+      const out = new Float64Array(n).fill(1)
+      __o.forEach((x, r) => { const pct = n > 1 ? r / (n - 1) : 0.5; if (pct > 0.8) out[x] = 1 - sh * (pct - 0.8) / 0.2 })
+      return out
+    })()
     const __noise = (i) => { let e = gaussNoise()
+      if (__topW) e *= __topW[i]
       if (simConfig.carCeilFloor && e > 0) { const lr = drivers[i].lappedRate; if (lr != null && !isNaN(lr) && lr > CEIL_FLOOR) e *= Math.max(0.1, 1 - lr) }
       if (__spd && __spd[i] < 0.5 && e > 0) e *= (0.5 + __spd[i]); return e }
     const scored = drivers.map((d, i) => {
