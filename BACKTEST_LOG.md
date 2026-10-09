@@ -8733,3 +8733,29 @@ HARNESS SMOKE (train only, 100 sims, cup block, throwaway): m .6 winLL .1678 / .
 INTERIM OPERATOR RULE shipped with this registration (PITBOARD_MANUAL, Model doctrine): until this closes,
 no win-market FADE on the top-rated car of a trucks board - a negative medge there is more likely our bias
 than the book's (Indy: Riggs -105, sim 29.6%, medge -6.84 "fade", won from the pole). PUSH before the fit.
+
+## 2026-10-09 — PER-SERIES NOISE MULTIPLIER: FIT (train.txt 2022-24, 10k sims) — FROZEN before the holdout is read
+  CUP (108)     winLL .9 .1146 | 1 .1116 | 1.1 .1108 | 1.2 .1087 (grid edge)   fav gap 1: +8.0 -> 1.2: +5.5   -> m 1.2
+  O'REILLY (99) winLL .7 .0952 | .8 .0932 | 1 .0932 | 1.1 .0938 | 1.2 .0942   fav gap .8: +0.9 / 1: -4.4   -> m 1 (tie rule, closer to 1)
+  TRUCKS (67)   winLL .6 .1025 | .7 .1021 | .8 .1028 | .9 .1031 | 1 .1007 | 1.1 .1017 | 1.2 .1023   -> m 1 (nothing to test)
+                but at m .6: t10 .15268 vs .15497, t5LL .3069 vs .3109, rho tie, fav gap -3.7 vs -11.5, tail<3% stated .56 / realised .73
+                (vs .83 / .50 at m 1), mid 5.6 / 4.8.
+Written before the holdout, and this is the test going wrong at the fit stage, honestly stated:
+(1) The PLACEBO FAILED. Cup fitted to 1.2 - the grid edge - because on 2022-24 WITHOUT practice the cup
+favourite is OVER-stated (18.2% stated / 10.2% realised; the 2022 parity year is in there), the opposite of
+the practice holdout (+1.3). The fit regime is not the holdout regime for cup. Cup goes to the holdout at
+1.2 as registered; whatever it does there, the placebo has already said the train-set fit is not trustworthy
+for the question.
+(2) WIN LOG-LOSS WAS THE WRONG FIT CRITERION for a favourite question. It is an average over ~36 drivers a
+race and is dominated by the tail: a driver stated at 0.5% who wins costs log(0.005) = 5.3, so any form that
+takes probability from the tail to give it to the favourite loses win LL even while it fixes the favourite
+(trucks at .6: favourite gap -11.5 -> -3.7, top-10 and top-5 better, win LL worse .1007 -> .1025 because the
+tail realised .73% against .56% stated). The registered rule is the rule: trucks fits to 1 and is not
+tested; the mechanism is not judged. FROZEN {"cup":1.2,"oreilly":1,"trucks":1}.
+(3) What the fit DID show for trucks in-sample, for the next registration: a shallower noise (m .6-.7)
+improves top-10 Brier, top-5 LL and the favourite gap together, and the cost is a tail stated ~.15-.2 pts
+below realised - i.e. the trucks tail is REAL (the 2022-24 trucks winner came from under 3% stated in a
+meaningful share of races) and a uniform steepening pays for the favourite out of it. The next form should
+fit on the favourite-and-top-5 (Brier on win + top-5, or the favourite gap with a tail guard) and / or make
+the noise strength-dependent (tight at the top, wide in the tail) so the favourite and the tail are not one
+dial. Not registered here.

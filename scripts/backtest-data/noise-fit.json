@@ -1,0 +1,9 @@
+{
+  "mult": {
+    "cup": 1.2,
+    "oreilly": 1,
+    "trucks": 1
+  },
+  "sims": 10000,
+  "engine": "9e7d33042a5c"
+}
