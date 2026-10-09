@@ -3,6 +3,7 @@ import { parseSect, parseDkPages, FD_HEADERS, HR_HEADERS, normDriver } from '../
 import { supabase } from '../lib/supabase'
 import { fetchAllRows } from '../lib/fetchAllRows'
 import useSubscriber from '../lib/useSubscriber'
+import { domPoolFor } from '../lib/domPools'
 
 
 import {
@@ -1003,6 +1004,10 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
         // on 2025-26 - trucks k = 32 passed every guard (DNF Brier .1437 -> .1423, own>.30 cell 16% -> 23% vs 29%
         // actual, win log-loss 19/10 and 22/7); cup and O'Reilly fitted OFF (the history carries no information).
         carDnf: series === 'trucks' ? { k: 32 } : null,
+        // 2026-10-09 DOMINATOR BOOTSTRAP (BACKTEST_LOG stage 2; operator: "ship it"): per draw, the laps-led / fastest-
+        // laps share vector of one real 2022-24 race (series x group x caution bucket) instead of the fixed mean curve.
+        // Restores draw-to-draw dominator spread and the level outside cup INT; shipped for INT + SHORT in all series.
+        domBoot: domPoolFor(series, __trackGroup(config && config.track_name)),
         startSampling: (() => {
           const E = []
           driversWithScores.forEach((d, i) => { if (d.__startProjected && d.__startHist && d.__startHist.length >= 3 && d.__spUsed != null) E.push({ i, hist: d.__startHist, fixed: d.__spUsed }) })
@@ -1061,7 +1066,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
       race_year:  config.race_year || new Date().getFullYear(),
       race_number: raceNumMap[series] ? parseInt(raceNumMap[series]) : null,
       stage: simStage,
-      config: { lapFeature: series !== 'cup' ? 'v1-0.15' : 'off', carCeilFloor: 'v1-0.70', carDnf: series === 'trucks' ? 'v1-k32' : 'off', asymNoise: (series !== 'cup' && ['INT', 'SHORT'].indexOf(__trackGroup(config && config.track_name)) !== -1) ? 'v1-upside-0.5' : 'off', practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'car-auto-v2', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06-fenced', domCurves: (__trackGroup(config && config.track_name) === 'INT' ? 'int-dom-v2' : 'gxc-v3.1-dnfLL'), domSpeed: 'mult-v1', startProj: ((series === 'cup' || series === 'oreilly') ? 'trail10-v4-form' : 'trail10-v3.5-eqStart'), flagGuard: 'conf-v1', dnfModel: 'wreck-v1.1-cb', marketAnchor: 'v1.4-multimkt', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), runNote: (runNote.trim() ? runNote.trim() : null), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
+      config: { lapFeature: series !== 'cup' ? 'v1-0.15' : 'off', carCeilFloor: 'v1-0.70', carDnf: series === 'trucks' ? 'v1-k32' : 'off', domBoot: domPoolFor(series, __trackGroup(config && config.track_name)) ? 'v1-' + __trackGroup(config && config.track_name) : 'off', asymNoise: (series !== 'cup' && ['INT', 'SHORT'].indexOf(__trackGroup(config && config.track_name)) !== -1) ? 'v1-upside-0.5' : 'off', practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'car-auto-v2', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06-fenced', domCurves: (__trackGroup(config && config.track_name) === 'INT' ? 'int-dom-v2' : 'gxc-v3.1-dnfLL'), domSpeed: 'mult-v1', startProj: ((series === 'cup' || series === 'oreilly') ? 'trail10-v4-form' : 'trail10-v3.5-eqStart'), flagGuard: 'conf-v1', dnfModel: 'wreck-v1.1-cb', marketAnchor: 'v1.4-multimkt', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), runNote: (runNote.trim() ? runNote.trim() : null), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
       results: simResults.map(d => ({
         driver_name:  d.name,
         car_number:   d.carNumber,

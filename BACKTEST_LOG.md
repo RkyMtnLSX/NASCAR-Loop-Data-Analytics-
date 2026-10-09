@@ -8439,3 +8439,11 @@ VERDICT by the registered rule, per group, both runs:
   runs: INT win -.0003 t5 -.0001 t10 -.0001; SHORT win -.0002 t5 -.0001 t10 +.0001; rho +.0004 / -.0008); HOLD ROAD and
   SS (n 8 / < 8) on the shipped curves until there are boards to judge them. The cup SHORT over-projection (+2.2 on the
   top 3) is the one soft spot inside a shipping group and goes on the forward watch with the revert triggers.
+SHIPPED (operator: "ship it"; this commit): dominator bootstrap for INT + SHORT in all three series. src/lib/domPools.js
+carries the exact pool vectors the harness drew from (274 races 2022-24, 40-rank share vectors at 4 dp, buckets < 20
+pooled; verified vector-for-vector against backtest-data/dom-pools.json); SimulationCenter sets simConfig.domBoot =
+domPoolFor(series, group) and stamps config.domBoot 'v1-INT' / 'v1-SHORT' / 'off'. ROAD and SS stay on the fixed
+curves. Revert triggers as registered (two straight weekends of negative CLV lift on stamped boards, or the DFS
+replay GPP best-of-20 percentile below its pre-change mean three races running). Forward watch: cup SHORT top-3
+over-projection (+2.2 DK, era drift in the 2022-24 pool). Nine registrations since 10-04: two ships (trucks per-car
+DNF, dominator bootstrap INT + SHORT), one operator call open (O'Reilly lapped traffic), six closed.
