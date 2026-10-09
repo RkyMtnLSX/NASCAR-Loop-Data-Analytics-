@@ -1,6 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import PitBoardLogo from '../components/PitBoardLogo'
+import WeekendSchedule from '../components/WeekendSchedule'
 
 export default function Landing() {
   return (
@@ -26,6 +27,9 @@ export default function Landing() {
           </div>
         </div>
       </div>
+
+      {/* This weekend (2026-10-09): three series, the on-track schedule from NASCAR's feed, refreshes itself */}
+      <WeekendSchedule />
 
       {/* Feature cards */}
       <div style={{ maxWidth: 1400, margin: '0 auto', padding: '48px 20px' }}>

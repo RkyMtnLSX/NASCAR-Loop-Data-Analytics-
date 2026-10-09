@@ -426,6 +426,36 @@ module.exports = async function handler(req, res) {
       const wk = await getJson(`${NASCAR}/cacher/${year}/${series}/${raceId}/weekend-feed.json`)
       return res.status(200).json({ type: 'bundle', year, series_id: series, nascar_race_id: raceId, ...B.shapeBundle(wk) })
     }
+    if (q.type === 'weekend') {
+      // 2026-10-09 (operator: "list the schedule for all track activities this weekend ... and it'll
+      // just refresh every week automatically"): the next race per series straight from NASCAR's
+      // schedule feed with its on-track events (practice / qualifying / race; run_type 1 / 2 / 3), the
+      // venue, TV and radio. schedule[].start_time_utc IS UTC (checked against Vegas: race 21:30Z = 5:30
+      // ET); date_scheduled is Eastern. Public, no DB. Cached an hour at the edge, so Monday's schedule
+      // change shows up on its own - nothing to configure.
+      const W = require('./_weekend')
+      const sched = await W.fetchSchedule(year)
+      const cutoff = new Date(Date.now() - 36 * 3600 * 1000)
+      const weekend = {}
+      for (const [sid, name] of Object.entries(W.SERIES)) {
+        const list = (sched[`series_${sid}`] || []).slice().sort((a, b) => String(a.date_scheduled).localeCompare(String(b.date_scheduled)))
+        let n = 0, pick = null, pickN = null
+        for (const r of list) { if (r.race_type_id === 1) n++; if (!pick && new Date(r.date_scheduled) >= cutoff) { pick = r; pickN = r.race_type_id === 1 ? n : null } }
+        if (!pick) { weekend[name] = null; continue }
+        const events = (pick.schedule || [])
+          .filter(e => [1, 2, 3].includes(+e.run_type) || /^race\b/i.test(e.event_name || ''))
+          .map(e => ({ name: e.event_name, notes: (e.notes || '').trim() || null, start_utc: e.start_time_utc ? e.start_time_utc + 'Z' : null, run_type: +e.run_type || (/^race\b/i.test(e.event_name || '') ? 3 : 0) }))
+          .sort((a, b) => String(a.start_utc).localeCompare(String(b.start_utc)))
+        weekend[name] = {
+          series: name, nascar_race_id: pick.race_id, race_name: pick.race_name, track: pick.track_name, race_number: pickN,
+          date_et: pick.date_scheduled, exhibition: pick.race_type_id !== 1,
+          tv: pick.television_broadcaster || null, radio: pick.radio_broadcaster || null, laps: Number(pick.scheduled_laps) || null,
+          stages: [pick.stage_1_laps, pick.stage_2_laps, pick.stage_3_laps].map(Number).filter(Boolean), events,
+        }
+      }
+      res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400')
+      return res.status(200).json({ type: 'weekend', year, fetched_at: new Date().toISOString(), weekend })
+    }
     if (q.type === 'next') {
       // Weekend Config "Use schedule" (2026-10-01): the next race per series with the config fields
       // derived from the schedule. Reads the tracks table for canonical names (anon key, read-only).
@@ -441,7 +471,7 @@ module.exports = async function handler(req, res) {
       }
       return await laps(res, year, series, raceId)
     }
-    return res.status(400).json({ error: "type must be 'schedule', 'race', 'qorder', 'laps', 'next', 'bundle' or 'cleanpace'" })
+    return res.status(400).json({ error: "type must be 'schedule', 'race', 'qorder', 'laps', 'next', 'weekend', 'bundle' or 'cleanpace'" })
   } catch (err) {
     return res.status(err.status === 404 ? 404 : 502).json({
       error: err.message, url: err.url || null,

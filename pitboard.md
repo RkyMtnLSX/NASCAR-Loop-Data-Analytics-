@@ -3689,6 +3689,23 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
+## 2026-10-09 — Home page: three series + this weekend's on-track schedule, self-refreshing
+Operator: "on the home page can we put all three series logos and list the schedule for all track
+activities this weekend ... and it'll just refresh every week automatically". SHIPPED: api
+nascar-feed `type=weekend` - the next race per series from race_list_basic.json (same 36-hour rule
+as the Weekend Config proposal) with its practice / qualifying / race events (schedule[] run_type
+1 / 2 / 3), venue, laps and stages, TV, radio; edge-cached an hour (s-maxage 3600, stale 1 day) so
+it rolls to the next race on its own - no cron, no config. FEED FACT (checked on Vegas: race
+21:30Z = 5:30 PM ET): schedule[].start_time_utc is real UTC; race_list date_scheduled is Eastern.
+src/components/WeekendSchedule.js under the hero on Landing: one card per series, race name, track
+· laps (stage lengths) · Race N, then Day / Practice-Qualifying-Race / time in the VIEWER'S time
+zone (Intl, with zone name), "(impound)" marked, past sessions dimmed, race date + TV + radio
+underneath. A feed error renders nothing rather than breaking the home page. LOGOS: NASCAR's series
+marks are trademarks, so the component renders public/series-logos/{cup,oreilly,trucks}.png if the
+operator drops files he has rights to, and falls back to a PitBoard-styled wordmark in the series
+colour (README in that folder). Charlotte week on first render: Cup Bank of America 400 - practice
+Sat 11:00 ET, qualifying 12:05, race Sun 3:00 PM ET on USA; O'Reilly and trucks likewise.
+
 ## 2026-10-06 — Product direction after Vegas: what was decided, what was declined, what is queued
 A long operator conversation on where the DFS product goes; the decisions, so they are not re-argued.
 CAN THE OPTIMIZER WIN A CONTEST? The ledger's answer: the best-of-20 entry has landed in the top
