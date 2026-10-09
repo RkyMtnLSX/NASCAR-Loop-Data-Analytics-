@@ -8812,3 +8812,21 @@ simConfig.topNoise in SimulationCenter's runRaceSim call per series; stamp topNo
 trigger: that series' favourites 0-for-2 weekends vs the books while the 3-10% cars win both.
 HARNESS SMOKE (train only, 100 sims, cup block, two rows, throwaway): s0 winB .02594 t5B .10332 / s.15 .02605
 .10387 - draw-noise at 100 sims, nothing to read. No holdout numbers seen. PUSH before the fit.
+
+## 2026-10-09 — STRENGTH-DEPENDENT NOISE: FIT returns 0 for every series — CLOSED AT THE FIT, WRONG BY CONSTRUCTION
+  CUP      s0 winB .02574 t5B .10286 fav 18.2/10.2 | s.15 .02581/.10309 fav 17.3 | s.3 fav 16.4 | s.6 .02617/.10439 fav 15.5  -> 0
+  O'REILLY s0 .02379/.09238 fav 19.8/23.2 | s.15 .02394/.09255 fav 19.1 | ...                                           -> 0
+  TRUCKS   s0 .02521/.09619 fav 15.4/26.9 gap -11.5 | s.15 fav 14.2 | s.3 13.0 | s.45 12.4 | s.6 12.1 (winB .02643)   -> 0
+The favourite's stated win% FALLS as the top fifth's draw narrows, in every series. Unit check (36-car
+synthetic, 20k draws, INT): favourite 23.1% -> 22.3% (shrink .3) -> 20.9% (shrink .6) while his top-5 rises
+63.0 -> 68.3 -> 74.1 and cars 6-8 GAIN win share (4.9/3.5 -> 6.3/5.9). Why: a race finish is the max of 36
+draws. Narrowing the favourite's draw clips his upside as much as his downside, and the cars just below
+the top fifth keep full width, so their outlier draws now beat him more often. Symmetric narrowing makes
+the top cars more CONSISTENT (top-5 up) and less likely to WIN. The form moves the favourite the wrong
+way by construction; the fit saw it and returned 0 everywhere; nothing reached the holdout. FROZEN
+{"cup":0,"oreilly":0,"trucks":0}, no test run. Registration flaw was mine: I reasoned about the
+favourite's distribution in isolation instead of about the max-of-draws contest he has to win.
+What the fit does say: the direction that moves the favourite UP without touching the tail is to clip the
+UPSIDE of the cars in the 3-10% bucket (ranks ~2-8), not to narrow everyone at the top - the exact analogue
+of the shipped asymNoise (upside clip on below-median cars, 09-07), one tier up. Registered next.
+Seventeen registrations since 10-04: two ships, one call open, fourteen closed.

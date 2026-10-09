@@ -1,9 +1,9 @@
 {
   "shrink": {
     "cup": 0,
-    "oreilly": 0.15,
-    "trucks": 0.15
+    "oreilly": 0,
+    "trucks": 0
   },
-  "sims": 100,
+  "sims": 10000,
   "engine": "563ef756e278"
 }
