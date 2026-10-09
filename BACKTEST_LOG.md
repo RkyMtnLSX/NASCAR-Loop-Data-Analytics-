@@ -8475,3 +8475,34 @@ DECISION RULE: ship if HOLDOUT M1 pooled improves, live-race share >= 55%, no fi
 > 0.10, M2 win / top-5 / top-10 not worse than control by more than the null floor, M3 no overshoot.
 Cannot be used for tonight's trucks race (already started, lineups in); ships for the next trucks
 pre board. PUSH before the fit.
+
+## 2026-10-09 — START PROJECTION v4 for TRUCKS EXECUTED AS REGISTERED: M1 PASSES CLEARLY, M2 top-10 RAIL FAILS — NOT SHIPPED
+Data start-v4-trucks-2025-26.txt (45 races: 25 train 2025 / 20 holdout 2026). Fit (TRAIN 2025): INT 0.2222,
+SHORT 0.2427, SS -0.0164 (below the 0.05 rule, kept as fitted - negligible), ROAD 0. Fit committed with the
+registration's data before the holdout was read.
+HOLDOUT 2026 (read once), M1 CONTROL -> F:
+  INT   n=7   6.41 -> 5.43  (-0.98, better 6/7 live)
+  SHORT n=8   5.15 -> 4.99  (-0.16, better 5/6 live)
+  SS    n=2   4.94 -> 4.97  (+0.03, inside the 0.10 rail)
+  ROAD  n=3   unchanged by construction
+  ALL   n=20  5.61 -> 5.20  (-0.40); live-race share 11/14 = 79% (>= 55% gate)
+  -> the projected grid is a full position better in trucks, a position better at intermediates; the
+     Eckes-class error (P18 projected / P8 real) is exactly what this term moves.
+M2 sim rail (18 matched 2026 trucks boards, trucks weight tables, projected grids as startPos), 4k sims
+and 20k sims (seeded, so the two 20k passes are identical):
+  4k:  CONTROL win .02430 t5 .0973 t10 .1601 | NULL .02429 .0974 .1606 | F .02428 .0975 .1615
+  20k: CONTROL win .02427 t5 .0975 t10 .1606 | NULL .02427 .0975 .1606 | F .02424 .0977 .1618
+  win: better. top-5: +.0002 against a null floor of .0000-.0001. TOP-10: +.0012 (20k) / +.0014 (4k) against a
+  null floor of .0000-.0005 - WORSE than control by more than the null floor. FAILS the rail.
+M3 favourite gap: CONTROL -15.7 / NULL -15.7 / F -20.9 (stated minus realised; negative = under-statement, not
+overshoot). PASSES.
+VERDICT by the registered rule: NOT SHIPPED. M1 passes every gate by a wide margin; M2 top-10 Brier loses by
+.0012 on 18 boards, which is outside the null floor. The rule is the rule.
+READING (not a decision): a better projected grid made the trucks top-10 forecasts slightly WORSE while making
+the win forecasts slightly better. The likeliest mechanism is the one the operator keeps pointing at: with the
+start term at 0.23 (0.33 at short tracks) the trucks finish model leans on the grid, and a sharper grid sharpens
+the top-10 probabilities past what 18 boards support. That is a start-WEIGHT question for trucks, not a start-
+PROJECTION one, and it is the 08-20 sweep's "trucks short keeps 0.33" cell plus the 10-05 / 10-09 results all
+pointing the same way. A follow-up registration that tests v4 + a trucks start weight of 0.23 at short tracks
+(dropping the TRUCK_SHORT_WEIGHTS exception) on the same holdout would be the honest next form - a different
+form, a new registration, not a re-read. Cup and O'Reilly v4 are untouched. Trucks stay on trail10-v3.5.

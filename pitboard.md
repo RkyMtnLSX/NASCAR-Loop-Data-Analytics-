@@ -3689,6 +3689,20 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
+## 2026-10-09 — Start projection v4 for trucks: grid error -0.4 (intermediates -1.0), but the top-10 rail fails — not shipped
+Operator: "do it, we won't be able to use it for this truck race ... but if it's something we need to
+do let's do it." Registered (same form as cup / O'Reilly, own fit on 2025, holdout 2026, trucks
+weight tables in the harness - a correction: the harness had run cup weights for every series),
+pushed, run. The projected grid gets better exactly where the Eckes complaint lives: holdout start
+error 5.61 -> 5.20 pooled, intermediates 6.41 -> 5.43 (6 of 7 races), short 5.15 -> 4.99, 79% of live
+races improved. The sim rail: win forecasts a hair better, top-5 a tie, TOP-10 Brier .1606 -> .1618
+on 18 boards - worse by more than the null floor. By the registered rule: not shipped. Reading: a
+sharper grid makes the trucks finish model lean harder on start position (0.23, 0.33 at short tracks)
+than 18 boards support - which is the operator's "too much weight on start" claim showing up as a
+side effect of a better grid. The honest next form is v4 PLUS a trucks start weight of 0.23 at short
+tracks (dropping the 08-20 exception), a new registration. Trucks stay on v3.5. Ten registrations
+since 10-04: two ships, one call open, seven closed.
+
 ## 2026-10-09 — Dominator bootstrap (stage 2) run as registered: the fix works in every group; the probability guard is a tie inside noise — operator call
 Operator: "register and run stage 2." Pools built from 274 races 2022-24 (own-series for cup /
 O'Reilly / trucks at INT and SHORT; all-series for ROAD and SS), per caution bucket; the engine's
