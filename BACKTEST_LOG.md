@@ -9519,3 +9519,21 @@ SMOKE: 20-sim loader checks read to the header / first train row only; no holdou
   top-5 at .7 gives back almost all of the uniform-.4 in-sample gain (.16848 at stage 2 vs .16896 here) - the cup top-10 gain
   came mostly FROM shading the elites' projected starts, which is the same thing that under-stated the favourite. Expect a wash.
   Trucks V needs no fit (frozen 10-09 betas).
+
+## 2026-10-10 — STAGE 4 EXECUTED AS REGISTERED: TRUCKS v4 FAILS (closed for good); CUP TIERED SHADING passes 5 of 6 rails — OPERATOR CALL
+  CUP (61, mean of two runs)  A (.7 everyone) -> T (field .5, top-5 .7):
+     t10 .16226 -> .16171 (better .00055, floor .00010; 37/24 and 34/27)   rho .4024 -> .4040 (better)   winB .02253 -> .02250 (better)
+     t5B .09752 -> .09726 (better, 37/24 both runs)   fav gap -3.15 -> -2.4 (BETTER - the uniform .4 made it -8)   fav hits 26% -> 26%
+     winner's sim rank 6.92 -> 7.20 (+.28 against the .25 rail: (f) FAILS by .03 of a place)
+     The winner-rank metric's own run-to-run movement is .06 (A) and .13 (T) on these 61 boards, so the miss is inside the
+     metric's noise but outside the registered rail. By the letter: not a pass. Same shape as the O'Reilly lapped-traffic call.
+     What it buys: top-10, top-5, win Brier and finish rho all better, the favourite better, on the Wednesday cup board. What it
+     costs: the actual winner sits ~0.3 places lower in the sim's win order (the field is shaded harder, so mid-pack winners get
+     less pre-race credit). OPERATOR CALL - recommendation: ship (cup pre boards only; post boards untouched; stamp projShade
+     'v2-tier-.5/.7'; revert trigger as stage 2).
+  TRUCKS 2026 (18)  A (v3.5 grid, lam 1) -> V (v4 grid, lam 1): t10 .16013 -> .16154 (WORSE, 6/12 both runs: (b) FAILS)   rho .4498 -> .4428
+     winB tie   t5B .09757 -> .09776   fav gap -20.7 -> -20.3.   NOT SHIPPED. Third failure of the trucks v4 projection in the sim
+     (10-09 at .33/.7, 10-09 combined, now at lam 1.0) despite a one-position better grid every time: CLOSED as a projection
+     form. The sim prefers trail10 for trucks; the 10-09 double-count reading (v4's recent-form term re-enters a form the finish
+     model already carries) stands as the explanation and is not pursued further.
+Thirty-two registrations since 10-04: six ships, one call open (cup tiered shading), twenty-five closed.

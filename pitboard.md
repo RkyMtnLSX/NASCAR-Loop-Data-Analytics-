@@ -3689,6 +3689,17 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
+## 2026-10-10 — Stage 4 and the Bell audit: trucks v4 is done, cup's tiered shading is a call, and Bell was a part-timer problem
+Operator: "do the rest of them that need done." The Bell audit overturned my guess: he isn't thin (nine truck
+starts, a Bristol win this year), the projection put him on the front row from a handful of good starts and the
+book had him +800 because he's a part-timer - the engine has no notion of that. Next form named: shrink a
+trailing projection by its sample size. Trucks v4 start projection failed the sim rail a third time, now at the
+new shading too, and is closed as a form. Cup's tiered shading - field at .5, top-5 held at .7 - is the first cup
+pre-board form to improve top-10, top-5, win Brier, ordering AND the favourite together on 61 boards, and it
+misses one rail, the actual winner's rank in the sim's win order, by .03 of a place where that metric's own
+noise is .06-.13. Operator call, recommendation ship. Thirty-two registrations since 10-04: six ships, one call
+open, twenty-five closed.
+
 ## 2026-10-10 — Pre-board stage 3: the edges weren't edges, and the trucks trade is now measured twice
 Operator: "run the first two together." Extended the shading grid past where stage 2 stopped and added a half-
 weight practice destination. Nothing ships: cup's .4 buys top-10 and costs the favourite exactly as before,
