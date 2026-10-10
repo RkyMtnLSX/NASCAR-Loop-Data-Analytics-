@@ -9724,3 +9724,42 @@ Train, shipped b 12: ringers LL sim 10.6 / actual 12.2 (+1.7 laps), FL 7.4 / 7.2
   at b 14 gives them ~20 while taking the top down to ~5. The shape is a FLOOR of 12 plus extra for buried ringers, not a
   tilt around 14. That is a third form on a holdout read twice - it waits for 2027 rows as registered. Shipped engine
   unchanged: ringer v1-b12.
+
+## 2026-10-10 — DOCTRINE: the 2025-26 "holdout" is a VALIDATION set now. Read count and the rule from here on.
+Since 10-04, sixteen registrations have been judged on holdout-practice.txt (2025-26). Each read was legitimate on its own;
+together they mean the set is no longer unseen, and a form that passes it has been selected partly for passing it. From this
+entry: (1) the log calls 2025-26 the VALIDATION set and the 2027 boards the TEST set; (2) every registration judged on
+2025-26 states "validation read #N" in its header; (3) a form may be refit on 2022-26 and judged on 2027 only - no third
+look at 2025-26 for the same family (ringer: done twice, closed); (4) the ships of this week are provisional until their
+revert triggers have had 10 boards of 2027. PITBOARD_MANUAL carries the same rule. Validation reads so far: 16.
+
+## 2026-10-10 — PRE-REGISTERED: SS NOISE REFACTOR (no-op) + SS CALIBRATION AT PRODUCTION WIDTH (diagnostic). Written before the run.
+REFACTOR. SimulationCenter's __SS_NOISE_MULT (cup 3.0 / O'Reilly 1.5 / trucks 1.75, applied with Math.round to the preset
+before runRaceSim) moves into the engine as SS_SERIES_NOISE_MULT, applied when simConfig.series is passed; the page passes
+series and stops pre-multiplying. Verified on a seeded stream: byte-identical projFinish / projDK for all three series at
+SS. Not a behaviour change; it is what lets the harnesses measure SS at production's width. Harnesses pass series from now.
+DIAGNOSTIC (nothing fitted): SS boards, train (44) and validation (27, practice-free), each series, shipped engine at
+PRODUCTION width vs the pre-10-10 HARNESS width: stated vs realised win / t5 / t10 by sim-rank tier, Brier, favourite gap.
+Question answered: is the live SS board calibrated, and did the harness-width runs (SS FL budget, dom-groups SS, pre-board
+SS cells) say anything that production's width contradicts. If production is off by more than the harness width was, a
+follow-up registration (SS multiplier refit, same protocol as 08-29) is written; the SS FL-budget ship stands regardless
+(FL MAE is width-independent). Validation read #17 (diagnostic only).
+
+## 2026-10-10 — PRE-REGISTERED: TOP-TIER LIFT, O'Reilly / trucks (the trucks favourite). Written before the fit. DO NOT MODIFY.
+TRIGGER. The #54 stage-1 tables, non-ringer rows: regulars the sim ranks top-3 realise 17.1% win on 2022-24 (stated 13.3)
+and 18.3-19.8% on 2025-26 (stated 14.4-14.9), with ranks 9+ slightly over-stated - the lower-series rank-to-win curve is
+too flat at the top in BOTH eras. The trucks favourite (22 / 48 on 2025-26; 15 / 25 on 2022-24) is the sharp end of it.
+Four width-based forms (series multiplier, topNoise, tierClip) and the top-FIFTH stretch failed; the stretch failed because
+lifting ~7 cars inflated cars 2-7 (t5 LL +.013). Today's ringer result: a plain LEVEL lift on a defined set of cars works.
+FORM. simConfig.topLift = { k, b }: the k strongest NON-ringer cars by speedScore draw from speedScore + b; everyone else
+untouched; k 0 is the shipped engine (ringer lift stays on and is excluded from the set so a top-ranked ringer is not lifted
+twice). FIT per series on train.txt (O'Reilly 99 / trucks 67 boards): grid (k, b) in {(1,3) (1,6) (1,9) (1,12) (1,15) (2,3)
+(2,6) (2,9) (2,12) (3,3) (3,6) (3,9)} + control, 10k sims, minimise ALL-ROW win + t5 + t10 Brier (equal weight) - the
+markets, not the favourite gap, decide; committed to toplift-fit.json before the validation set is read. Stated now: the
+2022-24 under-statement is smaller than 2025-26's, so a train fit will likely under-correct 2025-26 - that is accepted,
+the alternative is fitting the validation set.
+JUDGE per series (holdout-practice.txt practice-free; with-practice reported), 20k x 2, A = shipped: (b) all-row win Brier
+better by at least the floor; (c) all-row t10 Brier not worse by more than the floor; (d) rho not worse by more than the
+floor; (e) favourite gap smaller in magnitude; (f) regular top-3 stated-minus-realised win gap smaller in magnitude. SHIP =
+SimulationCenter passes simConfig.topLift per series; stamp topLift 'v1-k<k>-b<b>'; revert trigger = favourite 0-for-3
+weekends vs the books. Cup excluded (cup favourite +1.3, calibrated, 10-09). Validation read #18. PUSH before the fit.

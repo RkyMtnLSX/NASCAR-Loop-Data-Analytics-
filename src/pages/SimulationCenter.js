@@ -1007,13 +1007,13 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
       //   cup:     16 -> 48 (16 winners in 27 races; every market improves monotonically to ~48-70)
       //   oreilly: 18 -> 27 (win-Brier optimum 23-35, min 28; degrades by 48 - Hill dominance is real)
       //   trucks:  23 -> 40 (9 winners in 11 races; optimum ~35-46; n=8 scoreable, re-tune as sample grows)
-      const __SS_NOISE_MULT = { cup: 3.0, oreilly: 1.5, trucks: 1.75 }
-      const __simCaution = isSuperspeedway(config?.track_name)
-        ? { ...cautionPreset, noise: Math.round(cautionPreset.noise * (__SS_NOISE_MULT[series] || 1)) }
-        : cautionPreset
+      // 2026-10-10: the per-series SS multiplier (was __SS_NOISE_MULT here) now lives in the engine (SS_SERIES_NOISE_MULT),
+      // applied when simConfig.series is passed - byte-identical widths, and the backtest harnesses see the same number.
+      const __simCaution = cautionPreset
       const results = runRaceSim(driversWithScores, {
         numSims,
         cautionPreset: __simCaution,
+        series,
         dnfRate: dnfPreset.value,
         totalRaceLaps,
         trackGroup: __trackGroup(config && config.track_name),

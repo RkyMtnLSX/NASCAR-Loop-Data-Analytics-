@@ -494,6 +494,12 @@ function buildSpeedScores(drivers, weights, opts) {
 // outcome noise by 1.75 at SS only. Flows through win/t3/t5/t10, medge, DFS samples - one story.
 // DO NOT retune from in-sample results; the forward judge is SS board win-Brier + the CLV ledger.
 const GROUP_NOISE_MULT = { SS: 1.75 }
+// SS PER-SERIES NOISE (moved into the engine 2026-10-10 from SimulationCenter's __SS_NOISE_MULT, 07-11 Archive C; byte-identical:
+// the page rounded preset.noise x mult before the engine applied GROUP_NOISE_MULT, and the engine now does exactly that when
+// simConfig.series is given). Effective SS widths: cup 16 x 3.0 -> 48 x 1.75 = 84, O'Reilly 18 x 1.5 -> 27 x 1.75 = 47.25,
+// trucks 23 x 1.75 -> 40 x 1.75 = 70. Lives here so the backtest harnesses measure SS at production's width (they did not
+// before this date - PITBOARD_ENGINE.md 3.1 / BACKTEST_LOG 10-10).
+const SS_SERIES_NOISE_MULT = { cup: 3.0, oreilly: 1.5, trucks: 1.75 }
 
 // ONE definition of the accident scale (2026-08-31: this was once written out twice and a ship updated only one
 // copy; sim-smoke caught it). clamp 0.3..8: the 2.5 ceiling was binding on ~15% of holdout boards under the
@@ -585,9 +591,7 @@ function runRaceSim(drivers, simConfig) {
     const wm = __wmFor(p)
     return {
       cautionValue: p.value,
-      // NOTE (10-10, PITBOARD_ENGINE.md 3.1): at SS the page has ALREADY multiplied p.noise by __SS_NOISE_MULT
-      // (cup 3.0 / O'Reilly 1.5 / trucks 1.75) before this; the 08-29 calibration validated the product.
-      noiseWidth: p.noise * (GROUP_NOISE_MULT[trackGroup] || 1),
+      noiseWidth: (trackGroup === 'SS' && simConfig.series && SS_SERIES_NOISE_MULT[simConfig.series] ? Math.round(p.noise * SS_SERIES_NOISE_MULT[simConfig.series]) : p.noise) * (GROUP_NOISE_MULT[trackGroup] || 1),
       LLC: ((LL_CURVES_G[trackGroup] || {})[cb]) || LL_CURVES[cb],
       FLC: ((FL_CURVES_G[trackGroup] || {})[cb]) || FL_CURVES[cb],
       // 2026-09-03 INT dominance-level study (BACKTEST_LOG, pre-registered). EXPERIMENTAL, OFF
@@ -699,6 +703,13 @@ function runRaceSim(drivers, simConfig) {
     // +0.2% taken knowingly. Non-ringers untouched. Season-end: rank-aware b (top-ranked ringers need less than 12).
     // Stage 3 (registered 10-10): optional slope - lift_i = b x (1 + slope x (0.5 - speedScore percentile_i)); slope 0 = flat.
     const __rg = simConfig.ringer && ((+simConfig.ringer.b || 0) !== 0 || (simConfig.ringer.m != null && +simConfig.ringer.m !== 1)) ? { b: +simConfig.ringer.b || 0, m: simConfig.ringer.m != null ? +simConfig.ringer.m : 1, slope: +simConfig.ringer.slope || 0 } : null
+    // TOP-TIER LIFT (registered 2026-10-10, BACKTEST_LOG; OFF unless simConfig.topLift = { k, b }). The k strongest
+    // NON-ringer cars by speedScore draw from speedScore + b. The lower-series top tier is under-stated on win in both eras
+    // (regulars the sim ranks top-3 win 17-20%, stated 13-15%; trucks favourite 22 / 48 on 2025-26) and every width-based
+    // form failed; the 10-09 top-FIFTH stretch failed because it inflated cars 2-7 - hence k, not a tier.
+    const __tl = simConfig.topLift && simConfig.topLift.k > 0 && (+simConfig.topLift.b || 0) !== 0 ? { k: simConfig.topLift.k | 0, b: +simConfig.topLift.b } : null
+    const __tlLift = (() => { if (!__tl) return null; const out = new Float64Array(n).fill(0)
+      const __o = drivers.map((d, x) => x).filter(x => !drivers[x].ringer).sort((a, b) => (drivers[b].speedScore || 0) - (drivers[a].speedScore || 0)); __o.slice(0, __tl.k).forEach(x => { out[x] = __tl.b }); return out })()
     const __rgLift = (() => { if (!__rg) return null; const out = new Float64Array(n).fill(0); if (!__rg.slope) { for (let x = 0; x < n; x++) if (drivers[x].ringer) out[x] = __rg.b; return out }
       const __o = drivers.map((d, x) => x).sort((a, b) => (drivers[a].speedScore || 0) - (drivers[b].speedScore || 0)); __o.forEach((x, r) => { if (drivers[x].ringer) out[x] = __rg.b * (1 + __rg.slope * (0.5 - (n > 1 ? r / (n - 1) : 0.5))) }); return out })()
     const __noise = (i) => { let e = gaussNoise()
@@ -715,7 +726,7 @@ function runRaceSim(drivers, simConfig) {
       if (__lapP && effLap === 0 && Math.random() < __lapP[i]) effLap = 1
       return {
         i,
-        score: d.speedScore + (__rgLift ? __rgLift[i] : 0) + (__adj ? __adj[i] : 0) + __noise(i) * S.noiseWidth * (__rg && d.ringer ? __rg.m : 1),
+        score: d.speedScore + (__rgLift ? __rgLift[i] : 0) + (__tlLift ? __tlLift[i] : 0) + (__adj ? __adj[i] : 0) + __noise(i) * S.noiseWidth * (__rg && d.ringer ? __rg.m : 1),
         dnf: S.wm ? false : (Math.random() < __effRate * __tilt[i]), dnfLap: 0,
         effLap,
       }
@@ -897,6 +908,7 @@ export {
   FL_CURVES,
   FL_CURVES_G,
   GROUP_NOISE_MULT,
+  SS_SERIES_NOISE_MULT,
   LL_CURVES,
   LL_CURVES_G,
   NAME_ALIASES,

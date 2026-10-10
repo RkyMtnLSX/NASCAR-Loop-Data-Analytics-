@@ -29,7 +29,7 @@ function wf(se, tr) {
   return DEFAULT_WEIGHTS
 }
 // production parity: domBoot ships for INT + SHORT only (src/lib/domPools.js)
-const shipped = b => ({ carDnf: b.series === 'trucks' ? { k: 32 } : null, ...((b.g === 'INT' || b.g === 'SHORT') && POOLS[b.series] && POOLS[b.series][b.g] ? { domBoot: POOLS[b.series][b.g] } : {}) })
+const shipped = b => ({ series: b.series, carDnf: b.series === 'trucks' ? { k: 32 } : null, ...((b.g === 'INT' || b.g === 'SHORT') && POOLS[b.series] && POOLS[b.series][b.g] ? { domBoot: POOLS[b.series][b.g] } : {}) })
 function load(file, tag, withPractice) {
   const boards = []
   fs.readFileSync(D(file), 'utf8').split('\n').forEach((line, li) => {

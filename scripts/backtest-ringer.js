@@ -27,17 +27,18 @@ function wf(se, tr) {
   if (se === 'trucks' && __trackGroup(tr) === 'SHORT') return TRUCK_SHORT_WEIGHTS
   return DEFAULT_WEIGHTS
 }
-const shipped = b => ({ carDnf: b.series === 'trucks' ? { k: 32 } : null, ...((b.g === 'INT' || b.g === 'SHORT') && POOLS[b.series] && POOLS[b.series][b.g] ? { domBoot: POOLS[b.series][b.g] } : {}), lappedTraffic: b.series === 'oreilly' ? { series: 'oreilly', k: 1.5 } : null })
+const shipped = b => ({ series: b.series, ringer: b.series !== 'cup' ? { b: 12, m: 1 } : null, carDnf: b.series === 'trucks' ? { k: 32 } : null, ...((b.g === 'INT' || b.g === 'SHORT') && POOLS[b.series] && POOLS[b.series][b.g] ? { domBoot: POOLS[b.series][b.g] } : {}), lappedTraffic: b.series === 'oreilly' ? { series: 'oreilly', k: 1.5 } : null })
 function load(file, tag, withPractice) {
   const boards = []
   fs.readFileSync(D(file), 'utf8').split('\n').forEach((line, li) => {
     if (!line.trim() || line.indexOf('#') === -1) return
     const [h, b] = line.split('#'); const hf = h.split('|'); const off = hf.length === 10 ? 1 : 0
     const [series, track, grp, pDnf, pN, pCau] = hf.slice(off)
-    if (series === 'cup') return
-    const rf = RF[tag + '|' + li]; if (!rf) return
-    const ring = new Set(rf.ringers)
-    const A = ACT[tag + '|' + rf.race_id] || null; const act = {}
+    if (series === 'cup' && !process.env.ALLSERIES) return
+    const fj = FEAT[tag + '|' + li]; if (!fj) return
+    const rf = RF[tag + '|' + li] || null
+    const ring = new Set(rf ? rf.ringers : [])
+    const A = ACT[tag + '|' + fj.race_id] || null; const act = {}
     if (A) A.recs.split(';').forEach(r => { const f = r.split(','); act[f[0] + ':' + f[1]] = { ll: +f[2], fl: +f[3] } })
     const recs = b.split(';').map(r => r.split(',')).filter(f => f.length >= 9)
     const base = [], fin = [], ll = [], fl = []; let nP = 0, nR = 0
@@ -57,11 +58,11 @@ function load(file, tag, withPractice) {
 }
 const spearman = (a, b) => { const n = a.length; const rk = v => { const o = v.map((x, i) => [x, i]).sort((p, q) => p[0] - q[0]); const r = new Array(n); for (let i = 0; i < n;) { let j = i; while (j + 1 < n && o[j + 1][0] === o[i][0]) j++; const m = (i + j) / 2 + 1; for (let k = i; k <= j; k++) r[o[k][1]] = m; i = j + 1 } return r }; const ra = rk(a), rb = rk(b); const ma = ra.reduce((s, x) => s + x, 0) / n, mb = rb.reduce((s, x) => s + x, 0) / n; let sxy = 0, sxx = 0, syy = 0; for (let i = 0; i < n; i++) { sxy += (ra[i] - ma) * (rb[i] - mb); sxx += (ra[i] - ma) ** 2; syy += (rb[i] - mb) ** 2 } return sxx && syy ? sxy / Math.sqrt(sxx * syy) : 0 }
 const tierOf = r => (r <= 2 ? '1-3' : r <= 7 ? '4-8' : r <= 14 ? '9-15' : '16+')
-function run(b, ringer) {
+function run(b, ringer, extra) {
   const sc = buildSpeedScores(b.base, b.w, { lapPenalty: true })
   const withP = sc.filter(d => d.lrpTime != null)
   if (withP.length) { const ord = withP.slice().sort((x, y) => x.lrpTime - y.lrpTime); ord.forEach((d, i) => { d.__spdPct = ord.length > 1 ? 1 - i / (ord.length - 1) : 0.5 }) }
-  const rows = runRaceSim(sc, { numSims: SIMS, cautionPreset: b.preset, dnfRate: b.rate, totalRaceLaps: b.laps, trackGroup: b.g, startSampling: null, asymNoise: b.asym, carCeilFloor: true, ...shipped(b), ...(ringer ? { ringer } : {}) })
+  const rows = runRaceSim(sc, { numSims: SIMS, cautionPreset: b.preset, dnfRate: b.rate, totalRaceLaps: b.laps, trackGroup: b.g, startSampling: null, asymNoise: b.asym, carCeilFloor: true, ...shipped(b), ...(ringer ? { ringer } : {}), ...(extra || {}) })
   const order = rows.slice().sort((x, y) => y.winPct - x.winPct)
   const rank = {}; order.forEach((r, i) => { rank[r.simIdx] = i })
   const out = []
@@ -84,7 +85,51 @@ function summarise(res) {
     stated: { win: mean(ring.map(r => r.win)), t5: mean(ring.map(r => r.t5)), t10: mean(ring.map(r => r.t10)) }, real: { win: mean(ring.map(r => r.w)), t5: mean(ring.map(r => r.f5)), t10: mean(ring.map(r => r.f10)) } }
 }
 const withP = !process.env.NOPRACTICE
-if (STAGE === '3a') {
+if (STAGE === 'top' && PHASE === 'fit') {
+  const fitOut = {}
+  for (const se of ['oreilly', 'trucks']) {
+    const boards = load('train.txt', 'train', false).filter(b => b.series === se)
+    console.log(`\nTOP-LIFT FIT ${se} train.txt: ${boards.length} boards, ${SIMS} sims`)
+    const grid = []
+    for (const [k, b] of [[0, 0], [1, 3], [1, 6], [1, 9], [1, 12], [1, 15], [2, 3], [2, 6], [2, 9], [2, 12], [3, 3], [3, 6], [3, 9]]) {
+      const res = boards.map(x => run(x, null, k ? { topLift: { k, b } } : {}))
+      const all = res.flatMap(r => r.out)
+      const sum = brier(all, 'win', 'w') + brier(all, 't5', 'f5') + brier(all, 't10', 'f10')
+      const favGap = mean(res.map(r => r.favGap)), favHit = mean(res.map(r => r.favHit))
+      grid.push({ k, b, sum, favGap, favHit }); console.log(`k ${k} b ${b}  brier sum ${sum.toFixed(5)}  fav gap ${favGap.toFixed(1)} (hit ${(100 * favHit).toFixed(0)}%)`)
+    }
+    const best = grid.slice().sort((x, y) => x.sum - y.sum)[0]; console.log('BEST', se, JSON.stringify(best)); fitOut[se] = { k: best.k, b: best.b }
+  }
+  fs.writeFileSync(D('toplift-fit.json'), JSON.stringify({ fit: fitOut, sims: SIMS, frozen: new Date().toISOString(), engine: E.__engineSha }, null, 1))
+} else if (STAGE === 'top') {
+  const fit = JSON.parse(fs.readFileSync(D('toplift-fit.json'), 'utf8')).fit
+  for (const se of ['oreilly', 'trucks']) {
+    const f = fit[se]; const boards = load('holdout-practice.txt', 'test', withP).filter(b => b.series === se)
+    console.log(`\nTOP-LIFT TEST ${se} holdout-practice.txt${withP ? ' (with practice)' : ' (practice-free)'}: ${boards.length} boards, ${SIMS} x ${RUNS}, frozen ${JSON.stringify(f)}, control = shipped`)
+    if (!f.k) { console.log('fit is control (k 0) - nothing to judge'); continue }
+    const acc = { A: [], T: [] }
+    for (let r = 0; r < RUNS; r++) {
+      console.log(`--- run ${r + 1} A`); acc.A.push(summarise(boards.map(b => run(b, null))))
+      console.log(`--- run ${r + 1} T (k ${f.k} b ${f.b})`); acc.T.push(summarise(boards.map(b => run(b, null, { topLift: f }))))
+    }
+    const avg = arr => Object.fromEntries(Object.keys(arr[0]).filter(k => typeof arr[0][k] === 'number').map(k => [k, mean(arr.map(x => x[k]))]))
+    const A = avg(acc.A), T = avg(acc.T)
+    const floor = RUNS > 1 ? Object.fromEntries(Object.keys(A).map(k => [k, Math.abs(acc.A[0][k] - acc.A[1][k])])) : null
+    console.log('MEAN  A', JSON.stringify(A)); console.log('MEAN  T', JSON.stringify(T)); if (floor) console.log('FLOOR', JSON.stringify(floor))
+    if (floor) { const ok = { b_winall: T.aWin <= A.aWin - floor.aWin, c_t10all: T.aT10 <= A.aT10 + floor.aT10, d_rho: T.rho >= A.rho - floor.rho, e_fav: Math.abs(T.favGap) < Math.abs(A.favGap), f_regGap: Math.abs(T.regGap) < Math.abs(A.regGap) }
+      console.log('RAILS', se, JSON.stringify(ok), Object.values(ok).every(Boolean) ? 'PASS' : 'FAIL') }
+  }
+} else if (STAGE === 'ss') {
+  for (const [file, tag] of [['train.txt', 'train'], ['holdout-practice.txt', 'test']]) {
+    for (const se of ['cup', 'oreilly', 'trucks']) {
+      const boards = load(file, tag, false).filter(b => b.series === se && b.g === 'SS')
+      if (!boards.length) continue
+      console.log(`\n== SS ${tag} ${se}: ${boards.length} boards, ${SIMS} sims`)
+      console.log('-- PRODUCTION width (series passed)'); summarise(boards.map(b => run(b, null)))
+      console.log('-- HARNESS width (pre-10-10: no series multiplier)'); summarise(boards.map(b => run(b, null, { series: null })))
+    }
+  }
+} else if (STAGE === '3a') {
   const boards = load('train.txt', 'train', false).filter(b => b.hasAct)
   console.log(`STAGE 3a dominator bias on train (shipped b 12 lift): ${boards.length} boards, ${boards.reduce((s, b) => s + b.nR, 0)} ringer rows, ${SIMS} sims`)
   const all = boards.flatMap(b => run(b, { b: 12, m: 1 }).out).filter(r => r.aLL != null)
