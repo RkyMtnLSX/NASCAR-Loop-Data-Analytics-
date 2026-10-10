@@ -3689,6 +3689,18 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
+## 2026-10-10 — Shipped: per-series pre-board constants (the first pre-board fix)
+Operator: "build and register." Built leak-free projected grids for the 274 train races, fit the shading
+and the empty-practice destination per series on them, judged on 161 real pre boards. O'Reilly ships both
+(no shading, practice weight to driver rating): favourite gap -6.9 -> -2.2, win Brier better, top-10 by the
+letter of the floor. Trucks ships the shading alone (no shading): top-10 better on 31 of 43 and 28 of 43
+boards, every rail clean; its practice-weight move lifted the favourite from -19 to -12 and cost top-5,
+the same trade every trucks favourite form has made this week, so it waits for the refit. Cup's own fit
+wanted a much lighter grid (.4) and it bought top-10 at the favourite's expense - cup stays at .7. Net:
+the 0.7 that was on every board since July was right for cup and wrong for the series it was never fit
+for, and the Wednesday boards for O'Reilly and trucks are the first ones to be tuned to their own
+series. Six ships since 10-04, twenty-nine registrations.
+
 ## 2026-10-10 — Pre-board study, stage 1: the grid is cup's problem, practice is the lower series', and the trucks shading was never theirs
 Operator: "register it." Same 162 boards under four conditions, shipped engine. The pre board is 6-8% worse
 than the post board on top-10 Brier in every series. In cup, three quarters of that is the projected grid

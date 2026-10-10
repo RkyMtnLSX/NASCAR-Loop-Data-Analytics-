@@ -9405,3 +9405,27 @@ cup, hurts trucks" said. And the empty practice weight is better spent on correl
 than spread pro rata in both lower series (trucks t10 .16137 -> .16015). Both lam fits sit on a grid edge, so
 if they pass, the registered next step is a finer grid at season end, not a wider one now.
 FROZEN {"lam":{"cup":.4,"oreilly":1,"trucks":1},"dest":{"cup":"prorata","oreilly":"corrHistory","trucks":"corrHistory"}}
+
+## 2026-10-10 — PRE-BOARD STAGE 2 EXECUTED AS REGISTERED: O'REILLY LD and TRUCKS L SHIP; CUP FAILS — SHIPPED
+161 pre boards (production projection, no practice), 20k sims, two runs, mean A -> arm:
+  CUP (61)      L lam .4:  t10 .16222 -> .16117 (better .00105, 38/23 and 39/22)   rho .4034 -> .4038   t5B .09751 -> .09710
+                winB .02254 -> .02258 (worse .00004, floor .00001: (d) FAILS)   fav gap -3.15 -> -7.15 (worse 4.0: (e) FAILS)   winner rank 6.94 -> 7.05
+                NOT SHIPPED: a lighter grid buys top-10 and costs the favourite - cup stays at .7.
+  O'REILLY (57) LD (lam 1, corrHistory): t10 .14550 -> .14547 (better .00003 = the floor, (b) passes by the letter)   rho .4782 -> .4792
+                winB .02204 -> .02175   t5B .08954 -> .08954   fav gap -6.9 -> -2.15   fav hits 31% -> 32.5%   winner rank 4.84 -> 4.71   -> PASSES, SHIPS
+                for the record: L alone t10 .14542, D alone t10 .14528 (the stronger single piece; D's rank +.08 within .25). The rule
+                names LD when LD passes; D alone would also have passed.
+  TRUCKS (43)   LD (lam 1, corrHistory): t10 .16161 -> .16065 (29/14, 27/16)  rho .4792 -> .4819  winB .02471 -> .02409  fav gap -19.4 -> -10.2
+                t5B .10141 -> .10180 (WORSE .00038, floor .00004: (d) FAILS)
+                L alone (lam 1): t10 .16161 -> .16103 (31/12, 28/15)  rho .4792 -> .4809  winB .02471 -> .02455  t5B .10141 -> .10134
+                fav gap -19.4 -> -19.9 (within 1.0)  winner rank 4.57 -> 4.54   -> PASSES every rail, SHIPS ALONE (per the rule)
+                D alone fails on t5B (.10176). The corrHistory destination lifts the trucks favourite (-19 -> -12) and costs top-5 -
+                the same trade as every trucks favourite form this week; filed with the season-end refit.
+SHIPPED (this commit, SimulationCenter buildSpeedScores opts): projShade = .7 for cup (unchanged), 1.0 for O'Reilly and
+trucks (no shading of projected starts); emptyPracticeTo = 'corrHistory' for O'Reilly (pro rata elsewhere). Boards stamp
+config.projShade 'v1-0.7' / 'v2-1.0' and config.emptyPractice 'corrHistory' / 'prorata'. Both are no-ops on a post board
+(real grid, practice present); they change only the pre board. Revert trigger as registered: a series' pre-board
+favourite 0-for-3 weekends vs the books. NEXT (named, not registered): lam sits on the grid edge in all three series
+(.4 cup, 1.0 lower) - a finer / wider grid at season end; and the trucks corrHistory destination with a top-5 guard.
+Six ships since 10-04: trucks per-car DNF, dominator bootstrap INT+SHORT, SS FL budget, O'Reilly lapped traffic,
+O'Reilly pre-board (lam 1 + corrHistory), trucks pre-board (lam 1). Twenty-nine registrations: six ships, twenty-three closed.
