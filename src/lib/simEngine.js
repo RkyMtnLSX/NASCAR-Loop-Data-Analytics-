@@ -672,6 +672,8 @@ function __dnfFraction(n, dnfRate, wm, iters, wide) {
 // are judged forward. Other groups untouched. Reconstruct the old allocator with domPool:'finish'.
 const INT_DOM_V2 = { alpha: 0.5, kLL: 0.5, kFL: 0.75, flBudget: 0.7794, curves: { LL: { low: [0.4048,0.2022,0.1272,0.0885,0.0619,0.0437,0.0282,0.017,0.0094,0.0064,0.0041,0.0027,0.0017,0.0008,0.0007,0.0004,0.0001,0.0001,0.0001,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], mid: [0.4048,0.2022,0.1272,0.0885,0.0619,0.0437,0.0282,0.017,0.0094,0.0064,0.0041,0.0027,0.0017,0.0008,0.0007,0.0004,0.0001,0.0001,0.0001,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], high: [0.367,0.2087,0.1281,0.0936,0.0663,0.0479,0.0332,0.0201,0.0123,0.0081,0.0062,0.0039,0.0022,0.0009,0.0008,0.0004,0.0001,0.0001,0.0001,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0] }, FL: { low: [0.2324,0.1461,0.1122,0.0858,0.0714,0.0587,0.0494,0.0406,0.0347,0.029,0.024,0.0203,0.0164,0.0147,0.0128,0.0105,0.0082,0.0068,0.0061,0.005,0.0039,0.0029,0.0018,0.0016,0.0014,0.001,0.0009,0.0007,0.0004,0.0002,0.0002,0.0002,0,0,0,0,0,0,0,0], mid: [0.2324,0.1461,0.1122,0.0858,0.0714,0.0587,0.0494,0.0406,0.0347,0.029,0.024,0.0203,0.0164,0.0147,0.0128,0.0105,0.0082,0.0068,0.0061,0.005,0.0039,0.0029,0.0018,0.0016,0.0014,0.001,0.0009,0.0007,0.0004,0.0002,0.0002,0.0002,0,0,0,0,0,0,0,0], high: [0.2374,0.1526,0.1202,0.0878,0.0718,0.0572,0.0485,0.0407,0.0348,0.0289,0.0223,0.0193,0.0155,0.0135,0.0112,0.0095,0.007,0.005,0.0047,0.0044,0.0027,0.0021,0.001,0.0006,0.0006,0.0002,0.0002,0.0002,0,0,0,0,0,0,0,0,0,0,0,0] } } }
 
+const SS_FL_BUDGET = 0.6938
+
 function runRaceSim(drivers, simConfig) {
   const { numSims, cautionPreset, totalRaceLaps, trackGroup, startSampling, cautionMix, skillTilt } = simConfig
   // INT dominance v2 defaults (see INT_DOM_V2). Explicit simConfig values always win; domPool:'finish'
@@ -681,6 +683,13 @@ function runRaceSim(drivers, simConfig) {
       flBudget: simConfig.flBudget != null ? simConfig.flBudget : INT_DOM_V2.flBudget,
       domCurves: simConfig.domCurves || INT_DOM_V2.curves }
   } else if (simConfig.domPool === 'finish') { simConfig = { ...simConfig, domPool: null } }
+  // SS FASTEST-LAP BUDGET (shipped 2026-10-10, operator call on the 10-10 SS re-judge, BACKTEST_LOG): at
+  // superspeedways fastest laps are dealt for the measured green-lap fraction of the race (train 2022-24,
+  // 44 SS races, all series) instead of every lap. 27 practice-free 2025-26 SS boards: FL MAE 2.43 -> 2.02
+  // (26 of 27 better), every other metric a tie to 4 dp incl. DK rho. The strength-keyed dealing order
+  // (the INT v2 pool) was a wash at SS and is NOT shipped; SHORT / ROAD keep the every-lap budget until the
+  // top-end finish order is fixed (the over-count props it up there - 10-10 dom-groups). Explicit wins.
+  if (trackGroup === 'SS' && simConfig.flBudget == null) simConfig = { ...simConfig, flBudget: SS_FL_BUDGET }
   let dnfRate = simConfig.dnfRate
   // SS dominator tilt keys off the sim's own speedScore percentile, NOT practice __spdPct:
   // SS races often have no practice (everyone defaulted to neutral 0.5, making any tilt a no-op),
@@ -1182,6 +1191,7 @@ export {
   __applyRainOut,
   __trackGroup,
   INT_DOM_V2,
+  SS_FL_BUDGET,
   buildSpeedScores,
   dkFinishPts,
   gaussNoise,

@@ -69,7 +69,7 @@ const spearman = (a, b) => { const n = a.length; const rk = v => { const o = v.m
 const tierOf = r => (r === 0 ? '1' : r <= 2 ? '2-3' : r <= 5 ? '4-6' : r <= 11 ? '7-12' : '13+')
 // arm config: CONTROL / NULL = shipped; A = + flBudget; B = A + strength order (alpha, kLL, kFL)
 function cfg(arm, b, fit) {
-  const base = { numSims: SIMS, cautionPreset: b.preset, dnfRate: b.rate, totalRaceLaps: b.laps, trackGroup: b.g, startSampling: null, asymNoise: b.asym, ...shipped(b), domPool: 'finish' }
+  const base = { numSims: SIMS, cautionPreset: b.preset, dnfRate: b.rate, totalRaceLaps: b.laps, trackGroup: b.g, startSampling: null, asymNoise: b.asym, ...shipped(b), domPool: 'finish', ...(b.g === 'SS' ? { flBudget: 1 } : {}) }   // CONTROL reconstructs the pre-10-10 every-lap SS budget
   if (arm === 'CONTROL' || arm === 'NULL') return base
   const f = fit[b.g]
   base.flBudget = f.G_FL

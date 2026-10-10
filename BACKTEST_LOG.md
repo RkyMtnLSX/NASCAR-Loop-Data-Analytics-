@@ -9132,3 +9132,12 @@ SS group default next to INT's - and HOLD B. ROAD and SHORT stay on the over-cou
 fixed (10-10 dom-groups reading); SS is the one group where the budget is free. If shipped: SimulationCenter
 stamps domCurves 'ss-flbudget-v1' at SS; revert trigger as the dom-groups registration.
 Twenty-two registrations since 10-04: two ships, two calls open (O'Reilly lapped traffic, SS FL budget), eighteen closed.
+
+## 2026-10-10 — SHIPPED (operator: "ship the SS budget"): SS fastest-lap budget — SS_FL_BUDGET 0.6938 as the superspeedway group default
+Engine: runRaceSim sets flBudget = SS_FL_BUDGET at trackGroup SS when none is passed (explicit wins);
+SimulationCenter stamps config.domCurves 'ss-flbudget-v1' on SS boards. The strength-keyed order is NOT
+shipped at SS (a wash); SHORT / ROAD keep the every-lap budget (10-10 dom-groups reading). Harness
+backtest-dom-groups.js CONTROL reconstructs the pre-ship SS budget (flBudget 1) so the record stays
+reproducible. Revert trigger as the dom-groups registration (SS DK dominator-point error worse than the
+10-09 stage-1 diagnostic two straight weekends). Three ships since 10-04 (trucks per-car DNF, dominator
+bootstrap INT+SHORT, SS FL budget); one call open (O'Reilly lapped traffic).
