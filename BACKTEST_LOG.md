@@ -9513,3 +9513,9 @@ by more than 1.0; (f) winner's sim rank not worse by more than .25. T ships as t
 'v2-tier-<rest>/.7'); V ships as the trucks __V4_BETA entry (stamp startProj 'trail10-v4-form' on trucks boards) - the
 10-09 ship form. 18 boards is thin for V and is stated as such; the registered floor is what decides.
 SMOKE: 20-sim loader checks read to the header / first train row only; no holdout rows seen. PUSH before the fit.
+
+## 2026-10-10 — STAGE 4: CUP TIERED FIT — FROZEN before the holdout is read
+  rest .3 t10 .16927 | .4 .16902 | .5 .16896 | .7 (= ship) .16905  -> rest lam .5, elite .7. Written before the holdout: holding the
+  top-5 at .7 gives back almost all of the uniform-.4 in-sample gain (.16848 at stage 2 vs .16896 here) - the cup top-10 gain
+  came mostly FROM shading the elites' projected starts, which is the same thing that under-stated the favourite. Expect a wash.
+  Trucks V needs no fit (frozen 10-09 betas).
