@@ -9680,3 +9680,22 @@ CALIBRATION LEADS FOR THE SEASON-END REFIT (2022-26 fit, 2027 judge), in the ord
      covariate; the identity flag treats them alike today.
   5. Take the lift out of the regulars' top tier explicitly: the 12 points come from everyone; if the regular favourite is
      systematically under after the lift, the win-share transfer should come from the mid-field, not the top.
+
+## 2026-10-10 — PRE-REGISTERED: #54 STAGE 3 — RANK-AWARE RINGER LIFT + dominator bias check. Written before the fit. DO NOT MODIFY.
+TRIGGER. Operator: "why wait for the season to end - cup drivers cannot moonlight for the rest of the year." Correct: the
+ringer sample is complete today and no judge rows accrue by waiting. DISCLOSED: the 2025-26 holdout has been read once
+(stage 2'). This is the second and last form judged on it; anything after this waits for 2027 rows.
+STAGE 3a (diagnostic first, no fit): laps-led and fastest-lap bias on ringer rows, shipped engine WITH the b 12 lift, on
+train (dom-train-actuals.json) - sim LL / FL per ringer row vs actual, vs non-ringers matched by sim rank. Reported only;
+it decides whether lead 2 (rating-input lift) is registered later.
+STAGE 3b FORM. simConfig.ringer = { b, m: 1, slope } : lift_i = b x (1 + slope x (0.5 - pct_i)) where pct_i is the ringer's
+speedScore percentile in the field (1 = strongest) - slope 0 is the shipped flat lift; slope > 0 gives a buried ringer
+more and a top-ranked ringer less; the field-mean lift for a mid-field ringer is unchanged at b. FIT on train ringer rows:
+grid b in {8, 10, 12, 14}, slope in {0, 0.5, 1, 1.5, 2}, 10k sims, by WORST-TIER calibration error - the largest absolute
+stated-minus-realised gap across win / t5 / t10 over the four sim-rank tiers (1-3 / 4-8 / 9-15 / 16+) - ties broken by the
+pooled ringer Brier sum. Committed to ringer-fit3.json before the holdout is read.
+JUDGE (holdout-practice.txt practice-free, 158 ringer rows, 20k x 2; control A = SHIPPED b 12 flat): (b) ringer worst-tier
+gap smaller than A's; (c) ringer t5 + t10 Brier not worse than A by more than the floor; (d) all-row win Brier not worse
+than A by more than the floor (the one rail the flat lift missed - the rank-aware form must not add to it); (e) regular
+top-3 stated-minus-realised win gap not wider than A's. Ship = SimulationCenter passes the slope; stamp ringer
+'v2-b<b>-s<slope>'. PUSH before the fit.

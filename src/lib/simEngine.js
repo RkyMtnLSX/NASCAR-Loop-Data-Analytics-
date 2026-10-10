@@ -697,7 +697,10 @@ function runRaceSim(drivers, simConfig) {
     // the registered narrowing form (m < 1) failed its confirmation rule and m stays 1. Fit b on 2022-24 (grid edge, 12),
     // judged on 2025-26: ringer win / t5 / t10 land on their realised rates, favourite gap halves; all-row win Brier
     // +0.2% taken knowingly. Non-ringers untouched. Season-end: rank-aware b (top-ranked ringers need less than 12).
-    const __rg = simConfig.ringer && ((+simConfig.ringer.b || 0) !== 0 || (simConfig.ringer.m != null && +simConfig.ringer.m !== 1)) ? { b: +simConfig.ringer.b || 0, m: simConfig.ringer.m != null ? +simConfig.ringer.m : 1 } : null
+    // Stage 3 (registered 10-10): optional slope - lift_i = b x (1 + slope x (0.5 - speedScore percentile_i)); slope 0 = flat.
+    const __rg = simConfig.ringer && ((+simConfig.ringer.b || 0) !== 0 || (simConfig.ringer.m != null && +simConfig.ringer.m !== 1)) ? { b: +simConfig.ringer.b || 0, m: simConfig.ringer.m != null ? +simConfig.ringer.m : 1, slope: +simConfig.ringer.slope || 0 } : null
+    const __rgLift = (() => { if (!__rg) return null; const out = new Float64Array(n).fill(0); if (!__rg.slope) { for (let x = 0; x < n; x++) if (drivers[x].ringer) out[x] = __rg.b; return out }
+      const __o = drivers.map((d, x) => x).sort((a, b) => (drivers[a].speedScore || 0) - (drivers[b].speedScore || 0)); __o.forEach((x, r) => { if (drivers[x].ringer) out[x] = __rg.b * (1 + __rg.slope * (0.5 - (n > 1 ? r / (n - 1) : 0.5))) }); return out })()
     const __noise = (i) => { let e = gaussNoise()
       if (simConfig.carCeilFloor && e > 0) { const lr = drivers[i].lappedRate; if (lr != null && !isNaN(lr) && lr > CEIL_FLOOR) e *= Math.max(0.1, 1 - lr) }
       if (__spd && __spd[i] < 0.5 && e > 0) e *= (0.5 + __spd[i]); return e }
@@ -712,7 +715,7 @@ function runRaceSim(drivers, simConfig) {
       if (__lapP && effLap === 0 && Math.random() < __lapP[i]) effLap = 1
       return {
         i,
-        score: d.speedScore + (__rg && d.ringer ? __rg.b : 0) + (__adj ? __adj[i] : 0) + __noise(i) * S.noiseWidth * (__rg && d.ringer ? __rg.m : 1),
+        score: d.speedScore + (__rgLift ? __rgLift[i] : 0) + (__adj ? __adj[i] : 0) + __noise(i) * S.noiseWidth * (__rg && d.ringer ? __rg.m : 1),
         dnf: S.wm ? false : (Math.random() < __effRate * __tilt[i]), dnfLap: 0,
         effLap,
       }
