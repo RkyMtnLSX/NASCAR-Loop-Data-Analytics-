@@ -703,7 +703,7 @@ function runRaceSim(drivers, simConfig) {
     // +0.2% taken knowingly. Non-ringers untouched. Season-end: rank-aware b (top-ranked ringers need less than 12).
     // Stage 3 (registered 10-10): optional slope - lift_i = b x (1 + slope x (0.5 - speedScore percentile_i)); slope 0 = flat.
     const __rg = simConfig.ringer && ((+simConfig.ringer.b || 0) !== 0 || (simConfig.ringer.m != null && +simConfig.ringer.m !== 1)) ? { b: +simConfig.ringer.b || 0, m: simConfig.ringer.m != null ? +simConfig.ringer.m : 1, slope: +simConfig.ringer.slope || 0 } : null
-    // TOP-TIER LIFT (registered 2026-10-10, BACKTEST_LOG; OFF unless simConfig.topLift = { k, b }). The k strongest
+    // TOP-TIER LIFT (registered + SHIPPED 2026-10-10 for trucks k 2 b 12, BACKTEST_LOG; simConfig.topLift = { k, b }). The k strongest
     // NON-ringer cars by speedScore draw from speedScore + b. The lower-series top tier is under-stated on win in both eras
     // (regulars the sim ranks top-3 win 17-20%, stated 13-15%; trucks favourite 22 / 48 on 2025-26) and every width-based
     // form failed; the 10-09 top-FIFTH stretch failed because it inflated cars 2-7 - hence k, not a tier.

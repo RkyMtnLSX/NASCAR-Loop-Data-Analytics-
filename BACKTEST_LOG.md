@@ -9763,3 +9763,42 @@ better by at least the floor; (c) all-row t10 Brier not worse by more than the f
 floor; (e) favourite gap smaller in magnitude; (f) regular top-3 stated-minus-realised win gap smaller in magnitude. SHIP =
 SimulationCenter passes simConfig.topLift per series; stamp topLift 'v1-k<k>-b<b>'; revert trigger = favourite 0-for-3
 weekends vs the books. Cup excluded (cup favourite +1.3, calibrated, 10-09). Validation read #18. PUSH before the fit.
+
+## 2026-10-10 — SS DIAGNOSTIC AT PRODUCTION WIDTH: the live SS board is calibrated; the harness width was the one that was off. No follow-up.
+Shipped engine, SS boards only, production width (series multiplier x 1.75) vs the pre-10-10 harness width, 10k sims:
+  CUP   train 18 / validation 11: production top-3 regulars 5.9 stated / 6.1 realised (validation), harness width had
+        them +5.0 over; win Brier .02420 vs .02457, t10 .1827 vs .1971 - production is BETTER calibrated on every market.
+        Cup plate races are near-flat at the top and the live engine says so; the harness had been saying otherwise.
+  O'REILLY  train 17 / validation 11: regulars 2.6 / 2.7 win at both widths, Brier within .0005 either way; top-3 gap
+        -9.0 (train) at production vs -12.9 at harness width; validation -0.6 vs -0.6. Calibrated at production.
+  TRUCKS  train 9 / validation 5: too few boards to say more than "no contradiction" (regulars 2.7 / 1.9, top-3 +5.9 vs +8.7).
+VERDICT: production SS is at least as well calibrated as the harness ever measured, in cup clearly better. The SS FL
+budget ship stands (width-independent); the 10-10 dom-groups SS cell and the pre-board SS cells were measured at the
+narrower width - their SS conclusions were "no ship / wash", which production's width does not overturn. All harnesses
+pass series from this commit. SS_SERIES_NOISE_MULT is now one definition in one place. Closed.
+
+## 2026-10-10 — TOP-TIER LIFT: FIT FROZEN (train 2022-24, 10k). Written before the validation set is read.
+  O'REILLY (99)  control .26006 | k1 b3 .26031 ... | k2 b3 .25999 (best) | k2 b6 .26043 | k3 b3 .26015 - a .00007 gain:
+                 noise-level; stated before the read: O'Reilly's favourite is calibrated (10-09 -1.0) and this will likely fail.
+  TRUCKS (67)    control .27442 fav gap -5.1 | k1 b6 .27354 | k1 b12 .27359 | k2 b6 .27273 | k2 b9 .27257 | k2 b12 .27238 (best,
+                 fav gap +1.3) | k3 b9 .27275. Grid edge on b for k 2 (12 was the largest b for k 2) - noted, not acted on.
+  FROZEN {"oreilly":{"k":2,"b":3},"trucks":{"k":2,"b":12}}.
+
+## 2026-10-10 — TOP-TIER LIFT EXECUTED AS REGISTERED: TRUCKS PASSES EVERY RAIL IN BOTH SETS — SHIPPED. O'Reilly fails — closed. Validation read #18.
+  TRUCKS practice-free (43 boards, 20k x 2) A -> T (k 2, b 12):
+     all-row win Brier .024475 -> .023856 (better 2.5%, floor .00001)   t10 .16010 -> .15975 (better)   rho .4924 -> .4944 (better)
+     favourite gap -17.1 -> -9.5 (hit 38% both)   regular top-3 win gap -7.3 -> +1.7 (floor 1.2)
+     by tier, regulars: top-3 14.2 / 22.1 -> 20.6 / 18.9 (win), t5 45.6 / 58.1 -> 55.7 / 56.8, t10 63.5 / 76.7 -> 70.1 / 74.7;
+     4-8 5.2 / 3.6 -> 4.0 / 4.4; 9-15 and 16+ unchanged within noise.
+     COST, reported: trucks RINGERS go 11.1 / 12.0 -> 8.6 / 12.0 on win - the lifted regulars take some of the share the
+     ringer lift gave back. Still far better than pre-#54 (7.8), and no third look at 2025-26 for the ringer family.
+  TRUCKS with practice (29 boards): win Brier .023471 -> .022468 (better 4.3%), t10 tie, rho better, fav gap -19.3 -> -13.7,
+     regular top-3 gap -8.4 -> +0.3. PASS.
+  O'REILLY practice-free (57): win Brier better (.021899 -> .021747) but t10 worse past the floor; with practice (26): win
+     Brier and favourite gap both worse. FAILS as registered - as stated before the read. Closed; O'Reilly stays k 0.
+  SHIPPED: SimulationCenter passes simConfig.topLift { k: 2, b: 12 } on trucks boards; stamp topLift 'v1-k2-b12'. Revert
+  trigger: trucks favourite 0-for-3 weekends vs the books. The favourite is still under-stated by ~9-14 points on 2025-26
+  after this (the train era supports 12, 2025-26 wants more) - the first thing the 2027 rows will tell us is whether b
+  belongs at 12 or nearer 18; that refit is 2022-26 -> judge 2027, not a third 2025-26 read.
+  PRODUCT NOTE for the operator: the trucks board's top two regulars now carry the win share the data says they earn; the
+  interim manual rule ("no win FADE on the top-rated truck") can be retired once two trucks weekends of 2027 confirm.

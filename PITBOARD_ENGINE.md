@@ -169,17 +169,13 @@ The row also carries `__spW`, `__spUsed` (for start sampling) and the `scores` b
 | trucks | 4 / 15 | 8 / 23 | 15 / 35 |
 
 The preset's *value* chooses the caution bucket (low / mid / high → wreck pool and dominator curves); its *noise* is
-the finish-draw width. At SS the width is multiplied **twice**: in the page by `__SS_NOISE_MULT` = cup **3.0** /
-O'Reilly **1.5** / trucks **1.75** (07-11 walk-forward, Archive C), and in the engine by `GROUP_NOISE_MULT.SS =
-1.75` (08-29, fit 2022-24 / holdout 2025-26). Effective SS widths in production: cup 16 × 3.0 × 1.75 = **84**,
-O'Reilly 18 × 1.5 × 1.75 = **47.3**, trucks 23 × 1.75 × 1.75 = **70.4**. The 08-29 calibration reconstructed the live
-R24 board (so the page multiplier is inside its baseline) and the cup sweep the same night found the minimum not
-below 1.75, so production is what was validated. **Known discrepancy:** the `scripts/backtest-*.js` harnesses build
-`cautionPreset` from `getCautionPresets()` directly and do *not* apply `__SS_NOISE_MULT` — every SS backtest since the
-08-30 extraction (SS FL budget, SS re-judge, dom-groups SS cell) ran at 28 / 31.5 / 40 instead of 84 / 47 / 70. The
-SS FL-budget ship judged FL MAE, which does not depend on the width, but any SS win / t5 result from a harness is not
-production's number. Flagged 10-10 in this document; not yet fixed (fix = move the per-series multiplier into the
-engine so both paths see it).
+the finish-draw width. At SS the width is multiplied twice, both inside the engine since 10-10: by
+`SS_SERIES_NOISE_MULT` = cup **3.0** / O'Reilly **1.5** / trucks **1.75** (07-11 walk-forward, Archive C; rounded, applied
+when `simConfig.series` is passed) and by `GROUP_NOISE_MULT.SS = 1.75` (08-29, fit 2022-24 / holdout 2025-26). Effective
+SS widths: cup 48 × 1.75 = **84**, O'Reilly 27 × 1.75 = **47.3**, trucks 40 × 1.75 = **70**. The 08-29 calibration
+reconstructed a live board, so the series multiplier is inside its baseline. Until 10-10 the harnesses did not apply the
+series multiplier (SS backtests ran at 28 / 31.5 / 40); the 10-10 SS diagnostic at production width found the live SS
+board calibrated (cup top-3 regulars 5.9% stated / 6.1% realised) and better than the harness width had implied.
 
 Per draw: `score_i = speedScore_i + startAdj_i + eps_i × noiseWidth`, eps standard normal, shaped by:
 
@@ -240,6 +236,13 @@ under-states a cup regular on every market, about 2x on win; the lift puts him o
 stated / 13.9 realised, top-5 42.7 / 41.8, top-10 59.5 / 62.0) at a 0.2% cost in all-row win Brier. Stamp `ringer`
 'v1-b12' / 'off'. Cup boards have no ringers.
 
+### 3.4c Top-tier lift, trucks (10-10, k = 2, b = 12)
+
+The two strongest non-ringer trucks by speedScore draw from `speedScore + 12`. The lower-series rank-to-win curve was too
+flat at the top in both eras (regulars ranked top-3 stated 13-15% / realised 17-22%); width-based forms and the top-fifth
+stretch failed; this level form on two cars passed every rail on both validation sets (all-row win Brier −2.5% / −4.3%,
+favourite gap −17 → −9.5). O'Reilly fitted and failed (calibrated); cup never fitted. Stamp `topLift` 'v1-k2-b12' / 'off'.
+
 ### 3.5 Finish order
 
 Sort: running before DNF; DNFs by later lap first; fewer laps down first; then score descending. Position 1..n per
@@ -283,7 +286,7 @@ quartiles; sorted by projDK.
 ## 4. What the published config stamps mean
 
 `lapFeature` v1-0.15 / off · `carCeilFloor` v1-0.70 · `carDnf` v1-k32 / off · `lapTraffic` v2-k1.5 / off ·
-`projShade` v1-0.7 (cup) / v2-1.0 · `ringer` v1-b12 / off · `emptyPractice` corrHistory (O'Reilly) / prorata · `domBoot` v1-INT|SHORT / off ·
+`projShade` v1-0.7 (cup) / v2-1.0 · `ringer` v1-b12 / off · `topLift` v1-k2-b12 / off · `emptyPractice` corrHistory (O'Reilly) / prorata · `domBoot` v1-INT|SHORT / off ·
 `asymNoise` v1-upside-0.5 / off · `practiceMetric` best5 / overall_avg · `poolScope` series-only · `borrowMode`
 car-auto-v2 · `recencyCw` 2 / 3 · `pitCrew` v1-0.06-fenced · `domCurves` int-dom-v2 / ss-flbudget-v1 /
 gxc-v3.1-dnfLL · `domSpeed` mult-v1 · `startProj` trail10-v4-form / trail10-v3.5-eqStart · `dnfModel` wreck-v1.1-cb ·
@@ -307,6 +310,7 @@ multiplier (section 3.1).
 | per-car DNF | off | off | k 32 |
 | lapped traffic | off | k 1.5 | off |
 | ringer lift | — | +12 | +12 |
+| top-tier lift (2 strongest regulars) | — | — | +12 |
 | SS page noise multiplier | 3.0 | 1.5 | 1.75 |
 | SS weights | SUPERSPEEDWAY | ONEILLY_SS (+winConv) | SUPERSPEEDWAY |
 | trucks SHORT start weight | — | — | .33 |
@@ -342,7 +346,6 @@ What remains configurable in `simConfig` is the shipped mechanism set and its ca
   pre boards, misses the winner's-sim-rank rail by .03 of a place (6.92 → 7.20 vs a .25 allowance) where that metric's
   own run-to-run noise is .06–.13. Cup pre boards only; post boards unaffected. Operator call open; the engine runs
   the 07-25 flat 0.7 until it is made.
-- **Harness vs production SS noise** (section 3.1) — decide whether to move `__SS_NOISE_MULT` into the engine.
 - **Ringer lift refinement** (season end, 2022-26 fit / 2027 judge): a flat +12 over-lifts ringers the sim already ranks
   top-3 and under-lifts those ranked 9+; candidates in BACKTEST_LOG 10-10 (#54 ship entry).
 - **Trucks favourite** (stated 22% / realised 48% on 2025-26): season-end refit on 2025-26 with 2027 as judge; the
