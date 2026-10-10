@@ -9108,3 +9108,27 @@ refit. Same arms (CONTROL / A / B), same metrics, same decision rule as the dom-
 RUNS=2, SS only. The 08-29 SS LL / FL tilts stay in every arm. This is the third of the operator's three
 registrations; the "re-judge stacked on a top-end fix" variant has nothing to stack on (volatility and pass
 differential both closed), so it is not run. PUSH before the run.
+
+## 2026-10-10 — SS RE-JUDGE EXECUTED AS REGISTERED: A (FL budget) is clean on every metric, B is a wash — BY THE LETTER both miss on a ZERO null floor — OPERATOR CALL
+27 practice-free SS boards (cup 11 / O'Reilly 11 / trucks 5), 20k sims, two runs, mean CONTROL -> A -> B:
+  llMAE 5.225 -> 5.23 -> 5.13 (B 18/9)     flMAE 2.43 -> 2.02 -> 2.03 (26/1 both)     dkRho .1985 -> .199 -> .201
+  winB .02453 -> .02454 -> .02452   t5B .1071 -> .1071 -> .1072   t10B .18255 -> .1825 -> .1825
+  tier-1 LL bias +2.9 -> +2.85 -> -3.2 (B flips the sign, magnitude 2.9 -> 3.2)   tier 2-3 LL +2.9 -> +3.0 -> +0.3
+  P(top-LL car wins) 1.000 -> 1.000 -> .277 (actual SS 2022-24 .182)
+  Null floor (CONTROL run 1 vs run 2): llMAE .01, flMAE .00, dkRho .001, winB .0000, t5B .0000, t10B .0001.
+BY THE LETTER: B fails (c) on top-5 Brier by .0001 against a floor of .0000 and (d) on |tier-1 LL bias| by 0.3
+laps; A fails (c) on win Brier by .00001 against a floor of .0000. The registered rule inherits the dom-groups
+rule, whose "within the null floor" clause has no tie band, and on a seeded harness the control's run-to-run
+floor on the Brier metrics is literally zero - so no arm that changes anything can pass (c). This is the 10-09
+stage-2 defect again (tie band tighter than noise), and it is mine; stated rather than reinterpreted.
+WHAT THE NUMBERS SAY: A is a measurement, not a model (fastest laps exist only on green laps; SS runs 69%
+green), it improves the fastest-lap count on 26 of 27 boards, and every other metric is a tie to four
+decimals, including DK rho (.1985 -> .199) - unlike SHORT, where removing the over-count cost DK rho .016,
+because SS fastest laps are spread across the field (the 08-29 finding: FL share RISES down the field at SS)
+and were never propping up the top. B (strength order) improves laps-led MAE 19/8 and DK rho +.002, but flips
+the tier-1 laps-led bias from +2.9 (under) to -3.2 (over) and ties everything else: a wash.
+RECOMMENDATION (operator call, the rule as written cannot pass anything): SHIP A at SS - flBudget .6938 as the
+SS group default next to INT's - and HOLD B. ROAD and SHORT stay on the over-count until the top-end order is
+fixed (10-10 dom-groups reading); SS is the one group where the budget is free. If shipped: SimulationCenter
+stamps domCurves 'ss-flbudget-v1' at SS; revert trigger as the dom-groups registration.
+Twenty-two registrations since 10-04: two ships, two calls open (O'Reilly lapped traffic, SS FL budget), eighteen closed.

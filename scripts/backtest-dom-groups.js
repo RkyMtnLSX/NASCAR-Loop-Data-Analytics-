@@ -13,7 +13,7 @@ const { buildSpeedScores, runRaceSim, getCautionPresets, resolveDnfRate, __track
   isRoadCourse, isSuperspeedway, DEFAULT_WEIGHTS, TRUCK_SHORT_WEIGHTS, ROAD_COURSE_WEIGHTS,
   TRUCK_ROAD_WEIGHTS, SUPERSPEEDWAY_WEIGHTS, ONEILLY_SUPERSPEEDWAY_WEIGHTS } = E
 const PHASE = process.env.PHASE || 'test', SIMS = Number(process.env.SIMS || (PHASE === 'fit' ? 1500 : 20000)), RUNS = Number(process.env.RUNS || 2)
-const GROUPS = (process.env.GROUPS || 'SHORT,ROAD,SS').split(',')
+const GROUPS = (process.env.DOMGROUPS || 'SHORT,ROAD,SS').split(',')
 const D = f => path.join(__dirname, 'backtest-data', f)
 const FEAT = JSON.parse(fs.readFileSync(D('protocol-features.json'), 'utf8'))
 const POOLS = JSON.parse(fs.readFileSync(D('dom-pools.json'), 'utf8'))
