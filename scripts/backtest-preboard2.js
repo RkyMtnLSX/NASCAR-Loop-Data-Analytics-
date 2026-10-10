@@ -33,8 +33,9 @@ for (const se of ['cup', 'oreilly', 'trucks']) for (const l of fs.readFileSync(D
   const rows = b.split(';').map(r => { const f = r.split(','); return { st: +f[0], fi: +f[1], tr: num(f[2]), lfp: num(f[3]) } })
   PROJ[se + '|' + rows.map(r => r.st + ':' + r.fi).sort().join('|')] = { grp, rows }
 }
-function projectedRankTest(series, R) {
-  const beta = BETA[series]; const b = beta ? (beta[R.grp] || 0) : 0
+const TBETA = JSON.parse(fs.readFileSync(D('start-v4-fit-trucks.json'), 'utf8')).beta   // stage 4: trucks v4 (frozen 10-09, fit 2025) - judged on 2026 boards only
+function projectedRankTest(series, R, useV4Trucks) {
+  const beta = series === 'trucks' ? (useV4Trucks ? TBETA : null) : BETA[series]; const b = beta ? (beta[R.grp] || 0) : 0
   const vals = R.rows.map(d => d.tr == null ? null : d.tr + (d.lfp == null ? 0 : b * (d.lfp - 0.5)))
   const idx = vals.map((v, i) => i).filter(i => vals[i] != null).sort((a, c) => vals[a] - vals[c]); const rk = new Array(vals.length).fill(null); idx.forEach((i, k) => { rk[i] = k + 1 })
   return Object.fromEntries(R.rows.map((d, i) => [d.st + ':' + d.fi, rk[i]]))
@@ -49,27 +50,32 @@ function load(file, tag) {
     const recs = b.split(';').map(r => r.split(',')).filter(f => f.length >= 9)
     let pr = null
     if (tag === 'train') pr = TG[fj.race_id] || null
-    else { const R = PROJ[series + '|' + recs.map(f => Math.round(+f[0]) + ':' + Math.round(+f[1])).sort().join('|')]; pr = R ? projectedRankTest(series, R) : null }
+    let pr4 = null, yr = hf.length === 10 ? +hf[0] : null
+    else_block: {
+      if (tag === 'train') break else_block
+      const R = PROJ[series + '|' + recs.map(f => Math.round(+f[0]) + ':' + Math.round(+f[1])).sort().join('|')]; pr = R ? projectedRankTest(series, R, false) : null; pr4 = (R && series === 'trucks') ? projectedRankTest(series, R, true) : null
+    }
     if (!pr) return
     const base = [], fin = []
     recs.forEach((f, i) => {
       const key = (f[0] === '' ? -1 : Math.round(+f[0])) + ':' + Math.round(+f[1]); const ft = fj.feat[key] || [null, 0]
-      base.push({ name: 'D' + i, startPos: pr[key] != null ? pr[key] : null, __startProjected: true, __realStart: num(f[0]), corrAvgRating: num(f[3]), corrAvgFinish: num(f[4]), nCorrRaces: num(f[5]) || 0, trackAvgRating: num(f[6]), trackAvgFinish: num(f[7]), nTrackRaces: num(f[8]) || 0, lrpTime: null, pitCrewTime: null, corrWinConv: null, ownDnf: ft[0], ownDnfN: ft[1] })
+      base.push({ name: 'D' + i, startPos: pr[key] != null ? pr[key] : null, __proj4: pr4 ? pr4[key] : null, __startProjected: true, __realStart: num(f[0]), corrAvgRating: num(f[3]), corrAvgFinish: num(f[4]), nCorrRaces: num(f[5]) || 0, trackAvgRating: num(f[6]), trackAvgFinish: num(f[7]), nTrackRaces: num(f[8]) || 0, lrpTime: null, pitCrewTime: null, corrWinConv: null, ownDnf: ft[0], ownDnfN: ft[1] })
       fin.push(num(f[1]))
     })
     if (base.length < 15) return
     const P = getCautionPresets(series), cau = num(pCau), g = __trackGroup(track)
-    boards.push({ series, track, g, base, fin, w: wf(series, track), rate: resolveDnfRate(series, grp, num(pDnf), num(pN) || 0), asym: series !== 'cup' && (g === 'INT' || g === 'SHORT'),
+    boards.push({ series, track, g, base, fin, yr, hasV4: !!pr4, w: wf(series, track), rate: resolveDnfRate(series, grp, num(pDnf), num(pN) || 0), asym: series !== 'cup' && (g === 'INT' || g === 'SHORT'),
       preset: cau == null ? P[1] : isSuperspeedway(track) ? P[cau < 6 ? 0 : cau < 11.5 ? 1 : 2] : P.reduce((a, x) => Math.abs(x.value - cau) < Math.abs(a.value - cau) ? x : a) })
   })
   return boards
 }
 const spearman = (a, b) => { const n = a.length; const rk = v => { const o = v.map((x, i) => [x, i]).sort((p, q) => p[0] - q[0]); const r = new Array(n); for (let i = 0; i < n;) { let j = i; while (j + 1 < n && o[j + 1][0] === o[i][0]) j++; const m = (i + j) / 2 + 1; for (let k = i; k <= j; k++) r[o[k][1]] = m; i = j + 1 } return r }; const ra = rk(a), rb = rk(b); const ma = ra.reduce((s, x) => s + x, 0) / n, mb = rb.reduce((s, x) => s + x, 0) / n; let sxy = 0, sxx = 0, syy = 0; for (let i = 0; i < n; i++) { sxy += (ra[i] - ma) * (rb[i] - mb); sxx += (ra[i] - ma) ** 2; syy += (rb[i] - mb) ** 2 } return sxx && syy ? sxy / Math.sqrt(sxx * syy) : 0 }
 const cl = p => Math.max(1e-6, Math.min(1 - 1e-6, p))
-function arm(boards, lam, dest) {
-  const per = []
+function arm(boards, lam, dest, x) {
+  const per = []; x = x || {}
   for (const b of boards) {
-    const sc = buildSpeedScores(b.base, b.w, { lapPenalty: b.series !== 'cup', projShade: lam, ...(dest && dest !== 'prorata' ? { emptyPracticeTo: dest } : {}) })
+    const base = x.v4 ? b.base.map(d => ({ ...d, startPos: d.__proj4 })) : b.base
+    const sc = buildSpeedScores(base, b.w, { lapPenalty: b.series !== 'cup', projShade: lam, ...(x.eliteLam != null ? { projShadeElite: x.eliteLam } : {}), ...(dest && dest !== 'prorata' ? { emptyPracticeTo: dest } : {}) })
     const rows = runRaceSim(sc, { numSims: SIMS, cautionPreset: b.preset, dnfRate: b.rate, totalRaceLaps: 300, trackGroup: b.g, startSampling: null, asymNoise: b.asym, carCeilFloor: true, ...shipped(b) })
     const pf = [], af = []; let t10 = 0, wb = 0, t5b = 0, nn = 0, fav = null, winnerRank = null
     rows.slice().sort((x, y) => y.winPct - x.winPct).forEach((r, k) => { if (b.fin[r.simIdx] === 1) winnerRank = k + 1 })
@@ -86,7 +92,24 @@ const STAGE3 = !!process.env.STAGE3   // 10-10 stage 3: extended lam grid beyond
 const SHIP = { lam: { cup: 0.7, oreilly: 1, trucks: 1 }, dest: { cup: 'prorata', oreilly: 'corrHistory', trucks: 'prorata' } }
 const LAMS = [0.4, 0.5, 0.6, 0.7, 0.8, 1], DESTS = ['prorata', 'corrHistory', 'trackHistory', 'startPos']
 const LAMS3 = { cup: [0.2, 0.3, 0.4, 0.7], oreilly: [1, 1.2, 1.4], trucks: [1, 1.2, 1.4] }, DESTS3 = { cup: ['prorata', 'corrHalf'], oreilly: ['corrHistory', 'corrHalf', 'prorata'], trucks: ['prorata', 'corrHalf', 'corrHistory'] }
-if (PHASE === 'fit') {
+const STAGE4 = !!process.env.STAGE4
+if (STAGE4 && PHASE === 'fit') {
+  // cup only: rest-of-field lam with the top-5 held at the shipped .7, by t10 Brier (dest prorata)
+  const train = load('train.txt', 'train'); const bs = sub(train, 'cup')
+  console.log(`FIT stage 4 (cup tiered shading) on train.txt: ${bs.length} cup boards, ${SIMS} sims; engine ${E.__engineSha}`)
+  let best = null
+  for (const rl of [0.3, 0.4, 0.5, 0.7]) { const r = arm(bs, rl, 'prorata', { eliteLam: 0.7 }); console.log(row('rest ' + rl + ' / elite .7', r)); if (!best || r.t10 < best.v - 1e-5) best = { rl, v: r.t10 } }
+  fs.writeFileSync(D('preboard4-fit.json'), JSON.stringify({ cupRestLam: best.rl, eliteLam: 0.7, sims: SIMS, engine: E.__engineSha }, null, 2)); console.log('\nFROZEN -> cup rest lam', best.rl, 'elite .7')
+} else if (STAGE4) {
+  const fit = JSON.parse(fs.readFileSync(D('preboard4-fit.json'), 'utf8'))
+  const test = load('holdout-practice.txt', 'test')
+  console.log(`TEST stage 4 on the PRE lines: cup ${sub(test, 'cup').length} boards (tiered shading), trucks ${sub(test, 'trucks').filter(b => b.yr === 2026 && b.hasV4).length} 2026 boards (v4 projection); ${SIMS} sims, ${RUNS} runs; frozen cup rest lam ${fit.cupRestLam}; engine ${E.__engineSha}`)
+  for (let run = 1; run <= RUNS; run++) {
+    console.log(`\nRUN ${run}`)
+    { const bs = sub(test, 'cup'); const A = arm(bs, 0.7, 'prorata'); console.log(' CUP'); console.log(row('A ship', A)); const T = arm(bs, fit.cupRestLam, 'prorata', { eliteLam: 0.7 }); console.log(row('T rest=' + fit.cupRestLam, T)); console.log(`    T vs A: t10 ${wl(T, A, 't10', 'low')}  rho ${wl(T, A, 'rho', 'high')}  winB ${wl(T, A, 'wb', 'low')}  t5B ${wl(T, A, 't5b', 'low')}`) }
+    { const bs = sub(test, 'trucks').filter(b => b.yr === 2026 && b.hasV4); const A = arm(bs, 1, 'prorata'); console.log(' TRUCKS 2026'); console.log(row('A ship v3.5', A)); const V = arm(bs, 1, 'prorata', { v4: true }); console.log(row('V v4 grid', V)); console.log(`    V vs A: t10 ${wl(V, A, 't10', 'low')}  rho ${wl(V, A, 'rho', 'high')}  winB ${wl(V, A, 'wb', 'low')}  t5B ${wl(V, A, 't5b', 'low')}`) }
+  }
+} else if (PHASE === 'fit') {
   const train = load('train.txt', 'train')
   console.log(`FIT on train.txt with trail10 projected grids: ${train.length} boards (${SER.map(s => s + ' ' + sub(train, s).length).join(', ')}), ${SIMS} sims; engine ${E.__engineSha}`)
   const fit = { lam: {}, dest: {}, sims: SIMS, engine: E.__engineSha }

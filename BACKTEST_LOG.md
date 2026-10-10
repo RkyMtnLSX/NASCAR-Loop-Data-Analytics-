@@ -9480,3 +9480,36 @@ driver rating sharpens the top of the trucks pre board at the expense of positio
 was never judged: the top-10 fit criterion prefers the full move. A fourth entry fitting the destination by top-10 AND
 top-5 Brier together (the 10-09 lesson: fit on what the rail judges) is the honest next step for trucks; not run now.
 Thirty-one registrations since 10-04: six ships, twenty-five closed.
+
+## 2026-10-10 — BELL AUDIT (live trucks pre boards, read-only): not a market-fill problem, a part-timer projection problem
+The 2026 trucks pre boards (sim_results, latest per race): Richmond R17 Christopher Bell 17.4% stated at PROJECTED START P1
+(book +800), New Hampshire R18 13.3% at projected P3 (book +800; he qualified 17th). His trucks history is nine starts, not
+thin: 2023-26 starts 9/14/14/2/6/15/5/2/3/17 with a 2026 Bristol WIN from P15 and finishes 4/5/4/6/1/5/6/15/7. trail10
+(v3.5 with equipment start fill) therefore projected a cup champion in a strong truck onto the front row from a handful of
+good recent starts, and with practice absent the composite leaned on it (trucks short-track start weight .33). The book
+had him +800 because he is a part-timer; the sim had no notion of that. The 'thin-driver market fill' hypothesis is WRONG -
+he is not thin by the engine's definition (>= 5 prior starts). What the board lacked is projection CONFIDENCE by sample
+size: a trailing mean over 6-10 starts is treated like one over 10. Candidate form (not registered here): shrink the
+trail10 projection toward the field median by n / (n + k) with one k per series, fitted on train-grids.json, judged on
+the pre lines - stated now so it is not a re-read later. Note the 10-10 stage-2 ship (trucks lam 1.0, no shading) trusts
+projected starts MORE in trucks, which cuts against this case specifically while helping the 43-board average; the
+revert trigger (pre-board favourite 0-for-3 weekends) is the guard.
+
+## 2026-10-10 — PRE-REGISTERED: PRE-BOARD STAGE 4 — cup tiered shading + trucks v4 re-judge on the new constants. Written before the fit. DO NOT MODIFY.
+TRIGGER. (a) Cup: stage 2 and 3 both show a lighter projected grid (.4) buys top-10 on 38-39 of 61 pre boards and costs the
+favourite 4-5 points, because shading everyone flattens the top. (b) Trucks: the v4 start projection passed its grid test
+by a full position on 10-09 and failed the sim rail (top-10 +.0012) under start weight .33 at short tracks and the .7
+shading; trucks now ships lam 1.0, a different environment. Operator: "do the rest of them."
+FORMS.
+  T (cup)    opts.projShadeElite = .7 for the top-5 cars by corrAvgRating (unchanged), opts.projShade = restLam for the field.
+             FIT: restLam in {.3, .4, .5, .7} on train.txt with trail10 grids, by top-10 Brier (dest prorata), 10k sims;
+             committed before the holdout. TEST: 61 cup pre lines, 20k, RUNS=2, control = ship (.7 everyone).
+  V (trucks) the 10-09 v4 projection (betas FROZEN from start-v4-fit-trucks.json: INT .2222, SHORT .2427, SS -.0164, ROAD 0;
+             fit on 2025) in place of trail10 v3.5, on the 2026 trucks pre lines ONLY (18 boards - 2025 would be in-sample),
+             at the shipped lam 1.0 / pro rata. No fit. Control = ship (v3.5 grid, lam 1.0).
+DECISION RULE (mean of two runs, stage-2 rails): ship if (b) top-10 Brier better by at least the null floor; (c) rho not
+worse by more than the floor; (d) win and top-5 Brier each not worse by more than the floor; (e) favourite gap not worse
+by more than 1.0; (f) winner's sim rank not worse by more than .25. T ships as the two cup constants (stamp projShade
+'v2-tier-<rest>/.7'); V ships as the trucks __V4_BETA entry (stamp startProj 'trail10-v4-form' on trucks boards) - the
+10-09 ship form. 18 boards is thin for V and is stated as such; the registered floor is what decides.
+SMOKE: 20-sim loader checks read to the header / first train row only; no holdout rows seen. PUSH before the fit.

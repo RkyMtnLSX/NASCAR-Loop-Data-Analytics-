@@ -433,7 +433,11 @@ function buildSpeedScores(drivers, weights, opts) {
   // 2026-10-10 pre-board stage 2 (registered): opts.projShade overrides the fixed 0.7 per series (fit on 2022-24
   // projected grids); the 07-25 value was fit on cup only and applied everywhere. Default unchanged.
   const __projLam = (opts && opts.projShade != null && opts.projShade >= 0 && opts.projShade <= 1.6) ? +opts.projShade : 0.7   // > 1 undoes trail10's compression toward mid-field (10-10 stage 3 grid)
-  for (let __i = 0; __i < drivers.length; __i++) if (drivers[__i].__startProjected && startScores[__i] != null) startScores[__i] = 50 + (startScores[__i] - 50) * __projLam
+  // 10-10 stage 4 (registered): opts.projShadeElite = a separate lam for the top-5 cars by corrAvgRating (the favourite's
+  // projected start is trusted differently from the field's). Default: same lam for everyone.
+  const __eliteLam = (opts && opts.projShadeElite != null && opts.projShadeElite >= 0 && opts.projShadeElite <= 1.6) ? +opts.projShadeElite : null
+  const __eliteSet = __eliteLam == null ? null : new Set(drivers.map((d, i) => ({ i, r: d.corrAvgRating || 0 })).sort((a, b) => b.r - a.r).slice(0, 5).map(x => x.i))
+  for (let __i = 0; __i < drivers.length; __i++) if (drivers[__i].__startProjected && startScores[__i] != null) startScores[__i] = 50 + (startScores[__i] - 50) * (__eliteSet && __eliteSet.has(__i) ? __eliteLam : __projLam)
   const trackRatingScores = normalizeArr(drivers.map(d => d.trackAvgRating), false) // higher = better
   const trackFinishScores = normalizeArr(drivers.map(d => d.trackAvgFinish), true)
   const winConvScores     = normalizeArr(drivers.map(d => d.corrWinConv),    false)  // lower = better
