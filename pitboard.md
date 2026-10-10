@@ -1,4 +1,4 @@
-> SESSION START: read PITBOARD_MANUAL.md + PITBOARD_STATE.md first. This file is an append-only ARCHIVE (~50k tokens) - SEARCH it for specific history; do not read it in full.
+> SESSION START: read PITBOARD_MANUAL.md + PITBOARD_STATE.md first; PITBOARD_ENGINE.md is the sim engine's current form. This file is an append-only ARCHIVE (~50k tokens) - SEARCH it for specific history; do not read it in full.
 > POINTER REDIRECT (2026-08-24): any "BACKTEST_LOG" reference in this file dated before
 > 2026-08-03 now resolves to BACKTEST_ARCHIVE.md - the log was split at that date boundary.
 

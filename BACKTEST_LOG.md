@@ -9537,3 +9537,21 @@ SMOKE: 20-sim loader checks read to the header / first train row only; no holdou
      form. The sim prefers trail10 for trucks; the 10-09 double-count reading (v4's recent-form term re-enters a form the finish
      model already carries) stands as the explanation and is not pursued further.
 Thirty-two registrations since 10-04: six ships, one call open (cup tiered shading), twenty-five closed.
+
+## 2026-10-10 - PITBOARD_ENGINE.md WRITTEN (current-form document, read from the code) + ONE DISCREPANCY FOUND
+Operator: "I feel like we've done so much to the engine that you might be unsure of its current form." Written from
+simEngine.js / SimulationCenter.js / domPools.js at ef994b9, not from memory: inputs -> weight tables -> slot fills ->
+composite -> noise -> attrition -> lapped traffic -> finish order -> LL/FL -> DK, every live constant with its series /
+group and the log entry that put it there; a per-series difference table; and a list of every flag that is in the code
+but OFF in production so they are not mistaken for the engine. Code untouched.
+FOUND WHILE READING: superspeedway noise is multiplied TWICE in production - SimulationCenter's __SS_NOISE_MULT (cup
+3.0 / O'Reilly 1.5 / trucks 1.75, 07-11 Archive C) on the preset BEFORE runRaceSim, then GROUP_NOISE_MULT.SS 1.75
+inside it. Effective live SS widths: cup 84, O'Reilly 47.3, trucks 70.4. That IS what the 08-29 calibration validated
+(it reconstructed the live R24 board, page multiplier included, and the cup sweep the same night found no minimum
+below 1.75). But none of the scripts/backtest-*.js harnesses apply the page multiplier - they build the preset from
+getCautionPresets() and run SS at 28 / 31.5 / 40. So every harness SS result since the 08-30 extraction (SS FL
+budget, SS re-judge, dom-groups SS cell, the SS cells of pre-board stage 1-3) was measured at a narrower width than
+production. The SS FL-budget ship judged FL MAE, which the width does not touch (26/27 better stands); any harness
+SS win / top-5 number is not production's. Not fixed here: the fix is to move the per-series multiplier into the
+engine (one place, both paths) and re-run the SS cells - registration-worthy because it changes what the harness
+measures, not what the page does. Logged as open in PITBOARD_ENGINE.md section 7.
