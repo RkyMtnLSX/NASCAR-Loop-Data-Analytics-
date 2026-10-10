@@ -1,0 +1,10 @@
+{
+  "form": "passDiff",
+  "value": {
+    "cup": 0.1,
+    "oreilly": 0,
+    "trucks": 0.1
+  },
+  "sims": 10000,
+  "engine": "2d86cba5074f"
+}

@@ -9070,3 +9070,13 @@ breakdown); stamp passDiff 'v1-w<w>'. Revert trigger: finish rho below the 10-we
 weekends.
 HARNESS SMOKE (train only, cup, 100 sims, two rows, throwaway): nothing to read at 100 sims. No holdout numbers
 seen. PUSH before the fit.
+
+## 2026-10-10 — PASS DIFFERENTIAL: FIT (train.txt 2022-24, 10k sims) — FROZEN before the holdout is read
+  CUP (108)     w0 t10 .16349 rho .4288 winB .02581 t5B .10292 winLL .1132 | w.05 .16283 .4315 .02571 .10234 .1106 | w.1 .16260 .4303 .02563 .10206 .1102
+                | w.15 .16301 | w.2 .16337    -> w 0.10 (the first form since 10-04 that improves top-10, win and top-5 Brier and win LL together in-sample)
+  O'REILLY (99) w0 .14391 | w.05 .14413 | w.1 .14465 | w.2 .14644 (monotone worse)   -> 0
+  TRUCKS (67)   w0 .15500 rho .5344 winB .02523 | w.05 .15493 .5370 | w.1 .15485 .5358 .02532 | w.15 .15517   -> w 0.10 (small: t10 -.00015, winB +.00009; fav gap -11.5 -> -5.9)
+Written before the holdout: cup is the clean case (every rail better at w .10; dkRho .284 -> .282 flat). Trucks
+is a marginal fit - the t10 gain is .00015 with win Brier slightly worse and the DK rho flat - and the
+holdout null floor may swallow it; the favourite gap moving -11.5 -> -5.9 is the interesting part. O'Reilly
+rejects it outright. FROZEN {"cup":0.1,"oreilly":0,"trucks":0.1}, committed.
