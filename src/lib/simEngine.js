@@ -430,7 +430,10 @@ function buildSpeedScores(drivers, weights, opts) {
   // vs actual grid, 319 races 2023+, 2022 Next Gen year excluded per operator). Shading projected
   // start influence lam=0.7 matches the actual-grid calibration profile (21.4 vs 20.9). Real
   // lineups untouched - this only softens forecasts of a grid we have not seen yet.
-  for (let __i = 0; __i < drivers.length; __i++) if (drivers[__i].__startProjected && startScores[__i] != null) startScores[__i] = 50 + (startScores[__i] - 50) * 0.7
+  // 2026-10-10 pre-board stage 2 (registered): opts.projShade overrides the fixed 0.7 per series (fit on 2022-24
+  // projected grids); the 07-25 value was fit on cup only and applied everywhere. Default unchanged.
+  const __projLam = (opts && opts.projShade != null && opts.projShade >= 0 && opts.projShade <= 1) ? +opts.projShade : 0.7
+  for (let __i = 0; __i < drivers.length; __i++) if (drivers[__i].__startProjected && startScores[__i] != null) startScores[__i] = 50 + (startScores[__i] - 50) * __projLam
   const trackRatingScores = normalizeArr(drivers.map(d => d.trackAvgRating), false) // higher = better
   const trackFinishScores = normalizeArr(drivers.map(d => d.trackAvgFinish), true)
   const winConvScores     = normalizeArr(drivers.map(d => d.corrWinConv),    false)  // lower = better
@@ -474,7 +477,12 @@ function buildSpeedScores(drivers, weights, opts) {
   // is redundant with practice and fills a real hole without it. Same shape as the 09-26 empty-slot rule.
   const __pdW = (opts && opts.passDiff && opts.passDiff.w > 0 && !(opts.passDiff.onlyNoPractice && !lrpScores.every(v => v == null))) ? +opts.passDiff.w : 0
   const pdScores = __pdW ? normalizeArr(drivers.map(d => d.passDiff), false) : null
-  const __wIn = Object.assign({}, weights, __lrpEmpty ? { longRunPace: 0 } : {}, __pitEmpty ? { pitCrew: 0 } : {}, __pdW ? { passDiff: __pdW } : {})
+  // EMPTY-PRACTICE DESTINATION (2026-10-10 pre-board stage 2, registered; OFF unless opts.emptyPracticeTo). When the
+  // practice slot is empty for the whole field (the pre board) its weight is today effectively spread pro rata
+  // (every driver scores 50 in it). 'corrHistory' / 'trackHistory' / 'startPos' move that weight to one slot.
+  const __epTo = (opts && opts.emptyPracticeTo && lrpScores.every(v => v == null) && weights.longRunPace > 0) ? opts.emptyPracticeTo : null
+  const __epShift = __epTo && (__epTo === 'corrHistory' || __epTo === 'trackHistory' || __epTo === 'startPos') ? { longRunPace: 0, [__epTo]: (weights[__epTo] || 0) + weights.longRunPace } : {}
+  const __wIn = Object.assign({}, weights, __lrpEmpty ? { longRunPace: 0 } : {}, __pitEmpty ? { pitCrew: 0 } : {}, __pdW ? { passDiff: __pdW } : {}, __epShift)
   const wTotal = Object.values(__wIn).reduce((a, b) => a + b, 0) || 1
   const w = {
     corrHistory:  __wIn.corrHistory  / wTotal,

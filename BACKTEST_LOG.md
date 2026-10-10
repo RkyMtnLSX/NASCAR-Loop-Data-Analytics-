@@ -9356,3 +9356,38 @@ STAGE 2 (to be registered, named here as the rule requires): per series, (a) pro
 corrHistory, all to trackHistory, split} - fit on train (every 2022-24 board is a no-practice board); both
 judged once on the PRE (lam) and NOPRAC (destination) 2025-26 lines, 162 boards, by top-10 Brier with rho /
 favourite-gap / winner-rank rails. Nothing ships from stage 1.
+
+## 2026-10-10 — PRE-REGISTERED: PRE-BOARD STAGE 2 — per-series projected-start shading + empty-practice weight destination. Written before the fit. DO NOT MODIFY.
+TRIGGER. Stage 1 (above): the pre board is 6-8% worse than post on top-10 Brier in every series; the grid is
+cup's cost, missing practice is O'Reilly's and trucks', and the x0.7 shading (07-25, fit on cup) is a no-op
+for O'Reilly and slightly hurts trucks. Operator: "build and register."
+DATA BUILT (scripts/build-train-grids.js -> backtest-data/train-grids.json): leak-free trail10 projected grids
+for all 274 train races - each driver's last 10 PRIOR same-series start percentiles, min 3, SS / ROAD on same-
+category history, ovals on oval history, re-ranked 1..K (production trail10-v2.1 rules; no v4 form term,
+2022-24 is pre-metric). 10,128 driver rows, 8,077 eligible (80%), projected-grid MAE 6.47 vs real (holdout
+6.0-7.4). Eleven 2026 history races outside the matched sets fall back to oval category (negligible).
+FORMS (engine, both default-preserving):
+  L  opts.projShade = lam: projected-start scores shaded 50 + (s - 50) x lam (today a fixed .7 for every series)
+  D  opts.emptyPracticeTo in {prorata (today), corrHistory, trackHistory, startPos}: where the practice slot's
+     weight goes when the slot is empty for the whole field (today it is effectively spread pro rata)
+  One lam and one destination per series.
+FIT: train.txt under the PRE condition (train-grids.json as startPos, __startProjected, no practice), 10k sims:
+lam in {.4,.5,.6,.7,.8,1} by the smallest top-10 Brier (dest prorata; tie within 1e-5 -> closer to .7), then
+destination at the fitted lam by the smallest top-10 Brier (tie -> prorata). Written to preboard2-fit.json
+and COMMITTED before the holdout is read. KNOWN DIFFERENCE: the train projection is trail10; the cup / O'Reilly
+test projection is trail10 + the v4 form term (better by ~1 position) - a lam fit on the weaker projection
+is, if anything, conservative for the test.
+TEST: the PRE lines of holdout-practice.txt (production projection from the start-v4 study rows, no practice;
+cup 61 / O'Reilly 57 / trucks 43), 20k sims, RUNS=2, control A = shipped (lam .7, pro rata). Arms L, D, LD.
+Null floor = |A run1 - A run2|. Metrics: top-10 Brier, finish rho, win / top-5 Brier, favourite gap, favourite
+hit rate, winner's sim rank.
+DECISION RULE (per series, mean of two runs): SHIP LD at the fitted (lam, dest) if (a) at least one differs
+from shipped; (b) top-10 Brier better than A by at least the null floor; (c) finish rho not worse by more
+than the floor; (d) win Brier and top-5 Brier each not worse by more than the floor; (e) favourite gap not
+worse than A by more than 1.0 pt; (f) winner's sim rank not worse by more than 0.25 places. If LD fails but
+L or D alone passes (b)-(f), that one ships alone. Ships as per-series opts in SimulationCenter's
+buildSpeedScores call (projShade, emptyPracticeTo), stamped projShade 'v2-<lam>' / emptyPractice '<dest>' on
+boards; post boards with practice are untouched by D and by L (no projected starts). Revert trigger:
+pre-board favourite 0-for-3 weekends vs the books in a series.
+SMOKE: a 40-sim train fit was started to verify the loader and read to the first lam row (cup lam .4, a draw-
+noise number); nothing from the holdout seen. PUSH before the fit.
