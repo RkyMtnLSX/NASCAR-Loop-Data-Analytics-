@@ -8945,3 +8945,16 @@ HARNESS SMOKE (train only, SHORT, 60 sims, in-sample, throwaway): CONTROL llMAE 
 bias +26.8 (the INT disease: the favourite is projected to lead far fewer laps than he does), P(top-LL car
 wins) 1.000 vs actual .526; A flMAE 5.41 with the FL tier biases centred; the B grid moves tier-1 LL bias
 through zero between k .25 and .75 at alpha .25. Nothing from the holdout was seen. PUSH before the fit.
+
+## 2026-10-10 — DOM v2 GROUPS: FIT (train.txt 2022-24, 1,500 sims) — FROZEN before the holdout is read
+  SHORT (78: cup 31 / O'Reilly 25 / trucks 22)  G_FL .7544  actual P(top-LL wins) .526
+      CONTROL llMAE 10.24 flMAE 6.05 dkRho .321 tier-1 LL bias +24.8 | A flMAE 5.33 | -> alpha .5, k_LL .25, k_FL .25
+  ROAD  (31: 12 / 15 / 4)                          G_FL .7005  actual P .484
+      CONTROL llMAE 2.77 flMAE 1.88 dkRho .120 tier-1 +0.7 | A flMAE 1.58 | -> alpha .5, k_LL .75, k_FL .5
+  SS    (44: 18 / 17 / 9)                          G_FL .6938  actual P .182
+      CONTROL llMAE 5.26 flMAE 2.34 dkRho .241 tier-1 +4.4 | A flMAE 2.00 | -> alpha .25, k_LL .5, k_FL .25
+Written before the holdout: SHORT carries the INT disease in full (favourite projected to lead 25 fewer
+laps than he does; top-LL car = winner in every draw vs 53% real). ROAD is nearly unbiased already on laps
+led (tier-1 +0.7) - the gain there, if any, is the FL budget. SS: the top-LL car wins only 18% of real SS
+races, so the strength order has the most to change there, but the 08-29 SS tilts already sit on the
+curves and stack with it. FROZEN as above, committed.
