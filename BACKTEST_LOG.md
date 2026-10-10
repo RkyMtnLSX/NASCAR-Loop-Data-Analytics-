@@ -9629,3 +9629,28 @@ not worse by more than 1.0. SHIP = SimulationCenter flags ringers from current-s
 this-series starts, counted to date) and passes simConfig.ringer; boards stamp ringer 'v1-b<b>'. Why the score and not
 the rating: a rating offset would also move the dominator order and the DNF tilt; the score shift changes the finish
 draw only, which is the one thing stage 1 measured. PUSH before the fit.
+
+## 2026-10-10 — #54 STAGE 2' FIT FROZEN: b = 12 (grid edge). Written before the holdout.
+  b 0 loss .57103 | 2 .56102 | 4 .55353 | 6 .54777 | 8 .54310 | 10 .54103 | 12 .54017 -> b 12 by the registered rule.
+  Stated before the holdout: the win component bottoms at b 2-6 (.11106-.11122) and is WORSE at 12 (.11312); the t5 / t10
+  components carry the sum to the edge of the grid. Taken as registered; the edge is noted, not acted on.
+
+## 2026-10-10 — #54 STAGE 2' EXECUTED AS REGISTERED: 6 of 7 rails pass on the judged lines; all-row win Brier misses by .00006 — OPERATOR CALL
+  JUDGED: holdout-practice.txt practice-free, 100 boards / 158 ringer rows, 20k x 2.  A (shipped) -> T (ringer b 12):
+     ringer win B .11239 -> .11208 (better; stated 7.9 -> 14.5 vs realised 13.9 - CALIBRATED)
+     ringer t5 B .24760 -> .23614 (better .0115, floor .0002)   ringer t10 B .25250 -> .23222 (better .0203, floor .0001)
+     ringer proj fin 14.2 -> 11.9 vs actual 10.9
+     all-row t10 B .15074 -> .14985 (better)   rho .4881 -> .4906 (better)   favourite gap -12.4 -> -6.6 (BETTER by 5.8)   fav hits 35% -> 32%
+     all-row win B .022809 -> .022873 (WORSE by .000065 against a floor of .000005: rail (d) FAILS)
+  REPORTED (with-practice lines, 55 boards / 98 ringer rows): every rail passes - ringer win .0993 -> .0968, t5 .2424 -> .2225,
+     t10 .2257 -> .2089, all-row win .022773 -> .022703 (better), t10 .1435 -> .1425, rho .5761 -> .5774, fav gap -14.2 -> -10.4.
+  READING. The form does what stage 1 asked: the ringer's win, top-5 and top-10 all land on their realised rates and the
+  favourite gap halves on boards where a ringer is the favourite. The one miss is 0.3% of the all-row win Brier on the
+  practice-free lines, from non-ringer rows: the 12-point shift takes win share from regulars, and on a few boards the
+  regular who actually won loses more than the ringer gains. The with-practice lines pass that rail outright. The fit sat at
+  the grid edge with its win component already past its minimum, so a smaller b would likely clear (d) - but choosing b
+  after reading the holdout is a refit, and is not done here. By the letter: not a pass on the judged lines. OPERATOR CALL.
+  If shipped: SimulationCenter flags ringers from current-season cup starts (>= 10, more than this-series starts, to date),
+  passes simConfig.ringer { b: 12, m: 1 }, stamps ringer 'v1-b12'; revert trigger = ringer rows' realised top-10 below stated
+  over the first 10 ringer boards of 2027. If held: the form stays in the engine OFF until the 2027 ringer season, when b is
+  refit on 2022-26 with 2027 as judge (rolling-refit policy).
