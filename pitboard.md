@@ -3689,6 +3689,15 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
+## 2026-10-10 — Decision: the trucks favourite waits for season end
+Operator asked whether the 2025 -> 2026 refit was worth it. Answer, agreed: not now. Fifteen boards to
+fit and fourteen to judge is under the noise floor, it would spend the 2026 holdout, and a constant
+fitted to one dominant era would ship blind into a series whose top tier turns over - the 2022-24 gap
+was a third the size. The betting-side damage is already stopped by the interim no-fade rule, and
+matching the book's 30% on the favourite is agreement, not edge. The clip stays in the engine, off; at
+season end it gets refit on 2025-26 with 2027 as the judge - the first real case of the rolling-refit
+policy. Nearer trucks priority: the pre-board projected grid.
+
 ## 2026-10-09 — Two more forms for the trucks favourite: the right mechanism, the wrong era to fit it on
 Operator: "do the next registration." Strength-dependent noise (narrower draws for the top fifth) fitted
 to zero everywhere, and a synthetic check showed why: a finish is the max of 36 draws, so clipping the

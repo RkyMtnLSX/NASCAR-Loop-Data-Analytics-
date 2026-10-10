@@ -8896,3 +8896,12 @@ thin but honest. If it passes it ships for trucks only, with a dated constant an
 2026 boards do not support it, the favourite problem is a 2025 (Heim) phenomenon and the interim rule is
 withdrawn. OPERATOR CALL - not registered here.
 Eighteen registrations since 10-04: two ships, one call open, fifteen closed.
+
+## 2026-10-10 — OPERATOR DECISION: the trucks favourite refit (fit 2025 / judge 2026) is NOT run now
+Reasons as discussed and agreed: ~15 fit / ~14 judge boards sit under the win-Brier null floor for the
+effect size; running it spends the 2026 holdout for every later registration; a constant fitted to one
+dominant era (Heim 2025, Riggs / Honeycutt 2026) ships blind into a series whose top tier turns over
+(2022-24 gap a third the size); and moving the sim favourite to the book's ~30% removes a wrong signal
+(already removed by the interim rule) without creating a right one. PLAN: interim no-fade rule stays;
+simConfig.tierClip stays in, default off; refit at season end on 2025-26 with 2027 as the forward judge
+(rolling-refit policy, first case). The pre-board projected grid for trucks is the nearer priority.
