@@ -1101,6 +1101,7 @@ function runRaceSim(drivers, simConfig) {
     }
 
     const __srow = (sim % sampleStride === 0 && dkSamples.length < SAMPLE_TARGET) ? new Array(n).fill(0) : null
+    const __frow = (__srow && simConfig.__finSamples) ? new Array(n).fill(0) : null
     scored.forEach(s => {
       const finPos = simPos[s.i]
       const startPos = (__simStart && __simStart[s.i] >= 0) ? __simStart[s.i] : (drivers[s.i].startPos ?? finPos)
@@ -1113,8 +1114,10 @@ function runRaceSim(drivers, simConfig) {
       const __dk = dkFinishPts(finPos) + (__dkStart - finPos) + (ll * 0.25) + (simFastLaps[s.i] * 0.45)
       sumDK[s.i] += __dk
       if (__srow) __srow[s.i] = Math.round(__dk)
+      if (__frow) __frow[s.i] = Math.round(dkFinishPts(finPos) + (__dkStart - finPos))
     })
     if (__srow) dkSamples.push(__srow)
+    if (__frow) (simConfig.__finSamples.rows = simConfig.__finSamples.rows || []).push(__frow)
   }
 
   const __rows = drivers.map((d, i) => {
@@ -1159,6 +1162,7 @@ function runRaceSim(drivers, simConfig) {
   __rows.posMatrix = posMatrix
   __rows.simN = numSims
   __rows.__dkSamples = dkSamples
+  if (simConfig.__finSamples) __rows.__finSamples = simConfig.__finSamples.rows || []   // diagnostic (10-10 DK ceiling study): finish-only DK per sampled draw
   __rows.__sampleDrivers = drivers.map(d => d.name)
   return __rows
 }

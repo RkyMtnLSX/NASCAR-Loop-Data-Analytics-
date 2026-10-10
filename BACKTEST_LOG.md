@@ -9141,3 +9141,24 @@ backtest-dom-groups.js CONTROL reconstructs the pre-ship SS budget (flBudget 1) 
 reproducible. Revert trigger as the dom-groups registration (SS DK dominator-point error worse than the
 10-09 stage-1 diagnostic two straight weekends). Three ships since 10-04 (trucks per-car DNF, dominator
 bootstrap INT+SHORT, SS FL budget); one call open (O'Reilly lapped traffic).
+
+## 2026-10-10 — REGISTRATION: DK CEILING STUDY, stage 1 (diagnostic, control arm only, nothing ships). Written before the run.
+TRIGGER. The volatility control arm (train 2022-24) and the pass-diff control arm (holdout 2025-26 with
+practice) both show the sim's DK ceilings honest in cup (actual DK clears the stated p90 ~10% of the time)
+and too high in O'Reilly (7.5% / 5.0%) and trucks (6.1% / 6.6%). Operator: "register the DK scale." Before a
+form is named, stage 1 locates the over-statement: is it the FINISH side (finish points + place differential
+drawn too optimistically) or the DOMINATOR side (laps led / fastest laps draws too generous), or both.
+METHOD. Shipped engine, 94 practice-holdout boards, 20k sims, one run, control only. Per sampled draw the
+engine now also records finish-only DK (finish points + place differential; diagnostic flag
+simConfig.__finSamples, no behaviour change). Per driver: share of drivers whose ACTUAL total DK, finish-
+only DK, and dominator-only DK (.25 LL + .45 FL) exceed the sim's p90 of the matching per-draw quantity.
+Honest = 10% each. Reported per series. A 300-sim smoke (same boards, noisy) was run to verify the plumbing
+and showed O'Reilly finish-only 5.3% / dominator-only 6.4%, trucks 6.4% / 5.6%, cup 9.2% / 12.9% - disclosed;
+the 20k numbers below are the measurement.
+READ-OUT RULE (written now): the component(s) under 8% in a series are "over-stated"; stage 2 is registered
+only for an over-stated component, with the form named then and fit on 2022-24. If the finish side is the
+over-stated one, the form is NOT a symmetric or favourite-touching width change (the 10-09 max-of-draws
+lesson): it is an upside scale for cars ABOVE median only, i.e. the asymNoise mechanism extended upward with
+its own per-series constant, judged on p90 coverage with win / top-5 / top-10 Brier and the favourite gap as
+rails. If the dominator side is the over-stated one, the form is a per-series damping of the bootstrap share
+vector's top slot. PUSH before the run.

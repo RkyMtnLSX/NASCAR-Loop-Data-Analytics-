@@ -73,11 +73,11 @@ function arm(boards, v) {
   for (const b of boards) {
     const a = armCfg(v, b)
     const sc = buildSpeedScores(b.base, b.w, a.opts)
-    const rows = runRaceSim(sc, { numSims: SIMS, cautionPreset: b.preset, dnfRate: b.rate, totalRaceLaps: b.laps, trackGroup: b.g, startSampling: null, asymNoise: b.asym, ...shipped(b), ...a.sim })
+    const rows = runRaceSim(sc, { numSims: SIMS, cautionPreset: b.preset, dnfRate: b.rate, totalRaceLaps: b.laps, trackGroup: b.g, startSampling: null, asymNoise: b.asym, ...shipped(b), ...a.sim, ...(process.env.DIAG ? { __finSamples: {} } : {}) })
     const smp = rows.__dkSamples || []
     const elite = new Set(sc.map((d, ix) => ({ ix, r: d.corrAvgRating || 0 })).sort((x, y) => y.r - x.r).slice(0, 5).map(x => x.ix))
     { const fv = rows.reduce((acc, r) => (b.fin[r.simIdx] != null && (!acc || r.winPct > acc.winPct)) ? r : acc, null); if (fv) { favS += fv.winPct / 100; favA += b.fin[fv.simIdx] === 1 ? 1 : 0; favN++ } }
-    const pf = [], af = [], pd = [], ad = []; let t10 = 0, wll = 0, t5ll = 0, nn = 0, wb = 0, t5b = 0, c90 = 0, c10 = 0, cn = 0
+    const pf = [], af = [], pd = [], ad = []; let t10 = 0, wll = 0, t5ll = 0, nn = 0, wb = 0, t5b = 0, c90 = 0, c10 = 0, cn = 0, f90 = 0, d90 = 0
     for (const r of rows) {
       const f = b.fin[r.simIdx]; if (f == null) continue
       pf.push(r.projFinish); af.push(f); nn++
@@ -96,14 +96,16 @@ function arm(boards, v) {
         const st = sp != null ? sp : f
         const actDK = dkFinishPts(f) + (st - f) + 0.25 * b.ll[r.simIdx] + 0.45 * b.fl[r.simIdx]
         pd.push(r.projDK); ad.push(actDK)
-        if (smp.length >= 100) { const col = smp.map(row => row[r.simIdx]).sort((x, y) => x - y); const q90 = col[Math.floor(col.length * 0.9)], q10 = col[Math.floor(col.length * 0.1)]; c90 += actDK > q90 ? 1 : 0; c10 += actDK < q10 ? 1 : 0; cn++ }
+        if (smp.length >= 100) { const col = smp.map(row => row[r.simIdx]).sort((x, y) => x - y); const q90 = col[Math.floor(col.length * 0.9)], q10 = col[Math.floor(col.length * 0.1)]; c90 += actDK > q90 ? 1 : 0; c10 += actDK < q10 ? 1 : 0; cn++
+          // DIAG=1: finish-only DK (finish pts + place diff, no dominator points) coverage, to locate the over-stated ceiling
+          if (process.env.DIAG && rows.__finSamples) { const fcol = rows.__finSamples.map(row => row[r.simIdx]).sort((x, y) => x - y); const fq90 = fcol[Math.floor(fcol.length * 0.9)]; const actF = dkFinishPts(f) + (st - f); f90 += actF > fq90 ? 1 : 0; const dcol = smp.map((row, k) => row[r.simIdx] - rows.__finSamples[k][r.simIdx]).sort((x, y) => x - y); const dq90 = dcol[Math.floor(dcol.length * 0.9)]; d90 += (0.25 * b.ll[r.simIdx] + 0.45 * b.fl[r.simIdx]) > dq90 ? 1 : 0 } }
       }
     }
     per.push({ series: b.series, g: b.g, rho: spearman(pf, af), t10: t10 / nn, wll: wll / nn, t5ll: t5ll / nn, wb: wb / nn, t5b: t5b / nn,
-      dkRho: pd.length ? spearman(pd, ad) : null, c90: cn ? c90 / cn : null, c10: cn ? c10 / cn : null })
+      dkRho: pd.length ? spearman(pd, ad) : null, c90: cn ? c90 / cn : null, c10: cn ? c10 / cn : null, f90: cn ? f90 / cn : null, d90: cn ? d90 / cn : null })
   }
   const m = k => mean(per.filter(p => p[k] != null).map(p => p[k]))
-  return { per, rho: m('rho'), t10: m('t10'), wll: m('wll'), t5ll: m('t5ll'), wb: m('wb'), t5b: m('t5b'), dkRho: m('dkRho'), c90: m('c90'), c10: m('c10'),
+  return { per, rho: m('rho'), t10: m('t10'), wll: m('wll'), t5ll: m('t5ll'), wb: m('wb'), t5b: m('t5b'), dkRho: m('dkRho'), c90: m('c90'), c10: m('c10'), f90: m('f90'), d90: m('d90'),
     eliteDeep: mean(cells.eliteDeep), eliteFront: mean(cells.eliteFront), neP26: mean(cells.neP26),
     favGap: (favS - favA) / Math.max(1, favN), tailGap: (tlS - tlA) / Math.max(1, tlN), midGap: (mdS - mdA) / Math.max(1, mdN) }
 }
@@ -111,7 +113,7 @@ const wl = (x, a, key, better) => { let w = 0, l = 0; x.per.forEach((p, i) => { 
 const SER = ['cup', 'oreilly', 'trucks']
 const sub = (boards, s) => boards.filter(b => b.series === s)
 const GRID = FORM === 'carVol' ? [0, 0.25, 0.5, 0.75, 1] : [0, 0.05, 0.1, 0.15, 0.2]
-const row = (nm, x) => `  ${nm.padEnd(9)} rho ${x.rho.toFixed(4)}  t10 ${x.t10.toFixed(5)}  winB ${x.wb.toFixed(5)}  t5B ${x.t5b.toFixed(5)}  winLL ${x.wll.toFixed(4)}  t5LL ${x.t5ll.toFixed(4)} | dkRho ${x.dkRho.toFixed(3)}  DK>p90 ${(100 * x.c90).toFixed(1)}%  DK<p10 ${(100 * x.c10).toFixed(1)}% | fav gap ${(100 * x.favGap).toFixed(1).padStart(5)}  mid ${(100 * x.midGap).toFixed(1)}  tail ${(100 * x.tailGap).toFixed(2)} | eliteFront ${x.eliteFront.toFixed(2)}  eliteDeep ${x.eliteDeep.toFixed(2)}  neP26 ${x.neP26.toFixed(2)}`
+const row = (nm, x) => `  ${nm.padEnd(9)} rho ${x.rho.toFixed(4)}  t10 ${x.t10.toFixed(5)}  winB ${x.wb.toFixed(5)}  t5B ${x.t5b.toFixed(5)}  winLL ${x.wll.toFixed(4)}  t5LL ${x.t5ll.toFixed(4)} | dkRho ${x.dkRho.toFixed(3)}  DK>p90 ${(100 * x.c90).toFixed(1)}%  DK<p10 ${(100 * x.c10).toFixed(1)}%${process.env.DIAG ? ` finDK>p90 ${(100 * x.f90).toFixed(1)}% domDK>p90 ${(100 * x.d90).toFixed(1)}%` : ''} | fav gap ${(100 * x.favGap).toFixed(1).padStart(5)}  mid ${(100 * x.midGap).toFixed(1)}  tail ${(100 * x.tailGap).toFixed(2)} | eliteFront ${x.eliteFront.toFixed(2)}  eliteDeep ${x.eliteDeep.toFixed(2)}  neP26 ${x.neP26.toFixed(2)}`
 const fitFile = D(FORM.toLowerCase() + '-fit.json')
 // fit criterion: carVol -> top-5 Brier + top-10 Brier (consistency); passDiff -> top-10 Brier (the 08-20 weight-sweep precedent)
 const crit = r => FORM === 'carVol' ? r.t5b + r.t10 : r.t10
