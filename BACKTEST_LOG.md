@@ -9699,3 +9699,28 @@ gap smaller than A's; (c) ringer t5 + t10 Brier not worse than A by more than th
 than A by more than the floor (the one rail the flat lift missed - the rank-aware form must not add to it); (e) regular
 top-3 stated-minus-realised win gap not wider than A's. Ship = SimulationCenter passes the slope; stamp ringer
 'v2-b<b>-s<slope>'. PUSH before the fit.
+
+## 2026-10-10 — #54 STAGE 3a: dominator bias on ringer rows is SMALL. Lead 2 (rating-input lift) NOT registered.
+Train, shipped b 12: ringers LL sim 10.6 / actual 12.2 (+1.7 laps), FL 7.4 / 7.2; by tier the only gap is top-3 ringers
++2.5 LL. For scale, non-ringer top-3 cars are under by 10.3 LL on the same boards - the known tier-1 dominance deficit
+(INT v2 note, 09-03), not a ringer problem. The finish-draw lift is the right place for the lift; it stays there.
+
+## 2026-10-10 — #54 STAGE 3 FIT FROZEN: b 14, slope 1.5 (worst-tier gap 7.7 on train vs 10.0 for flat 12). Written before the holdout.
+  Grid edge again on b (14). The worst-tier criterion was noisy across the grid (b 10 / slope .5 jumped to 22.7 as tier
+  membership flipped) - stated before the holdout: the 16+ tier has 24 train rows and is likely what the criterion is chasing.
+
+## 2026-10-10 — #54 STAGE 3 EXECUTED AS REGISTERED: all four rails PASS - and it is NOT a better product. NOT SHIPPED. Flat b 12 stands.
+  Holdout practice-free, 158 ringer rows, 20k x 2, A = shipped flat 12, T = b 14 slope 1.5:
+     rails: worst-tier gap 28.2 -> 24.9 (pass)  ringer t5+t10 Brier .4686 -> .4651 (pass)  all-row win Brier .022857 -> .022732 (pass)
+            regular top-3 win gap -5.7 -> -4.1 (pass).  By the letter: PASS.
+  What the rails did not see (reported because it is the product): pooled ringer win 14.5 / 13.9 -> 10.9 / 13.9, t5 42.7 ->
+  37.8 vs 41.8 - the lift is UNDER-stating ringers again. Top-3 ringers (76-87 rows, the favourite on most of these boards)
+  go from 22.9 / 20.7 (two over) to 17.5 / 22.4 (five under); favourite gap -7.6 -> -13.5 (WORSE by six). The worst-tier rail
+  passed because the 16+ tier has 6-11 holdout rows and the slope moved that tier's gap by a few rows' worth; the criterion I
+  registered was dominated by the tier that cannot be measured. A subscriber would see the ringer favourite priced at 17%
+  when he wins 22% - the same error as before the ship, in the same direction, smaller. NOT SHIPPED (operator's rule:
+  rails say whether it is real; the board says whether it helps - here they split and the board wins).
+  WHAT THE TIERS SAY, for the record: top-3 ringers want ~12 (flat 12 is right for them); 9+ ringers want ~25 and the slope
+  at b 14 gives them ~20 while taking the top down to ~5. The shape is a FLOOR of 12 plus extra for buried ringers, not a
+  tilt around 14. That is a third form on a holdout read twice - it waits for 2027 rows as registered. Shipped engine
+  unchanged: ringer v1-b12.
