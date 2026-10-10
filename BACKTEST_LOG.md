@@ -8958,3 +8958,29 @@ laps than he does; top-LL car = winner in every draw vs 53% real). ROAD is nearl
 led (tier-1 +0.7) - the gain there, if any, is the FL budget. SS: the top-LL car wins only 18% of real SS
 races, so the strength order has the most to change there, but the 08-29 SS tilts already sit on the
 curves and stack with it. FROZEN as above, committed.
+
+## 2026-10-10 — DOM v2 GROUPS EXECUTED AS REGISTERED: SHORT and ROAD FAIL ON DK RHO (both A and B); SS UNTESTABLE — NOT SHIPPED
+Holdout-practice 2025-26, 20k sims, two runs, mean CONTROL -> A -> B:
+  SHORT (40: cup 14 / O'Reilly 12 / trucks 14)
+      llMAE 10.23 -> 10.23 -> 9.64 (B 32/8)      flMAE 5.93 -> 5.17 -> 5.07 (40/0 both)
+      dkRho .406 -> .398 (A, worse .008, 14/26) -> .390 (B, worse .016, 13/28); null floor .002   -> (b) FAILS for A and B
+      winB .02392 / .02393 / .02394   t5B .0894 all   t10B .1445 all (within floor)
+      tier-1 LL bias +35.4 -> +35.5 -> +12.8;  tier 2-3 LL -6.4 -> -6.5 -> -15.5 (B over-deals to cars 2-3)
+      P(top-LL car wins) 1.000 -> 1.000 -> .619 (actual SHORT 2022-24 .526)
+  ROAD (8: cup 4 / trucks 4)   llMAE 3.13 -> 3.12 -> 3.05   flMAE 2.21 -> 1.90 -> 1.84 (8/0)   dkRho .218 -> .214 -> .214 (floor .003: worse .004) -> (b) FAILS by a hair, n 8
+  SS: the practice holdout contains NO superspeedway boards (SS has no practice sessions) - the registered test set cannot judge SS. Registration flaw, mine; a practice-free holdout would be a new registration.
+VERDICT by the registered rule: NOT SHIPPED for any group. Nothing changes in the engine.
+READING (not a decision): the laps-led and fastest-lap errors improve exactly as they did at INT - every one of
+40 short-track boards gets a better fastest-lap count, the favourite's laps-led under-statement drops from
+35 to 13 - and the DK ranking gets WORSE. That can only happen if the per-lap fastest-lap over-count was
+doing a job: it hands the strongest cars a large FL bonus that pushes them up the projected-DK order, and
+that bonus has been compensating for a projected finish order that is too flat at the top (the same
+diagnosis as the trucks favourite). Take the bonus away honestly and the DK order loses what it was
+borrowing. The INT ship on 09-03 did not show this (DK rho .311 -> .320) because INT dominance is far more
+concentrated and the strength order gives the favourite more than the FL over-count did. At SHORT the
+fitted order gives too much to cars 2-3 (tier bias -15.5) because the coupling band forced k_LL to .25
+at alpha .5 - the best in-sample cell (alpha .25, k .5, tier-1 +5.3) sat outside the band. Two things for
+later, neither registered here: (1) the dominance fix outside INT is real on its own metrics and is being
+masked by the finish-order flatness; it should be re-judged after a top-end fix ships, or judged on LL / FL
+alone for the Fastest Laps / laps-led displays where DK rank is not the point; (2) SS needs a practice-free
+holdout. Nineteen registrations since 10-04: two ships, one call open, sixteen closed.

@@ -3689,6 +3689,19 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
+## 2026-10-10 — Dominance v2 outside intermediates: better laps led, better fastest laps, worse DK order — not shipped
+Operator: "let's do the dominance curve one first & then per driver volatility." Pulled per-driver laps-
+led / fastest-lap actuals for the 274 train races, fit the INT recipe per group (green-lap FL budget +
+strength-keyed dealing), judged on the 2025-26 practice holdout. Short tracks: every one of 40 boards gets
+a better fastest-lap count, the favourite's laps-led under-statement falls from 35 laps to 13, and the DK
+rank correlation drops from .406 to .390 - fails the registered rail. Road courses the same by a hair on
+eight boards. Superspeedways could not be judged at all: the practice holdout has no SS boards, which I
+should have seen when I registered it. Not shipped. The reading is uncomfortable and consistent with
+yesterday: the per-lap fastest-lap over-count has been acting as a strength bonus that props up a
+projected finish order too flat at the top. Fix the over-count honestly and the DK order loses the crutch.
+So the dominance fix is real on its own terms and blocked by the same top-end flatness as the trucks
+favourite. Nineteen registrations since 10-04: two ships, one call open, sixteen closed.
+
 ## 2026-10-10 — Decision: the trucks favourite waits for season end
 Operator asked whether the 2025 -> 2026 refit was worth it. Answer, agreed: not now. Fifteen boards to
 fit and fourteen to judge is under the noise floor, it would spend the 2026 holdout, and a constant
