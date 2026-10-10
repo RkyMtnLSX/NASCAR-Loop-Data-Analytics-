@@ -9563,3 +9563,36 @@ RNG stream the stripped engine reproduces f3f8405 byte-for-byte (projFinish / pr
 trucks, SS O'Reilly, ROAD cup with the production configs; lint clean, sim-smoke ALL PASS (its caution-mix section went
 with the path), build green. Anything stripped is one `git show f3f8405:src/lib/simEngine.js` away if a season-end
 refit wants to resurrect it; the fit files in scripts/backtest-data/ are untouched.
+
+## 2026-10-10 — PRE-REGISTERED: #54 RINGER SHAPE (cup regulars moonlighting in O'Reilly / trucks). Written before any ringer row is read. DO NOT MODIFY.
+TRIGGER. Operator: the cup playoffs have started, so cup regulars can no longer run the lower series in 2026 - the 2025-26
+ringer sample is complete and #54 (queued "end of 2026" since 07-16) can run now. The 10-10 re-read of every ringer entry
+(07-16 matched diagnostic + borrow harness, 07-17 pairing-first, 07-22 anchor / ringer exclusion, 08-03..07 car-auto, 10-10
+Bell audit) plus the 2025-26 published boards (26 ringer driver-boards: stated win 8% / realised 0; stated t5 31% / realised
+50-62%; stated t10 53% / realised 70-88%; proj finish 12-13 / actual 6-10) say the same thing twice: a cup regular in a lower
+series has a DIFFERENT SHAPE from a regular of the same composite - high floor, low win conversion - and every attempt so
+far moved his RATING (one composite, every market together), which buys the floor at the cost of win. The Bell shrink
+(10-10 candidate) is retired for the same reason: it lowers everything.
+DEFINITION (season-level identity, not performance): ringer = driver with >= 10 cup starts in that calendar season AND more
+cup starts than starts in this series that season. Known before any race; counted on the whole season (stated: a mild
+look-ahead on identity only, never on results). Cup boards have no ringers by construction.
+DATA. Leak-free harness boards: train.txt 2022-24 (166 non-cup), holdout.txt 2025-26 (all fingerprint-matched non-cup
+lines, practice-free) and holdout-practice.txt (practice-covered). Ringer flags joined by the protocol-features.json
+race_id + start:finish fingerprint into scripts/backtest-data/ringer-features.json. Shipped engine throughout.
+STAGE 1 (diagnostic, nothing ships). Per era, ringer rows vs non-ringer rows matched by sim win-rank tier (1-3 / 4-8 /
+9-15 / 16+): n, stated vs realised win / t5 / t10, proj vs actual finish, Brier per market. CONFIRMATION RULE for going to
+stage 2: ringers realise >= stated on t5 AND t10 and <= stated on win in BOTH eras (sign only; the 07-16 finding on a
+different harness). If either era disagrees, stop and log.
+STAGE 2 (form, fit only if stage 1 confirms). d.ringer = true on the row. runRaceSim simConfig.ringer = { b, m }: a ringer's
+per-draw score is speedScore + b (score points, 0-100 scale; the floor) with draw width x m on BOTH sides (m < 1: a
+narrower distribution loses the max-of-draws race for the win while finishing well - the 10-09 lesson used on purpose).
+Nothing else changes; non-ringers untouched; b = 0, m = 1 is the shipped engine. ONE (b, m) pooled over O'Reilly + trucks
+(the sample cannot support per-series constants - stated now). FIT on train ringer rows: grid b in {0, 2, 4, 6, 8}, m in
+{.5, .6, .7, .8, .9, 1}, minimise ringer-row win + t5 + t10 Brier (equal weight), 10k sims; committed to
+ringer-fit.json before the holdout is read.
+JUDGE (2025-26, 20k sims, RUNS=2, null floor = |A run1 - A run2|): on ringer rows (b) t5 Brier AND t10 Brier better by at
+least the floor; (c) win Brier not worse by more than the floor; on ALL rows of the same boards (d) t10 Brier, rho, win Brier
+each not worse by more than the floor; (e) favourite gap not worse by more than 1.0. Ship = SimulationCenter flags ringers
+from a current-season cup-start count (loop_data, same definition) and passes simConfig.ringer; boards stamp ringer
+'v1-b<b>-m<m>'; PITBOARD_MANUAL's "don't fade a ringer's top-5 / top-10" stays as doctrine either way.
+SMOKE: loader checked on header lines and the first train row only; no holdout row read. PUSH before stage 1.
