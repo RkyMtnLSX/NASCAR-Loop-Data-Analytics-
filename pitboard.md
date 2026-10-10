@@ -3689,6 +3689,19 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
+## 2026-10-10 — Pre-board study, stage 1: the grid is cup's problem, practice is the lower series', and the trucks shading was never theirs
+Operator: "register it." Same 162 boards under four conditions, shipped engine. The pre board is 6-8% worse
+than the post board on top-10 Brier in every series. In cup, three quarters of that is the projected grid
+(top-10 +.0041 vs +.0014 for missing practice; finish rho -.023; the real winner falls from 6th to 7th in the
+sim's win order), and the x0.7 shading from July earns its keep there. In O'Reilly and trucks missing
+practice costs slightly more than the grid, and the shading - fit on cup and applied to everyone - does
+nothing for O'Reilly and slightly hurts trucks, the one constant on the board that was never fit for the
+series using it. The Bell-type wrong-favourite is not the average case: on average the winner's sim rank
+moves under one place pre vs post; that is a thin-driver market-fill audit on the live board, not a sim
+constant. Stage 2 named: per-series shading plus where the empty practice weight goes, fit on 2022-24
+(every train board is a pre board as far as practice goes), judged on the 162 pre lines. Needs leak-free
+projected grids built for the 274 train races first.
+
 ## 2026-10-10 — The no-practice pass-differential slot: closed, and this morning's reading corrected
 Operator: "register the no practice pass differential slot." Tested on all 162 fingerprint-matched 2025-26
 boards loaded without practice - the pre-board analogue, three times the usual holdout. It loses top-10

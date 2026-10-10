@@ -9325,3 +9325,34 @@ moves (identity, the Bell case) rather than the favourite's level, that is repor
 market-anchor question (the pre board's thin-driver fill), not a weight. Nothing ships from stage 1.
 SMOKE: a 30-sim run was started to verify the loader (162 boards, 94 with practice, 161 with a projected grid)
 and read only to the header; no metric rows seen. PUSH before the run.
+
+## 2026-10-10 — PRE-BOARD STAGE 1 RESULT (162 boards, 20k sims, shipped engine)
+Same-board deltas (the registered read-out):
+  CUP       practice removed (39): t10 .14984 -> .15120 (+.0014)  rho .4865 -> .4845  fav gap -1.4 -> -9.3   fav hits 31% -> 36%
+            grid projected (61):   t10 .15814 -> .16223 (+.0041; unshaded .16371)  rho .4265 -> .4035  fav gap -8.4 -> -4.8  winner's sim rank 6.16 -> 7.00
+  O'REILLY  practice removed (26): t10 .13456 -> .13621 (+.0017)  rho .5982 -> .5866  fav gap -0.5 -> -1.7
+            grid projected (57):   t10 .14426 -> .14548 (+.0012; unshaded .14544)  rho .4891 -> .4785  fav gap -7.3 -> -6.0  winner rank 4.65 -> 4.82
+  TRUCKS    practice removed (29): t10 .15257 -> .15438 (+.0018)  rho .5556 -> .5351  fav gap -25.9 -> -23.9  fav hits 48% -> 45%
+            grid projected (43):   t10 .15997 -> .16153 (+.0016; unshaded .16098)  rho .4890 -> .4797  fav gap -18.8 -> -19.4  winner rank 4.51 -> 4.58
+  Projected-grid MAE (production projection vs real grid): cup 7.39, O'Reilly 5.99, trucks 6.17 positions.
+READ-OUT by the registered rule:
+  CUP: the GRID dominates - three times the top-10 cost of missing practice (+.0041 vs +.0014), finish rho -.023,
+  and the only identity loss in the study (the real winner drops from 6.2nd to 7.0th in the sim's win order).
+  Production's x0.7 shading helps cup (.16223 vs .16371 unshaded). Stage 2 for cup = per-series shading refit.
+  O'REILLY and TRUCKS: PRACTICE dominates, narrowly (+.0017 vs +.0012; +.0018 vs +.0016). The x0.7 shading
+  (fit on cup, 07-25) is a no-op for O'Reilly and slightly HURTS trucks (.16153 vs .16098 unshaded) - the one
+  constant that was never fit for the lower series. Stage 2 for both = where the empty practice weight goes
+  (pro rata today) AND a per-series shading, since the trucks sign says the cup value is wrong for it.
+  IDENTITY (the Bell case): on average the winner's sim rank moves 0.2-0.8 places pre vs post - the pre board
+  loses the favourite's LEVEL far more than his identity. The Bell boards are a thin-driver / market-fill
+  question on the live board (a cup ringer with little trucks history) that this reconstruction cannot
+  reproduce; separate audit, not stage 2.
+  The trucks favourite is under-stated on POST boards MORE than on pre (-26 vs -19): practice sharpens WHO the
+  favourite is (hits 48%) without raising what the sim says about him - the 10-09 finding restated.
+  Pre-board top-10 Brier is 8% worse than post in cup (.1622 vs .1498), 8% in O'Reilly, 6% in trucks.
+STAGE 2 (to be registered, named here as the rule requires): per series, (a) projected-start shading lam in
+{.4, .5, .6, .7, .8, 1} replacing the fixed .7 - needs leak-free trail10 projected grids reconstructed for the
+274 train races (loop_data, production rules); (b) empty-practice weight destination in {pro rata, all to
+corrHistory, all to trackHistory, split} - fit on train (every 2022-24 board is a no-practice board); both
+judged once on the PRE (lam) and NOPRAC (destination) 2025-26 lines, 162 boards, by top-10 Brier with rho /
+favourite-gap / winner-rank rails. Nothing ships from stage 1.
