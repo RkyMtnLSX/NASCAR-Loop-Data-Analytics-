@@ -9461,3 +9461,22 @@ SMOKE: a 30-sim train fit was started and read to the header line only. PUSH bef
                 registration. Stated now: if LD fails on top-5 again and L passes, the half-weight form needs its own entry with a
                 top-5-aware fit, not a re-read.
 FROZEN {"lam":{"cup":.4,"oreilly":1.2,"trucks":1.4},"dest":{"cup":"prorata","oreilly":"corrHistory","trucks":"corrHistory"}}
+
+## 2026-10-10 — PRE-BOARD STAGE 3 EXECUTED AS REGISTERED: NOTHING SHIPS — the stage-2 constants were the right stopping points
+161 pre boards, 20k sims, two runs, mean A (stage-2 ship) -> arm:
+  CUP (61)      L .4: t10 .16224 -> .16121 (better, 39/22 both runs)   winB .02255 -> .02256 (within floor this time)   t5B better
+                fav gap -3.1 -> -8.0 ((e) FAILS, as in stage 2)   winner rank 7.04 -> 7.07.   NOT SHIPPED - same verdict, same reason.
+  O'REILLY (57) L 1.2: t10 .14541 -> .14568 (WORSE, 24/33 and 19/38: (b) FAILS)   rho .4796 -> .4778   winB worse.   NOT SHIPPED - 1.0 stands.
+  TRUCKS (43)   L 1.4: t10 .16095 -> .16100 (worse, 21/22: (b) FAILS)   rho .4805 -> .4761.   NOT SHIPPED - 1.0 stands.
+                D corrHistory: t10 .16095 -> .16065 (better .00030, floor .00005)   rho .4805 -> .4816   winB .02456 -> .02409 (better 2%)
+                fav gap -19.9 -> -10.3   winner rank 4.59 -> 4.50   t5B .10133 -> .10179 (WORSE .00046, floor .00012: (d) FAILS) - exactly stage 2's verdict.
+                LD: t5B worse by .0012.   NOT SHIPPED.
+VERDICT: no change to the engine. The two stage-2 "grid edges" were not edges on the holdout - the in-sample pull toward
+.4 (cup) and above 1.0 (lower series) does not transfer, and the shipped .7 / 1.0 / 1.0 stand.
+READING: the trucks corrHistory destination has now failed the SAME rail the same way twice (top-5 Brier +.0004-.0005)
+while improving top-10, finish rho, win Brier (-2%) and halving the favourite gap. The rule is right to stop it - a
+pre-board top-5 market is a real product - but the trade is now measured, not suspected: the empty-practice weight on
+driver rating sharpens the top of the trucks pre board at the expense of positions 3-6. The half-weight form (corrHalf)
+was never judged: the top-10 fit criterion prefers the full move. A fourth entry fitting the destination by top-10 AND
+top-5 Brier together (the 10-09 lesson: fit on what the rail judges) is the honest next step for trucks; not run now.
+Thirty-one registrations since 10-04: six ships, twenty-five closed.

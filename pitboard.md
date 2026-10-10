@@ -3689,6 +3689,15 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
+## 2026-10-10 — Pre-board stage 3: the edges weren't edges, and the trucks trade is now measured twice
+Operator: "run the first two together." Extended the shading grid past where stage 2 stopped and added a half-
+weight practice destination. Nothing ships: cup's .4 buys top-10 and costs the favourite exactly as before,
+O'Reilly's 1.2 and trucks' 1.4 are worse than 1.0 on the real pre boards, so the constants shipped an hour ago
+were the right stopping points. The trucks practice-weight move failed top-5 by the same half-point for the
+second time while improving top-10, ordering, win Brier and halving the favourite gap - the half-weight
+version never got judged because the fit preferred the full move. Next for trucks, when wanted: fit the
+destination on top-10 and top-5 together. Thirty-one registrations since 10-04: six ships, twenty-five closed.
+
 ## 2026-10-10 — Shipped: per-series pre-board constants (the first pre-board fix)
 Operator: "build and register." Built leak-free projected grids for the 274 train races, fit the shading
 and the empty-practice destination per series on them, judged on 161 real pre boards. O'Reilly ships both
