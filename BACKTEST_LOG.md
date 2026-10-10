@@ -9296,3 +9296,32 @@ control table on 162 boards - cup fav gap -7.4 (pre favourites under-stated even
 O'Reilly -7.7, trucks -20; cup top-10 Brier .1585 vs .1500 with practice. The pre board is 6% worse than the
 post board on top-10 and under-states every series' favourite; that is the pre-board problem's size, measured.
 Twenty-six registrations since 10-04: four ships, no calls open, twenty-two closed.
+
+## 2026-10-10 — REGISTRATION: PRE-BOARD STUDY, stage 1 (diagnostic, shipped engine, nothing ships). Written before the run.
+TRIGGER. The no-practice pass-diff run's control table: without practice the sim under-states every series'
+favourite (cup -7.4, O'Reilly -7.7, trucks -20) and cup top-10 Brier is .1585 vs .1500 with practice; the live
+2026 trucks pre boards had Christopher Bell as the favourite at 13-17% twice. The pre board differs from the
+post board in TWO inputs - no practice AND a projected grid - and nothing so far separates their shares.
+Operator: "register it."
+METHOD (scripts/backtest-preboard.js). The same 2025-26 boards under four conditions, shipped engine (trucks
+carDnf, domBoot INT+SHORT, SS FL budget, O'Reilly lapped traffic), 20k sims, one run:
+  POST    real grid + practice (the 94 practice-covered lines)
+  NOPRAC  real grid, practice removed (all 162 lines)
+  PRE     PROJECTED grid, no practice - production's projection: trail10 + the v4 form term for cup / O'Reilly
+          (frozen betas), trail10 for trucks; production's projected-start shading x0.7 applied (161 lines
+          fingerprint-matched to the start-v4 study rows). Per-sim start sampling (#73) is NOT reproduced -
+          noted as the one production piece missing.
+  PRE0    PRE without the x0.7 shading (reference only)
+METRICS per series (and by track group where n >= 4): finish rho, top-10 / win / top-5 Brier, favourite gap
+(stated - hit), favourite hit rate, the actual winner's rank in the sim's win order (identity), mid 3-10% and
+tail gaps, elite cells and neP26 keyed on the REAL grid in every condition, projected-grid MAE. Two same-board
+deltas: PRACTICE REMOVED (NOPRAC vs POST on the 94) and GRID PROJECTED (PRE vs NOPRAC on the 161).
+READ-OUT RULE (written now): per series, the component with the larger top-10 Brier loss names stage 2. If the
+GRID share dominates: stage 2 is a per-series projected-grid shading (the 07-25 cup mechanism, lam .7 today for
+every series, refit per series on 2022-24 with projected grids reconstructed leak-free) - one constant per
+series. If the PRACTICE share dominates: stage 2 is a no-practice composite reweight (where the empty
+practice weight goes: pro rata today) - one constant per series. If the winner's sim rank is the thing that
+moves (identity, the Bell case) rather than the favourite's level, that is reported as such and stage 2 is a
+market-anchor question (the pre board's thin-driver fill), not a weight. Nothing ships from stage 1.
+SMOKE: a 30-sim run was started to verify the loader (162 boards, 94 with practice, 161 with a projected grid)
+and read only to the header; no metric rows seen. PUSH before the run.
