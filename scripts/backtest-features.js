@@ -65,6 +65,7 @@ const cl = p => Math.max(1e-6, Math.min(1 - 1e-6, p))
 function armCfg(v, b) {
   if (FORM === 'carVol') return { sim: v > 0 ? { carVol: { gamma: v } } : {}, opts: undefined }
   if (FORM === 'passDiff') return { sim: {}, opts: v > 0 ? { passDiff: { w: v } } : undefined }
+  if (FORM === 'passDiffNP') return { sim: {}, opts: v > 0 ? { passDiff: { w: v, onlyNoPractice: true } } : undefined }   // live only when the practice slot is empty
   // dkCeil: v = { u, d } (finish upside scale for the upper half; dominator top-slot damping); 0 / {} = shipped
   if (FORM === 'dkCeil') { const o = v && typeof v === 'object' ? v : {}; return { sim: { ...(o.u && o.u < 1 ? { upperUpside: { u: o.u } } : {}), ...(o.d && o.d < 1 ? { domTopDamp: { d: o.d } } : {}) }, opts: undefined } }
   throw new Error('unknown FORM ' + FORM)
@@ -115,6 +116,7 @@ const wl = (x, a, key, better) => { let w = 0, l = 0; x.per.forEach((p, i) => { 
 const SER = ['cup', 'oreilly', 'trucks']
 const sub = (boards, s) => boards.filter(b => b.series === s)
 const GRID = FORM === 'carVol' ? [0, 0.25, 0.5, 0.75, 1] : FORM === 'dkCeil' ? [1, 0.9, 0.8, 0.7, 0.6] : [0, 0.05, 0.1, 0.15, 0.2]
+const NOPRACTICE = !!process.env.NOPRACTICE   // test on the practice-free lines (pre-board analogue)
 const row = (nm, x) => `  ${nm.padEnd(9)} rho ${x.rho.toFixed(4)}  t10 ${x.t10.toFixed(5)}  winB ${x.wb.toFixed(5)}  t5B ${x.t5b.toFixed(5)}  winLL ${x.wll.toFixed(4)}  t5LL ${x.t5ll.toFixed(4)} | dkRho ${x.dkRho.toFixed(3)}  DK>p90 ${(100 * x.c90).toFixed(1)}%  DK<p10 ${(100 * x.c10).toFixed(1)}%${process.env.DIAG ? ` finDK>p90 ${(100 * x.f90).toFixed(1)}% domDK>p90 ${(100 * x.d90).toFixed(1)}%` : ''} | fav gap ${(100 * x.favGap).toFixed(1).padStart(5)}  mid ${(100 * x.midGap).toFixed(1)}  tail ${(100 * x.tailGap).toFixed(2)} | eliteFront ${x.eliteFront.toFixed(2)}  eliteDeep ${x.eliteDeep.toFixed(2)}  neP26 ${x.neP26.toFixed(2)}`
 const fitFile = D(FORM.toLowerCase() + '-fit.json')
 // fit criterion: carVol -> top-5 Brier + top-10 Brier (consistency); passDiff -> top-10 Brier (the 08-20 weight-sweep precedent)
@@ -144,8 +146,8 @@ if (PHASE === 'fit') {
   console.log('\nFROZEN ->', JSON.stringify(fit.value))
 } else {
   const fit = JSON.parse(fs.readFileSync(fitFile, 'utf8'))
-  const test = load('holdout-practice.txt', 'test', true)
-  console.log(`TEST ${FORM} on holdout-practice.txt: ${test.length} boards (${SER.map(s => s + ' ' + sub(test, s).length).join(', ')}), ${SIMS} sims, ${RUNS} runs; frozen ${JSON.stringify(fit.value)}; engine ${E.__engineSha}`)
+  const test = load('holdout-practice.txt', 'test', !NOPRACTICE)
+  console.log(`TEST ${FORM} on holdout-practice.txt${NOPRACTICE ? ' (practice-free lines)' : ''}: ${test.length} boards (${SER.map(s => s + ' ' + sub(test, s).length).join(', ')}), ${SIMS} sims, ${RUNS} runs; frozen ${JSON.stringify(fit.value)}; engine ${E.__engineSha}`)
   for (let run = 1; run <= RUNS; run++) {
     console.log(`\nRUN ${run}`)
     for (const s of SER) {

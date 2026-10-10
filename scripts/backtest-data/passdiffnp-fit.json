@@ -1,0 +1,11 @@
+{
+  "form": "passDiffNP",
+  "value": {
+    "cup": 0.1,
+    "oreilly": 0,
+    "trucks": 0.1
+  },
+  "sims": 10000,
+  "engine": "2d86cba5074f",
+  "note": "frozen from passdiff-fit.json: on train.txt (no practice) the onlyNoPractice flag is a no-op, so the fit is identical by construction (registration 2026-10-10)"
+}

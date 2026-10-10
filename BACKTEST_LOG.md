@@ -9245,3 +9245,33 @@ eras) and trucks (fitted 2, FAILED: rho -.0085) stay off. Revert trigger as regi
 of negative CLV lift on stamped O'Reilly boards. OPERATOR ACTION: re-run + republish the next O'Reilly board.
 Four ships since 10-04 (trucks per-car DNF, dominator bootstrap INT+SHORT, SS FL budget, O'Reilly lapped
 traffic); no calls open; twenty-one closed.
+
+## 2026-10-10 — PRE-REGISTERED: PASS DIFFERENTIAL, NO-PRACTICE SLOT (the pre-board form). Written before the run. DO NOT MODIFY.
+TRIGGER. The 10-10 pass-differential registration: w .10 improved top-10, win and top-5 Brier, win LL and finish
+rho together in-sample for cup on train.txt (which carries no practice) and failed the practice holdout - the
+term is redundant with practice and fills a hole without it. The hole is the Wednesday PRE board: no practice
+loaded, and the trucks pre favourite was Christopher Bell at 13-17% twice. Operator: "register the no practice
+pass differential slot."
+FORM (engine, flagged, default off: buildSpeedScores(drivers, weights, { passDiff: { w, onlyNoPractice: true } })).
+Identical to the 10-10 slot (min-max scaled green-flag pass differential per lap from prior same-series races,
+weight w, others diluted pro rata) EXCEPT it is live only when the practice slot is empty for the whole field
+(lrpTime null for every driver) - the 09-26 empty-slot rule's shape. On a post board with practice it is a
+no-op by construction. One w per series.
+FIT: FROZEN from passdiff-fit.json without a rerun - {"cup": .10, "oreilly": 0, "trucks": .10} - because on
+train.txt (no practice anywhere) the onlyNoPractice flag is a no-op and the fit is identical by construction
+(same data, same criterion, same grid). Copied to passdiffnp-fit.json with that note. Stated rather than
+re-run, so nobody mistakes it for a second fit.
+TEST: the PRACTICE-FREE lines of holdout-practice.txt (NOPRACTICE=1: all 162 fingerprint-matched 2025-26
+boards loaded with lrpTime null - the pre-board analogue; cup 62 / O'Reilly 57 / trucks 43), 20k sims, RUNS=2,
+control = shipped. Null floor = |A run1 - A run2|. Metrics as the 10-10 registration (rho, top-10 Brier, win /
+top-5 Brier, win / top-5 LL, DK rho, DK coverage, favourite / mid / tail gaps, elite cells).
+DECISION RULE (per series, mean of two runs): SHIP T at the frozen w if (a) w > 0; (b) top-10 Brier better than
+A by at least the null floor AND finish rho not worse by more than the floor; (c) win Brier and top-5 Brier
+each not worse than A by more than the floor; (d) DK rho not worse by more than the floor; (e) favourite gap
+not worse than A by more than 1.0 pt; (f) neP26 within 0.5 of A. Fails any one -> not shipped for that series.
+Ships as opts.passDiff { w, onlyNoPractice: true } in SimulationCenter's buildSpeedScores call, passDiff
+computed per driver from own-series loop_data the way lappedRate is; boards stamp passDiff 'v1-np-w<w>' when
+the slot was live and 'v1-np-idle' when practice was present; a 'pass' column in the breakdown. Revert
+trigger: pre-board finish rho below its 10-week trailing mean two straight weekends.
+SMOKE: a 200-sim practice-free run was started to verify the loader and KILLED after the header line printed
+(162 boards: cup 62 / O'Reilly 57 / trucks 43); no metric rows were read. PUSH before the run.

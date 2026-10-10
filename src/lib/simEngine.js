@@ -469,7 +469,10 @@ function buildSpeedScores(drivers, weights, opts) {
   // recency-weighted green-flag (passes - times passed) per lap over prior same-series races: measured
   // race-day speed through traffic, independent of where the car started or finished. Enters as one more
   // min-max-scaled slot with weight w; every other slot is diluted pro rata through wTotal. No history -> 50.
-  const __pdW = opts && opts.passDiff && opts.passDiff.w > 0 ? +opts.passDiff.w : 0
+  // NO-PRACTICE VARIANT (registered 2026-10-10): opts.passDiff.onlyNoPractice = true makes the slot live ONLY when
+  // the practice slot is empty for the whole field (the Wednesday pre board) - the 10-10 holdout showed the term
+  // is redundant with practice and fills a real hole without it. Same shape as the 09-26 empty-slot rule.
+  const __pdW = (opts && opts.passDiff && opts.passDiff.w > 0 && !(opts.passDiff.onlyNoPractice && !lrpScores.every(v => v == null))) ? +opts.passDiff.w : 0
   const pdScores = __pdW ? normalizeArr(drivers.map(d => d.passDiff), false) : null
   const __wIn = Object.assign({}, weights, __lrpEmpty ? { longRunPace: 0 } : {}, __pitEmpty ? { pitCrew: 0 } : {}, __pdW ? { passDiff: __pdW } : {})
   const wTotal = Object.values(__wIn).reduce((a, b) => a + b, 0) || 1
