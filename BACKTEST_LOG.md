@@ -9275,3 +9275,24 @@ the slot was live and 'v1-np-idle' when practice was present; a 'pass' column in
 trigger: pre-board finish rho below its 10-week trailing mean two straight weekends.
 SMOKE: a 200-sim practice-free run was started to verify the loader and KILLED after the header line printed
 (162 boards: cup 62 / O'Reilly 57 / trucks 43); no metric rows were read. PUSH before the run.
+
+## 2026-10-10 — NO-PRACTICE PASS DIFFERENTIAL EXECUTED AS REGISTERED: CUP and TRUCKS FAIL — NOT SHIPPED; the regime reading was wrong
+Practice-free 2025-26 lines (cup 62 / O'Reilly 57 / trucks 43), 20k sims, two runs, mean A -> T (w .10):
+  CUP (62)     t10 .15850 -> .15893 (WORSE .0004, floor .00003: (b) FAILS)   rho .4265 -> .4222 (worse, 26/36)   winB .02205 -> .02230 (worse)
+               t5B .09449 -> .09503   winLL .0907 -> .0913   dkRho .3155 -> .3085 (worse: (d) FAILS)   fav gap -7.35 -> -4.9   eliteFront -.57 -> -.99
+  TRUCKS (43)  t10 .15985 -> .16030 (WORSE .0005, floor .0000: (b) FAILS)   rho .4895 -> .4903 (tie)   winB .02473 -> .02462 (better)   t5B .09991 -> .09960 (better)
+               winLL .0966 -> .0959 (better)   dkRho .294 -> .2845 (worse .010: (d) FAILS)   fav gap -20.0 -> -24.6 (worse 4.6: (e) FAILS)
+  O'REILLY     fitted 0, not tested (A for the record: fav gap -7.7, DK>p90 6.6%)
+VERDICT by the registered rule: NOT SHIPPED. Flag stays in, default off.
+READING, and a correction of this morning's: I read the 10-10 holdout failure as a practice-regime mismatch
+("redundant with practice"). On 162 boards WITHOUT practice the slot still loses top-10 Brier and DK rho in
+both series, so the in-sample cup gain on 2022-24 was never going to transfer to 2025-26 whether practice is
+present or not. Pass differential as a composite slot is CLOSED, both variants; the information it carries
+about 2025-26 finishes is already in the composite or has changed sign across eras. The one thing it did in
+trucks - win Brier and top-5 Brier better in both runs (26/17, 24/19) with the favourite gap WIDER (-20 ->
+-25) - is the pattern of a term that helps mid-pack ordering and hurts the top, i.e. another symptom of the
+top-end flatness, not a fix for it. What this run also gives us that the practice holdout cannot: a PRE-BOARD
+control table on 162 boards - cup fav gap -7.4 (pre favourites under-stated even in cup without practice),
+O'Reilly -7.7, trucks -20; cup top-10 Brier .1585 vs .1500 with practice. The pre board is 6% worse than the
+post board on top-10 and under-states every series' favourite; that is the pre-board problem's size, measured.
+Twenty-six registrations since 10-04: four ships, no calls open, twenty-two closed.

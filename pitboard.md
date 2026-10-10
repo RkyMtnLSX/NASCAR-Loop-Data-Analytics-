@@ -3689,6 +3689,17 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
+## 2026-10-10 — The no-practice pass-differential slot: closed, and this morning's reading corrected
+Operator: "register the no practice pass differential slot." Tested on all 162 fingerprint-matched 2025-26
+boards loaded without practice - the pre-board analogue, three times the usual holdout. It loses top-10
+Brier and DK rank in cup and trucks exactly as it did with practice, so this morning's "redundant with
+practice" reading was wrong: the 2022-24 in-sample gain simply does not exist on 2025-26, practice or not.
+Pass differential is closed as a composite input in both forms. The run's by-product is the first measured
+pre-board control table: without practice the sim under-states every series' favourite (cup -7, O'Reilly
+-8, trucks -20) and cup's top-10 Brier is 6% worse than the post board. That's the size of the pre-board
+problem, which is now the clearest next target. Twenty-six registrations since 10-04: four ships, twenty-
+two closed.
+
 ## 2026-10-10 — Shipped: lapped traffic for O'Reilly
 Operator: "ship it." The one open call from the 10-09 protocol: O'Reilly boards now lap running back-
 markers per draw at the real rates (k 1.5), so the back of the field finishes where it actually finishes
