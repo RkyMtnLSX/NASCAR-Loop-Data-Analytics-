@@ -8905,3 +8905,43 @@ dominant era (Heim 2025, Riggs / Honeycutt 2026) ships blind into a series whose
 (already removed by the interim rule) without creating a right one. PLAN: interim no-fade rule stays;
 simConfig.tierClip stays in, default off; refit at season end on 2025-26 with 2027 as the forward judge
 (rolling-refit policy, first case). The pre-board projected grid for trucks is the nearer priority.
+
+## 2026-10-10 — PRE-REGISTERED: DOMINANCE v2 CARRIED TO SHORT / ROAD / SS (all series, group-level). Written before the fit. DO NOT MODIFY.
+TRIGGER. Doctrine line since 09-03: outside intermediates laps led / fastest laps are "still dealt by finish
+rank from LL_CURVES_G / FL_CURVES_G and hand out a fastest lap for EVERY lap - known wrong, unmeasured".
+The INT fix (green-lap FL budget + strength-keyed dealing order) passed its holdout 09-03 (LL MAE 9.72 ->
+8.54, FL MAE 5.70 -> 4.80, DK rho .311 -> .320) and was never carried over. Operator: "let's do the
+dominance curve one first & then per driver volatility."
+WHAT SHIPS TODAY at SHORT / ROAD / SS: dealing order = the draw's FINISH order (so the top-laps-led car is the
+winner in 100% of draws; real SHORT 2022-24: 53%), curves = per-draw bootstrap of real 2022-24 share vectors
+at SHORT (domBoot, shipped 10-09) and the fixed LL_CURVES_G / FL_CURVES_G at ROAD / SS, fastest laps dealt for
+every lap. The practice tilt (mult-v1) and the SS LL / FL tilts (08-29) sit on top and are kept in every arm.
+FORM (no new engine code: simConfig.flBudget, domPool 'strength', domAlpha, domK, domKFL already exist and
+are group-agnostic; only SimulationCenter's defaults gate them to INT). Per GROUP, pooled across series as
+the INT fit was (group-level constants; the per-series bootstrap pools stay as they are):
+  A = shipped + flBudget G_FL (fastest laps dealt for the measured green-lap fraction)
+  B = A + strength-keyed dealing: dom_T(i) = speedScore + alpha x (draw score - speedScore) + k_T x noiseWidth x eps
+FIT (train.txt 2022-24, per-driver LL / FL actuals pulled from loop_data 2026-10-10 into dom-train-actuals.json,
+274 races, fingerprint-joined through protocol-features.json; 1,500 sims per board as the INT fit used):
+G_FL = mean over the group's train races of (sum of fastest laps / race laps). The coupling target P(top-LL car
+wins) = the group's actual share; feasible (alpha, k) must land within +/- 0.10 of it. alpha in {.25,.5,.75},
+k in {.25,.5,.75,1,1.5,2}; alpha and k_LL by the smallest sum of squared strength-tier LL biases among
+feasible cells, k_FL by the smallest FL objective at that alpha (the 09-03 recipe exactly). A group with no
+feasible cell gets A only. Written to dom-groups-fit.json and COMMITTED before the holdout is read.
+TEST: holdout-practice.txt 2025-26 boards in SHORT / ROAD / SS (practice >= 50%), joined to dominator-
+actuals.json; 20k sims, RUNS=2; control = shipped (trucks carDnf k32, domBoot at SHORT). Null floor per
+metric = |CONTROL run1 - run2|. Metrics per group: M1 laps-led MAE, M2 fastest-laps MAE, M4 Spearman of
+projected DK vs actual DK (finish pts + place diff + .25 LL + .45 FL), M3 strength-tier bias (tier 1 LL/FL),
+guards win / top-5 / top-10 Brier, P(top-LL car wins) for the record.
+DECISION RULE (per group, mean of two runs, applies to all three series in that group): SHIP B if (a) M1 and
+M2 are each better than CONTROL by more than the null floor; (b) M4 is not worse than CONTROL by more than
+the null floor; (c) win, top-5 and top-10 Brier are each within the null floor of CONTROL; (d) |tier-1 LL
+bias| is smaller than CONTROL's. If B fails and A alone satisfies (b), (c) and M2 better by more than the
+floor with M1 within the floor, SHIP A (budget only) for that group. Fails -> that group stays as is. Ships
+as group defaults in runRaceSim next to the INT_DOM_V2 block (same shape), stamped domCurves
+'<group>-dom-v2' on boards. Revert trigger: a group's DK dominator-point error worse than the 10-09 stage-1
+diagnostic two straight weekends.
+HARNESS SMOKE (train only, SHORT, 60 sims, in-sample, throwaway): CONTROL llMAE 10.25 flMAE 6.10 tier-1 LL
+bias +26.8 (the INT disease: the favourite is projected to lead far fewer laps than he does), P(top-LL car
+wins) 1.000 vs actual .526; A flMAE 5.41 with the FL tier biases centred; the B grid moves tier-1 LL bias
+through zero between k .25 and .75 at alpha .25. Nothing from the holdout was seen. PUSH before the fit.
