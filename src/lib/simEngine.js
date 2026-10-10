@@ -465,7 +465,13 @@ function buildSpeedScores(drivers, weights, opts) {
   const __dropEmpty = !!(opts && opts.dropEmptySlots)
   const __lrpEmpty = __dropEmpty && lrpScores.every(v => v == null)
   const __pitEmpty = __dropEmpty && pitScores.every(v => v == null)
-  const __wIn = Object.assign({}, weights, __lrpEmpty ? { longRunPace: 0 } : {}, __pitEmpty ? { pitCrew: 0 } : {})
+  // PASS DIFFERENTIAL SLOT (registered 2026-10-10, BACKTEST_LOG; OFF unless opts.passDiff = { w }). d.passDiff =
+  // recency-weighted green-flag (passes - times passed) per lap over prior same-series races: measured
+  // race-day speed through traffic, independent of where the car started or finished. Enters as one more
+  // min-max-scaled slot with weight w; every other slot is diluted pro rata through wTotal. No history -> 50.
+  const __pdW = opts && opts.passDiff && opts.passDiff.w > 0 ? +opts.passDiff.w : 0
+  const pdScores = __pdW ? normalizeArr(drivers.map(d => d.passDiff), false) : null
+  const __wIn = Object.assign({}, weights, __lrpEmpty ? { longRunPace: 0 } : {}, __pitEmpty ? { pitCrew: 0 } : {}, __pdW ? { passDiff: __pdW } : {})
   const wTotal = Object.values(__wIn).reduce((a, b) => a + b, 0) || 1
   const w = {
     corrHistory:  __wIn.corrHistory  / wTotal,
@@ -474,6 +480,7 @@ function buildSpeedScores(drivers, weights, opts) {
     startPos:     __wIn.startPos     / wTotal,
     trackHistory: (__wIn.trackHistory || 0) / wTotal,
     winConversion:(__wIn.winConversion || 0) / wTotal,
+    passDiff:     (__wIn.passDiff || 0) / wTotal,
   }
 
   const __scored = drivers.map((d, i) => {
@@ -531,7 +538,8 @@ function buildSpeedScores(drivers, weights, opts) {
       sp  * w.startPos     +
       t   * w.trackHistory +
       wc  * w.winConversion +
-      pit * w.pitCrew
+      pit * w.pitCrew +
+      (pdScores ? (pdScores[i] ?? 50) : 0) * w.passDiff
     const __lapPen = (__lapMed != null && d.lappedRate != null && !isNaN(d.lappedRate)) ? LAP_PENALTY * (d.lappedRate - __lapMed) * 100 : 0
 
     return {

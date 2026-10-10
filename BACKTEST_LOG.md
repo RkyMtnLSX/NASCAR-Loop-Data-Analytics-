@@ -9024,3 +9024,49 @@ straight weekends' boards.
 HARNESS SMOKE (train only, cup, 100 sims, two rows, throwaway): g0 t5B .10407 t10 .16507 DK>p90 9.7% DK<p10
 10.2% / g.25 .10433 .16612 9.8% 10.5% - draw-noise at 100 sims, nothing to read. No holdout numbers seen.
 PUSH before the fit.
+
+## 2026-10-10 — PER-DRIVER VOLATILITY: FIT returns 0 for every series — CLOSED AT THE FIT
+  CUP (108)     g0 t5B .10287 t10 .16345 dkRho .284 DK>p90 9.7% DK<p10 9.7% | g.25 .10315 .16375 .277 | g1 .10474 .16535 .261   -> 0
+  O'REILLY (99) g0 .09233 .14399 .257 DK>p90 7.5% <p10 9.9% | g.25 .09251 .14448 .246 | g1 .09386 .14591 .219                 -> 0
+  TRUCKS (67)   g0 .09615 .15491 .280 DK>p90 6.1% <p10 9.3% | g.25 .09675 .15565 .274 | g1 .09896 .15780 .226                 -> 0
+Every metric degrades monotonically with gamma in every series - top-5 and top-10 Brier, finish rho, DK rho.
+A driver's history of finishing better or worse than he ran does NOT predict the width or direction of his
+next race beyond what the composite already carries; the engine's single width plus the two shipped edge
+patches is the better model. Not tested on the holdout (fit 0), nothing ships, flag stays in off.
+FINDING for the DFS side (control arm, train 2022-24): the sim's DK CEILINGS are honest in cup (actual DK
+above the sim's p90 9.7% of the time, below p10 9.7%) and TOO HIGH in the lower series (O'Reilly 7.5% /
+9.9%, trucks 6.1% / 9.3%): a trucks driver clears his stated p90 only 6 times in 100, not 10. The GPP set
+builder maximises E[max] off these draws, so in trucks and O'Reilly it is chasing ceilings that arrive
+40% less often than stated, while floors are right. Not the subject of this registration; logged as a
+lead (a per-series upside scale, judged on p90 coverage, is a one-constant form).
+Twenty registrations since 10-04: two ships, one call open, seventeen closed.
+
+## 2026-10-10 — PRE-REGISTERED: PASS DIFFERENTIAL as a composite slot. Written before the fit. DO NOT MODIFY.
+TRIGGER. Three independent tests (trucks favourite, elite cells, dominance groups) say the projected finish
+order is too flat at the top, and every dial that reshapes noise or stretches ratings has failed for a
+structural reason. The first registration that adds INFORMATION instead: green-flag pass differential per
+lap - (green-flag passes - times passed) / laps completed - is measured race-day speed through traffic,
+independent of where the car started or finished, present for every driver in every race since 2021 in all
+three series, and not in the composite. Operator: second of the three registrations.
+DATA: race-features.json (built 2026-10-10, see the volatility registration): passDiff per driver per board
+from PRIOR same-series races only (most recent 30, recency 0.85). Cup median -0.0035 / lap, p10 -0.059, p90
++0.052.
+FORM (engine, flagged, default off: buildSpeedScores(drivers, weights, { passDiff: { w } })). One more
+min-max-scaled slot (higher = better) with weight w; all other slots diluted pro rata through wTotal; a
+driver without history scores 50 in the slot. One w per series.
+FIT: train.txt (2022-24, no practice), 10k sims, w in {0, .05, .10, .15, .20}, smallest TOP-10 BRIER (the
+08-20 weight-sweep precedent; tie within 1e-5 -> smaller). Written to passdiff-fit.json and COMMITTED before
+the holdout is read. Fitted 0 -> nothing to test.
+TEST: holdout-practice.txt (94 boards), 20k sims, RUNS=2, control = shipped. Null floor = |A run1 - A run2|.
+Metrics as the volatility registration (rho, top-10 Brier, win / top-5 Brier, win / top-5 LL, DK rho, DK
+coverage, favourite / mid / tail gaps, elite cells).
+DECISION RULE (per series, mean of two runs): SHIP T at the fitted w if (a) fitted w > 0; (b) top-10 Brier
+better than A by at least the null floor AND finish rho not worse by more than the floor; (c) win Brier and
+top-5 Brier each not worse than A by more than the null floor; (d) DK rho not worse than A by more than the
+floor; (e) favourite gap not worse than A by more than 1.0 pt; (f) neP26 within 0.5 of A. Fails any one ->
+not shipped for that series. Ships as opts.passDiff in SimulationCenter's buildSpeedScores call with
+passDiff computed per driver from own-series loop_data the way lappedRate is (and a 'pass' column in the
+breakdown); stamp passDiff 'v1-w<w>'. Revert trigger: finish rho below the 10-week trailing mean two straight
+weekends.
+HARNESS SMOKE (train only, cup, 100 sims, two rows, throwaway): nothing to read at 100 sims. No holdout numbers
+seen. PUSH before the fit.
