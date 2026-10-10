@@ -3689,6 +3689,26 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
+## 2026-10-10 — Three registrations in sequence: volatility closes, pass differential closes, the SS fastest-lap budget is a call
+Operator: "do the three registrations in sequence." Per-driver volatility (upside / downside draw
+width from each driver's own history of finishing better or worse than he ran, split so wreck-prone
+cars don't get free upside): the fit returns zero in every series, every metric worse with any
+weight - a driver's past race-shape doesn't predict his next one beyond what the composite carries.
+Its control arm did show the sim's DK ceilings are honest in cup and too high in O'Reilly and
+trucks (a trucks driver clears his stated p90 six times in a hundred, not ten), logged as a lead.
+Pass differential (green-flag passes minus times passed, per lap) is the first new information
+slot since practice: it improves everything in-sample for cup and then fails the holdout, and the
+reason is the data, not the idea - train.txt has no practice and the holdout boards all do, so a
+race-day speed proxy fills a hole on train that practice fills better on the boards users see. The
+fix is to regenerate the train set WITH practice where it exists; three registrations have now
+tripped on that mismatch. The third, the superspeedway re-judge of the dominance fix on the
+practice-free SS boards: the green-lap fastest-lap budget improves 26 of 27 boards with everything
+else a tie, including DK rank - SS is the one group where the budget is free, because SS fastest
+laps are spread down the field and never propped the top. The rule I wrote has a zero noise floor
+on a seeded harness, so by the letter nothing can pass it; operator call, recommendation ship the
+budget at SS and hold the strength order. Twenty-two registrations since 10-04: two ships, two
+calls open, eighteen closed.
+
 ## 2026-10-10 — Dominance v2 outside intermediates: better laps led, better fastest laps, worse DK order — not shipped
 Operator: "let's do the dominance curve one first & then per driver volatility." Pulled per-driver laps-
 led / fastest-lap actuals for the 274 train races, fit the INT recipe per group (green-lap FL budget +
