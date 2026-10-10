@@ -3689,6 +3689,14 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
+## 2026-10-10 — Shipped: lapped traffic for O'Reilly
+Operator: "ship it." The one open call from the 10-09 protocol: O'Reilly boards now lap running back-
+markers per draw at the real rates (k 1.5), so the back of the field finishes where it actually finishes
+(+1.4 positions too well -> within 0.04) and win / top-5 / top-10 all get better, at a cost of .005 finish
+rho that missed its guard by .0004 in one of two runs. Taken knowingly, O'Reilly only; cup and trucks
+failed their own fits and stay off. Next O'Reilly board needs a re-run and republish. Four ships since
+10-04, no calls open.
+
 ## 2026-10-10 — DK ceilings: the diagnostic located it, the dials didn't reach it, and trucks said something else
 Operator: "register the DK scale." Stage 1 first: in O'Reilly and trucks the actual DK clears the sim's p90
 only 5-7% of the time, and it's both halves - the finish side and the dominator side; cup is honest on

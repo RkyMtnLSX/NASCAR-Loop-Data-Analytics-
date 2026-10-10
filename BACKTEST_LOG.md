@@ -9233,3 +9233,15 @@ effect that the fit set cannot see and the holdout can. It fails the rule on top
 trucks-favourite season-end refit as the strongest single piece of evidence for it: a clip form, fit on
 2025-26, judged on 2027. Not run now (operator decision 10-10 stands).
 Twenty-five registrations since 10-04: three ships, one call open, twenty-one closed.
+
+## 2026-10-10 — SHIPPED (operator: "ship it"): LAPPED TRAFFIC for O'REILLY, k 1.5 — the 10-09 protocol's open call, closed
+Operator took the trade stated plainly on 10-09 and again today: on the 2025-26 holdout every probability
+metric improves in both runs (win LL 17/9 and 20/6, top-5 LL 17/9 and 19/7, top-10 Brier better), the non-
+elite P26+ residual goes +1.40 -> -0.04 (the back of the field lands where it finishes), and finish rho loses
+.0047 / .0054 against a .005 guard written before the engine's run-to-run rho noise (~.001) was known. Ships
+as simConfig.lappedTraffic { series 'oreilly', k 1.5 } in SimulationCenter for O'Reilly boards only; boards
+stamp config.lapTraffic 'v2-k1.5' / 'off'. Cup (fitted .75, FAILED: back-of-field sign flipped between
+eras) and trucks (fitted 2, FAILED: rho -.0085) stay off. Revert trigger as registered: two straight weekends
+of negative CLV lift on stamped O'Reilly boards. OPERATOR ACTION: re-run + republish the next O'Reilly board.
+Four ships since 10-04 (trucks per-car DNF, dominator bootstrap INT+SHORT, SS FL budget, O'Reilly lapped
+traffic); no calls open; twenty-one closed.
