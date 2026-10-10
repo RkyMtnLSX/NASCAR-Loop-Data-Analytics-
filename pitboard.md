@@ -3689,6 +3689,14 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
+## 2026-10-10 — Shipped: superspeedway fastest-lap budget
+Operator: "ship the SS budget." SS boards now deal fastest laps for the measured 69% of green laps
+instead of every lap (SS_FL_BUDGET .6938; boards stamp domCurves 'ss-flbudget-v1'). The strength
+order stays off at SS, and SHORT / ROAD keep the every-lap count on purpose until the top-end order
+is fixed. Next SS board (Talladega) needs a re-run and republish to pick it up. Three ships since
+10-04. Next in the queue, in order: regenerate train.txt with practice, register the DK ceiling
+scale, re-run pass differential on the new train set.
+
 ## 2026-10-10 — Three registrations in sequence: volatility closes, pass differential closes, the SS fastest-lap budget is a call
 Operator: "do the three registrations in sequence." Per-driver volatility (upside / downside draw
 width from each driver's own history of finishing better or worse than he ran, split so wreck-prone
