@@ -9448,3 +9448,16 @@ worse by more than the floor; (d) win and top-5 Brier each not worse by more tha
 by more than 1.0; (f) winner's sim rank not worse by more than 0.25. LD if it passes, else the passing half alone.
 Ships as the per-series constants in SimulationCenter (stamps projShade 'v2-<lam>', emptyPractice '<dest>').
 SMOKE: a 30-sim train fit was started and read to the header line only. PUSH before the fit.
+
+## 2026-10-10 — PRE-BOARD STAGE 3: FIT (train.txt with trail10 grids, 10k sims) — FROZEN before the holdout is read
+  CUP (108)     lam .2 .16881 | .3 .16874 | .4 .16848 | .7 .16900 -> .4 (NOT an edge after all: .2 / .3 are worse). dest at .4: prorata .16852 /
+                corrHalf .16899 -> prorata. Cup's candidate is therefore IDENTICAL to the stage-2 arm that failed (d) and (e); it is run
+                again as the rule says and will fail again unless the draw differs - expected, stated.
+  O'REILLY (99) lam 1 .14679 | 1.2 .14678 | 1.4 .14693 -> 1.2 (a hair; the tie band did not catch it at 4 dp). dest at 1.2: corrHistory
+                .14673 / corrHalf .14700 / prorata .14717 -> corrHistory (unchanged).
+  TRUCKS (67)   lam 1 .16152 | 1.2 .16124 | 1.4 .16105 -> 1.4 (the top of the grid again). dest at 1.4: prorata .16124 / corrHalf
+                .16061 / corrHistory .16032 -> corrHistory - the fit criterion (top-10) picks the full move over the half move, so
+                the holdout will judge corrHistory again (it failed top-5 by .0004 at lam 1); corrHalf is NOT judged under this
+                registration. Stated now: if LD fails on top-5 again and L passes, the half-weight form needs its own entry with a
+                top-5-aware fit, not a re-read.
+FROZEN {"lam":{"cup":.4,"oreilly":1.2,"trucks":1.4},"dest":{"cup":"prorata","oreilly":"corrHistory","trucks":"corrHistory"}}
