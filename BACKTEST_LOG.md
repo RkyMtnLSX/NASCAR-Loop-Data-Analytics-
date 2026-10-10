@@ -9596,3 +9596,36 @@ each not worse by more than the floor; (e) favourite gap not worse by more than 
 from a current-season cup-start count (loop_data, same definition) and passes simConfig.ringer; boards stamp ringer
 'v1-b<b>-m<m>'; PITBOARD_MANUAL's "don't fade a ringer's top-5 / top-10" stays as doctrine either way.
 SMOKE: loader checked on header lines and the first train row only; no holdout row read. PUSH before stage 1.
+
+## 2026-10-10 — #54 STAGE 1 EXECUTED: the confirmation rule FAILS — ringers are under-stated on EVERY market, win included. Stage 2 (b, m) does NOT run.
+Leak-free harness boards, shipped engine, 10k sims, ringer flags by fingerprint (train 203 rows / holdout 158 practice-free,
+98 with practice). Stated / realised:
+  TRAIN 2022-24 (203)   win 6.2 / 12.3   t5 24.1 / 35.5   t10 40.9 / 51.7   proj fin 15.8 / actual 14.2
+  TEST 2025-26  (158)   win 7.8 / 13.9   t5 29.5 / 41.8   t10 47.7 / 62.0   proj fin 14.2 / actual 10.9
+  TEST w/ practice (98) win 7.4 / 12.2   t5 30.4 / 44.9   t10 50.2 / 63.3   proj fin 13.7 / actual 10.2
+  Non-ringers are calibrated on the same boards (win 2.6 / 2.4, t5 13.2 / 12.8, t10 26.6 / 26.2 on train; same on test).
+BY SIM WIN-RANK TIER (ringer realised vs non-ringer realised at the same sim rank), train then test:
+  1-3   win 18.4 vs 17.1 / 24.1 vs 18.3     4-8   win 21.6 vs 5.7 / 15.4 vs 4.0     9-15  win 7.8 vs 1.1 / 6.5 vs 1.8
+  16+   win 6.1 vs 0.2 / 6.3 vs 0.1;  t5 and t10 the same direction in every tier, both eras.
+READING. The registered hypothesis - high floor, LOW win conversion - is wrong on 361 rows. The 07-16 "won 1 of 22" was a
+45-row artifact; the 2025-26 published boards' 0-for-26 is sample size (expected ~2). A cup regular in a lower series beats
+the sim on every market, by roughly 2x on win, and a mid-ranked ringer (sim rank 4-15) wins 3-7x as often as a regular at
+the same rank. The miss is a LEVEL, not a shape: the composite rates him off his thin own-series rows (and 50-fills), and
+nothing in the harness or - per the stated-vs-production check below - in production closes it. The registered (b, m)
+form with m < 1 would narrow the one car the data says has the most upside; by the confirmation rule it does not run.
+CAVEAT CHECKED: the harness lacks production's equipment prior, car-auto and market fill. Same 2025-26 ringer rows, production
+boards (26): stated win 8.0 / t5 31 / t10 53 / proj fin 12-13 - within a point of the harness's 7.8 / 29.5 / 47.7 / 14.2.
+Production under-states ringers just as much; the harness is a fair instrument here.
+NEXT (registered below, before any fit): a LEVEL form only - score shift b, width untouched.
+
+## 2026-10-10 — PRE-REGISTERED: #54 STAGE 2' — RINGER LEVEL SHIFT (b only, m = 1). Written before the fit. DO NOT MODIFY.
+FORM. simConfig.ringer = { b, m: 1 }: a ringer's per-draw score is speedScore + b (0-100 score points), width unchanged.
+Everything else as stage 2 registered: one b pooled over O'Reilly + trucks; FIT on train ringer rows by ringer-row win +
+t5 + t10 Brier (equal weight), grid b in {0, 2, 4, 6, 8, 10, 12}, 10k sims, committed to ringer-fit.json before the holdout
+is read. JUDGE on holdout-practice.txt practice-free lines (158 ringer rows; the with-practice lines reported, not judged),
+20k sims, RUNS=2, null floor |A1 - A2|: (b) ringer t5 AND t10 Brier better by at least the floor; (c) ringer win Brier not
+worse by more than the floor; (d) all-row t10 Brier, rho, win Brier each not worse by more than the floor; (e) favourite gap
+not worse by more than 1.0. SHIP = SimulationCenter flags ringers from current-season cup starts (>= 10, and more than
+this-series starts, counted to date) and passes simConfig.ringer; boards stamp ringer 'v1-b<b>'. Why the score and not
+the rating: a rating offset would also move the dominator order and the DNF tilt; the score shift changes the finish
+draw only, which is the one thing stage 1 measured. PUSH before the fit.

@@ -84,8 +84,8 @@ if (STAGE === '1') {
   const boards = load('train.txt', 'train', false)
   console.log(`FIT on train.txt: ${boards.length} boards, ${boards.reduce((s, b) => s + b.nR, 0)} ringer rows, ${SIMS} sims`)
   const grid = []
-  for (const b of [0, 2, 4, 6, 8]) for (const m of [0.5, 0.6, 0.7, 0.8, 0.9, 1]) {
-    const S = summarise.silent ? null : null
+  // stage 2' (10-10): level only - m fixed at 1 (stage 1 failed the (b, m) confirmation rule; BACKTEST_LOG)
+  for (const b of [0, 2, 4, 6, 8, 10, 12]) for (const m of [1]) {
     const res = boards.map(x => run(x, { b, m }))
     const all = res.flatMap(r => r.out), ring = all.filter(r => r.ringer)
     const loss = brier(ring, 'win', 'w') + brier(ring, 't5', 'f5') + brier(ring, 't10', 'f10')
