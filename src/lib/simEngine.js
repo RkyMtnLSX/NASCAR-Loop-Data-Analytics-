@@ -691,10 +691,12 @@ function runRaceSim(drivers, simConfig) {
       return out
     })()
     // topNoise / tierClip / carVol / upperUpside (10-09 / 10-10 registrations) were closed and stripped 10-10 (git f3f8405).
-    // RINGER SHAPE (#54, registered 2026-10-10, BACKTEST_LOG; OFF unless simConfig.ringer = { b, m }). A cup regular
-    // moonlighting in a lower series (d.ringer = true) draws from speedScore + b with width x m on both sides: a higher,
-    // narrower distribution finishes well and loses the max-of-draws race for the win - the shape the 07-16 matched
-    // diagnostic and the 2025-26 boards both show (high floor, low win conversion). Non-ringers untouched.
+    // RINGER LIFT (#54, SHIPPED 2026-10-10 for O'Reilly / trucks, BACKTEST_LOG; simConfig.ringer = { b, m }, SimulationCenter
+    // passes b 12, m 1). A cup regular moonlighting in a lower series (d.ringer = true) draws from speedScore + b with
+    // width x m. Stage 1 (361 rows, 2022-26): the shipped composite under-states a ringer on EVERY market, ~2x on win;
+    // the registered narrowing form (m < 1) failed its confirmation rule and m stays 1. Fit b on 2022-24 (grid edge, 12),
+    // judged on 2025-26: ringer win / t5 / t10 land on their realised rates, favourite gap halves; all-row win Brier
+    // +0.2% taken knowingly. Non-ringers untouched. Season-end: rank-aware b (top-ranked ringers need less than 12).
     const __rg = simConfig.ringer && ((+simConfig.ringer.b || 0) !== 0 || (simConfig.ringer.m != null && +simConfig.ringer.m !== 1)) ? { b: +simConfig.ringer.b || 0, m: simConfig.ringer.m != null ? +simConfig.ringer.m : 1 } : null
     const __noise = (i) => { let e = gaussNoise()
       if (simConfig.carCeilFloor && e > 0) { const lr = drivers[i].lappedRate; if (lr != null && !isNaN(lr) && lr > CEIL_FLOOR) e *= Math.max(0.1, 1 - lr) }

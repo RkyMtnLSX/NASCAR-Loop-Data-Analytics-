@@ -9654,3 +9654,29 @@ draw only, which is the one thing stage 1 measured. PUSH before the fit.
   passes simConfig.ringer { b: 12, m: 1 }, stamps ringer 'v1-b12'; revert trigger = ringer rows' realised top-10 below stated
   over the first 10 ringer boards of 2027. If held: the form stays in the engine OFF until the 2027 ringer season, when b is
   refit on 2022-26 with 2027 as judge (rolling-refit policy).
+
+## 2026-10-10 — #54 SHIPPED: ringer lift b = 12 (O'Reilly / trucks), operator call on the stage 2' result
+Operator asked the product question and the direct one: "will this overshoot ringers?" and "compare the proposed change
+against the current form". Same holdout, A vs T, 158 ringer rows: A is wrong in one direction on every market (win 7.8 vs
+13.9, t5 29.5 vs 41.8, t10 47.7 vs 62.0, fin 14.2 vs 10.9); T lands on the rates (14.4 / 42.7 / 59.5 / 11.9). By sim rank
+under T: top-3 ringers (88) 22.6 stated / 21.6 realised win, t5 58 / 55 - slightly heavy; 4-8 (40) 6.1 / 2.5 - one winner
+where 2.4 expected, inside its own noise; 9+ (30) still under. Regular favourites on the same boards 14.9 / 18.3 under A ->
+14.4 / 19.8 under T, two points on a tier whose noise is three. Net: T is better on the ringers by a wide margin and on the
+board by a small one; the 0.2% all-row win Brier is the price. SHIPPED as registered: SimulationCenter counts current-season
+cup starts (>= 10 and > this-series starts), attaches d.ringer, passes simConfig.ringer { b: 12, m: 1 } on non-cup boards,
+stamps ringer 'v1-b12'. Revert trigger: ringer rows' realised top-10 below stated over the first 10 ringer boards of 2027.
+CORRECTION ON THE RECORD: between the judge and the ship I told the operator the change "makes the product worse on the
+boards that matter" off the 40-row 4-8 tier and a two-point move on the regulars; measured against A rather than against
+zero, neither holds. Logged so the next reader does not inherit it.
+CALIBRATION LEADS FOR THE SEASON-END REFIT (2022-26 fit, 2027 judge), in the order I would try them:
+  1. Rank-aware lift: b_i = b0 x (1 - sim-rank percentile) + b1 - more for a buried ringer, less for one already top-3;
+     fit (b0, b1) by worst-tier calibration error, not the pooled sum (the pooled sum is what pushed b to the grid edge).
+  2. Lift on the RATING INPUT instead of the draw: corrAvgRating + offset for ringers (the July +29 idea, now with 361
+     rows): it flows through the dominator order and DK laps-led too, which the draw lift does not - ringers' LL / FL
+     are presumably under-stated for the same reason. Measure LL / FL bias on ringer rows first (dom-train-actuals.json).
+  3. Per-series b: trucks ringers (Busch / Bell / Chastain in Spire / Niece equipment) vs O'Reilly ringers (JRM / JGR
+     fields are deeper) may differ; 59 + 83 trucks rows is enough to check direction, not to fit.
+  4. Condition on cup strength: a cup top-10 driver vs a cup backmarker moonlighting - cup corrAvgRating percentile as the
+     covariate; the identity flag treats them alike today.
+  5. Take the lift out of the regulars' top tier explicitly: the 12 points come from everyone; if the regular favourite is
+     systematically under after the lift, the win-share transfer should come from the mid-field, not the top.

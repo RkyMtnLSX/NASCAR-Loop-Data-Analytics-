@@ -232,6 +232,14 @@ A running lead-lap car is lapped in a draw with `p = min(.9, 1.5 × LAPPED_RATE[
 SS has no table (no-op). Cup and trucks fitted and failed — off. Operator-set `lapsDown` cars start laps down, and
 each caution recovers a lap with p = .06.
 
+### 3.4b Ringer lift, O'Reilly and trucks (#54, 10-10, b = 12)
+
+A car flagged `ringer` (>= 10 cup starts this season and more cup starts than starts in this series, counted to date by
+SimulationCenter) draws from `speedScore + 12` with the normal width. Stage 1 on 361 ringer rows 2022-26: the composite
+under-states a cup regular on every market, about 2x on win; the lift puts him on his realised rates (holdout: win 14.5
+stated / 13.9 realised, top-5 42.7 / 41.8, top-10 59.5 / 62.0) at a 0.2% cost in all-row win Brier. Stamp `ringer`
+'v1-b12' / 'off'. Cup boards have no ringers.
+
 ### 3.5 Finish order
 
 Sort: running before DNF; DNFs by later lap first; fewer laps down first; then score descending. Position 1..n per
@@ -275,7 +283,7 @@ quartiles; sorted by projDK.
 ## 4. What the published config stamps mean
 
 `lapFeature` v1-0.15 / off · `carCeilFloor` v1-0.70 · `carDnf` v1-k32 / off · `lapTraffic` v2-k1.5 / off ·
-`projShade` v1-0.7 (cup) / v2-1.0 · `emptyPractice` corrHistory (O'Reilly) / prorata · `domBoot` v1-INT|SHORT / off ·
+`projShade` v1-0.7 (cup) / v2-1.0 · `ringer` v1-b12 / off · `emptyPractice` corrHistory (O'Reilly) / prorata · `domBoot` v1-INT|SHORT / off ·
 `asymNoise` v1-upside-0.5 / off · `practiceMetric` best5 / overall_avg · `poolScope` series-only · `borrowMode`
 car-auto-v2 · `recencyCw` 2 / 3 · `pitCrew` v1-0.06-fenced · `domCurves` int-dom-v2 / ss-flbudget-v1 /
 gxc-v3.1-dnfLL · `domSpeed` mult-v1 · `startProj` trail10-v4-form / trail10-v3.5-eqStart · `dnfModel` wreck-v1.1-cb ·
@@ -298,6 +306,7 @@ multiplier (section 3.1).
 | per-car ceiling (rate > .70) | on | on | on |
 | per-car DNF | off | off | k 32 |
 | lapped traffic | off | k 1.5 | off |
+| ringer lift | — | +12 | +12 |
 | SS page noise multiplier | 3.0 | 1.5 | 1.75 |
 | SS weights | SUPERSPEEDWAY | ONEILLY_SS (+winConv) | SUPERSPEEDWAY |
 | trucks SHORT start weight | — | — | .33 |
@@ -321,7 +330,7 @@ BACKTEST_LOG and `scripts/backtest-data/*-fit.json`. Verified on a seeded RNG st
 identical to f3f8405 at INT / SHORT / SS / ROAD with the production configs.
 
 What remains configurable in `simConfig` is the shipped mechanism set and its carriers: `asymNoise`, `carCeilFloor`,
-`carDnf {k}`, `lappedTraffic {series,k}`, `domBoot`, `domPool` / `domAlpha` / `domK` / `domKFL` / `domCurves` /
+`carDnf {k}`, `lappedTraffic {series,k}`, `ringer {b,m}` (m is 1 in production; the narrowing form failed and is kept only as the carrier), `domBoot`, `domPool` / `domAlpha` / `domK` / `domKFL` / `domCurves` /
 `flBudget` (the INT and SS defaults flow through these), `startSampling`, and the `__domDiag` diagnostic hook. In
 `opts`: `lapPenalty`, `projShade`, `emptyPracticeTo: 'corrHistory'`.
 
@@ -334,6 +343,8 @@ What remains configurable in `simConfig` is the shipped mechanism set and its ca
   own run-to-run noise is .06–.13. Cup pre boards only; post boards unaffected. Operator call open; the engine runs
   the 07-25 flat 0.7 until it is made.
 - **Harness vs production SS noise** (section 3.1) — decide whether to move `__SS_NOISE_MULT` into the engine.
+- **Ringer lift refinement** (season end, 2022-26 fit / 2027 judge): a flat +12 over-lifts ringers the sim already ranks
+  top-3 and under-lifts those ranked 9+; candidates in BACKTEST_LOG 10-10 (#54 ship entry).
 - **Trucks favourite** (stated 22% / realised 48% on 2025-26): season-end refit on 2025-26 with 2027 as judge; the
   interim rule is manual (PITBOARD_MANUAL).
 - Season-end refits queued: trucks favourite clip family, INT / SHORT dominance curves, strength order outside INT,

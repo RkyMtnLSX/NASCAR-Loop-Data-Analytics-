@@ -466,17 +466,32 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
         const __CORR_SHRINK_K = 4
         const __yrWtP = yr => { const dd = ((cfg && cfg.race_year) || new Date().getFullYear()) - yr; return dd <= 0 ? (s === 'cup' ? 2.0 : 3.0) : dd === 1 ? 1.3 : dd === 2 ? 0.9 : dd === 3 ? 0.6 : 0.4 }
         const __pooledMap = {}
+        // RINGER FLAG (#54, shipped 2026-10-10, BACKTEST_LOG): a cup regular moonlighting here = >= 10 cup starts this
+        // season and more cup starts than starts in THIS series this season, counted to date. Season identity, not form.
+        // runRaceSim lifts a flagged car's per-draw score by RINGER_B (O'Reilly / trucks only; cup boards have none).
+        const __ringerSet = new Set()
+        const __thisYr = (cfg && cfg.race_year) || new Date().getFullYear()
+        const __srsStarts = {}
         try {
           const { data: __pl } = await fetchAllRows(() => __noEx(supabase.from('loop_data').select('driver_name, driver_rating, year').eq('series', s)))
           const __pa = {}
           ;(__pl || []).forEach(r => {
             const nm = normalizeName((r.driver_name || '').trim()); const rt = parseFloat(r.driver_rating); const yr = parseInt(r.year) || 0
+            if (nm && yr === __thisYr) __srsStarts[nm] = (__srsStarts[nm] || 0) + 1
             if (!nm || isNaN(rt)) return
             if (__teamCutoff[nm.toLowerCase()] && yr < __teamCutoff[nm.toLowerCase()]) return
             const w = __yrWtP(yr); const a = (__pa[nm] = __pa[nm] || { s: 0, w: 0, n: 0 }); a.s += w * rt; a.w += w; a.n++
           })
           Object.keys(__pa).forEach(nm => { if (__pa[nm].n >= 3) __pooledMap[nm] = __pa[nm].s / __pa[nm].w })
         } catch (e) {}
+        if (s !== 'cup') {
+          try {
+            const { data: __cs } = await fetchAllRows(() => __noEx(supabase.from('loop_data').select('driver_name').eq('series', 'cup').eq('year', __thisYr)))
+            const __cupStarts = {}
+            ;(__cs || []).forEach(r => { const nm = normalizeName((r.driver_name || '').trim()); if (nm) __cupStarts[nm] = (__cupStarts[nm] || 0) + 1 })
+            Object.keys(__cupStarts).forEach(nm => { if (__cupStarts[nm] >= 10 && __cupStarts[nm] > (__srsStarts[nm] || 0)) __ringerSet.add(nm) })
+          } catch (e) {}
+        }
         // PER-CAR LAPS-DOWN RATE (2026-09-07, BACKTEST_LOG): O'Reilly + trucks only (cup failed the held-
         // out test). Recency-weighted share of the driver's prior same-series races finished running but
         // laps down; 0.85 per race back; >= 3 prior running races else null. Consumed by simEngine
@@ -744,6 +759,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
               practiceScore: prac ? parseFloat(prac.practice_score) || null : null,
               lappedRate: __lappedMap[normName] != null ? __lappedMap[normName] : null,
               ownDnf: __dnfMap[normName] ? __dnfMap[normName].own : null, ownDnfN: __dnfMap[normName] ? __dnfMap[normName].n : 0,
+              ringer: __ringerSet.has(normName),
               corrAvgFinish: corrAvgMap.get(normalizeName(name))?.avg       ?? null,
               corrAvgRating: corrAvgMap.get(normalizeName(name))?.avgRating ?? null,
               corrWinConv:   corrAvgMap.get(normalizeName(name))?.winConv   ?? null,
@@ -1014,6 +1030,10 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
         // P26+ residual +1.4 -> -0.04, finish rho -.005 (guard missed by .0004 in one run, taken knowingly).
         // Cup (wrong-signed across eras) and trucks (ordering cost) fitted and FAILED - off. BACKTEST_LOG 10-09 / 10-10.
         lappedTraffic: series === 'oreilly' ? { series: 'oreilly', k: 1.5 } : null,
+        // #54 RINGER LIFT (shipped 2026-10-10, operator call on the stage 2' result, BACKTEST_LOG): a cup regular in a lower
+        // series draws from speedScore + 12. 2025-26 holdout, 158 ringer rows: stated win 7.9 -> 14.5 vs 13.9 realised,
+        // top-5 / top-10 Brier -5% / -8%, favourite gap -11 -> -7; all-row win Brier +0.2% taken knowingly. Cup: none.
+        ringer: series !== 'cup' ? { b: 12, m: 1 } : null,
         // 2026-10-09 DOMINATOR BOOTSTRAP (BACKTEST_LOG stage 2; operator: "ship it"): per draw, the laps-led / fastest-
         // laps share vector of one real 2022-24 race (series x group x caution bucket) instead of the fixed mean curve.
         // Restores draw-to-draw dominator spread and the level outside cup INT; shipped for INT + SHORT in all series.
@@ -1076,7 +1096,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
       race_year:  config.race_year || new Date().getFullYear(),
       race_number: raceNumMap[series] ? parseInt(raceNumMap[series]) : null,
       stage: simStage,
-      config: { lapFeature: series !== 'cup' ? 'v1-0.15' : 'off', carCeilFloor: 'v1-0.70', carDnf: series === 'trucks' ? 'v1-k32' : 'off', lapTraffic: series === 'oreilly' ? 'v2-k1.5' : 'off', projShade: series === 'cup' ? 'v1-0.7' : 'v2-1.0', emptyPractice: series === 'oreilly' ? 'corrHistory' : 'prorata', domBoot: domPoolFor(series, __trackGroup(config && config.track_name)) ? 'v1-' + __trackGroup(config && config.track_name) : 'off', asymNoise: (series !== 'cup' && ['INT', 'SHORT'].indexOf(__trackGroup(config && config.track_name)) !== -1) ? 'v1-upside-0.5' : 'off', practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'car-auto-v2', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06-fenced', domCurves: (__trackGroup(config && config.track_name) === 'INT' ? 'int-dom-v2' : __trackGroup(config && config.track_name) === 'SS' ? 'ss-flbudget-v1' : 'gxc-v3.1-dnfLL'), domSpeed: 'mult-v1', startProj: ((series === 'cup' || series === 'oreilly') ? 'trail10-v4-form' : 'trail10-v3.5-eqStart'), flagGuard: 'conf-v1', dnfModel: 'wreck-v1.1-cb', marketAnchor: 'v1.4-multimkt', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), runNote: (runNote.trim() ? runNote.trim() : null), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
+      config: { lapFeature: series !== 'cup' ? 'v1-0.15' : 'off', carCeilFloor: 'v1-0.70', carDnf: series === 'trucks' ? 'v1-k32' : 'off', lapTraffic: series === 'oreilly' ? 'v2-k1.5' : 'off', ringer: series !== 'cup' ? 'v1-b12' : 'off', projShade: series === 'cup' ? 'v1-0.7' : 'v2-1.0', emptyPractice: series === 'oreilly' ? 'corrHistory' : 'prorata', domBoot: domPoolFor(series, __trackGroup(config && config.track_name)) ? 'v1-' + __trackGroup(config && config.track_name) : 'off', asymNoise: (series !== 'cup' && ['INT', 'SHORT'].indexOf(__trackGroup(config && config.track_name)) !== -1) ? 'v1-upside-0.5' : 'off', practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'car-auto-v2', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06-fenced', domCurves: (__trackGroup(config && config.track_name) === 'INT' ? 'int-dom-v2' : __trackGroup(config && config.track_name) === 'SS' ? 'ss-flbudget-v1' : 'gxc-v3.1-dnfLL'), domSpeed: 'mult-v1', startProj: ((series === 'cup' || series === 'oreilly') ? 'trail10-v4-form' : 'trail10-v3.5-eqStart'), flagGuard: 'conf-v1', dnfModel: 'wreck-v1.1-cb', marketAnchor: 'v1.4-multimkt', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), runNote: (runNote.trim() ? runNote.trim() : null), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
       results: simResults.map(d => ({
         driver_name:  d.name,
         car_number:   d.carNumber,
