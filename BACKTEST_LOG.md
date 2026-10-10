@@ -9429,3 +9429,22 @@ favourite 0-for-3 weekends vs the books. NEXT (named, not registered): lam sits 
 (.4 cup, 1.0 lower) - a finer / wider grid at season end; and the trucks corrHistory destination with a top-5 guard.
 Six ships since 10-04: trucks per-car DNF, dominator bootstrap INT+SHORT, SS FL budget, O'Reilly lapped traffic,
 O'Reilly pre-board (lam 1 + corrHistory), trucks pre-board (lam 1). Twenty-nine registrations: six ships, twenty-three closed.
+
+## 2026-10-10 — PRE-REGISTERED: PRE-BOARD STAGE 3 — extended shading grid + half-weight practice destination. Written before the fit. DO NOT MODIFY.
+TRIGGER. Stage 2: both lam fits landed on a grid EDGE (cup .4 at the bottom, O'Reilly / trucks 1.0 at the top), and the
+trucks corrHistory destination lifted the favourite -19 -> -12 and win Brier .0247 -> .0242 but failed top-5 by .0004
+on an all-or-nothing grid. Operator: "run the first two together."
+FORMS (engine): opts.projShade now accepts up to 1.6 (a value above 1 undoes trail10's compression toward mid-field -
+a trailing mean is flatter than a real grid); opts.emptyPracticeTo 'corrHalf' = half the practice weight to
+corrHistory, half left in place (pro rata). Control = what ships after stage 2: cup .7 / pro rata, O'Reilly 1.0 /
+corrHistory, trucks 1.0 / pro rata.
+FIT (train.txt with trail10 grids, 10k sims, STAGE3=1): lam over the EXTENDED grid only - cup {.2, .3, .4, .7},
+O'Reilly and trucks {1, 1.2, 1.4} - by top-10 Brier at the shipped destination (tie -> the shipped lam); then
+destination at the fitted lam over cup {prorata, corrHalf}, O'Reilly {corrHistory, corrHalf, prorata}, trucks {prorata,
+corrHalf, corrHistory} by top-10 Brier (tie -> shipped). Written to preboard3-fit.json and COMMITTED before the holdout.
+TEST: the 161 PRE lines, 20k sims, RUNS=2, control = stage-2 ship; arms L, D, LD. Null floor = |A run1 - A run2|.
+DECISION RULE: exactly stage 2's - (a) differs from shipped; (b) top-10 Brier better by at least the floor; (c) rho not
+worse by more than the floor; (d) win and top-5 Brier each not worse by more than the floor; (e) favourite gap not worse
+by more than 1.0; (f) winner's sim rank not worse by more than 0.25. LD if it passes, else the passing half alone.
+Ships as the per-series constants in SimulationCenter (stamps projShade 'v2-<lam>', emptyPractice '<dest>').
+SMOKE: a 30-sim train fit was started and read to the header line only. PUSH before the fit.

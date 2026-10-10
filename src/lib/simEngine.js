@@ -432,7 +432,7 @@ function buildSpeedScores(drivers, weights, opts) {
   // lineups untouched - this only softens forecasts of a grid we have not seen yet.
   // 2026-10-10 pre-board stage 2 (registered): opts.projShade overrides the fixed 0.7 per series (fit on 2022-24
   // projected grids); the 07-25 value was fit on cup only and applied everywhere. Default unchanged.
-  const __projLam = (opts && opts.projShade != null && opts.projShade >= 0 && opts.projShade <= 1) ? +opts.projShade : 0.7
+  const __projLam = (opts && opts.projShade != null && opts.projShade >= 0 && opts.projShade <= 1.6) ? +opts.projShade : 0.7   // > 1 undoes trail10's compression toward mid-field (10-10 stage 3 grid)
   for (let __i = 0; __i < drivers.length; __i++) if (drivers[__i].__startProjected && startScores[__i] != null) startScores[__i] = 50 + (startScores[__i] - 50) * __projLam
   const trackRatingScores = normalizeArr(drivers.map(d => d.trackAvgRating), false) // higher = better
   const trackFinishScores = normalizeArr(drivers.map(d => d.trackAvgFinish), true)
@@ -481,7 +481,8 @@ function buildSpeedScores(drivers, weights, opts) {
   // practice slot is empty for the whole field (the pre board) its weight is today effectively spread pro rata
   // (every driver scores 50 in it). 'corrHistory' / 'trackHistory' / 'startPos' move that weight to one slot.
   const __epTo = (opts && opts.emptyPracticeTo && lrpScores.every(v => v == null) && weights.longRunPace > 0) ? opts.emptyPracticeTo : null
-  const __epShift = __epTo && (__epTo === 'corrHistory' || __epTo === 'trackHistory' || __epTo === 'startPos') ? { longRunPace: 0, [__epTo]: (weights[__epTo] || 0) + weights.longRunPace } : {}
+  const __epShift = __epTo && (__epTo === 'corrHistory' || __epTo === 'trackHistory' || __epTo === 'startPos') ? { longRunPace: 0, [__epTo]: (weights[__epTo] || 0) + weights.longRunPace }
+    : __epTo === 'corrHalf' ? { longRunPace: weights.longRunPace / 2, corrHistory: (weights.corrHistory || 0) + weights.longRunPace / 2 } : {}   // 10-10 stage 3: half to rating, half stays pro rata
   const __wIn = Object.assign({}, weights, __lrpEmpty ? { longRunPace: 0 } : {}, __pitEmpty ? { pitCrew: 0 } : {}, __pdW ? { passDiff: __pdW } : {}, __epShift)
   const wTotal = Object.values(__wIn).reduce((a, b) => a + b, 0) || 1
   const w = {

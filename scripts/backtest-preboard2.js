@@ -82,37 +82,41 @@ function arm(boards, lam, dest) {
 const row = (nm, x) => `  ${nm.padEnd(14)} rho ${x.rho.toFixed(4)}  t10 ${x.t10.toFixed(5)}  winB ${x.wb.toFixed(5)}  t5B ${x.t5b.toFixed(5)} | fav gap ${(100 * x.favGap).toFixed(1).padStart(6)}  fav hits ${(100 * x.favHit).toFixed(0)}%  winner rank ${x.winnerRank.toFixed(2)}`
 const wl = (x, a, key, better) => { let w = 0, l = 0; x.per.forEach((p, i) => { const d = better === 'high' ? p[key] - a.per[i][key] : a.per[i][key] - p[key]; if (d > 0) w++; else if (d < 0) l++ }); return w + '/' + l }
 const SER = ['cup', 'oreilly', 'trucks'], sub = (bs, s) => bs.filter(b => b.series === s)
+const STAGE3 = !!process.env.STAGE3   // 10-10 stage 3: extended lam grid beyond the stage-2 edges + corrHalf destination; control = stage-2 ship
+const SHIP = { lam: { cup: 0.7, oreilly: 1, trucks: 1 }, dest: { cup: 'prorata', oreilly: 'corrHistory', trucks: 'prorata' } }
 const LAMS = [0.4, 0.5, 0.6, 0.7, 0.8, 1], DESTS = ['prorata', 'corrHistory', 'trackHistory', 'startPos']
+const LAMS3 = { cup: [0.2, 0.3, 0.4, 0.7], oreilly: [1, 1.2, 1.4], trucks: [1, 1.2, 1.4] }, DESTS3 = { cup: ['prorata', 'corrHalf'], oreilly: ['corrHistory', 'corrHalf', 'prorata'], trucks: ['prorata', 'corrHalf', 'corrHistory'] }
 if (PHASE === 'fit') {
   const train = load('train.txt', 'train')
   console.log(`FIT on train.txt with trail10 projected grids: ${train.length} boards (${SER.map(s => s + ' ' + sub(train, s).length).join(', ')}), ${SIMS} sims; engine ${E.__engineSha}`)
   const fit = { lam: {}, dest: {}, sims: SIMS, engine: E.__engineSha }
   for (const s of SER) {
     const bs = sub(train, s)
-    console.log(`\n${s.toUpperCase()} (${bs.length}) - lam -> t10 Brier (dest prorata; tie within 1e-5 -> closer to .7)`)
+    const lams = STAGE3 ? LAMS3[s] : LAMS, dests = STAGE3 ? DESTS3[s] : DESTS, d0 = STAGE3 ? SHIP.dest[s] : 'prorata', lam0 = STAGE3 ? SHIP.lam[s] : 0.7
+    console.log(`\n${s.toUpperCase()} (${bs.length}) - lam -> t10 Brier (dest ${d0}; tie within 1e-5 -> closer to ${lam0})`)
     let best = null
-    for (const lam of LAMS) { const r = arm(bs, lam, 'prorata'); console.log(row('lam ' + lam, r)); if (!best || r.t10 < best.v - 1e-5 || (Math.abs(r.t10 - best.v) <= 1e-5 && Math.abs(lam - 0.7) < Math.abs(best.lam - 0.7))) best = { lam, v: r.t10 } }
+    for (const lam of lams) { const r = arm(bs, lam, d0); console.log(row('lam ' + lam, r)); if (!best || r.t10 < best.v - 1e-5 || (Math.abs(r.t10 - best.v) <= 1e-5 && Math.abs(lam - lam0) < Math.abs(best.lam - lam0))) best = { lam, v: r.t10 } }
     fit.lam[s] = best.lam
-    console.log(`${s.toUpperCase()} - destination at lam ${best.lam} -> t10 Brier (tie -> prorata)`)
+    console.log(`${s.toUpperCase()} - destination at lam ${best.lam} -> t10 Brier (tie -> ${d0})`)
     let bd = null
-    for (const d of DESTS) { const r = arm(bs, best.lam, d); console.log(row('dest ' + d, r)); if (!bd || r.t10 < bd.v - 1e-5) bd = { d, v: r.t10 } }
+    for (const d of dests) { const r = arm(bs, best.lam, d); console.log(row('dest ' + d, r)); if (!bd || r.t10 < bd.v - 1e-5) bd = { d, v: r.t10 } }
     fit.dest[s] = bd.d; console.log(`  -> lam ${best.lam}  dest ${bd.d}`)
   }
-  fs.writeFileSync(D('preboard2-fit.json'), JSON.stringify(fit, null, 2)); console.log('\nFROZEN ->', JSON.stringify({ lam: fit.lam, dest: fit.dest }))
+  fs.writeFileSync(D(STAGE3 ? 'preboard3-fit.json' : 'preboard2-fit.json'), JSON.stringify(fit, null, 2)); console.log('\nFROZEN ->', JSON.stringify({ lam: fit.lam, dest: fit.dest }))
 } else {
-  const fit = JSON.parse(fs.readFileSync(D('preboard2-fit.json'), 'utf8'))
+  const fit = JSON.parse(fs.readFileSync(D(STAGE3 ? 'preboard3-fit.json' : 'preboard2-fit.json'), 'utf8'))
   const test = load('holdout-practice.txt', 'test')
   console.log(`TEST on the PRE lines (production projection, no practice): ${test.length} boards (${SER.map(s => s + ' ' + sub(test, s).length).join(', ')}), ${SIMS} sims, ${RUNS} runs; frozen ${JSON.stringify({ lam: fit.lam, dest: fit.dest })}; engine ${E.__engineSha}`)
   for (let run = 1; run <= RUNS; run++) {
     console.log(`\nRUN ${run}`)
     for (const s of SER) {
-      const bs = sub(test, s), lam = fit.lam[s], dest = fit.dest[s]
+      const bs = sub(test, s), lam = fit.lam[s], dest = fit.dest[s], lam0 = STAGE3 ? SHIP.lam[s] : 0.7, d0 = STAGE3 ? SHIP.dest[s] : 'prorata'
       console.log(` ${s.toUpperCase()} (${bs.length} boards)`)
-      const A = arm(bs, 0.7, 'prorata'); console.log(row('A ship', A))
-      const chL = lam !== 0.7, chD = dest !== 'prorata'
-      if (!chL && !chD) { console.log('  fitted lam .7 / prorata - nothing to test'); continue }
-      if (chL) { const L = arm(bs, lam, 'prorata'); console.log(row('L lam=' + lam, L)); console.log(`    L vs A: t10 ${wl(L, A, 't10', 'low')}  rho ${wl(L, A, 'rho', 'high')}  winB ${wl(L, A, 'wb', 'low')}  t5B ${wl(L, A, 't5b', 'low')}`) }
-      if (chD) { const Dd = arm(bs, 0.7, dest); console.log(row('D ' + dest, Dd)); console.log(`    D vs A: t10 ${wl(Dd, A, 't10', 'low')}  rho ${wl(Dd, A, 'rho', 'high')}  winB ${wl(Dd, A, 'wb', 'low')}  t5B ${wl(Dd, A, 't5b', 'low')}`) }
+      const A = arm(bs, lam0, d0); console.log(row('A ship', A))
+      const chL = lam !== lam0, chD = dest !== d0
+      if (!chL && !chD) { console.log(`  fitted ${lam0} / ${d0} - nothing to test`); continue }
+      if (chL) { const L = arm(bs, lam, d0); console.log(row('L lam=' + lam, L)); console.log(`    L vs A: t10 ${wl(L, A, 't10', 'low')}  rho ${wl(L, A, 'rho', 'high')}  winB ${wl(L, A, 'wb', 'low')}  t5B ${wl(L, A, 't5b', 'low')}`) }
+      if (chD) { const Dd = arm(bs, lam0, dest); console.log(row('D ' + dest, Dd)); console.log(`    D vs A: t10 ${wl(Dd, A, 't10', 'low')}  rho ${wl(Dd, A, 'rho', 'high')}  winB ${wl(Dd, A, 'wb', 'low')}  t5B ${wl(Dd, A, 't5b', 'low')}`) }
       if (chL && chD) { const LD = arm(bs, lam, dest); console.log(row('LD', LD)); console.log(`    LD vs A: t10 ${wl(LD, A, 't10', 'low')}  rho ${wl(LD, A, 'rho', 'high')}  winB ${wl(LD, A, 'wb', 'low')}  t5B ${wl(LD, A, 't5b', 'low')}`) }
     }
   }
