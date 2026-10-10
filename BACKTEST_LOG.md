@@ -9198,3 +9198,16 @@ as simConfig.upperUpside / domTopDamp per series in SimulationCenter; stamp dkCe
 trigger: DK > p90 coverage on stamped boards below 5% or above 15% over two straight weekends.
 HARNESS SMOKE (train only, cup, 100 sims, three u rows, throwaway): u1 finDK>p90 8.9% / u.9 9.0% / u.8 9.5% -
 noise at 100 sims. No holdout numbers seen beyond the registered stage-1 control read. PUSH before the fit.
+
+## 2026-10-10 — DK CEILING STAGE 2: FIT (train.txt 2022-24, 10k sims) — FROZEN before the holdout is read
+  CUP      u1 finDK>p90 9.2% -> u.6 10.0% (rails: winB .02580 -> .02713, fav gap +9.0 -> +20.7)   d1 domDK 14.4% -> d.6 13.8%   -> u .6, d .6
+  O'REILLY u1 6.9% -> u.6 8.7% (winB .02379 -> .02439, fav gap -4.4 -> +9.7)                          d1 9.1% -> d.6 9.2%          -> u .6, d .6
+  TRUCKS   u1 5.5% -> u.6 6.4% (winB .02522 -> .02518, t10 .15498 -> .15578, fav gap -10.0 -> +3.4)   d1 8.5% -> d.6 8.0%          -> u .6, d 1
+Written before the holdout, two things: (1) u hits the GRID EDGE (.6) in every series and still only moves
+the finish-side coverage 1-2 points toward 10 - a 40% clip on the upper half's upside barely touches the
+ceiling, so whatever makes the lower-series p90 too high is not mainly the upside draw width; and the
+clip's side effect (the favourite's win share rises as cars 2..median lose upside) is large - cup +9 -> +21,
+O'Reilly -4 -> +10, which rail (f) will catch. (2) d is INEFFECTIVE for coverage (moves it 0.1-0.5 pt either
+way, cup's fit to .6 is a tie-break artefact and the wrong direction for cup); the dominator-side ceiling is
+not the top slot's size. FROZEN {"cup":{u .6, d .6},"oreilly":{u .6, d .6},"trucks":{u .6, d 1}}; the
+holdout is run as registered and the rails decide. Expectation stated: this closes.
