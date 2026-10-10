@@ -691,6 +691,11 @@ function runRaceSim(drivers, simConfig) {
       return out
     })()
     // topNoise / tierClip / carVol / upperUpside (10-09 / 10-10 registrations) were closed and stripped 10-10 (git f3f8405).
+    // RINGER SHAPE (#54, registered 2026-10-10, BACKTEST_LOG; OFF unless simConfig.ringer = { b, m }). A cup regular
+    // moonlighting in a lower series (d.ringer = true) draws from speedScore + b with width x m on both sides: a higher,
+    // narrower distribution finishes well and loses the max-of-draws race for the win - the shape the 07-16 matched
+    // diagnostic and the 2025-26 boards both show (high floor, low win conversion). Non-ringers untouched.
+    const __rg = simConfig.ringer && ((+simConfig.ringer.b || 0) !== 0 || (simConfig.ringer.m != null && +simConfig.ringer.m !== 1)) ? { b: +simConfig.ringer.b || 0, m: simConfig.ringer.m != null ? +simConfig.ringer.m : 1 } : null
     const __noise = (i) => { let e = gaussNoise()
       if (simConfig.carCeilFloor && e > 0) { const lr = drivers[i].lappedRate; if (lr != null && !isNaN(lr) && lr > CEIL_FLOOR) e *= Math.max(0.1, 1 - lr) }
       if (__spd && __spd[i] < 0.5 && e > 0) e *= (0.5 + __spd[i]); return e }
@@ -705,7 +710,7 @@ function runRaceSim(drivers, simConfig) {
       if (__lapP && effLap === 0 && Math.random() < __lapP[i]) effLap = 1
       return {
         i,
-        score: d.speedScore + (__adj ? __adj[i] : 0) + __noise(i) * S.noiseWidth,
+        score: d.speedScore + (__rg && d.ringer ? __rg.b : 0) + (__adj ? __adj[i] : 0) + __noise(i) * S.noiseWidth * (__rg && d.ringer ? __rg.m : 1),
         dnf: S.wm ? false : (Math.random() < __effRate * __tilt[i]), dnfLap: 0,
         effLap,
       }
