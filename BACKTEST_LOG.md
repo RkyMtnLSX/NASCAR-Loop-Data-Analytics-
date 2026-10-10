@@ -9162,3 +9162,39 @@ lesson): it is an upside scale for cars ABOVE median only, i.e. the asymNoise me
 its own per-series constant, judged on p90 coverage with win / top-5 / top-10 Brier and the favourite gap as
 rails. If the dominator side is the over-stated one, the form is a per-series damping of the bootstrap share
 vector's top slot. PUSH before the run.
+
+## 2026-10-10 — DK CEILING STAGE 1 RESULT (94 practice-holdout boards, 20k sims, control only, one run)
+                 total DK > p90   finish-only DK > p90   dominator-only DK > p90   DK < p10
+  cup (39)         9.9%              9.2%                   12.6%                   9.4%
+  O'Reilly (26)    5.1%              5.2%                    6.6%                   8.8%
+  trucks (29)      6.9%              6.5%                    5.6%                   9.4%
+READ-OUT by the registered rule (< 8% = over-stated): O'Reilly and trucks are over-stated on BOTH sides,
+finish and dominator; cup is honest on the finish side and UNDER-stated on the dominator side (12.6%: the
+09-03 "tier-1 still under by 24 laps" in a different coat). Floors are honest everywhere. Stage 2 registered
+below for O'Reilly and trucks on both components; cup is fitted for the record but its dominator damping is
+expected to fit to 1 (and if it fits below 1, that is a warning, not a discovery).
+
+## 2026-10-10 — PRE-REGISTERED: DK CEILING STAGE 2 — upper-half upside scale + dominator top-slot damping. Written before the fit. DO NOT MODIFY.
+FORM (engine, both flagged, default off):
+  U  simConfig.upperUpside = { u }: upside noise draws (e > 0) for cars at or above the field median of the
+     composite, EXCLUDING the top-rated car, are scaled by u; downside untouched; below-median cars keep the
+     shipped asymNoise. The favourite is excluded on purpose (10-09: his upside is what wins him races against
+     outliers; clipping it lowers his win share for the wrong reason, and trucks favourites are already under).
+  D  simConfig.domTopDamp = { d }: the per-draw share vector's top slot (bootstrap or fixed curve, LL and FL
+     alike) keeps d of its share, the remainder spread pro rata over the other slots. Identity untouched.
+  One u and one d per series. u = d = 1 is the shipped engine.
+FIT: train.txt (2022-24), 10k sims, u and d each in {1, .9, .8, .7, .6}, fitted INDEPENDENTLY per series: u by
+the smallest |finish-only DK > p90 coverage - 10%|, d by the smallest |dominator-only DK > p90 coverage - 10%|
+(tie within .01 pt -> closer to 1). Written to dkceil-fit.json and COMMITTED before the holdout is read.
+TEST: holdout-practice.txt (94 boards), 20k sims, RUNS=2, control = shipped (now including the SS FL budget).
+Arms U alone, D alone (for the record) and UD (the candidate). Null floor = |A run1 - A run2|.
+DECISION RULE (per series, mean of two runs): SHIP UD at the fitted (u, d) if (a) at least one of u, d < 1;
+(b) |total DK > p90 coverage - 10%| shrinks by at least a THIRD vs A; (c) DK < p10 coverage stays within 1.5
+pts of A's; (d) DK rho not worse than A by more than the null floor; (e) win, top-5 and top-10 Brier each not
+worse than A by more than the null floor; (f) favourite gap not worse than A by more than 1.0 pt; (g) finish
+rho not worse by more than the floor. Fails any one -> not shipped for that series. If UD fails but one of U /
+D passes all of (b)-(g) on its own, that component ships alone (each is one mechanism with one constant). Ships
+as simConfig.upperUpside / domTopDamp per series in SimulationCenter; stamp dkCeil 'v1-u<u>-d<d>'. Revert
+trigger: DK > p90 coverage on stamped boards below 5% or above 15% over two straight weekends.
+HARNESS SMOKE (train only, cup, 100 sims, three u rows, throwaway): u1 finDK>p90 8.9% / u.9 9.0% / u.8 9.5% -
+noise at 100 sims. No holdout numbers seen beyond the registered stage-1 control read. PUSH before the fit.

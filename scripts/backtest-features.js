@@ -65,6 +65,8 @@ const cl = p => Math.max(1e-6, Math.min(1 - 1e-6, p))
 function armCfg(v, b) {
   if (FORM === 'carVol') return { sim: v > 0 ? { carVol: { gamma: v } } : {}, opts: undefined }
   if (FORM === 'passDiff') return { sim: {}, opts: v > 0 ? { passDiff: { w: v } } : undefined }
+  // dkCeil: v = { u, d } (finish upside scale for the upper half; dominator top-slot damping); 0 / {} = shipped
+  if (FORM === 'dkCeil') { const o = v && typeof v === 'object' ? v : {}; return { sim: { ...(o.u && o.u < 1 ? { upperUpside: { u: o.u } } : {}), ...(o.d && o.d < 1 ? { domTopDamp: { d: o.d } } : {}) }, opts: undefined } }
   throw new Error('unknown FORM ' + FORM)
 }
 function arm(boards, v) {
@@ -112,7 +114,7 @@ function arm(boards, v) {
 const wl = (x, a, key, better) => { let w = 0, l = 0; x.per.forEach((p, i) => { if (p[key] == null || a.per[i][key] == null) return; const d = better === 'high' ? p[key] - a.per[i][key] : a.per[i][key] - p[key]; if (d > 0) w++; else if (d < 0) l++ }); return w + '/' + l }
 const SER = ['cup', 'oreilly', 'trucks']
 const sub = (boards, s) => boards.filter(b => b.series === s)
-const GRID = FORM === 'carVol' ? [0, 0.25, 0.5, 0.75, 1] : [0, 0.05, 0.1, 0.15, 0.2]
+const GRID = FORM === 'carVol' ? [0, 0.25, 0.5, 0.75, 1] : FORM === 'dkCeil' ? [1, 0.9, 0.8, 0.7, 0.6] : [0, 0.05, 0.1, 0.15, 0.2]
 const row = (nm, x) => `  ${nm.padEnd(9)} rho ${x.rho.toFixed(4)}  t10 ${x.t10.toFixed(5)}  winB ${x.wb.toFixed(5)}  t5B ${x.t5b.toFixed(5)}  winLL ${x.wll.toFixed(4)}  t5LL ${x.t5ll.toFixed(4)} | dkRho ${x.dkRho.toFixed(3)}  DK>p90 ${(100 * x.c90).toFixed(1)}%  DK<p10 ${(100 * x.c10).toFixed(1)}%${process.env.DIAG ? ` finDK>p90 ${(100 * x.f90).toFixed(1)}% domDK>p90 ${(100 * x.d90).toFixed(1)}%` : ''} | fav gap ${(100 * x.favGap).toFixed(1).padStart(5)}  mid ${(100 * x.midGap).toFixed(1)}  tail ${(100 * x.tailGap).toFixed(2)} | eliteFront ${x.eliteFront.toFixed(2)}  eliteDeep ${x.eliteDeep.toFixed(2)}  neP26 ${x.neP26.toFixed(2)}`
 const fitFile = D(FORM.toLowerCase() + '-fit.json')
 // fit criterion: carVol -> top-5 Brier + top-10 Brier (consistency); passDiff -> top-10 Brier (the 08-20 weight-sweep precedent)
@@ -124,6 +126,15 @@ if (PHASE === 'fit') {
   const fit = { form: FORM, value: {}, sims: SIMS, engine: E.__engineSha }
   for (const s of SER) {
     const bs = sub(train, s)
+    if (FORM === 'dkCeil') {
+      process.env.DIAG = '1'
+      console.log(`\n${s.toUpperCase()} (${bs.length} boards) - dkCeil: u by |finDK>p90 - 10%|, d by |domDK>p90 - 10%| (tie -> closer to 1)`)
+      let bu = null, bd = null
+      for (const u of GRID) { const r = arm(bs, { u }); const c = Math.abs(r.f90 - 0.10); console.log(row('u ' + u, r) + `  |fin-10| ${(100 * c).toFixed(2)}`); if (!bu || c < bu.c - 1e-4) bu = { u, c } }
+      for (const d of GRID) { const r = arm(bs, { d }); const c = Math.abs(r.d90 - 0.10); console.log(row('d ' + d, r) + `  |dom-10| ${(100 * c).toFixed(2)}`); if (!bd || c < bd.c - 1e-4) bd = { d, c } }
+      fit.value[s] = { u: bu.u, d: bd.d }; console.log(`  -> u ${bu.u}  d ${bd.d}`)
+      continue
+    }
     console.log(`\n${s.toUpperCase()} (${bs.length} boards) - ${FORM} -> ${FORM === 'carVol' ? 't5 Brier + t10 Brier' : 't10 Brier'} (tie within 1e-5 -> smaller)`)
     let best = null
     for (const v of GRID) { const r = arm(bs, v); const c = crit(r); console.log(row((FORM === 'carVol' ? 'g ' : 'w ') + v, r) + `  crit ${c.toFixed(5)}`); if (!best || c < best.c - 1e-5) best = { v, c } }
@@ -139,9 +150,18 @@ if (PHASE === 'fit') {
     console.log(`\nRUN ${run}`)
     for (const s of SER) {
       const bs = sub(test, s), v = fit.value[s]
+      if (FORM === 'dkCeil') process.env.DIAG = '1'
       const A = arm(bs, 0)
       console.log(` ${s.toUpperCase()} (${bs.length} boards)`)
       console.log(row('A ship', A))
+      if (FORM === 'dkCeil') {
+        const on = v && ((v.u && v.u < 1) || (v.d && v.d < 1)); if (!on) { console.log('  T: fitted u = d = 1 - nothing to test'); continue }
+        if (v.u && v.u < 1) { const U = arm(bs, { u: v.u }); console.log(row('U ' + v.u, U)) }
+        if (v.d && v.d < 1) { const Dm = arm(bs, { d: v.d }); console.log(row('D ' + v.d, Dm)) }
+        const T = arm(bs, v); console.log(row('UD', T))
+        console.log(`    UD vs A: rho ${wl(T, A, 'rho', 'high')}  t10 ${wl(T, A, 't10', 'low')}  winB ${wl(T, A, 'wb', 'low')}  t5B ${wl(T, A, 't5b', 'low')}  dkRho ${wl(T, A, 'dkRho', 'high')}`)
+        continue
+      }
       if (!v) { console.log(`  T: fitted ${FORM} = 0 - nothing to test`); continue }
       const T = arm(bs, v)
       console.log(row('T ' + v, T))

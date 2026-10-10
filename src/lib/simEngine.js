@@ -977,10 +977,24 @@ function runRaceSim(drivers, simConfig) {
       const up = side('volUp'), dn = side('volDown'); if (!up && !dn) return null
       return { up, dn }
     })()
+    // UPPER-HALF UPSIDE SCALE (registered 2026-10-10, DK ceiling stage 2; OFF unless simConfig.upperUpside = { u }).
+    // Stage 1: in O'Reilly / trucks the actual DK clears the sim's p90 only 5-7% of the time (cup ~10%) and
+    // the FINISH side of the draw is part of it (finish-only DK over p90: O'Reilly 5.2%, trucks 6.5%). The
+    // shipped asymNoise clips UPSIDE draws for below-median cars; this is the same clip for cars at or
+    // above median EXCEPT the top-rated car (his upside is what wins him races against outliers - the
+    // 10-09 max-of-draws lesson), scaled by u. Downside untouched. One constant per series.
+    const __upW = (() => {
+      const uu = simConfig.upperUpside; if (!uu || !(uu.u > 0) || uu.u >= 1) return null
+      const __o = drivers.map((d, x) => x).sort((a, b) => (drivers[a].speedScore || 0) - (drivers[b].speedScore || 0))
+      const out = new Float64Array(n).fill(1)
+      __o.forEach((x, r) => { const pct = n > 1 ? r / (n - 1) : 0.5; if (pct >= 0.5 && r < n - 1) out[x] = uu.u })
+      return out
+    })()
     const __noise = (i) => { let e = gaussNoise()
       if (__volW) { if (e > 0 && __volW.up) e *= __volW.up[i]; else if (e < 0 && __volW.dn) e *= __volW.dn[i] }
       if (__topW) e *= __topW[i]
       if (__clipW && e > 0) e *= __clipW[i]
+      if (__upW && e > 0) e *= __upW[i]
       if (simConfig.carCeilFloor && e > 0) { const lr = drivers[i].lappedRate; if (lr != null && !isNaN(lr) && lr > CEIL_FLOOR) e *= Math.max(0.1, 1 - lr) }
       if (__spd && __spd[i] < 0.5 && e > 0) e *= (0.5 + __spd[i]); return e }
     const scored = drivers.map((d, i) => {
@@ -1061,8 +1075,14 @@ function runRaceSim(drivers, simConfig) {
     const __leadFL = __poolFL.findIndex(sv => !sv.dnf)
     if (simConfig.__domDiag && __lead >= 0) { const d = simConfig.__domDiag; d.n = (d.n || 0) + 1; const tp = __pool[__lead]; if (simPos[tp.i] === 1) d.wins = (d.wins || 0) + 1; d.finSum = (d.finSum || 0) + simPos[tp.i] }
     // Curve source per draw: bootstrap vector (ARM C) > strength-rank curve (ARM B) > finish-rank curve.
-    const __LLC = S.bootLL ? S.bootLL[(Math.random() * S.bootLL.length) | 0] : (S.domLL || S.LLC)
-    const __FLC = S.bootFL ? S.bootFL[(Math.random() * S.bootFL.length) | 0] : (S.domFL || S.FLC)
+    // DOMINATOR TOP-SLOT DAMPING (registered 2026-10-10, DK ceiling stage 2; OFF unless simConfig.domTopDamp = { d }).
+    // Stage 1: dominator-only DK clears the sim's p90 6.6% (O'Reilly) / 5.6% (trucks) of the time vs 10% -
+    // the per-draw share vectors (bootstrap or fixed) hand the top slot more than the lower series' top car
+    // realises. The top slot keeps d of its share; the remainder is spread over the other slots pro rata.
+    // Identity (who leads) is untouched; cup is not fitted (its dominator ceiling is UNDER-stated, 12.6%).
+    const __damp = (v) => { const dd = simConfig.domTopDamp; if (!dd || !(dd.d > 0) || dd.d >= 1 || !v || !v.length) return v; const rest = v.reduce((a, x, k) => a + (k ? x : 0), 0); if (!(rest > 0)) return v; const rem = v[0] * (1 - dd.d); return v.map((x, k) => k ? x + rem * x / rest : x * dd.d) }
+    const __LLC = __damp(S.bootLL ? S.bootLL[(Math.random() * S.bootLL.length) | 0] : (S.domLL || S.LLC))
+    const __FLC = __damp(S.bootFL ? S.bootFL[(Math.random() * S.bootFL.length) | 0] : (S.domFL || S.FLC))
     // ARM A: fastest laps exist only on green laps; deal the measured fraction, not every lap.
     const __flTotal = simConfig.flBudget != null ? Math.round(totalRaceLaps * simConfig.flBudget) : totalRaceLaps
     const simLL = new Float64Array(n)
