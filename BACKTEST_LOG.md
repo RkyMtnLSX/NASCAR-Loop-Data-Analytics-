@@ -8984,3 +8984,43 @@ later, neither registered here: (1) the dominance fix outside INT is real on its
 masked by the finish-order flatness; it should be re-judged after a top-end fix ships, or judged on LL / FL
 alone for the Fastest Laps / laps-led displays where DK rank is not the point; (2) SS needs a practice-free
 holdout. Nineteen registrations since 10-04: two ships, one call open, sixteen closed.
+
+## 2026-10-10 — PRE-REGISTERED: PER-DRIVER VOLATILITY (upside / downside width from loop data). Written before the fit. DO NOT MODIFY.
+TRIGGER. Operator: "do the three registrations in sequence" - volatility, pass differential, then re-judge
+the dominance fix stacked. Every car draws from one noise width, patched at the edges (asymNoise for
+below-median cars, carCeilFloor for lapped cars). Loop data carries each driver's average running position
+per race, so how wide a driver's races are - and in which DIRECTION - is measurable before the race.
+DATA (new, scripts/backtest-data/race-features.json, built 2026-10-10 from loop_data 2021-26, all series,
+536 driver-series histories, 16,130 driver-board rows, 1,324 without >= 3 prior races): per driver per board,
+from PRIOR same-series races only (most recent 30, recency 0.85 per race back): volUp = mean max(0, avg
+running pos - finish) (finished better than it ran), volDown = mean max(0, finish - avg running pos),
+volN; also passDiff per lap and closing (mid-race pos - finish) for the next registrations. Cup medians:
+up 2.57, down 2.47. Fingerprint-joined (start:finish) like protocol-features.json.
+FORM (engine, flagged, default off: runRaceSim simConfig.carVol = { gamma }; drivers carry volUp / volDown /
+volN). Upside draws (e > 0) scaled by clamp((volUp_i / field median)^gamma, .6, 1.6), downside draws by the
+same from volDown; EACH side rescaled to field mean 1 (budget unchanged, allocation moves); no history -> 1.
+WHY SPLIT (and disclosed): the first cut was a symmetric width from |finish - avg|; the synthetic check
+showed it hands a car whose variance is all wrecks extra upside and lowers a consistent favourite's win
+share for the wrong reason (max-of-draws, the 10-09 lesson). Split check (36-car synthetic, 20k draws): a
+high-upside / low-downside car gains win 18.8 -> 22.9 and top-5 59 -> 63; the mirror car loses both; the
+mid-pack pair moves the same way smaller. Direction is the one the data asks for. One gamma per series.
+FIT: train.txt (2022-24), 10k sims, gamma in {0, .25, .5, .75, 1} per series, smallest TOP-5 BRIER + TOP-10
+BRIER (consistency metrics; tie within 1e-5 -> smaller). Written to carvol-fit.json and COMMITTED before the
+holdout is read. Fitted 0 -> nothing to test. Expectation stated up front: this is NOT a favourite fix; its
+payoff is DFS - ceilings, top-5 / top-10 calibration, the set builder's E[max].
+TEST: holdout-practice.txt (94 boards), 20k sims, RUNS=2, control = shipped. Null floor = |A run1 - A run2|.
+Metrics: rho, top-10 Brier, win Brier, top-5 Brier, win LL, top-5 LL; DK rank rho (proj DK vs actual DK, on
+boards with LL/FL actuals); DK INTERVAL COVERAGE: share of drivers whose actual DK lands above the sim's
+p90 and below its p10 (10% each if the ceilings / floors are honest); favourite / mid / tail gaps and the
+elite cells for the record.
+DECISION RULE (per series, mean of two runs): SHIP T at the fitted gamma if (a) fitted gamma > 0; (b) top-5
+Brier AND top-10 Brier each better than A by at least the null floor; (c) DK rho not worse than A by more
+than the null floor; (d) |DK>p90 coverage - 10%| + |DK<p10 coverage - 10%| not larger than A's; (e) win
+Brier, rho, win LL, top-5 LL each not worse than A by more than the null floor; (f) favourite gap not worse
+than A by more than 1.0 pt. Fails any one -> not shipped for that series. Ships as simConfig.carVol in
+SimulationCenter with volUp / volDown / volN computed per driver from own-series loop_data the way
+lappedRate and ownDnf are; stamp carVol 'v1-g<gamma>'. Revert trigger: DK>p90 coverage above 15% on two
+straight weekends' boards.
+HARNESS SMOKE (train only, cup, 100 sims, two rows, throwaway): g0 t5B .10407 t10 .16507 DK>p90 9.7% DK<p10
+10.2% / g.25 .10433 .16612 9.8% 10.5% - draw-noise at 100 sims, nothing to read. No holdout numbers seen.
+PUSH before the fit.

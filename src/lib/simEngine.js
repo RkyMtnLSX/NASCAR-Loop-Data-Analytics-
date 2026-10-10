@@ -936,7 +936,32 @@ function runRaceSim(drivers, simConfig) {
       __o.forEach((x, r) => { const pct = n > 1 ? r / (n - 1) : 0.5; if (pct > 0.8 && r < n - 1) out[x] = 1 - c * (pct - 0.8) / 0.2 })
       return out
     })()
+    // PER-DRIVER VOLATILITY (registered 2026-10-10, BACKTEST_LOG; OFF unless simConfig.carVol = { gamma }).
+    // Every car draws from one width, patched at the edges (asymNoise, carCeilFloor). Loop data says
+    // directly how wide each driver's races are, and in WHICH direction: d.volUp = recency-weighted mean
+    // of max(0, average running position - finish) over prior same-series races (finished better than it
+    // ran), d.volDown = mean of max(0, finish - average running position) (finished worse); d.volN races.
+    // Upside draws (e > 0) are scaled by clamp((volUp_i / field median)^gamma, .6, 1.6), downside draws by
+    // the same from volDown; each side RESCALED to mean 1 so the field's noise budget is unchanged and
+    // only its allocation moves. No history -> 1. Why split: a symmetric width from |finish - avg| would
+    // hand a car whose variance is all wrecks (downside) extra UPSIDE too, and the synthetic check shows
+    // that lowers a consistent favourite's win share for the wrong reason.
+    const __volW = (() => {
+      const cv = simConfig.carVol; if (!cv || !(cv.gamma > 0)) return null
+      const side = (key) => {
+        const vals = drivers.map(d => (d[key] != null && (d.volN || 0) >= 3 && d[key] > 0) ? d[key] : null)
+        const have = vals.filter(v => v != null).sort((a, b) => a - b); if (have.length < 5) return null
+        const med = have[Math.floor(have.length / 2)]
+        const out = new Float64Array(n).fill(1); let sum = 0
+        for (let x = 0; x < n; x++) { out[x] = vals[x] == null ? 1 : Math.max(0.6, Math.min(1.6, Math.pow(vals[x] / med, cv.gamma))); sum += out[x] }
+        const sc = n / sum; for (let x = 0; x < n; x++) out[x] *= sc
+        return out
+      }
+      const up = side('volUp'), dn = side('volDown'); if (!up && !dn) return null
+      return { up, dn }
+    })()
     const __noise = (i) => { let e = gaussNoise()
+      if (__volW) { if (e > 0 && __volW.up) e *= __volW.up[i]; else if (e < 0 && __volW.dn) e *= __volW.dn[i] }
       if (__topW) e *= __topW[i]
       if (__clipW && e > 0) e *= __clipW[i]
       if (simConfig.carCeilFloor && e > 0) { const lr = drivers[i].lappedRate; if (lr != null && !isNaN(lr) && lr > CEIL_FLOOR) e *= Math.max(0.1, 1 - lr) }
