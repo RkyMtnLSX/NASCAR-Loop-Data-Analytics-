@@ -9211,3 +9211,25 @@ O'Reilly -4 -> +10, which rail (f) will catch. (2) d is INEFFECTIVE for coverage
 way, cup's fit to .6 is a tie-break artefact and the wrong direction for cup); the dominator-side ceiling is
 not the top slot's size. FROZEN {"cup":{u .6, d .6},"oreilly":{u .6, d .6},"trucks":{u .6, d 1}}; the
 holdout is run as registered and the rails decide. Expectation stated: this closes.
+
+## 2026-10-10 — DK CEILING STAGE 2 EXECUTED AS REGISTERED: FAILS in all three series — NOT SHIPPED; one large finding inside it
+Holdout-practice, 20k sims, two runs, mean A -> UD (u .6; d .6 cup / O'Reilly, 1 trucks):
+  CUP (39)      DK>p90 9.95% -> 11.05% (crosses 10, |gap| .05 -> 1.05: (b) FAILS)   winB .02233 -> .02293 (worse)   fav gap -1.3 -> +12.8 ((f) FAILS)
+  O'REILLY (26) DK>p90 5.05% -> 6.6% (|gap| 4.95 -> 3.4, -31%: short of a third)   winB .02179 -> .02204 (worse)   t5B .08278 -> .08200 (better)
+                fav gap -1.05 -> +13.85 ((f) FAILS)   dkRho .3985 -> .393
+  TRUCKS (29)   DK>p90 7.0% -> 7.65% (|gap| 3.0 -> 2.35, -22%: (b) FAILS)   dkRho .3755 -> .366 (worse .010: (d) FAILS)   t10 .15252 -> .15289 (worse .0004, floor .0001: (e) FAILS)
+                WIN BRIER .02360 -> .02196 (BETTER by 7%, 14/15 per race)   fav gap -24.3 -> -11.2   eliteFront -1.86 -> -1.14   t5B tie
+VERDICT by the registered rule: NOT SHIPPED anywhere. Both flags stay in, default off. The ceiling question is
+answered negatively: neither an upper-half upside clip nor top-slot damping reaches the lower series' over-
+stated p90 (coverage moved 0.6-1.6 pts of a 3-5 pt gap at the grid edge). Where the ceiling comes from is
+still open; the next honest step is a stage-1 style decomposition BY TRACK GROUP and by projected-finish band
+(is it the mid-field cars whose p90 is too high, or the top?), not another dial.
+THE FINDING (not a decision): in TRUCKS the upper-half upside clip cuts win Brier from .0236 to .0220 - the
+largest win-forecast improvement of any form tested since 10-04 - by moving the favourite gap from -24 to
+-11. It is the second-tier clip (10-09) in a flat-rate costume: take upside from cars 2..median, the favourite
+gains. On 2022-24 train the same arm was a wash on win Brier (.02522 -> .02518), so this is, again, a 2025-26
+effect that the fit set cannot see and the holdout can. It fails the rule on top-10 Brier (+.0004) and DK rho
+(-.010), both real and both in the direction "cars 2..median are now under-stated for top-10". Filed with the
+trucks-favourite season-end refit as the strongest single piece of evidence for it: a clip form, fit on
+2025-26, judged on 2027. Not run now (operator decision 10-10 stands).
+Twenty-five registrations since 10-04: three ships, one call open, twenty-one closed.

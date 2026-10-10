@@ -3689,6 +3689,20 @@ and the race columns - per driver (primary + up to 4 compares, same colours), th
 shown in that row over the races that have one (one decimal minimum). The compare-race lookup was
 factored into compareRaceFor() so the cells and the average use the same matching. Build clean.
 
+## 2026-10-10 — DK ceilings: the diagnostic located it, the dials didn't reach it, and trucks said something else
+Operator: "register the DK scale." Stage 1 first: in O'Reilly and trucks the actual DK clears the sim's p90
+only 5-7% of the time, and it's both halves - the finish side and the dominator side; cup is honest on
+finish and under-stated on dominators (the September tier-1 finding again). Stage 2 tried the two one-
+constant dials the read-out rule named: an upside clip on the upper half of the field (favourite excluded,
+the 10-09 lesson) and a damping of the top share slot. Both hit the grid edge and moved coverage one or two
+points of a four-point gap; the damping barely moved it at all. Not shipped. Wherever the over-stated
+ceiling comes from, it isn't draw width or top-slot size, and the next step is a decomposition by track
+group and finish band before anyone touches a constant. The thing worth remembering: in trucks the upside
+clip cut win Brier by 7% - the biggest win-forecast gain of any form since 10-04 - by lifting the favourite
+from -24 to -11, and did nothing on 2022-24. Same era story as the trucks favourite, same clip family,
+filed with the season-end refit. Twenty-five registrations since 10-04: three ships, one call open,
+twenty-one closed.
+
 ## 2026-10-10 — Shipped: superspeedway fastest-lap budget
 Operator: "ship the SS budget." SS boards now deal fastest laps for the measured 69% of green laps
 instead of every lap (SS_FL_BUDGET .6938; boards stamp domCurves 'ss-flbudget-v1'). The strength
