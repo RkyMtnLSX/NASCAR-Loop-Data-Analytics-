@@ -9391,3 +9391,17 @@ boards; post boards with practice are untouched by D and by L (no projected star
 pre-board favourite 0-for-3 weekends vs the books in a series.
 SMOKE: a 40-sim train fit was started to verify the loader and read to the first lam row (cup lam .4, a draw-
 noise number); nothing from the holdout seen. PUSH before the fit.
+
+## 2026-10-10 — PRE-BOARD STAGE 2: FIT (train.txt 2022-24 with trail10 grids, 10k sims) — FROZEN before the holdout is read
+  CUP (108)      lam .4 t10 .16863 | .5 .16868 | .6 .16872 | .7 .16918 | .8 .16928 | 1 .17006  -> lam .4 (grid edge: cup trusts its
+                 projected grid LESS than .7); dest at .4: prorata .16862 / corrHistory .16977 / trackHistory .16885 / startPos .16912 -> prorata
+  O'REILLY (99)  lam .4 .14813 | .5 .14775 | .6 .14756 | .7 .14745 | .8 .14733 | 1 (best)  -> lam 1 (no shading: O'Reilly trusts the
+                 projected grid MORE); dest at 1 -> corrHistory
+  TRUCKS (67)    lam .4 .16404 | .5 .16347 | .6 .16278 | .7 .16236 | .8 .16180 | 1 .16159  -> lam 1; dest at 1: prorata .16137 /
+                 corrHistory .16015 / trackHistory .16155 / startPos .16124 -> corrHistory (winB .02546 -> .02533, t5B .09953 -> .09865)
+Written before the holdout: the series split the shading in OPPOSITE directions - cup wants less trust in a
+projected grid (.4), the lower series want full trust (1.0), which is exactly what stage 1's "the x0.7 helps
+cup, hurts trucks" said. And the empty practice weight is better spent on correlation-group driver rating
+than spread pro rata in both lower series (trucks t10 .16137 -> .16015). Both lam fits sit on a grid edge, so
+if they pass, the registered next step is a finer grid at season end, not a wider one now.
+FROZEN {"lam":{"cup":.4,"oreilly":1,"trucks":1},"dest":{"cup":"prorata","oreilly":"corrHistory","trucks":"corrHistory"}}

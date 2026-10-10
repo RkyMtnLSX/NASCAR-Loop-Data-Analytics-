@@ -1,0 +1,14 @@
+{
+  "lam": {
+    "cup": 0.4,
+    "oreilly": 1,
+    "trucks": 1
+  },
+  "dest": {
+    "cup": "prorata",
+    "oreilly": "corrHistory",
+    "trucks": "corrHistory"
+  },
+  "sims": 10000,
+  "engine": "912cdc9ea72f"
+}
