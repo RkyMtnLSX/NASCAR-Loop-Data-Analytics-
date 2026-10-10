@@ -9555,3 +9555,11 @@ production. The SS FL-budget ship judged FL MAE, which the width does not touch 
 SS win / top-5 number is not production's. Not fixed here: the fix is to move the per-series multiplier into the
 engine (one place, both paths) and re-run the SS cells - registration-worthy because it changes what the harness
 measures, not what the page does. Logged as open in PITBOARD_ENGINE.md section 7.
+
+## 2026-10-10 - DEAD FLAGS STRIPPED FROM THE ENGINE (operator: "strip the dead flags")
+Removed from simEngine.js every registered form that never shipped (list in PITBOARD_ENGINE.md section 6) and the
+harnesses that existed only to build those arms. simEngine.js 1,245 -> 915 lines. Not a behaviour change: on a seeded
+RNG stream the stripped engine reproduces f3f8405 byte-for-byte (projFinish / projDK / projLapsLed) at INT cup, SHORT
+trucks, SS O'Reilly, ROAD cup with the production configs; lint clean, sim-smoke ALL PASS (its caution-mix section went
+with the path), build green. Anything stripped is one `git show f3f8405:src/lib/simEngine.js` away if a season-end
+refit wants to resurrect it; the fit files in scripts/backtest-data/ are untouched.

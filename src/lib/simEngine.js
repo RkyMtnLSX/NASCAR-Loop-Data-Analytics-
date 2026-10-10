@@ -272,80 +272,8 @@ const WRECK_SETS = {"SHORT":{"low":[[],[],[],[],[],[],[],[[4,0.96]],[[5,0.52]],[
 // being rounded DOWN to the 15 pct Medium bucket; cup Short & Flat measures 8.1 pct and was
 // rounded DOWN to the 5 pct Low bucket). Buckets are kept only as manual overrides.
 // trackAvg is shrunk toward the group rate by conf = min(1, nTrackRaces / 8).
-// SKILL-TILTED DNF ALLOCATION (2026-08-31). OFF unless a board passes skillTilt:true.
-// Registered study — BACKTEST_LOG 2026-08-31. NOT SHIPPED without reading that.
-//
-// The sim gives every car the same retirement probability. Reality does not, and the shape of
-// the difference is the whole problem. Two earlier parameterizations failed:
-//
-//   v1  logistic slope on log-ODDS, applied as a multiplier on PROBABILITY. Wrong scale; the
-//       strong end over-extended and the best quartile's top10 Brier got WORSE.
-//   v2  same thing refit with a LOG link. Correct scale, still wrong SHAPE — the observed
-//       profile is STEEP THROUGH THE MIDDLE and FLAT AT BOTH ENDS, and an exponential in
-//       percentile is the opposite. No scale factor reconciles the two ends; turning it down
-//       to save the favourites collapses the tail, and vice versa.
-//
-// v3, this one, does not assume a shape. It is a MULTIPLIER CURVE anchored at the four field
-// quartiles and calibrated by iterative proportional fitting against what the sim DELIVERS on
-// train boards (scripts/calibrate-tilt-tiers.js). Calibrating on delivered rather than on the
-// raw data matters, because the sim ALREADY back-loads attrition by ~1.22x on its own: wreck
-// victims are ord[Math.min(n-1, seed+j)], so events seeded near the end of the running order
-// clamp repeatedly onto the last car. IPF absorbs that artifact instead of stacking on it.
-//
-// Anchors are at percentile 0.875 / 0.625 / 0.375 / 0.125 (quartile midpoints), linear between,
-// flat outside. Rescaled to mean 1 over the field, so THE BUDGET IS UNCHANGED and only its
-// allocation moves.
-const DNF_TILT_CURVE = {
-  SHORT: [0.5005, 0.9912, 1.0662, 1.4421],
-  INT: [0.9084, 0.8314, 1.0935, 1.1668],
-  SS: [0.8210, 1.0315, 1.1764, 0.9711],
-  ROAD: [0.7895, 0.7940, 1.1552, 1.2613],
-}
-const __TILT_ANCHOR = [0.875, 0.625, 0.375, 0.125]
-
-// LEVEL correction, calibrated on TRAIN with the curve in place (max tier error 0.49 pts).
-// This is the OTHER half of the fix and the two only work together. The sim under-delivers
-// its own budget by ~13% because of the caution-preset interaction found earlier the same day
-// (BACKTEST_LOG 2026-08-31): the preset is auto-set from a track's MEAN cautions and the
-// wreck pools modulate around the budget, so a point estimate lands under it.
-//
-// Fix C tried to correct that level UNIFORMLY and failed its holdout — raising a flat rate
-// retires the favourites more, which is the wrong direction. With the curve in place the extra
-// attrition lands on the cars that actually retire, so the same level correction now PASSES.
-// Do not apply one without the other.
-const DNF_TILT_LEVEL = 1.15
-
-// rescale=false implements the ONE-SIDED form registered in BACKTEST_LOG 2026-08-31 (commit
-// 8a76a87). The mean-1 normalization below is what forces the strongest tier DOWN whenever the
-// weak tiers are raised — under a fixed field budget you cannot lift the bottom without cutting
-// the top, and that is the mechanism behind the -23.40e-5 Q4 top10 regression that stopped the
-// earlier tilt from shipping. With C_t = obs_t/pred_t each tier lands on its own observed rate
-// and the field total follows automatically, so normalizing here would UNDO the calibration.
-// Default stays true: the legacy DNF_TILT_CURVE path is unchanged.
-function __tiltMults(pct, curve, rescale) {
-  const n = pct.length
-  const m = new Float64Array(n)
-  if (!curve) { m.fill(1); return m }
-  let sum = 0
-  for (let i = 0; i < n; i++) {
-    const p = pct[i]
-    let v
-    if (p >= __TILT_ANCHOR[0]) v = curve[0]
-    else if (p <= __TILT_ANCHOR[3]) v = curve[3]
-    else {
-      let k = 0
-      while (k < 2 && p < __TILT_ANCHOR[k + 1]) k++
-      const t = (__TILT_ANCHOR[k] - p) / (__TILT_ANCHOR[k] - __TILT_ANCHOR[k + 1])
-      v = curve[k] + t * (curve[k + 1] - curve[k])
-    }
-    m[i] = v; sum += v
-  }
-  if (rescale === false) return m
-  const k = n / sum
-  for (let i = 0; i < n; i++) m[i] *= k
-  return m
-}
-
+// The 2026-08-31 skill-tilted DNF allocation (DNF_TILT_CURVE / DNF_TILT_LEVEL, skillTilt) was a registered study that
+// never shipped; stripped 10-10 (git f3f8405 has it).
 function resolveDnfRate(series, groupLabel, trackAvg, nTrackRaces) {
   const grp = (DNF_BY_GROUP[series] || DNF_BY_GROUP.cup)[groupLabel]
   const base = (grp != null) ? grp : (DNF_SERIES_MEAN[series] || 0.13)
@@ -430,14 +358,11 @@ function buildSpeedScores(drivers, weights, opts) {
   // vs actual grid, 319 races 2023+, 2022 Next Gen year excluded per operator). Shading projected
   // start influence lam=0.7 matches the actual-grid calibration profile (21.4 vs 20.9). Real
   // lineups untouched - this only softens forecasts of a grid we have not seen yet.
-  // 2026-10-10 pre-board stage 2 (registered): opts.projShade overrides the fixed 0.7 per series (fit on 2022-24
-  // projected grids); the 07-25 value was fit on cup only and applied everywhere. Default unchanged.
-  const __projLam = (opts && opts.projShade != null && opts.projShade >= 0 && opts.projShade <= 1.6) ? +opts.projShade : 0.7   // > 1 undoes trail10's compression toward mid-field (10-10 stage 3 grid)
-  // 10-10 stage 4 (registered): opts.projShadeElite = a separate lam for the top-5 cars by corrAvgRating (the favourite's
-  // projected start is trusted differently from the field's). Default: same lam for everyone.
-  const __eliteLam = (opts && opts.projShadeElite != null && opts.projShadeElite >= 0 && opts.projShadeElite <= 1.6) ? +opts.projShadeElite : null
-  const __eliteSet = __eliteLam == null ? null : new Set(drivers.map((d, i) => ({ i, r: d.corrAvgRating || 0 })).sort((a, b) => b.r - a.r).slice(0, 5).map(x => x.i))
-  for (let __i = 0; __i < drivers.length; __i++) if (drivers[__i].__startProjected && startScores[__i] != null) startScores[__i] = 50 + (startScores[__i] - 50) * (__eliteSet && __eliteSet.has(__i) ? __eliteLam : __projLam)
+  // 2026-10-10 pre-board stage 2 (shipped): opts.projShade sets lam per series - SimulationCenter passes cup 0.7,
+  // O'Reilly / trucks 1.0 (fit 2022-24 projected grids, judged on 161 pre boards). Default 0.7 = the 07-25 value.
+  // The 10-10 tiered form (separate lam for the top-5) was an operator call, not shipped; stripped 10-10 (git f3f8405).
+  const __projLam = (opts && opts.projShade != null && opts.projShade >= 0 && opts.projShade <= 1.6) ? +opts.projShade : 0.7
+  for (let __i = 0; __i < drivers.length; __i++) if (drivers[__i].__startProjected && startScores[__i] != null) startScores[__i] = 50 + (startScores[__i] - 50) * __projLam
   const trackRatingScores = normalizeArr(drivers.map(d => d.trackAvgRating), false) // higher = better
   const trackFinishScores = normalizeArr(drivers.map(d => d.trackAvgFinish), true)
   const winConvScores     = normalizeArr(drivers.map(d => d.corrWinConv),    false)  // lower = better
@@ -463,31 +388,14 @@ function buildSpeedScores(drivers, weights, opts) {
   const LAP_PENALTY = 0.15
   const __lapVals = (__lapPenOn ? drivers : []).map(d => d.lappedRate).filter(v => v != null && !isNaN(v)).sort((a, b) => a - b)
   const __lapMed = __lapVals.length >= 3 ? __lapVals[Math.floor(__lapVals.length / 2)] : null
-  // EMPTY-SLOT RULE (2026-09-26, opts.dropEmptySlots; registered BACKTEST_LOG same date). A slot with
-  // no data for ANY driver contributes to no one. Before this, a no-practice board filled the practice
-  // slot at 50 for established drivers and at the MARKET percentile for thin ones (market anchor
-  // 07-22), so at Kansas trucks a one-start driver 3rd in the odds scored ~92 in a slot where the
-  // 6-win points leader scored 50 - the same missing information was two different numbers. The
-  // freed weight is redistributed pro rata across the slots that do have data.
-  const __dropEmpty = !!(opts && opts.dropEmptySlots)
-  const __lrpEmpty = __dropEmpty && lrpScores.every(v => v == null)
-  const __pitEmpty = __dropEmpty && pitScores.every(v => v == null)
-  // PASS DIFFERENTIAL SLOT (registered 2026-10-10, BACKTEST_LOG; OFF unless opts.passDiff = { w }). d.passDiff =
-  // recency-weighted green-flag (passes - times passed) per lap over prior same-series races: measured
-  // race-day speed through traffic, independent of where the car started or finished. Enters as one more
-  // min-max-scaled slot with weight w; every other slot is diluted pro rata through wTotal. No history -> 50.
-  // NO-PRACTICE VARIANT (registered 2026-10-10): opts.passDiff.onlyNoPractice = true makes the slot live ONLY when
-  // the practice slot is empty for the whole field (the Wednesday pre board) - the 10-10 holdout showed the term
-  // is redundant with practice and fills a real hole without it. Same shape as the 09-26 empty-slot rule.
-  const __pdW = (opts && opts.passDiff && opts.passDiff.w > 0 && !(opts.passDiff.onlyNoPractice && !lrpScores.every(v => v == null))) ? +opts.passDiff.w : 0
-  const pdScores = __pdW ? normalizeArr(drivers.map(d => d.passDiff), false) : null
-  // EMPTY-PRACTICE DESTINATION (2026-10-10 pre-board stage 2, registered; OFF unless opts.emptyPracticeTo). When the
-  // practice slot is empty for the whole field (the pre board) its weight is today effectively spread pro rata
-  // (every driver scores 50 in it). 'corrHistory' / 'trackHistory' / 'startPos' move that weight to one slot.
-  const __epTo = (opts && opts.emptyPracticeTo && lrpScores.every(v => v == null) && weights.longRunPace > 0) ? opts.emptyPracticeTo : null
-  const __epShift = __epTo && (__epTo === 'corrHistory' || __epTo === 'trackHistory' || __epTo === 'startPos') ? { longRunPace: 0, [__epTo]: (weights[__epTo] || 0) + weights.longRunPace }
-    : __epTo === 'corrHalf' ? { longRunPace: weights.longRunPace / 2, corrHistory: (weights.corrHistory || 0) + weights.longRunPace / 2 } : {}   // 10-10 stage 3: half to rating, half stays pro rata
-  const __wIn = Object.assign({}, weights, __lrpEmpty ? { longRunPace: 0 } : {}, __pitEmpty ? { pitCrew: 0 } : {}, __pdW ? { passDiff: __pdW } : {}, __epShift)
+  // EMPTY-PRACTICE DESTINATION (2026-10-10 pre-board stage 2, shipped for O'Reilly; opts.emptyPracticeTo = 'corrHistory').
+  // When the practice slot is empty for the whole field (the pre board) its weight is effectively spread pro rata
+  // (every driver scores 50 in it); 'corrHistory' moves that weight to the rating slot instead. Cup and trucks stay
+  // pro rata. The 09-26 drop-the-weight rule, the pass-differential slot and the trackHistory / startPos / corrHalf
+  // destinations were registered, failed, and stripped 10-10 (git f3f8405).
+  const __epTo = (opts && opts.emptyPracticeTo === 'corrHistory' && lrpScores.every(v => v == null) && weights.longRunPace > 0) ? 'corrHistory' : null
+  const __epShift = __epTo ? { longRunPace: 0, corrHistory: (weights.corrHistory || 0) + weights.longRunPace } : {}
+  const __wIn = Object.assign({}, weights, __epShift)
   const wTotal = Object.values(__wIn).reduce((a, b) => a + b, 0) || 1
   const w = {
     corrHistory:  __wIn.corrHistory  / wTotal,
@@ -496,7 +404,6 @@ function buildSpeedScores(drivers, weights, opts) {
     startPos:     __wIn.startPos     / wTotal,
     trackHistory: (__wIn.trackHistory || 0) / wTotal,
     winConversion:(__wIn.winConversion || 0) / wTotal,
-    passDiff:     (__wIn.passDiff || 0) / wTotal,
   }
 
   const __scored = drivers.map((d, i) => {
@@ -554,8 +461,7 @@ function buildSpeedScores(drivers, weights, opts) {
       sp  * w.startPos     +
       t   * w.trackHistory +
       wc  * w.winConversion +
-      pit * w.pitCrew +
-      (pdScores ? (pdScores[i] ?? 50) : 0) * w.passDiff
+      pit * w.pitCrew
     const __lapPen = (__lapMed != null && d.lappedRate != null && !isNaN(d.lappedRate)) ? LAP_PENALTY * (d.lappedRate - __lapMed) * 100 : 0
 
     return {
@@ -564,7 +470,6 @@ function buildSpeedScores(drivers, weights, opts) {
       __lapPen,
       __spW: w.startPos,
       __spUsed: sp,
-      __nonStart: speedScore - sp * w.startPos,
       scores: {
         corr: Math.round(c),
         lrp:  Math.round(lrp),
@@ -576,45 +481,9 @@ function buildSpeedScores(drivers, weights, opts) {
       },
     }
   })
-  // TIER-CONDITIONED START WEIGHT (registered 2026-10-09, BACKTEST_LOG; OFF unless opts.tierStart =
-  // { gamma }). The start term pulls every car toward its grid spot with the same weight. Measured on
-  // the 94-board practice holdout: a top-5-rated car starting P16 or worse beats the sim by ~1.6
-  // positions (102 rows) under every mechanism tested so far - the Eckes / Larson case. Here the share
-  // of the start weight a car keeps falls with its strength: g_i = 1 - gamma * pct_i, where pct_i is the
-  // car's percentile on the composite WITHOUT the start term (1 = strongest). The withheld share is
-  // replaced by that same non-start composite, so the score scale and the field mean are untouched and
-  // a weak car (pct ~ 0) is scored exactly as before. gamma = 0 is the shipped engine. One constant
-  // per series, fitted on 2022-24 train, scored on 2025-26 holdout - see the registration.
-  // TOP-END STRETCH (registered 2026-10-09, BACKTEST_LOG; OFF unless opts.topStretch = { lambda }). The
-  // tier-start test showed O'Reilly / trucks elites beat the shipped sim from the FRONT as well as from
-  // deep (cup elites do not): the composite under-rates the 3-4 dominant cars in a thin field because
-  // every slot is min-max scaled, so the gap between them and the pack is compressed. Cars in the top
-  // fifth of the composite get + lambda x fieldSD x (pct - 0.8) / 0.2, re-centred so the field mean is
-  // unchanged; ranks are preserved, only the gaps at the top widen. lambda = 0 is the shipped engine.
-  // One constant per series, fitted on 2022-24 train, scored on 2025-26 holdout - see the registration.
-  const __tsL = opts && opts.topStretch && opts.topStretch.lambda > 0 ? opts.topStretch.lambda : 0
-  const __tsG = opts && opts.tierStart && opts.tierStart.gamma > 0 && w.startPos > 0 ? Math.min(1, opts.tierStart.gamma) : 0
-  const __stretch = (arr) => {
-    if (!__tsL || arr.length < 3) return arr
-    const vals = arr.map(d => d.speedScore), m = vals.reduce((a, b) => a + b, 0) / vals.length
-    const sd = Math.sqrt(vals.reduce((a, v) => a + (v - m) ** 2, 0) / vals.length) || 0
-    const ord = vals.map((v, i) => ({ i, v })).sort((a, b) => b.v - a.v)
-    const add = new Array(arr.length).fill(0)
-    ord.forEach((o, r) => { const pct = ord.length > 1 ? 1 - r / (ord.length - 1) : 0.5; add[o.i] = __tsL * sd * Math.max(0, (pct - 0.8) / 0.2) })
-    const am = add.reduce((a, b) => a + b, 0) / arr.length
-    return arr.map((d, i) => ({ ...d, speedScore: d.speedScore + add[i] - am, __stretch: add[i] - am }))
-  }
-  if (!__tsG) return __stretch(__scored)
-  const __nsW = 1 - w.startPos
-  const __ord = __scored.map((d, i) => ({ i, s: d.__nonStart })).sort((a, b) => b.s - a.s)
-  const __pctNS = new Array(__scored.length).fill(0.5)
-  __ord.forEach((o, r) => { __pctNS[o.i] = __ord.length > 1 ? 1 - r / (__ord.length - 1) : 0.5 })
-  return __stretch(__scored.map((d, i) => {
-    const g = 1 - __tsG * __pctNS[i]
-    const baseNorm = __nsW > 0 ? d.__nonStart / __nsW : d.__spUsed
-    const sc = d.__nonStart + w.startPos * (g * d.__spUsed + (1 - g) * baseNorm)
-    return { ...d, speedScore: sc - d.__lapPen, __tierG: g }
-  }))
+  // The tier-conditioned start weight and top-end stretch (10-09 registrations) were closed and stripped 10-10
+  // (git f3f8405 has them).
+  return __scored
 }
 
 // SS NOISE CALIBRATION (2026-08-29, pre-registered - BACKTEST_LOG same date): the MC's
@@ -626,54 +495,11 @@ function buildSpeedScores(drivers, weights, opts) {
 // DO NOT retune from in-sample results; the forward judge is SS board win-Brier + the CLV ledger.
 const GROUP_NOISE_MULT = { SS: 1.75 }
 
-// COUNT-ONLY DNF ESTIMATOR (2026-08-31). Replays exactly the wreck + mechanical
-// assignment runRaceSim performs, and counts retirements. Nothing else - no scores, no
-// sorting, no laps led.
-//
-// It is EXACT for the count, and that is not an approximation claim: victim identity
-// depends on the running order, but the NUMBER of victims does not. Each event takes sz
-// adjacent slots from a random seed, clamped at the field edge (which is where overlap
-// eats draws), each occupant retires with probability p, already-retired occupants are
-// skipped. None of that reads a driver's score. The survivor position penalty does not
-// retire anyone. So this loop and the real one draw the same distribution of counts.
-//
-// Exists so the caution mix can be normalized against the sim's ACTUAL delivered rate at
-// the ACTUAL budget, rather than against a hardcoded table. That matters: the per-bucket
-// multipliers are NOT constant in the budget. Measured 2026-08-31, SS mid runs 2.10x at a
-// 4% budget and 0.89x at 40% (the 0.3 lower clamp on __wScale binds hard at low budgets).
-// A constants table would have been wrong at both ends of the schedule.
-// ONE definition of the accident scale. This used to be written out twice — here and in the
-// per-bucket state builder — and on 2026-08-31 the ship of the wide clamp updated only the
-// other copy, so the K estimator measured a clipped scale while the sim ran an unclipped one
-// and cautionMix delivered INT 24% over budget. sim-smoke caught it. Do not inline this again.
-function __wScaleOf(n, dnfRate, wm, wide) {
-  return Math.max(0.3, Math.min(wide ? 8 : 2.5, (n * dnfRate * wm.accShare) / wm.pre))
-}
-
-function __dnfFraction(n, dnfRate, wm, iters, wide) {
-  if (!wm) return dnfRate
-  const scale = __wScaleOf(n, dnfRate, wm, wide)
-  const mech = dnfRate * (1 - wm.accShare)
-  const dnf = new Uint8Array(n)
-  let total = 0
-  for (let it = 0; it < iters; it++) {
-    dnf.fill(0)
-    const evs = wm.sets[(Math.random() * wm.sets.length) | 0]
-    for (let e = 0; e < evs.length; e++) {
-      const sz = evs[e][0]
-      const bkt = sz <= 4 ? 'a' : (sz <= 9 ? 'b' : 'c')
-      const p = Math.min(0.95, wm.P[bkt] * scale)
-      const seed = (Math.random() * n) | 0
-      for (let j = 0; j < sz; j++) {
-        const k = Math.min(n - 1, seed + j)
-        if (dnf[k]) continue
-        if (Math.random() < p) dnf[k] = 1
-      }
-    }
-    for (let x = 0; x < n; x++) if (!dnf[x] && Math.random() < mech) dnf[x] = 1
-    for (let x = 0; x < n; x++) total += dnf[x]
-  }
-  return total / (iters * n)
+// ONE definition of the accident scale (2026-08-31: this was once written out twice and a ship updated only one
+// copy; sim-smoke caught it). clamp 0.3..8: the 2.5 ceiling was binding on ~15% of holdout boards under the
+// per-bucket normalizer; the largest scale any board needs is 4.35 and none reach 8 (08-31 cliff fix).
+function __wScaleOf(n, dnfRate, wm) {
+  return Math.max(0.3, Math.min(8, (n * dnfRate * wm.accShare) / wm.pre))
 }
 
 // INT DOMINANCE v2 (shipped 2026-09-03, BACKTEST_LOG same date — pre-registered, holdout-passed).
@@ -691,7 +517,7 @@ const INT_DOM_V2 = { alpha: 0.5, kLL: 0.5, kFL: 0.75, flBudget: 0.7794, curves: 
 const SS_FL_BUDGET = 0.6938
 
 function runRaceSim(drivers, simConfig) {
-  const { numSims, cautionPreset, totalRaceLaps, trackGroup, startSampling, cautionMix, skillTilt } = simConfig
+  const { numSims, cautionPreset, totalRaceLaps, trackGroup, startSampling } = simConfig
   // INT dominance v2 defaults (see INT_DOM_V2). Explicit simConfig values always win; domPool:'finish'
   // restores the finish-rank allocator for backtests.
   if (trackGroup === 'INT' && simConfig.domPool == null) {
@@ -706,7 +532,7 @@ function runRaceSim(drivers, simConfig) {
   // (the INT v2 pool) was a wash at SS and is NOT shipped; SHORT / ROAD keep the every-lap budget until the
   // top-end finish order is fixed (the over-count props it up there - 10-10 dom-groups). Explicit wins.
   if (trackGroup === 'SS' && simConfig.flBudget == null) simConfig = { ...simConfig, flBudget: SS_FL_BUDGET }
-  let dnfRate = simConfig.dnfRate
+  const dnfRate = simConfig.dnfRate
   // SS dominator tilt keys off the sim's own speedScore percentile, NOT practice __spdPct:
   // SS races often have no practice (everyone defaulted to neutral 0.5, making any tilt a no-op),
   // and the empirical rank-share targets are strength-ranked anyway. Computed once per run.
@@ -717,16 +543,8 @@ function runRaceSim(drivers, simConfig) {
   const n = drivers.length
   if (!n) return []
 
-  // Per-driver DNF multipliers. Mean 1 by construction, so the budget is untouched.
-  const __pct = new Float64Array(n)
-  {
-    const ord = drivers.map((d, i) => ({ i, s: d.speedScore != null ? d.speedScore : 0 })).sort((a, b) => b.s - a.s)
-    ord.forEach((o, r) => { __pct[o.i] = n > 1 ? 1 - r / (n - 1) : 0.5 })
-  }
-  // tiltCurve overrides the table — the calibration script passes candidates through it.
-  const __curve = skillTilt ? (simConfig.tiltCurve || DNF_TILT_CURVE[trackGroup] || null) : null
-  const __tilt = __tiltMults(__pct, __curve, simConfig.tiltRescale)
-  if (skillTilt && simConfig.tiltCurve == null) dnfRate = Math.min(0.6, dnfRate * DNF_TILT_LEVEL)
+  // Per-driver DNF multipliers. Mean 1 by construction, so the budget is untouched. 1 for everyone unless carDnf.
+  const __tilt = new Float64Array(n).fill(1)
   // PER-CAR DNF (registered 09-07, protocol 10-09; OFF unless simConfig.carDnf = { k }). d.ownDnf = the
   // driver's recency-weighted share of prior same-series races not finished running, d.ownDnfN = how
   // many prior races (null -> neutral). m_i = ((n x own + k x mean) / (n + k)) / mean, clamped [0.5, 2],
@@ -747,86 +565,29 @@ function runRaceSim(drivers, simConfig) {
     }
   }
 
-  // CAUTION MIX (2026-08-31). Optional. Without it this runs exactly as before: ONE bucket,
-  // no extra RNG draw, byte-for-byte the old behaviour.
-  //
-  // WHAT IT FIXES. wreck-v1.1-cb calibrated the caution bucket as a property of a RACE - a
-  // calm race retires fewer cars, a chaotic one more. The board hands the sim a track-level
-  // AVERAGE, so every one of the 30,000 draws was a copy of the average race, and a
-  // modulation meant to vary ACROSS races became a constant offset on a budget that already
-  // encoded the track's typical chaos. Talladega was simmed at 0.51x its own measured
-  // attrition on exactly that double-application.
-  //
-  // cautionMix = { presets: [low, mid, high], w: [wLow, wMid, wHigh] } where w is the
-  // track's OWN empirical frequency of each caution bucket. Each sim draws its bucket from
-  // w, so calm sims still retire fewer cars and chaotic ones more - the spread wreck-v1.1-cb
-  // bought is kept, and gains the per-race variance the sim never had.
-  //
-  // K makes the mix mean-preserving: the effective budget is dnfRate / K where
-  // K = SUM_b w_b r_b, so the track's own distribution averages to exactly the budget.
-  // r_b is MEASURED at this budget by __dnfFraction rather than looked up, because the
-  // multipliers are not constant in the budget (see that function). Solved by fixed point -
-  // r_b depends on the budget, which depends on K - which converges in 2-3 passes.
-  const __mixPresets = (cautionMix && cautionMix.presets && cautionMix.presets.length)
-    ? cautionMix.presets : [cautionPreset]
-  let __mixW = (cautionMix && cautionMix.w && cautionMix.w.length === __mixPresets.length)
-    ? cautionMix.w.slice() : [1]
-  const __wSum = __mixW.reduce((a, b) => a + (b > 0 ? b : 0), 0)
-  __mixW = __wSum > 0 ? __mixW.map(x => (x > 0 ? x : 0) / __wSum) : __mixPresets.map(() => 1 / __mixPresets.length)
-  const __mixOn = __mixPresets.length > 1
-  // levelNormalize (2026-08-31): the CLIFF FIX. Applies the same K normalization to a SINGLE
-  // preset, so the chosen bucket sets the SHAPE (wreck pool, dominator curves, noise width) and
-  // stops setting the attrition LEVEL as a side effect. dnfRate already carries the level, measured
-  // from this same track, so the bucket setting it again is a double application — and it is what
-  // made a fraction of one caution swing attrition ~80% across the <6 / <11.5 boundaries.
-  // Registered in BACKTEST_LOG 2026-08-31. Off unless the caller asks.
-  const __lvlNorm = !!simConfig.levelNormalize
-
-  // SHIPPED 2026-08-31 (operator-approved). Both were opt-in flags while under test; they are
-  // now the DEFAULT and a caller must opt OUT to get the old path. The old path is retained
-  // only so a backtest can still build the CURRENT arm for comparison — nothing in src/pages/
-  // passes either, and nothing should.
-  const __perBucketEV = simConfig.perBucketEV !== false
-  const __wideClamp = simConfig.wideClamp !== false
-
+  // ONE caution bucket per run, chosen by the preset (the page auto-picks it from the track's mean cautions, pinned
+  // to Medium at SS). The 08-31 cautionMix / levelNormalize study paths were stripped 10-10 (git f3f8405); the
+  // per-bucket normalizer (WRECK_EV_EXP_B) and the wide clamp that shipped 08-31 are now the only path.
   const __bucketOf = p => (p.value <= 5 ? 'low' : p.value <= 8 ? 'mid' : 'high')
   const __wmFor = p => {
     const cb = __bucketOf(p)
     const sp = WRECK_SETS[trackGroup] ? WRECK_SETS[trackGroup][cb] : null
-    const pre = __perBucketEV && WRECK_EV_EXP_B[trackGroup]
-      ? WRECK_EV_EXP_B[trackGroup][cb] : WRECK_EV_EXP[trackGroup]
+    const pre = WRECK_EV_EXP_B[trackGroup] ? WRECK_EV_EXP_B[trackGroup][cb] : WRECK_EV_EXP[trackGroup]
     return sp && sp.length ? { sets: sp, P: WRECK_P[trackGroup], surv: WRECK_SURV_COST[trackGroup], accShare: WRECK_ACC_SHARE[trackGroup], pre } : null
   }
 
-  let __K = 1
-  if (__mixOn || __lvlNorm) {
-    const wms = __mixPresets.map(__wmFor)
-    for (let pass = 0; pass < 4; pass++) {
-      const eff = dnfRate / __K
-      let k = 0
-      for (let b = 0; b < wms.length; b++) {
-        if (__mixW[b] <= 0) continue
-        k += __mixW[b] * (__dnfFraction(n, eff, wms[b], 4000, __wideClamp) / eff)
-      }
-      if (!(k > 0.05) || !isFinite(k)) { __K = 1; break }
-      __K = k
-    }
-  }
-  const __effRate = dnfRate / __K
+  const __effRate = dnfRate
 
   // Per-bucket state. Everything the sim loop reads that depends on the caution level lives
   // here, so the loop just indexes one of these instead of closing over a single value.
-  const __B = __mixPresets.map(p => {
+  const S = (p => {
     const cb = __bucketOf(p)
     const wm = __wmFor(p)
     return {
       cautionValue: p.value,
-      // SERIES NOISE MULTIPLIER (registered 2026-10-09, BACKTEST_LOG; OFF unless simConfig.seriesNoiseMult).
-      // The SS precedent (one outcome-noise multiplier per track group, fit 2022-24, validated 2025-26)
-      // applied per SERIES: the trucks sim favourite is stated ~22% and wins ~48% of 2025-26 boards
-      // (15% / 25% on 2022-24) while cup and O'Reilly favourites are calibrated. A multiplier < 1 steepens
-      // the whole rank -> win curve at once. Stacks multiplicatively on the SS group multiplier.
-      noiseWidth: p.noise * (GROUP_NOISE_MULT[trackGroup] || 1) * (simConfig.seriesNoiseMult > 0 ? simConfig.seriesNoiseMult : 1),
+      // NOTE (10-10, PITBOARD_ENGINE.md 3.1): at SS the page has ALREADY multiplied p.noise by __SS_NOISE_MULT
+      // (cup 3.0 / O'Reilly 1.5 / trucks 1.75) before this; the 08-29 calibration validated the product.
+      noiseWidth: p.noise * (GROUP_NOISE_MULT[trackGroup] || 1),
       LLC: ((LL_CURVES_G[trackGroup] || {})[cb]) || LL_CURVES[cb],
       FLC: ((FL_CURVES_G[trackGroup] || {})[cb]) || FL_CURVES[cb],
       // 2026-09-03 INT dominance-level study (BACKTEST_LOG, pre-registered). EXPERIMENTAL, OFF
@@ -848,13 +609,10 @@ function runRaceSim(drivers, simConfig) {
       // ceiling was binding on ~15% of them. Per-victim probability is still guarded by the
       // min(0.95, ...) saturation downstream. If a future board ever needs >8, that is a
       // signal about the pool, not a reason to raise this again.
-      wScale: wm ? __wScaleOf(n, __effRate, wm, __wideClamp) : 0,
+      wScale: wm ? __wScaleOf(n, __effRate, wm) : 0,
       mechRate: wm ? __effRate * (1 - wm.accShare) : 0,
     }
-  })
-  // Cumulative weights for the per-sim bucket draw.
-  const __cumW = []
-  { let acc = 0; for (const w of __mixW) { acc += w; __cumW.push(acc) } }
+  })(cautionPreset)
   // trail10-v3.1 (2026-07-28): per-sim sampled starts also feed DK place differential.
   // Eligible drivers' grid slots are permuted by the sim's sampled order (grid stays
   // collision-free); null/missing slots disable the override (falls back to fixed start).
@@ -872,11 +630,6 @@ function runRaceSim(drivers, simConfig) {
   const posMatrix      = new Int16Array(numSims * n)
 
   for (let sim = 0; sim < numSims; sim++) {
-    // This sim's caution bucket. Drawn ONLY when a mix was supplied, so a single-bucket run
-    // consumes exactly the RNG stream it always did and reproduces prior results.
-    let __bi = 0
-    if (__mixOn) { const __r = Math.random(); __bi = __cumW.length - 1; for (let b = 0; b < __cumW.length; b++) if (__r < __cumW[b]) { __bi = b; break } }
-    const S = __B[__bi]
     // task #73 (2026-07-28): DISTRIBUTIONAL START SAMPLING on projected-lineup boards.
     // Each sim draws every projected driver's start from his trailing-10 (hybrid) history,
     // ranks the draws into a coherent grid, and adjusts scores by w*(sampled - fixed).
@@ -937,80 +690,8 @@ function runRaceSim(drivers, simConfig) {
       }
       return out
     })()
-    // STRENGTH-DEPENDENT NOISE (registered 2026-10-09, BACKTEST_LOG; OFF unless simConfig.topNoise = { shrink }).
-    // 2025-26 control calibration: trucks favourite stated 22% / realised 48%, the 3-10% bucket over-stated
-    // ~1.8 pts a car, tail CALIBRATED - the favourite's missing mass sits on the cars right behind him, not
-    // in the tail, so a uniform width change cannot make the move (it takes from the tail first; CLOSED
-    // 10-09). Here the draw width for the top fifth of the composite is scaled by 1 - shrink x (pct - .8)/.2
-    // (the favourite keeps 1 - shrink, the 8th car ~1, everyone below the top fifth untouched); both sides
-    // of the draw, no mean shift. One constant per series, fit 2022-24 by win + top-5 Brier, holdout 2025-26.
-    const __topW = (() => {
-      const tn = simConfig.topNoise; if (!tn || !(tn.shrink > 0)) return null
-      const sh = Math.min(0.9, +tn.shrink)
-      const __o = drivers.map((d, x) => x).sort((a, b) => (drivers[a].speedScore || 0) - (drivers[b].speedScore || 0))
-      const out = new Float64Array(n).fill(1)
-      __o.forEach((x, r) => { const pct = n > 1 ? r / (n - 1) : 0.5; if (pct > 0.8) out[x] = 1 - sh * (pct - 0.8) / 0.2 })
-      return out
-    })()
-    // SECOND-TIER UPSIDE CLIP (registered 2026-10-09, BACKTEST_LOG; OFF unless simConfig.tierClip = { c }).
-    // The corrected form after topNoise (above) failed at the fit: symmetric narrowing of the top cars
-    // LOWERS the favourite's win share, because a finish is the max of 36 draws and his clipped upside
-    // loses to full-width outliers from below. Here the cars in the top fifth EXCEPT the top-rated car
-    // keep (1 - c x (pct - .8) / .2) of an UPSIDE draw (the 2nd-rated car ~(1 - c), the ~8th car ~all);
-    // downside untouched, favourite untouched, everyone below the top fifth untouched. The analogue of the
-    // shipped asymNoise (upside clip on below-median cars) one tier up: it takes win share from the 3-10%
-    // bucket, which the 2025-26 control table shows over-stated by ~1.8 pts a car in trucks, and gives it
-    // to whoever beats them - the favourite first. One constant per series, fit 2022-24 by win + top-5 Brier.
-    const __clipW = (() => {
-      const tc = simConfig.tierClip; if (!tc || !(tc.c > 0)) return null
-      const c = Math.min(0.9, +tc.c)
-      const __o = drivers.map((d, x) => x).sort((a, b) => (drivers[a].speedScore || 0) - (drivers[b].speedScore || 0))
-      const out = new Float64Array(n).fill(1)
-      __o.forEach((x, r) => { const pct = n > 1 ? r / (n - 1) : 0.5; if (pct > 0.8 && r < n - 1) out[x] = 1 - c * (pct - 0.8) / 0.2 })
-      return out
-    })()
-    // PER-DRIVER VOLATILITY (registered 2026-10-10, BACKTEST_LOG; OFF unless simConfig.carVol = { gamma }).
-    // Every car draws from one width, patched at the edges (asymNoise, carCeilFloor). Loop data says
-    // directly how wide each driver's races are, and in WHICH direction: d.volUp = recency-weighted mean
-    // of max(0, average running position - finish) over prior same-series races (finished better than it
-    // ran), d.volDown = mean of max(0, finish - average running position) (finished worse); d.volN races.
-    // Upside draws (e > 0) are scaled by clamp((volUp_i / field median)^gamma, .6, 1.6), downside draws by
-    // the same from volDown; each side RESCALED to mean 1 so the field's noise budget is unchanged and
-    // only its allocation moves. No history -> 1. Why split: a symmetric width from |finish - avg| would
-    // hand a car whose variance is all wrecks (downside) extra UPSIDE too, and the synthetic check shows
-    // that lowers a consistent favourite's win share for the wrong reason.
-    const __volW = (() => {
-      const cv = simConfig.carVol; if (!cv || !(cv.gamma > 0)) return null
-      const side = (key) => {
-        const vals = drivers.map(d => (d[key] != null && (d.volN || 0) >= 3 && d[key] > 0) ? d[key] : null)
-        const have = vals.filter(v => v != null).sort((a, b) => a - b); if (have.length < 5) return null
-        const med = have[Math.floor(have.length / 2)]
-        const out = new Float64Array(n).fill(1); let sum = 0
-        for (let x = 0; x < n; x++) { out[x] = vals[x] == null ? 1 : Math.max(0.6, Math.min(1.6, Math.pow(vals[x] / med, cv.gamma))); sum += out[x] }
-        const sc = n / sum; for (let x = 0; x < n; x++) out[x] *= sc
-        return out
-      }
-      const up = side('volUp'), dn = side('volDown'); if (!up && !dn) return null
-      return { up, dn }
-    })()
-    // UPPER-HALF UPSIDE SCALE (registered 2026-10-10, DK ceiling stage 2; OFF unless simConfig.upperUpside = { u }).
-    // Stage 1: in O'Reilly / trucks the actual DK clears the sim's p90 only 5-7% of the time (cup ~10%) and
-    // the FINISH side of the draw is part of it (finish-only DK over p90: O'Reilly 5.2%, trucks 6.5%). The
-    // shipped asymNoise clips UPSIDE draws for below-median cars; this is the same clip for cars at or
-    // above median EXCEPT the top-rated car (his upside is what wins him races against outliers - the
-    // 10-09 max-of-draws lesson), scaled by u. Downside untouched. One constant per series.
-    const __upW = (() => {
-      const uu = simConfig.upperUpside; if (!uu || !(uu.u > 0) || uu.u >= 1) return null
-      const __o = drivers.map((d, x) => x).sort((a, b) => (drivers[a].speedScore || 0) - (drivers[b].speedScore || 0))
-      const out = new Float64Array(n).fill(1)
-      __o.forEach((x, r) => { const pct = n > 1 ? r / (n - 1) : 0.5; if (pct >= 0.5 && r < n - 1) out[x] = uu.u })
-      return out
-    })()
+    // topNoise / tierClip / carVol / upperUpside (10-09 / 10-10 registrations) were closed and stripped 10-10 (git f3f8405).
     const __noise = (i) => { let e = gaussNoise()
-      if (__volW) { if (e > 0 && __volW.up) e *= __volW.up[i]; else if (e < 0 && __volW.dn) e *= __volW.dn[i] }
-      if (__topW) e *= __topW[i]
-      if (__clipW && e > 0) e *= __clipW[i]
-      if (__upW && e > 0) e *= __upW[i]
       if (simConfig.carCeilFloor && e > 0) { const lr = drivers[i].lappedRate; if (lr != null && !isNaN(lr) && lr > CEIL_FLOOR) e *= Math.max(0.1, 1 - lr) }
       if (__spd && __spd[i] < 0.5 && e > 0) e *= (0.5 + __spd[i]); return e }
     const scored = drivers.map((d, i) => {
@@ -1091,14 +772,9 @@ function runRaceSim(drivers, simConfig) {
     const __leadFL = __poolFL.findIndex(sv => !sv.dnf)
     if (simConfig.__domDiag && __lead >= 0) { const d = simConfig.__domDiag; d.n = (d.n || 0) + 1; const tp = __pool[__lead]; if (simPos[tp.i] === 1) d.wins = (d.wins || 0) + 1; d.finSum = (d.finSum || 0) + simPos[tp.i] }
     // Curve source per draw: bootstrap vector (ARM C) > strength-rank curve (ARM B) > finish-rank curve.
-    // DOMINATOR TOP-SLOT DAMPING (registered 2026-10-10, DK ceiling stage 2; OFF unless simConfig.domTopDamp = { d }).
-    // Stage 1: dominator-only DK clears the sim's p90 6.6% (O'Reilly) / 5.6% (trucks) of the time vs 10% -
-    // the per-draw share vectors (bootstrap or fixed) hand the top slot more than the lower series' top car
-    // realises. The top slot keeps d of its share; the remainder is spread over the other slots pro rata.
-    // Identity (who leads) is untouched; cup is not fitted (its dominator ceiling is UNDER-stated, 12.6%).
-    const __damp = (v) => { const dd = simConfig.domTopDamp; if (!dd || !(dd.d > 0) || dd.d >= 1 || !v || !v.length) return v; const rest = v.reduce((a, x, k) => a + (k ? x : 0), 0); if (!(rest > 0)) return v; const rem = v[0] * (1 - dd.d); return v.map((x, k) => k ? x + rem * x / rest : x * dd.d) }
-    const __LLC = __damp(S.bootLL ? S.bootLL[(Math.random() * S.bootLL.length) | 0] : (S.domLL || S.LLC))
-    const __FLC = __damp(S.bootFL ? S.bootFL[(Math.random() * S.bootFL.length) | 0] : (S.domFL || S.FLC))
+    // Dominator top-slot damping (10-10 DK ceiling stage 2) was closed and stripped 10-10 (git f3f8405).
+    const __LLC = S.bootLL ? S.bootLL[(Math.random() * S.bootLL.length) | 0] : (S.domLL || S.LLC)
+    const __FLC = S.bootFL ? S.bootFL[(Math.random() * S.bootFL.length) | 0] : (S.domFL || S.FLC)
     // ARM A: fastest laps exist only on green laps; deal the measured fraction, not every lap.
     const __flTotal = simConfig.flBudget != null ? Math.round(totalRaceLaps * simConfig.flBudget) : totalRaceLaps
     const simLL = new Float64Array(n)
@@ -1137,7 +813,6 @@ function runRaceSim(drivers, simConfig) {
     }
 
     const __srow = (sim % sampleStride === 0 && dkSamples.length < SAMPLE_TARGET) ? new Array(n).fill(0) : null
-    const __frow = (__srow && simConfig.__finSamples) ? new Array(n).fill(0) : null
     scored.forEach(s => {
       const finPos = simPos[s.i]
       const startPos = (__simStart && __simStart[s.i] >= 0) ? __simStart[s.i] : (drivers[s.i].startPos ?? finPos)
@@ -1150,10 +825,8 @@ function runRaceSim(drivers, simConfig) {
       const __dk = dkFinishPts(finPos) + (__dkStart - finPos) + (ll * 0.25) + (simFastLaps[s.i] * 0.45)
       sumDK[s.i] += __dk
       if (__srow) __srow[s.i] = Math.round(__dk)
-      if (__frow) __frow[s.i] = Math.round(dkFinishPts(finPos) + (__dkStart - finPos))
     })
     if (__srow) dkSamples.push(__srow)
-    if (__frow) (simConfig.__finSamples.rows = simConfig.__finSamples.rows || []).push(__frow)
   }
 
   const __rows = drivers.map((d, i) => {
@@ -1198,7 +871,6 @@ function runRaceSim(drivers, simConfig) {
   __rows.posMatrix = posMatrix
   __rows.simN = numSims
   __rows.__dkSamples = dkSamples
-  if (simConfig.__finSamples) __rows.__finSamples = simConfig.__finSamples.rows || []   // diagnostic (10-10 DK ceiling study): finish-only DK per sampled draw
   __rows.__sampleDrivers = drivers.map(d => d.name)
   return __rows
 }
@@ -1207,9 +879,7 @@ export {
   CAUTION_PRESETS,
   CAUTION_PRESETS_BY_SERIES,
   DNF_BY_GROUP,
-  DNF_TILT_CURVE,
   WRECK_EV_EXP_B,
-  DNF_TILT_LEVEL,
   DNF_CAP,
   DNF_FLOOR,
   DNF_PRESETS,

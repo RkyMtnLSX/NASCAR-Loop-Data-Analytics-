@@ -309,23 +309,21 @@ shared by the three series.
 
 ---
 
-## 6. In the code but OFF in production
+## 6. Stripped 10-10 — nothing in the code is OFF any more
 
-These are registered-study flags. Each has a BACKTEST_LOG entry explaining why it is off. None is reachable from the
-page; they exist so a harness can build the arm without a page change.
+Every registered-study flag that never shipped was removed from `simEngine.js` on 10-10 (commit after f3f8405; that
+commit has all of them): tierStart, topStretch, passDiff, projShadeElite, dropEmptySlots, the trackHistory / startPos
+/ corrHalf empty-practice destinations, skillTilt / DNF_TILT_CURVE / DNF_TILT_LEVEL, cautionMix, levelNormalize, the
+perBucketEV / wideClamp opt-outs, seriesNoiseMult, topNoise, tierClip, carVol, upperUpside, domTopDamp, __finSamples.
+The harnesses whose only purpose was one of those arms were deleted with them (tierstart, topstretch, noise, topnoise,
+tierclip, empty-slot, caution-mix, the six tilt scripts, gate-cliff-final, features, preboard2); their results stay in
+BACKTEST_LOG and `scripts/backtest-data/*-fit.json`. Verified on a seeded RNG stream: the stripped engine's output is
+identical to f3f8405 at INT / SHORT / SS / ROAD with the production configs.
 
-`buildSpeedScores` opts: `tierStart {gamma}` (10-09, closed), `topStretch {lambda}` (10-09, closed), `passDiff {w,
-onlyNoPractice}` (10-10, closed both forms), `projShadeElite` (10-10 stage 4 — the cup tiered-shading operator call;
-not shipped), `dropEmptySlots` (09-26, failed its rule; the 50-fill is what shipped), `emptyPracticeTo` values other
-than O'Reilly corrHistory (`trackHistory`, `startPos`, `corrHalf`).
-
-`runRaceSim` simConfig: `skillTilt` / `tiltCurve` / `tiltRescale` (08-31 DNF tilt), `cautionMix`, `levelNormalize`,
-`perBucketEV:false` / `wideClamp:false` (the pre-08-31 path), `seriesNoiseMult` (10-09, closed), `topNoise {shrink}`
-(10-09, wrong by construction), `tierClip {c}` (10-09, wash), `carVol {gamma}` (10-10, fit 0), `upperUpside {u}` and
-`domTopDamp {d}` (10-10 DK ceiling stage 2, closed), `lappedTraffic` for cup / trucks, `domPool:'finish'` at INT,
-`flBudget` / `domAlpha` / `domK` / `domKFL` / `domCurves` overrides, `__domDiag` and `__finSamples` (diagnostics).
-
-Candidates for removal once the season-end refits are done; until then they cost nothing at runtime.
+What remains configurable in `simConfig` is the shipped mechanism set and its carriers: `asymNoise`, `carCeilFloor`,
+`carDnf {k}`, `lappedTraffic {series,k}`, `domBoot`, `domPool` / `domAlpha` / `domK` / `domKFL` / `domCurves` /
+`flBudget` (the INT and SS defaults flow through these), `startSampling`, and the `__domDiag` diagnostic hook. In
+`opts`: `lapPenalty`, `projShade`, `emptyPracticeTo: 'corrHistory'`.
 
 ---
 
