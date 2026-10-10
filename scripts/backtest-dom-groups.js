@@ -139,8 +139,8 @@ if (PHASE === 'fit') {
   console.log('\nFROZEN ->', JSON.stringify(fit))
 } else {
   const fit = JSON.parse(fs.readFileSync(D('dom-groups-fit.json'), 'utf8')).fit
-  const test = load('holdout-practice.txt', 'test', true)
-  console.log(`TEST on holdout-practice.txt: ${test.length} boards in ${GROUPS.join('/')} (${bySeries(test)}), ${SIMS} sims, ${RUNS} runs; frozen ${JSON.stringify(fit)}; engine ${E.__engineSha}`)
+  const test = load('holdout-practice.txt', 'test', !process.env.NOPRACTICE)   // NOPRACTICE=1: the 10-10 SS registration (SS has no practice sessions)
+  console.log(`TEST on holdout-practice.txt${process.env.NOPRACTICE ? ' (practice-free lines)' : ''}: ${test.length} boards in ${GROUPS.join('/')} (${bySeries(test)}), ${SIMS} sims, ${RUNS} runs; frozen ${JSON.stringify(fit)}; engine ${E.__engineSha}`)
   for (let run = 1; run <= RUNS; run++) {
     console.log(`\nRUN ${run}`)
     for (const g of GROUPS) {

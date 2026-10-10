@@ -9080,3 +9080,31 @@ Written before the holdout: cup is the clean case (every rail better at w .10; d
 is a marginal fit - the t10 gain is .00015 with win Brier slightly worse and the DK rho flat - and the
 holdout null floor may swallow it; the favourite gap moving -11.5 -> -5.9 is the interesting part. O'Reilly
 rejects it outright. FROZEN {"cup":0.1,"oreilly":0,"trucks":0.1}, committed.
+
+## 2026-10-10 — PASS DIFFERENTIAL EXECUTED AS REGISTERED: CUP and TRUCKS FAIL — NOT SHIPPED
+Holdout-practice, 20k sims, two runs, mean A -> T (w .10):
+  CUP (39)     t10 .14997 -> .15148 (WORSE .0015, floor .00007: (b) FAILS)   rho .4868 -> .4797 (worse, 15/24)   winB .02231 -> .02244
+               t5B .08941 -> .09057   winLL .0879 -> .0893   dkRho .353 -> .343 (worse .010: (d) FAILS)   fav gap -1.25 -> +1.35   eliteFront +0.16 -> -0.28
+  TRUCKS (29)  t10 .15254 -> .15305 (WORSE .0005, floor .00009: (b) FAILS)   rho .5549 -> .5543   dkRho .3745 -> .3605 (worse .014: (d) FAILS)
+               winB .02358 -> .02366   t5B .09635 -> .09636   fav gap -26.0 -> -27.3   mid 1.85 -> 1.05
+  O'REILLY     fitted 0, not tested
+VERDICT by the registered rule: NOT SHIPPED. Flag stays in, default off.
+READING (not a decision): the in-sample gain was real and it did not transfer, and the reason is in the two
+data sets. train.txt has NO practice; the holdout boards all carry practice (>= 50% coverage). Pass
+differential is a race-day speed proxy, and on boards without practice it fills a hole that practice fills
+better on the boards users actually see. On the holdout it is redundant with practice and the extra slot
+only dilutes the slots that carry information. This is the practice-regime problem (tier-start, noise-mult
+placebo) a third time, and it says the train set should carry practice where it exists - a data task
+(regenerate train.txt with lrpTime from practice_sessions, as holdout-practice was regenerated 09-03), not
+a modelling one, and the thing that would make the 2022-24 fit set comparable to the boards it is meant to
+predict. Twenty-one registrations since 10-04: two ships, one call open, eighteen closed.
+
+## 2026-10-10 — PRE-REGISTERED: DOM v2 GROUPS, SUPERSPEEDWAY RE-JUDGE on the practice-free lines. Written before the run. DO NOT MODIFY.
+The 10-10 dom-groups registration could not judge SS: its test set was the practice-filtered holdout and SS
+has no practice sessions. holdout-practice.txt carries 27 SS lines (cup 11 / O'Reilly 11 / trucks 5) that the
+coverage filter drops; loaded practice-free they are the SS test set (NOPRACTICE=1 in the harness). The SS
+constants are already FROZEN from the 10-10 fit (G_FL .6938, alpha .25, k_LL .5, k_FL .25) and are not
+refit. Same arms (CONTROL / A / B), same metrics, same decision rule as the dom-groups registration, 20k sims,
+RUNS=2, SS only. The 08-29 SS LL / FL tilts stay in every arm. This is the third of the operator's three
+registrations; the "re-judge stacked on a top-end fix" variant has nothing to stack on (volatility and pass
+differential both closed), so it is not run. PUSH before the run.
