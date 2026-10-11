@@ -222,11 +222,47 @@ export default function DfsSalaryAdmin() {
           : ' Operator: ' + mine.length + ' entries captured (best ' + row.best_rank + ' of ' + E + ', ' + row.above_median + ' above median, prize ' + row.prize + ').'
       } else if (iName !== -1) opMsg = ' (no entries by ' + OPERATOR_DK_USER + ' in this file)'
     } catch (e5) { opMsg = ' Operator entries failed: ' + (e5.message || e5) }
+    // FIELD LINEUPS (2026-10-11): keep EVERY entry's lineup from the same file, de-duplicated with copy counts, no entry
+    // names (sql/dfs_field_lineups.sql). The 10-11 contest-aware study found our #1 lineup is often the field's most-
+    // duplicated (43 copies at O'Reilly Darlington) and that no sampled field reproduces that - this is the corpus that
+    // lets the question be re-asked on a season of real fields. Rows are upserted per (contest, lineup); re-uploading
+    // the same file is idempotent.
+    let fieldMsg = ''
+    try {
+      const lines3 = (text || '').split(/\r?\n/)
+      const hdr3 = lines3[0] ? lines3[0].split(',').map(c => c.trim().toLowerCase()) : []
+      const iLu3 = hdr3.indexOf('lineup'), iPts3 = hdr3.indexOf('points'), iRank3 = hdr3.indexOf('rank')
+      if (iLu3 !== -1) {
+        const nameKeys3 = Object.keys(found); const byN3 = {}; nameKeys3.forEach(n2 => { byN3[norm(n2)] = n2 })
+        const byFL3 = {}; Object.keys(byN3).forEach(k => { const p = k.split(' '); if (p.length >= 2) byFL3[p[0] + ' ' + p[p.length - 1]] = byN3[k] })
+        const canon3 = raw => { const nc = norm(raw); if (byN3[nc]) return byN3[nc]; const p2 = nc.split(' '); const k2 = p2.length >= 2 ? p2[0] + ' ' + p2[p2.length - 1] : nc; return byFL3[k2] || raw.trim() }
+        const agg = {}; let nEnt = 0
+        for (let li = 1; li < lines3.length; li++) {
+          const c = lines3[li].split(',')
+          if (!/^\d{6,}$/.test((c[1] || '').trim())) continue
+          const drv = (c[iLu3] || '').split(/\bD\s+/).map(x => x.trim()).filter(Boolean).map(canon3)
+          if (drv.length !== 6) continue
+          nEnt++
+          const key = drv.slice().sort(); const k = key.join('|')
+          const pts = iPts3 !== -1 ? parseFloat(c[iPts3]) : NaN, rk = iRank3 !== -1 ? parseInt(c[iRank3]) : NaN
+          const a = agg[k] || (agg[k] = { lineup: key, copies: 0, points: null, best_rank: null })
+          a.copies++; if (isFinite(pts)) a.points = pts; if (isFinite(rk)) a.best_rank = a.best_rank == null ? rk : Math.min(a.best_rank, rk)
+        }
+        const cid3 = ((ownFileName || '').match(/(\d{6,})/) || [])[1] || 'unknown'
+        const rowsF = Object.values(agg).map(a => ({ series, race_year: sel.year, race_number: sel.race_number, track_name: sel.track_name, contest_type: ownType, contest_id: cid3, contest_entries: nEnt, lineup: a.lineup, copies: a.copies, points: a.points, best_rank: a.best_rank }))
+        if (rowsF.length >= 20) {
+          let fErr = null
+          for (let i0 = 0; i0 < rowsF.length && !fErr; i0 += 1000) { const { error: e6 } = await supabase.from('dfs_field_lineups').upsert(rowsF.slice(i0, i0 + 1000), { onConflict: 'series,race_year,race_number,contest_id,lineup' }); fErr = e6 }
+          const maxC = Math.max.apply(null, rowsF.map(r => r.copies))
+          fieldMsg = fErr ? ' Field lineups NOT saved: ' + fErr.message + (fErr.message.includes('does not exist') ? ' - run sql/dfs_field_lineups.sql first.' : '') : ' Field: ' + rowsF.length + ' distinct lineups from ' + nEnt + ' entries (most-duplicated lineup x' + maxC + ').'
+        }
+      }
+    } catch (e7) { fieldMsg = ' Field lineups failed: ' + (e7.message || e7) }
     const { error } = await supabase.from('dfs_ownership')
       .upsert(rows2, { onConflict: 'series,race_year,race_number,driver_name,contest_type' })
     setOwnMsg((error
       ? 'Save failed: ' + error.message + (error.message.includes('does not exist') ? ' - run dfs_ownership_schema.sql in Supabase first.' : '')
-      : 'Saved ownership + FPTS for ' + n + ' drivers (' + ownType.toUpperCase() + ', ' + sel.year + ' R' + sel.race_number + ' ' + sel.track_name + ').') + opMsgPre + opMsg)
+      : 'Saved ownership + FPTS for ' + n + ' drivers (' + ownType.toUpperCase() + ', ' + sel.year + ' R' + sel.race_number + ' ' + sel.track_name + ').') + opMsgPre + opMsg + fieldMsg)
   }
   const doOwnFile = (e) => {
     const file = e.target.files && e.target.files[0]

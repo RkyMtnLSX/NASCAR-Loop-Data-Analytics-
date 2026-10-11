@@ -10023,3 +10023,11 @@ QUEUED (product, not model): extend the DfsSalaryAdmin standings ingest to keep 
 counts (dfs_field_lineups), anonymised, so the field corpus grows weekly without the operator doing anything new; the
 build card can then show "copies of this lineup in last week's field" as information, which costs nothing and is true.
 Logs: scripts/backtest-data/dfs-prize-real3.log. Contest-aware registrations: 3 run, 0 shipped.
+
+## 2026-10-11 — SHIPPED: field-lineup capture in the standings ingest; July-October corpus stored
+DfsSalaryAdmin's ownership ingest now upserts every entry's lineup (sorted names, copies, points, best rank; no entry
+names) into dfs_field_lineups, 1,000 rows a call, keyed (series, year, race, contest, lineup) so re-uploads are
+idempotent; the save message reports distinct lineups / entries / most-duplicated count. Table + admin-only policy
+created on the live project (sql/dfs_field_lineups.sql). The 31 historical contests are NOT backfilled into the table
+(9 MB of SQL through the MCP channel is not sensible); they live gzipped in scripts/backtest-data/field with INDEX.md
+and the harnesses read them from there. Lint / build green.
