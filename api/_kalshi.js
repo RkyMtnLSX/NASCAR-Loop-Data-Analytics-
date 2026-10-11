@@ -33,12 +33,18 @@ async function kalshi(req, res) {
     const r = await fetch(`${KALSHI}/markets?series_ticker=${series}&status=${status}&limit=${limit}`, { headers: { Accept: 'application/json' } })
     if (!r.ok) return res.status(502).json({ error: `kalshi ${r.status}`, body: (await r.text()).slice(0, 300) })
     const j = await r.json()
-    const markets = (j.markets || []).map(m => ({
-      ticker: m.ticker, event: m.event_ticker, title: m.title, subtitle: m.yes_sub_title || m.subtitle || null,
-      close_time: m.close_time, status: m.status,
-      yes_bid: m.yes_bid, yes_ask: m.yes_ask, last: m.last_price, volume: m.volume, open_interest: m.open_interest,
-      american_ask: american(m.yes_ask), american_mid: american((m.yes_bid + m.yes_ask) / 2),
-    }))
+    // Kalshi moved prices from integer cents (yes_bid) to dollar strings (yes_bid_dollars, 2026);
+    // read either, in cents.
+    const cents = (m, k) => { const d = m[k + '_dollars']; if (d != null && d !== '') return Math.round(parseFloat(d) * 100); const c = m[k]; return (c == null || c === '') ? null : Number(c) }
+    const markets = (j.markets || []).map(m => {
+      const bid = cents(m, 'yes_bid'), ask = cents(m, 'yes_ask'), last = cents(m, 'last_price')
+      return {
+        ticker: m.ticker, event: m.event_ticker, title: m.title, subtitle: m.yes_sub_title || m.subtitle || null,
+        close_time: m.close_time, status: m.status,
+        yes_bid: bid, yes_ask: ask, last, volume: m.volume_fp != null ? parseFloat(m.volume_fp) : m.volume, open_interest: m.open_interest_fp != null ? parseFloat(m.open_interest_fp) : m.open_interest,
+        american_ask: american(ask), american_mid: (bid != null && ask != null) ? american((bid + ask) / 2) : null,
+      }
+    })
     return res.status(200).json({ type: 'kalshi', series, status, count: markets.length, cursor: j.cursor || null, markets })
   } catch (e) {
     return res.status(502).json({ error: e.message })
