@@ -1,12 +1,12 @@
-// api/kalshi.js - read-only proxy for Kalshi's PUBLIC market data (2026-10-11). No key, no account,
-// no writes: Kalshi's /markets and /markets/{ticker}/orderbook endpoints are public for reads. The
-// browser cannot call api.elections.kalshi.com directly (CORS), the deployment can. Fixed URL
-// templates with validated parameters - this is not an open proxy.
+// api/_kalshi.js - read-only proxy for Kalshi's PUBLIC market data (2026-10-11). Served as
+// /api/nascar-feed?type=kalshi (Hobby plan: 12-function cap, so it rides inside the feed proxy).
+// No key, no account, no writes: /markets and /markets/{ticker}/orderbook are public for reads.
+// Fixed URL templates with validated parameters - not an open proxy.
 //
-//   ?series=KXNASCARRACE[&status=open][&limit=200]   markets in a Kalshi series (yes_bid/yes_ask in cents)
-//   ?ticker=KXNASCARRACE-26OCT11-XXX                  one market's order book
+//   ?type=kalshi&series=KXNASCARRACE[&status=open][&limit=200]   markets in a series (cents)
+//   ?type=kalshi&ticker=KXNASCARRACE-...                           one market's order book
 //
-// American odds from a cents price p (0-100): p >= 50 ? -100*p/(100-p) : 100*(100-p)/p.
+// American odds from a cents price p: p >= 50 ? -100*p/(100-p) : 100*(100-p)/p.
 const KALSHI = 'https://api.elections.kalshi.com/trade-api/v2'
 const SERIES_OK = /^[A-Z0-9]{3,32}$/
 const TICKER_OK = /^[A-Z0-9-]{3,64}$/
@@ -17,9 +17,7 @@ function american(cents) {
   return p >= 50 ? Math.round(-100 * p / (100 - p)) : Math.round(100 * (100 - p) / p)
 }
 
-module.exports = async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=60')
+async function kalshi(req, res) {
   const q = req.query || {}
   try {
     if (q.ticker) {
@@ -41,8 +39,10 @@ module.exports = async function handler(req, res) {
       yes_bid: m.yes_bid, yes_ask: m.yes_ask, last: m.last_price, volume: m.volume, open_interest: m.open_interest,
       american_ask: american(m.yes_ask), american_mid: american((m.yes_bid + m.yes_ask) / 2),
     }))
-    return res.status(200).json({ series, status, count: markets.length, cursor: j.cursor || null, markets })
+    return res.status(200).json({ type: 'kalshi', series, status, count: markets.length, cursor: j.cursor || null, markets })
   } catch (e) {
     return res.status(502).json({ error: e.message })
   }
 }
+
+module.exports = { kalshi, american }

@@ -395,6 +395,7 @@ module.exports = async function handler(req, res) {
   if (q.date && !date) {
     return res.status(400).json({ error: 'date must be YYYY-MM-DD' })
   }
+  if (q.type === 'kalshi') return require('./_kalshi').kalshi(req, res)   // 2026-10-11: Kalshi public prices, see api/_kalshi.js
   if (year === undefined) return res.status(400).json({ error: 'year is required' })
 
   try {
