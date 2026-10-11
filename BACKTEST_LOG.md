@@ -9881,3 +9881,14 @@ buy uniqueness and the casual player keeps the optimum; (3) the exposure-side fo
 registration, likely the same trade-off in different clothes. Recommendation: (2). It is honest about the trade, costs
 nothing to the default user, and puts the decision with the one person who knows his contest.
 Logs: scripts/backtest-data/dfs-seed-stage1.log / stage2.log; per-race tables in dfs-seed-result.json / result2.json.
+
+## 2026-10-11 — ADDENDUM (operator challenge: "users can fade the chalk completely"): fades make GROUPS, not unique builds
+scripts/backtest-dfs-fade.js, same 17 races, 30 users, N 20, production build with an exclude set. Three scenarios:
+  A  all 30 users fade the #1 projected driver          -> 20 / 20 shared, one lineup held by 30 / 30 (they are identical to each other)
+  B  each user fades one of the top-5 at random          -> 20 / 20 shared, most-held lineup in 17.6 / 30 on average (five identical groups of ~6)
+  C  half fade #1, half fade nobody                      -> most-held lineup in 24.7 / 30; on 11 of 17 races a lineup is in ALL 30 sets -
+     the no-fade build's own set already contains lineups without the chalk, and the fade group lands on the same ones.
+READING. A full fade changes WHICH set a user gets, deterministically; everyone who makes the same fade gets the same set,
+and the fade set overlaps the default set wherever the default already diversified off the chalk. Exposure choices
+partition users into a handful of identical cohorts. The per-user draw scaling of stage 2 is still the only form measured
+that separates users INSIDE a cohort, and its price stands as logged. The user-dial recommendation is unchanged.
