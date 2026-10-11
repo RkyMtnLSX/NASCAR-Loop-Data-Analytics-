@@ -11,6 +11,10 @@ const { optimize, bestLineup, makeEmaxSelector, projectOwnership, DFS_ROSTER, DF
 const DATA = process.env.DATA
 const meta = JSON.parse(fs.readFileSync(path.join(DATA, 'meta.json'), 'utf8'))
 const OWN = JSON.parse(fs.readFileSync(path.join(DATA, 'own.json'), 'utf8'))
+// REAL FIELD (2026-10-11 re-run): FIELD=real uses the actual contest entries (every lineup, duplicates expanded) from the
+// operator's DK standings exports (field/<contest>.json, mapped to races in field-map.json). Races without a file are skipped.
+const REAL = process.env.FIELD === 'real'
+const FMAP = REAL ? JSON.parse(fs.readFileSync(path.join(DATA, 'field-map.json'), 'utf8')) : {}
 const mean = a => a.reduce((s, x) => s + x, 0) / Math.max(1, a.length)
 const rng = (seed) => { let a = (seed * 2654435761) >>> 0; return () => { a += 0x6D2B79F5; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296 } }
 const dkPts = (fin, st, ll, fl) => E.dkFinishPts(+fin) + ((+st || +fin) - +fin) + 0.25 * (+ll || 0) + 0.45 * (+fl || 0)
@@ -67,6 +71,18 @@ function sampleField(R, ownMap, F, seed) {
   }
   return out
 }
+function prizeMatrix(R, C, field) {   // stage 2: per-draw prize / (1 + dupes) as the selector's matrix
+  const { rows, nD, cands, nC, idxOf } = C; const F = field.length; const E_ = R.entries; const prize = prizeFn(E_)
+  const fIds = field.map(ns => ns.map(n => idxOf[n])); const fCount = {}; field.forEach(ns => { const k = ns.join('|'); fCount[k] = (fCount[k] || 0) + 1 })
+  const dupes = cands.map(ns => (fCount[ns.join('|')] || 0) * E_ / F)
+  const M = new Float32Array(nC * nD); const fs_ = new Float64Array(F)
+  for (let d = 0; d < nD; d++) {
+    const rw = rows[d]; for (let f = 0; f < F; f++) { const id = fIds[f]; fs_[f] = rw[id[0]] + rw[id[1]] + rw[id[2]] + rw[id[3]] + rw[id[4]] + rw[id[5]] }
+    const sorted = Float64Array.from(fs_).sort()
+    for (let c = 0; c < nC; c++) { const v = C.Smat[c * nD + d]; let lo = 0, hi = F; while (lo < hi) { const mid = (lo + hi) >> 1; if (sorted[mid] > v) hi = mid; else lo = mid + 1 } const rank = 1 + Math.round((F - lo) * E_ / F); M[c * nD + d] = prize(rank) / (1 + dupes[c]) }
+  }
+  return { M, dupes }
+}
 function prizeScores(R, C, field) {
   const { rows, nD, cands, nC, idxOf } = C; const F = field.length; const E_ = R.entries; const prize = prizeFn(E_)
   const fIds = field.map(ns => ns.map(n => idxOf[n]))
@@ -100,7 +116,15 @@ for (const key of Object.keys(meta)) {
   const ownP = projectOwnership(R.pool.map(d => ({ name: d.name, sal: d.sal, projDK: d.projDK })))
   const ownA = {}; R.pool.forEach(d => { if (d.ownAct != null) ownA[d.name] = d.ownAct })
   const F = Math.min(R.entries, 5000)
-  const fieldP = sampleField(R, ownP, F, 11), fieldA = Object.keys(ownA).length >= DFS_ROSTER ? sampleField(R, ownA, F, 11) : null
+  let fieldP, fieldA = null
+  if (REAL) {
+    if (!FMAP[key]) { console.log(key, 'no real field file - skipped'); continue }
+    const FF = JSON.parse(fs.readFileSync(path.join(DATA, 'field', FMAP[key] + '.json'), 'utf8'))
+    const rF = resolver(R.pool.map(d => d.name)); const okN = new Set(R.pool.map(d => d.name))
+    fieldP = []; let dropped = 0
+    FF.lineups.forEach(([names, count]) => { const ns = names.map(n => rF(n)); if (ns.every(n => n && okN.has(n))) { const srt = ns.slice().sort(); for (let i = 0; i < count; i++) fieldP.push(srt) } else dropped += count })
+    R.entries = FF.entries; console.log(`${key} real field ${FF.contest_id}: ${fieldP.length} entries (${dropped} dropped on name match), ${FF.unique} unique, max dupe ${Math.max(...FF.lineups.map(l => l[1]))}`)
+  } else { fieldP = sampleField(R, ownP, F, 11); fieldA = Object.keys(ownA).length >= DFS_ROSTER ? sampleField(R, ownA, F, 11) : null }
   for (const N of [20, 150]) {
     const t0 = Date.now(); const C = candidates(R, N)
     const sel = makeEmaxSelector(C.nC, C.nD, C.Smat, N, C.cands, () => Infinity, DFS_ROSTER); sel.step(0); const Dset = sel.chosen.map(c => C.cands[c])
@@ -109,16 +133,20 @@ for (const key of Object.keys(meta)) {
     const chalk = set => mean(set.map(ns => mean(ns.map(n => ownP[n] || 0))))
     const dupeTop = (set, S_) => { const k = set[0].join('|'); const c = C.cands.findIndex(ns => ns.join('|') === k); return c >= 0 ? S_.dupes[c] : null }
     const expOf = (set, S_) => mean(set.map(ns => { const c = C.cands.findIndex(x => x.join('|') === ns.join('|')); return S_.exp[c] }))
+    let PXset = null; if (REAL) { const PM = prizeMatrix(R, C, fieldP); const selX = makeEmaxSelector(C.nC, C.nD, PM.M, N, C.cands, () => Infinity, DFS_ROSTER); selX.step(0); PXset = selX.chosen.map(c => C.cands[c]) }
+    const rPX = PXset ? realised(R, PXset) : null
     const rD = realised(R, Dset), rP = realised(R, Pset), rPA = PAset ? realised(R, PAset) : null
     const row = { entries: R.entries, D: { ...rD, exp: expOf(Dset, PS), chalk: chalk(Dset), dupeTop: dupeTop(Dset, PS) }, P: { ...rP, exp: expOf(Pset, PS), chalk: chalk(Pset), dupeTop: dupeTop(Pset, PS), overlap: Pset.filter(ns => Dset.some(d => d.join('|') === ns.join('|'))).length },
-      PA: rPA ? { ...rPA, exp: expOf(PAset, PAS), chalk: chalk(PAset), dupeTop: dupeTop(PAset, PAS) } : null }
+      PA: rPA ? { ...rPA, exp: expOf(PAset, PAS), chalk: chalk(PAset), dupeTop: dupeTop(PAset, PAS) } : null,
+      PX: rPX ? { ...rPX, chalk: chalk(PXset), dupeTop: dupeTop(PXset, PS), overlap: PXset.filter(ns => Dset.some(d => d.join('|') === ns.join('|'))).length } : null }
     out[key + '|' + N] = row
-    const s = sums[N] = sums[N] || { D: 0, P: 0, PA: 0, wP: 0, lP: 0, wPA: 0, lPA: 0, pD: [], pP: [], pPA: [] }
+    const s = sums[N] = sums[N] || { D: 0, P: 0, PA: 0, PX: 0, wP: 0, lP: 0, wPA: 0, lPA: 0, wPX: 0, lPX: 0, pD: [], pP: [], pPA: [], pPX: [] }
+    if (rPX) { s.PX += rPX.prize; if (rPX.prize > rD.prize) s.wPX++; else if (rPX.prize < rD.prize) s.lPX++; s.pPX.push(rPX.pct) }
     s.D += rD.prize; s.P += rP.prize; if (rP.prize > rD.prize) s.wP++; else if (rP.prize < rD.prize) s.lP++; s.pD.push(rD.pct); s.pP.push(rP.pct)
     if (rPA) { s.PA += rPA.prize; if (rPA.prize > rD.prize) s.wPA++; else if (rPA.prize < rD.prize) s.lPA++; s.pPA.push(rPA.pct) }
-    console.log(`${key.padEnd(11)} N${String(N).padEnd(3)} ent ${String(R.entries).padStart(5)} | D prize ${rD.prize.toFixed(1).padStart(6)} pct ${rD.pct == null ? '  -' : rD.pct.toFixed(0).padStart(3)} chalk ${row.D.chalk.toFixed(0)}% dupe#1 ${row.D.dupeTop == null ? '-' : row.D.dupeTop.toFixed(1)} | P prize ${rP.prize.toFixed(1).padStart(6)} pct ${rP.pct == null ? '  -' : rP.pct.toFixed(0).padStart(3)} chalk ${row.P.chalk.toFixed(0)}% dupe#1 ${row.P.dupeTop == null ? '-' : row.P.dupeTop.toFixed(1)} overlap ${row.P.overlap}/${N} | PA prize ${rPA ? rPA.prize.toFixed(1) : '-'} pct ${rPA && rPA.pct != null ? rPA.pct.toFixed(0) : '-'}  (${((Date.now() - t0) / 1000).toFixed(0)}s)`)
+    console.log(`${key.padEnd(11)} N${String(N).padEnd(3)} ent ${String(R.entries).padStart(5)} | D prize ${rD.prize.toFixed(1).padStart(6)} pct ${rD.pct == null ? '  -' : rD.pct.toFixed(0).padStart(3)} chalk ${row.D.chalk.toFixed(0)}% dupe#1 ${row.D.dupeTop == null ? '-' : row.D.dupeTop.toFixed(1)} | P prize ${rP.prize.toFixed(1).padStart(6)} pct ${rP.pct == null ? '  -' : rP.pct.toFixed(0).padStart(3)} chalk ${row.P.chalk.toFixed(0)}% dupe#1 ${row.P.dupeTop == null ? '-' : row.P.dupeTop.toFixed(1)} overlap ${row.P.overlap}/${N} | PA ${rPA ? rPA.prize.toFixed(1) : '-'}/${rPA && rPA.pct != null ? rPA.pct.toFixed(0) : '-'} | PX prize ${rPX ? rPX.prize.toFixed(1).padStart(6) : '-'} pct ${rPX && rPX.pct != null ? rPX.pct.toFixed(0) : '-'} chalk ${rPX ? row.PX.chalk.toFixed(0) + '%' : '-'} dupe#1 ${rPX && row.PX.dupeTop != null ? row.PX.dupeTop.toFixed(1) : '-'} overlap ${rPX ? row.PX.overlap : '-'}/${N}  (${((Date.now() - t0) / 1000).toFixed(0)}s)`)
   }
 }
-fs.writeFileSync(path.join(__dirname, 'backtest-data', 'dfs-prize-result.json'), JSON.stringify(out, null, 1))
+fs.writeFileSync(path.join(__dirname, 'backtest-data', `dfs-prize-result${REAL ? '-real' : ''}.json`), JSON.stringify(out, null, 1))
 console.log('\nSUMMARY (realised prize summed over races, synthetic curve in entry-fee units; W/L by race vs D)')
-for (const N of [20, 150]) { const s = sums[N]; console.log(`N${N}: D ${s.D.toFixed(1)} | P ${s.P.toFixed(1)} (W/L ${s.wP}/${s.lP}) | PA ${s.PA.toFixed(1)} (W/L ${s.wPA}/${s.lPA}) | best-of-N pct D ${mean(s.pD.filter(x => x != null)).toFixed(1)} P ${mean(s.pP.filter(x => x != null)).toFixed(1)} PA ${mean(s.pPA.filter(x => x != null)).toFixed(1)}`) }
+for (const N of [20, 150]) { const s = sums[N]; console.log(`N${N}: D ${s.D.toFixed(1)} | P ${s.P.toFixed(1)} (W/L ${s.wP}/${s.lP}) | PA ${s.PA.toFixed(1)} (W/L ${s.wPA}/${s.lPA}) | PX ${s.PX.toFixed(1)} (W/L ${s.wPX}/${s.lPX}) | best-of-N pct D ${mean(s.pD.filter(x => x != null)).toFixed(1)} P ${mean(s.pP.filter(x => x != null)).toFixed(1)} PA ${mean(s.pPA.filter(x => x != null)).toFixed(1)} PX ${mean(s.pPX.filter(x => x != null)).toFixed(1)}`) }

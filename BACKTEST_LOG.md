@@ -9954,3 +9954,35 @@ NEXT, if the operator wants to pursue the field: ingest DK contest result export
 for a season of races into a dfs_field_lineups table; a field sampler drawn from REAL lineups makes the dupe term real and
 makes this registration re-runnable with the same rails. That is a data project, not a model one.
 Logs: scripts/backtest-data/dfs-prize.log; per-race JSON dfs-prize-result.json.
+
+## 2026-10-11 — THE REAL FIELD ARRIVES: 31 DK contest-standings exports already on the operator's computer, 12 of the 17 replay races covered
+The standings CSVs the operator has been uploading since August carry every entry's lineup. Extracted on his machine
+(every contest-standings-*.csv / .zip in Downloads, lineups de-duplicated to (lineup, count, points)), mapped to races by
+contest size + date + roster overlap (dfs-field-map.json; cup races are indistinguishable by roster alone, so the four
+cup races whose contest file is missing or ambiguous - R25, R26, R27, R28 - and O'Reilly R26 are left out). Real
+duplication is large and lopsided: max copies of one lineup per contest 8-152 (152 at O'Reilly Las Vegas 9,484 entries;
+100 at cup Las Vegas 9,446; 70 at cup Richmond 14,224).
+THE NUMBER THAT MATTERS. Our E[max] build's #1 lineup IS the field's most-duplicated lineup on several races: 43 copies
+at O'Reilly Darlington (1,188 entries - 3.6% of the field on one lineup), 22 at O'Reilly Las Vegas, 9 at cup Las Vegas,
+3 at cup Richmond. The ownership-sampled field said 0.0 on all of them. The duplication cost to a subscriber is real and
+it comes from the FIELD, not from other subscribers - thirty PitBoard users adding to 43 copies is the lesser part.
+CONTEST-AWARE SELECTION RE-RUN AS REGISTERED WITH THE REAL FIELD (12 races): still FAILS - P W/L 1-10 at N 20, 1-11 at
+N 150, best-of-N percentile 90.4 -> 77.6 / 96.9 -> 84.6. With a real field the dupe term is live (D's #1 shows its 43 /
+22 / 9 / 3), so the failure is now the OBJECTIVE, not the field: top-N by expected prize picks N near-copies of the
+chalkiest mean-maximising lineups (overlap with D 0-4 of 20), which cash often in the sim and rarely in reality. The
+expectation ranking throws away the set-level diversification that E[max] provides and that real GPPs reward.
+Logs: scripts/backtest-data/dfs-prize-real.log.
+
+## 2026-10-11 — PRE-REGISTERED: CONTEST-AWARE SELECTION, STAGE 2 — E[max] on PRIZE with real-field dupes. Written before the run. DO NOT MODIFY.
+FORM. Keep the product's set selector (makeEmaxSelector, greedy expected best-of-N) and change only WHAT it maximises:
+the per-draw matrix is prize_c,d = prize(rank of candidate c among the real field's scores on draw d) / (1 + dupes_c),
+dupes_c = real copies of c in the contest file, prize(r) the DfsReplay synthetic curve at the contest's entry count.
+Control D = E[max] on raw score (today). Candidates, draws, everything else identical. Arm PX.
+DATA. The 12 races with a real field (dfs-field-map.json). Realised prize and best-of-N percentile on the real ladder as
+before (no dupe division on the realised side - realised dupes of OUR lineups are known for the field file's own entries
+but we were not in those contests with these lineups; stated).
+DECISION RULE (same as the first registration): ship PX if realised prize summed over the 12 races beats D at N 20 AND
+N 150 with W/L at least 7-5 at each N, and best-of-N percentile not worse than D's by more than 2 points at either N.
+Ship = GPP build scores a prize matrix when a field file exists for the slate (it will from this week: the ingest keeps
+every lineup), falls back to raw-score E[max] when it does not; the build card shows the model's dupe estimate for each
+lineup. 12 races is thin and stated. PUSH before the run.
