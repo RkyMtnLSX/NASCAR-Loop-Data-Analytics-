@@ -9892,3 +9892,38 @@ READING. A full fade changes WHICH set a user gets, deterministically; everyone 
 and the fade set overlaps the default set wherever the default already diversified off the chalk. Exposure choices
 partition users into a handful of identical cohorts. The per-user draw scaling of stage 2 is still the only form measured
 that separates users INSIDE a cohort, and its price stands as logged. The user-dial recommendation is unchanged.
+
+## 2026-10-11 — PRE-REGISTERED: CONTEST-AWARE LINEUP SELECTION (expected prize against a simulated field, dupes priced in). Written before any build. DO NOT MODIFY.
+TRIGGER. The per-user build study measured that uniqueness among subscribers costs expected quality; the industry read
+(SaberSim Contest Sims, Stokastic sim ROI - BACKTEST_LOG 10-11 reply) says the top tools do not chase uniqueness, they
+score lineups by expected PRIZE against a simulated contest field with duplicate counts folded in: "a lineup that wins but
+gets duped multiple times returns less than the same lineup coming in clean." Our GPP objective is E[max] of raw score -
+it does not know the field exists. This registers the contest-aware objective on the same 17 replay races.
+FORM (harness scripts/backtest-dfs-prize.js, same loaders and candidate pool as production: per-draw optimals + mean
+top-ups, projection cut, stride draws):
+  FIELD. F = min(entries, 5,000) opponent lineups per race, sampled once (seeded) by drawing 6 distinct drivers with
+  probability proportional to PROJECTED ownership (DFSPage projectOwnership v3 - the product's own, available pre-race),
+  rejecting over-cap draws (retry). Secondary arm FIELD-ACT: the same with DK's ACTUAL ownership (dfs_ownership) - an
+  oracle that bounds what a better ownership model would buy; reported, never shipped.
+  DUPES. dupes_c = (exact matches of candidate c in the sampled field) x entries / F. Stated limitation: an independent
+  ownership-product field under-counts optimizer-driven duplication of the chalk-optimal lineup; this biases AGAINST the
+  form (it under-penalises chalk), so a pass is conservative.
+  PRIZE. Per draw d: every field lineup and every candidate is scored on the draw; candidate c's rank r among the F field
+  scores is scaled to the contest's entry count; prize(r) from the synthetic DK-like curve already used by DfsReplay
+  (top 20% cash, prize ~ r^-0.75, entry-fee units, normalised to the entry count), divided by (1 + dupes_c). The
+  contest's real payout table is not stored - the curve is the same one the Portfolio row is graded on, so it compares
+  methods; it is not money.
+  SELECTION. P-set = the top N candidates by mean prize across draws (expected prize is additive across a user's lineups,
+  so top-N by expectation is the optimum for expected total prize; no within-set interaction modelled - stated).
+  CONTROL D = today's E[max] set. N = 20 and 150.
+MEASUREMENTS, 17 races: (i) REALISED prize of each set on the real contest ladder (placeIn on scores_sample / scores_top,
+same synthetic curve, no dupe division - realised dupes are unknown), summed over races and W/L by race; (ii) realised
+best-of-N field percentile; (iii) in-sim expected prize of each set under the model (P should win by construction - a
+sanity check, not a rail); (iv) chalkiness: mean projected ownership of the chosen lineups' drivers and the model's dupe
+estimate for each set's #1 lineup, D vs P; (v) FIELD-ACT arm, (i)-(iv) reported.
+DECISION RULE. Ship P (as the GPP objective, D retained as "max score" mode) if, with the PROJECTED-ownership field:
+(a) realised prize summed over 17 races is higher than D's at N 20 AND at N 150, with W/L at least 9-8 at each N; and
+(b) realised best-of-N percentile not worse than D's by more than 2 points at either N. 17 races is thin and is stated:
+a pass here is "the contest-aware set did not cost us on the races we have"; the forward judge is the Portfolio ledger.
+If (a) passes only at one N, the form ships for that N range only. Builds are deterministic; the subscriber-uniqueness
+dial remains a separate decision. Validation read: this is DFS data, not the sim holdout; no count. PUSH before the run.
