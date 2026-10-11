@@ -9986,3 +9986,22 @@ N 150 with W/L at least 7-5 at each N, and best-of-N percentile not worse than D
 Ship = GPP build scores a prize matrix when a field file exists for the slate (it will from this week: the ingest keeps
 every lineup), falls back to raw-score E[max] when it does not; the build card shows the model's dupe estimate for each
 lineup. 12 races is thin and stated. PUSH before the run.
+
+## 2026-10-11 — CONTEST-AWARE STAGE 2 EXECUTED AS REGISTERED: FAILS (W/L 4-8 at both N) — and the dupe rule I registered is wrong
+12 real-field races, PX = E[max] on prize/(1+dupes): realised prize N 20 278.9 vs D 105.6 but W/L 4-8 (one race, trucks
+R19, is 219 of the 279); N 150 1,295 vs 1,370, W/L 4-8; best-of-N percentile 84.4 vs 90.4 (fails (b) at N 20), 95.6 vs
+96.9 (ok at N 150). The set-level selector recovered most of what stage 1 lost (diversification is back: 95.6 at N 150),
+and PX never once picks a lineup the field holds (dupe#1 0.0 on every race) - it refuses every duplicated lineup,
+including the ones that cashed: O'Reilly Las Vegas, D's #1 with 22 copies still carried D to 49.9 vs PX's 4.0.
+THE ERROR, mine, in the registered form: prize / (1 + dupes) treats a duplicated lineup as if it keeps 1/(1+k) of ITS
+rank's prize. DraftKings pays tied entries the AVERAGE of the prizes across the tied positions (a lineup at rank 5 with
+22 copies is paid mean(prize(5..27)), not prize(5)/23). On a steep curve the difference is large, and it is exactly why
+PX walks away from chalk that is still worth having. Stage 2 is CLOSED as registered; the correct tie rule is a new
+form below, not a quiet edit.
+
+## 2026-10-11 — PRE-REGISTERED: CONTEST-AWARE SELECTION, STAGE 3 — DK tie rule. Written before the run. DO NOT MODIFY.
+FORM. As stage 2 (E[max] selector on a per-draw prize matrix, real field, real dupes) with the payout corrected to DK's
+rule: a candidate at rank r with k real copies in the field is paid mean(prize(r), ..., prize(r + k)) - the tied block's
+average. k = copies in the contest file (our own entry would make it k + 1 ties; the +1 is included). Everything else
+identical. Arm PT. Same 12 races, same control D, same rails as the first registration (prize sum better at N 20 AND N
+150 with W/L >= 7-5; best-of-N percentile not worse by > 2 points). PUSH before the run.

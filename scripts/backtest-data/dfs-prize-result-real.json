@@ -16,7 +16,14 @@
    "dupeTop": 0,
    "overlap": 1
   },
-  "PA": null
+  "PA": null,
+  "PX": {
+   "prize": 17.75727748016585,
+   "pct": 92.46563314970211,
+   "chalk": 28.47307875006436,
+   "dupeTop": 0,
+   "overlap": 2
+  }
  },
  "trucks|17|150": {
   "entries": 2378,
@@ -35,7 +42,14 @@
    "dupeTop": 0,
    "overlap": 17
   },
-  "PA": null
+  "PA": null,
+  "PX": {
+   "prize": 118.80358408306594,
+   "pct": 97.57731875509235,
+   "chalk": 26.565709353242124,
+   "dupeTop": 0,
+   "overlap": 48
+  }
  },
  "trucks|18|20": {
   "entries": 2369,
@@ -54,7 +68,14 @@
    "dupeTop": 0,
    "overlap": 1
   },
-  "PA": null
+  "PA": null,
+  "PX": {
+   "prize": 0,
+   "pct": 64.73895582329317,
+   "chalk": 26.006643114133293,
+   "dupeTop": 0,
+   "overlap": 2
+  }
  },
  "trucks|18|150": {
   "entries": 2369,
@@ -73,7 +94,14 @@
    "dupeTop": 0,
    "overlap": 9
   },
-  "PA": null
+  "PA": null,
+  "PX": {
+   "prize": 39.312003777578504,
+   "pct": 96.80895686619411,
+   "chalk": 23.73280592415825,
+   "dupeTop": 0,
+   "overlap": 38
+  }
  },
  "trucks|19|20": {
   "entries": 1130,
@@ -92,7 +120,14 @@
    "dupeTop": 0,
    "overlap": 4
   },
-  "PA": null
+  "PA": null,
+  "PX": {
+   "prize": 218.92121100178485,
+   "pct": 100,
+   "chalk": 27.073940989164168,
+   "dupeTop": 0,
+   "overlap": 4
+  }
  },
  "trucks|19|150": {
   "entries": 1130,
@@ -111,7 +146,14 @@
    "dupeTop": 0,
    "overlap": 24
   },
-  "PA": null
+  "PA": null,
+  "PX": {
+   "prize": 445.8494078238436,
+   "pct": 100,
+   "chalk": 25.694137979067644,
+   "dupeTop": 0,
+   "overlap": 47
+  }
  },
  "trucks|20|20": {
   "entries": 1199,
@@ -130,7 +172,14 @@
    "dupeTop": 0,
    "overlap": 1
   },
-  "PA": null
+  "PA": null,
+  "PX": {
+   "prize": 0,
+   "pct": 79.96661101836395,
+   "chalk": 26.271468071398694,
+   "dupeTop": 0,
+   "overlap": 2
+  }
  },
  "trucks|20|150": {
   "entries": 1199,
@@ -149,7 +198,14 @@
    "dupeTop": 0,
    "overlap": 24
   },
-  "PA": null
+  "PA": null,
+  "PX": {
+   "prize": 18.920517431288737,
+   "pct": 95.99332220367279,
+   "chalk": 25.25871202842015,
+   "dupeTop": 0,
+   "overlap": 41
+  }
  },
  "cup|23|20": {
   "entries": 1415,
@@ -168,7 +224,14 @@
    "dupeTop": 0,
    "overlap": 4
   },
-  "PA": null
+  "PA": null,
+  "PX": {
+   "prize": 2.849729916085792,
+   "pct": 90.90317035090979,
+   "chalk": 28.504874103045648,
+   "dupeTop": 0,
+   "overlap": 7
+  }
  },
  "cup|23|150": {
   "entries": 1415,
@@ -187,7 +250,14 @@
    "dupeTop": 0,
    "overlap": 28
   },
-  "PA": null
+  "PA": null,
+  "PX": {
+   "prize": 272.0881424401411,
+   "pct": 100,
+   "chalk": 27.35289975628341,
+   "dupeTop": 0,
+   "overlap": 61
+  }
  },
  "oreilly|23|20": {
   "entries": 4740,
@@ -206,7 +276,14 @@
    "dupeTop": 0,
    "overlap": 2
   },
-  "PA": null
+  "PA": null,
+  "PX": {
+   "prize": 4.493880010306135,
+   "pct": 91.32387706855792,
+   "chalk": 25.260893239683092,
+   "dupeTop": 0,
+   "overlap": 0
+  }
  },
  "oreilly|23|150": {
   "entries": 4740,
@@ -225,7 +302,14 @@
    "dupeTop": 0,
    "overlap": 27
   },
-  "PA": null
+  "PA": null,
+  "PX": {
+   "prize": 53.98335003316305,
+   "pct": 95.04334121355399,
+   "chalk": 24.34142652700386,
+   "dupeTop": 0,
+   "overlap": 39
+  }
  },
  "cup|24|20": {
   "entries": 14224,
@@ -244,7 +328,14 @@
    "dupeTop": 0,
    "overlap": 1
   },
-  "PA": null
+  "PA": null,
+  "PX": {
+   "prize": 4.477544882572872,
+   "pct": 90,
+   "chalk": 26.87378340869621,
+   "dupeTop": 0,
+   "overlap": 2
+  }
  },
  "cup|24|150": {
   "entries": 14224,
@@ -263,7 +354,14 @@
    "dupeTop": 0,
    "overlap": 32
   },
-  "PA": null
+  "PA": null,
+  "PX": {
+   "prize": 25.358422232393966,
+   "pct": 92.95810485605709,
+   "chalk": 25.78641386609182,
+   "dupeTop": 0,
+   "overlap": 55
+  }
  },
  "oreilly|24|20": {
   "entries": 923,
@@ -282,7 +380,14 @@
    "dupeTop": 0,
    "overlap": 3
   },
-  "PA": null
+  "PA": null,
+  "PX": {
+   "prize": 0,
+   "pct": 79.40758321915487,
+   "chalk": 31.65479970721457,
+   "dupeTop": 0,
+   "overlap": 2
+  }
  },
  "oreilly|24|150": {
   "entries": 923,
@@ -301,7 +406,14 @@
    "dupeTop": 0,
    "overlap": 16
   },
-  "PA": null
+  "PA": null,
+  "PX": {
+   "prize": 29.941900121977,
+   "pct": 95.89803012746233,
+   "chalk": 29.275077937461774,
+   "dupeTop": 0,
+   "overlap": 49
+  }
  },
  "oreilly|25|20": {
   "entries": 1188,
@@ -320,7 +432,14 @@
    "dupeTop": 0,
    "overlap": 1
   },
-  "PA": null
+  "PA": null,
+  "PX": {
+   "prize": 0,
+   "pct": 72.97935103244838,
+   "chalk": 25.979593632977025,
+   "dupeTop": 0,
+   "overlap": 3
+  }
  },
  "oreilly|25|150": {
   "entries": 1188,
@@ -339,7 +458,14 @@
    "dupeTop": 0,
    "overlap": 14
   },
-  "PA": null
+  "PA": null,
+  "PX": {
+   "prize": 8.84004977294505,
+   "pct": 91.82569373789538,
+   "chalk": 24.769182064579468,
+   "dupeTop": 0,
+   "overlap": 39
+  }
  },
  "oreilly|28|20": {
   "entries": 9484,
@@ -358,7 +484,14 @@
    "dupeTop": 0,
    "overlap": 0
   },
-  "PA": null
+  "PA": null,
+  "PX": {
+   "prize": 0,
+   "pct": 73.64464692482919,
+   "chalk": 28.49839816576114,
+   "dupeTop": 0,
+   "overlap": 0
+  }
  },
  "oreilly|28|150": {
   "entries": 9484,
@@ -377,7 +510,14 @@
    "dupeTop": 0,
    "overlap": 13
   },
-  "PA": null
+  "PA": null,
+  "PX": {
+   "prize": 4.012513811765203,
+   "pct": 89.93989243910156,
+   "chalk": 26.954278719062202,
+   "dupeTop": 0,
+   "overlap": 23
+  }
  },
  "cup|30|20": {
   "entries": 5907,
@@ -396,7 +536,14 @@
    "dupeTop": 0,
    "overlap": 0
   },
-  "PA": null
+  "PA": null,
+  "PX": {
+   "prize": 0,
+   "pct": 78.97915918403402,
+   "chalk": 27.709996924849406,
+   "dupeTop": 0,
+   "overlap": 1
+  }
  },
  "cup|30|150": {
   "entries": 5907,
@@ -415,7 +562,14 @@
    "dupeTop": 0,
    "overlap": 9
   },
-  "PA": null
+  "PA": null,
+  "PX": {
+   "prize": 28.865137236312485,
+   "pct": 91.41550965120217,
+   "chalk": 26.529425808720173,
+   "dupeTop": 0,
+   "overlap": 50
+  }
  },
  "cup|31|20": {
   "entries": 9446,
@@ -434,7 +588,14 @@
    "dupeTop": 0,
    "overlap": 2
   },
-  "PA": null
+  "PA": null,
+  "PX": {
+   "prize": 30.42425038383956,
+   "pct": 97.84012705134992,
+   "chalk": 28.14705836016605,
+   "dupeTop": 0,
+   "overlap": 3
+  }
  },
  "cup|31|150": {
   "entries": 9446,
@@ -453,6 +614,13 @@
    "dupeTop": 0,
    "overlap": 19
   },
-  "PA": null
+  "PA": null,
+  "PX": {
+   "prize": 249.34691186713536,
+   "pct": 99.74589730015882,
+   "chalk": 27.27127919259426,
+   "dupeTop": 0,
+   "overlap": 35
+  }
  }
 }

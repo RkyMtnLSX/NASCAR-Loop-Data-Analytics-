@@ -14,6 +14,7 @@ const OWN = JSON.parse(fs.readFileSync(path.join(DATA, 'own.json'), 'utf8'))
 // REAL FIELD (2026-10-11 re-run): FIELD=real uses the actual contest entries (every lineup, duplicates expanded) from the
 // operator's DK standings exports (field/<contest>.json, mapped to races in field-map.json). Races without a file are skipped.
 const REAL = process.env.FIELD === 'real'
+const TIE = process.env.TIE === '1'   // stage 3: DK tie rule - tied block's average prize instead of prize/(1+k)
 const FMAP = REAL ? JSON.parse(fs.readFileSync(path.join(DATA, 'field-map.json'), 'utf8')) : {}
 const mean = a => a.reduce((s, x) => s + x, 0) / Math.max(1, a.length)
 const rng = (seed) => { let a = (seed * 2654435761) >>> 0; return () => { a += 0x6D2B79F5; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296 } }
@@ -79,7 +80,7 @@ function prizeMatrix(R, C, field) {   // stage 2: per-draw prize / (1 + dupes) a
   for (let d = 0; d < nD; d++) {
     const rw = rows[d]; for (let f = 0; f < F; f++) { const id = fIds[f]; fs_[f] = rw[id[0]] + rw[id[1]] + rw[id[2]] + rw[id[3]] + rw[id[4]] + rw[id[5]] }
     const sorted = Float64Array.from(fs_).sort()
-    for (let c = 0; c < nC; c++) { const v = C.Smat[c * nD + d]; let lo = 0, hi = F; while (lo < hi) { const mid = (lo + hi) >> 1; if (sorted[mid] > v) hi = mid; else lo = mid + 1 } const rank = 1 + Math.round((F - lo) * E_ / F); M[c * nD + d] = prize(rank) / (1 + dupes[c]) }
+    for (let c = 0; c < nC; c++) { const v = C.Smat[c * nD + d]; let lo = 0, hi = F; while (lo < hi) { const mid = (lo + hi) >> 1; if (sorted[mid] > v) hi = mid; else lo = mid + 1 } const rank = 1 + Math.round((F - lo) * E_ / F); if (TIE) { const k = Math.round(dupes[c]); let t = 0; for (let j = 0; j <= k; j++) t += prize(rank + j); M[c * nD + d] = t / (k + 1) } else M[c * nD + d] = prize(rank) / (1 + dupes[c]) }
   }
   return { M, dupes }
 }
@@ -147,6 +148,6 @@ for (const key of Object.keys(meta)) {
     console.log(`${key.padEnd(11)} N${String(N).padEnd(3)} ent ${String(R.entries).padStart(5)} | D prize ${rD.prize.toFixed(1).padStart(6)} pct ${rD.pct == null ? '  -' : rD.pct.toFixed(0).padStart(3)} chalk ${row.D.chalk.toFixed(0)}% dupe#1 ${row.D.dupeTop == null ? '-' : row.D.dupeTop.toFixed(1)} | P prize ${rP.prize.toFixed(1).padStart(6)} pct ${rP.pct == null ? '  -' : rP.pct.toFixed(0).padStart(3)} chalk ${row.P.chalk.toFixed(0)}% dupe#1 ${row.P.dupeTop == null ? '-' : row.P.dupeTop.toFixed(1)} overlap ${row.P.overlap}/${N} | PA ${rPA ? rPA.prize.toFixed(1) : '-'}/${rPA && rPA.pct != null ? rPA.pct.toFixed(0) : '-'} | PX prize ${rPX ? rPX.prize.toFixed(1).padStart(6) : '-'} pct ${rPX && rPX.pct != null ? rPX.pct.toFixed(0) : '-'} chalk ${rPX ? row.PX.chalk.toFixed(0) + '%' : '-'} dupe#1 ${rPX && row.PX.dupeTop != null ? row.PX.dupeTop.toFixed(1) : '-'} overlap ${rPX ? row.PX.overlap : '-'}/${N}  (${((Date.now() - t0) / 1000).toFixed(0)}s)`)
   }
 }
-fs.writeFileSync(path.join(__dirname, 'backtest-data', `dfs-prize-result${REAL ? '-real' : ''}.json`), JSON.stringify(out, null, 1))
+fs.writeFileSync(path.join(__dirname, 'backtest-data', `dfs-prize-result${REAL ? '-real' : ''}${TIE ? '-tie' : ''}.json`), JSON.stringify(out, null, 1))
 console.log('\nSUMMARY (realised prize summed over races, synthetic curve in entry-fee units; W/L by race vs D)')
 for (const N of [20, 150]) { const s = sums[N]; console.log(`N${N}: D ${s.D.toFixed(1)} | P ${s.P.toFixed(1)} (W/L ${s.wP}/${s.lP}) | PA ${s.PA.toFixed(1)} (W/L ${s.wPA}/${s.lPA}) | PX ${s.PX.toFixed(1)} (W/L ${s.wPX}/${s.lPX}) | best-of-N pct D ${mean(s.pD.filter(x => x != null)).toFixed(1)} P ${mean(s.pP.filter(x => x != null)).toFixed(1)} PA ${mean(s.pPA.filter(x => x != null)).toFixed(1)} PX ${mean(s.pPX.filter(x => x != null)).toFixed(1)}`) }
