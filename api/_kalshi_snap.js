@@ -68,9 +68,14 @@ module.exports = async function handler(req, res) {
           try { (await fetchMarkets(tk)).forEach(m => markets.push({ ...m, __mk: mk })) } catch (e) { r.err = (r.err || '') + e.message + '; ' }
         }
       }
-      // this race's event(s): series named in the title, close within [green - 1d, green + 2d]
-      const lo = start.getTime() - 86400e3, hi = start.getTime() + 2 * 86400e3
-      const mine = markets.filter(m => SERIES_PAT[c.series] && SERIES_PAT[c.series].test(m.title || '') && (() => { const t = new Date(m.close_time).getTime(); return t >= lo && t <= hi })())
+      // this race's event: series named in the title; Kalshi's close_time is the SETTLEMENT deadline,
+      // about a week after the green (Charlotte R32 2026-10-11 -> close 10-19), so accept
+      // [green - 1d, green + 9d] and, if two events of the series fall in it, keep the earliest close.
+      const lo = start.getTime() - 86400e3, hi = start.getTime() + 9 * 86400e3
+      const cand = markets.filter(m => SERIES_PAT[c.series] && SERIES_PAT[c.series].test(m.title || '') && (() => { const t = new Date(m.close_time).getTime(); return t >= lo && t <= hi })())
+      const evClose = {}; cand.forEach(m => { const ev = (m.event_ticker || '').replace(/^(KXNASCAR\w+?)-/, ''); const t = new Date(m.close_time).getTime(); if (!(ev in evClose) || t < evClose[ev]) evClose[ev] = t })
+      const firstEv = Object.keys(evClose).sort((a, b) => evClose[a] - evClose[b])[0]
+      const mine = cand.filter(m => (m.event_ticker || '').replace(/^(KXNASCAR\w+?)-/, '') === firstEv)
       if (!mine.length) { r.skip = 'no Kalshi markets matched this race'; continue }
       const { data: ent } = await sb.from('entry_list').select('driver_name').eq('series', c.series).eq('race_year', year).eq('track_name', c.track_name)
       const byN = {}; (ent || []).forEach(e => { byN[nrm(e.driver_name)] = e.driver_name })
