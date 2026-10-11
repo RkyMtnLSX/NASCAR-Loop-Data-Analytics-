@@ -194,6 +194,27 @@ export function LoadRaceFromFeed() {
     return parts.join(' · ')
   }
 
+  // FASTEST LAPS (2026-10-11, operator: fold it into Load Race): the lap archive -> fastest_laps rows,
+  // Lap Raptor rule on (the stored history was built on it), written through /api/load-fastest-laps
+  // exactly as the old panel did. Returns a one-line summary.
+  async function loadFastestLaps(nascarRaceId, yr, seriesKey, trackName) {
+    try {
+      const payload = await feed({ type: 'laps', year: yr, series: SERIES_ID[seriesKey], race: nascarRaceId })
+      if (!payload || !(payload.drivers || []).length) return 'fastest laps: lap archive not published yet'
+      const { data: known } = await fetchAllRows(() => supabase.from('loop_data').select('driver_name, nascar_driver_id').eq('series', seriesKey))
+      const built = buildFastestLapRows(payload, makeResolver(known || []), { lapRaptorRule: true })
+      const race = payload.race || {}
+      const rn = race.race_name || '', rd = mdy(race.race_date || race.date_scheduled)
+      if (!rn || !rd) return 'fastest laps: feed gave no race name/date'
+      const rows = built.rows.map(({ __how, __feedName, __laps, __junk, __caution, ...r }) => r)
+      const res = await fetch('/api/load-fastest-laps', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ series: seriesKey, year: yr, track_type: guessType(race), race_name: rn, race_date: rd, track: trackName, rows }) })
+      const j = await res.json()
+      if (!res.ok) throw new Error(j.error || `HTTP ${res.status}`)
+      return `fastest laps: ${rows.length} drivers (fastest ${j.topDriver || '?'}${j.topSpeed ? ' ' + j.topSpeed + ' mph' : ''}${built.skipped.length ? ', skipped ' + built.skipped.length : ''})`
+    } catch (e) { return 'fastest laps FAILED: ' + e.message }
+  }
+
   // Pit data for an already-loaded race: find its registry row by series / year / race number.
   async function pitOnly() {
     setBusy(true); setStatus(null)
@@ -204,8 +225,9 @@ export function LoadRaceFromFeed() {
       const nid = row.nascar_race_id || parseInt(nascarId, 10)
       if (row.nascar_race_id !== nid) await supabase.from('races').update({ nascar_race_id: nid }).eq('id', row.id)
       const msg = await loadPitData(row.id, nid, parseInt(year, 10), series, row.track_name, parseInt(raceNum, 10))
+      const fl = await loadFastestLaps(nid, parseInt(year, 10), series, row.track_name)
       const g = await autoGradeRace(series, parseInt(year, 10), parseInt(raceNum, 10))
-      setStatus({ ok: `${row.track_name} ${year} R${raceNum}: ${msg}. Boards — ${g}` })
+      setStatus({ ok: `${row.track_name} ${year} R${raceNum}: ${msg}. ${fl}. Boards — ${g}` })
     } catch (e) { setStatus({ err: e.message }) } finally { setBusy(false) }
   }
 
@@ -259,9 +281,10 @@ export function LoadRaceFromFeed() {
 
       const __pit = await loadPitData(raceRow.id, race.nascar_race_id, parseInt(year, 10), series, race.track_name, parseInt(raceNum, 10))
       // ONE CLICK (2026-10-11): grade every published board for this race and log season CLV.
-      setStatus({ ok: `Loaded ${insertRows.length} drivers. ${__pit}. Grading boards...` })
+      const __fl = await loadFastestLaps(race.nascar_race_id, parseInt(year, 10), series, race.track_name)
+      setStatus({ ok: `Loaded ${insertRows.length} drivers. ${__pit}. ${__fl}. Grading boards...` })
       const __grade = await autoGradeRace(series, parseInt(year, 10), parseInt(raceNum, 10))
-      setStatus({ ok: `Loaded ${insertRows.length} drivers for ${race.track_name} ${year} — ${race.total_laps} actual laps (${race.scheduled_laps} scheduled), ${race.total_cautions} cautions. ${__pit}. Boards — ${__grade}` })
+      setStatus({ ok: `Loaded ${insertRows.length} drivers for ${race.track_name} ${year} — ${race.total_laps} actual laps (${race.scheduled_laps} scheduled), ${race.total_cautions} cautions. ${__pit}. ${__fl}. Boards — ${__grade}` })
       setPreview(null); setLoadedTick(t => t + 1)
     } catch (e) { setStatus({ err: e.message }) } finally { setBusy(false) }
   }
@@ -299,7 +322,7 @@ export function LoadRaceFromFeed() {
         <button className="btn btn-secondary" disabled={busy || !year} onClick={findRace}>1. Find race</button>
         <button className="btn btn-secondary" disabled={busy || !nascarId || !raceNum} onClick={fetchRace}>2. Fetch &amp; preview</button>
         <button className="btn" disabled={busy || !preview} onClick={load}>3. Load</button>
-        <button className="btn btn-secondary" disabled={busy || !nascarId || !raceNum} onClick={pitOnly} title="Pit stops + penalties for a race already in the registry (loaded before 2026-10-11, or whose pit feed was not published at load time)">Pit data + grade</button>
+        <button className="btn btn-secondary" disabled={busy || !nascarId || !raceNum} onClick={pitOnly} title="Everything after the loop data, for a race already in the registry: pit stops + penalties, fastest laps, grade every published board, log CLV. Use it when a feed was not out yet at load time (NASCAR posts pit data and the lap archive within hours of the finish).">Post-race data only</button>
       </div>
 
       {candidates.length > 0 && !preview && (
@@ -386,353 +409,7 @@ export function LoadRaceFromFeed() {
 
 const ALL_YEARS = [2022, 2023, 2024, 2025, 2026]
 
-export function FeedBackfill() {
-  const [series, setSeries] = useState('all')
-  const [year, setYear] = useState('all')
-  const [dryRun, setDryRun] = useState(true)
-  const [running, setRunning] = useState(false)
-  const [log, setLog] = useState([])
-  const [summary, setSummary] = useState(null)
-  const stop = React.useRef(false)
 
-  const say = useCallback(line => setLog(l => [...l.slice(-800), line]), [])
-
-  // One pass over one season of one series. Returns its own tally so the
-  // all-seasons run can add them up without the inner loop knowing about it.
-  async function runOne(sr, yr, tally) {
-    const { data: races, error } = await supabase.from('races')
-      .select('id, race_number, track_name, race_date, total_laps, nascar_race_id, exhibition')
-      .eq('series', sr).eq('year', yr)
-      .order('race_number')
-    if (error) throw new Error(error.message)
-    if (!races || !races.length) { say(`${sr} ${yr}: no races in the registry.`); return }
-    await runRaces(races, sr, String(yr), tally)
-  }
-
-  async function run() {
-    setRunning(true); setLog([]); setSummary(null); stop.current = false
-    const tally = { races: 0, skipped: 0, rows: 0, lapsFixed: 0, statusFixed: 0, carMismatch: 0, newNames: 0, nameConflict: 0, exhibitions: 0, cautions: 0, stageLaps: 0 }
-    const seriesList = series === 'all' ? Object.keys(SERIES_ID) : [series]
-    const yearList = year === 'all' ? ALL_YEARS : [parseInt(year, 10)]
-    say(`${dryRun ? 'DRY RUN — nothing will be written.' : 'WRITING.'} `
-      + `${seriesList.length} series x ${yearList.length} season(s).`)
-    try {
-      for (const yr of yearList) {
-        for (const sr of seriesList) {
-          if (stop.current) break
-          say(`--- ${sr} ${yr} ---`)
-          await runOne(sr, yr, tally)
-        }
-        if (stop.current) break
-      }
-      setSummary(tally)
-    } catch (e) {
-      say(`ERROR: ${e.message}`)
-      setSummary(tally)
-    } finally { setRunning(false) }
-  }
-
-  async function runRaces(races, series, year, tally) {
-    {
-      const sched = await feed({ type: 'schedule', year, series: SERIES_ID[series] })
-      const byDate = new Map()
-      for (const r of sched.races) if (r.race_date) byDate.set(r.race_date, r)
-
-      // Re-read the name index for every season pass: once a season is written,
-      // its NASCAR ids are in the table, so later seasons resolve by id rather
-      // than by name folding.
-      const { data: existingNames } = await fetchAllRows(() => supabase.from('loop_data')
-        .select('driver_name, nascar_driver_id').eq('series', series))   // same cap, see above
-      const resolve = makeResolver(existingNames || [])
-
-      say(`  ${races.length} races in the registry.`)
-
-      for (const race of races) {
-        if (stop.current) { say('Stopped.'); break }
-        const label = `R${race.race_number} ${race.track_name}`
-
-        // Exhibitions (the Clash, the Duels, the All-Star race) are excluded from
-        // the registry by the era rules, so they carry no loop_data and never
-        // will. Counting them as skips made the 2026 Dover All-Star stub look
-        // like a failure on every run. Note the practice laps from those weekends
-        // ARE kept - practice_laps keys on series/year/track/race_number, not on
-        // race_id - so excluding the race does not discard the pace data.
-        if (race.exhibition) {
-          say(`  --   ${label}: exhibition, excluded by design`)
-          tally.exhibitions++
-          continue
-        }
-
-        let nid = race.nascar_race_id
-        if (!nid) {
-          const d = (race.race_date || '').slice(0, 10)
-          const hit = byDate.get(d)
-            || sched.races.find(r => r.race_date && Math.abs(Date.parse(r.race_date) - Date.parse(d)) <= 86400000
-                                     && r.track_name === race.track_name)
-          if (!hit) { say(`  SKIP ${label}: no NASCAR race matches ${d || '(no date)'}`); tally.skipped++; continue }
-          nid = hit.nascar_race_id
-        }
-
-        let payload
-        try {
-          payload = await feed({ type: 'race', year, series: SERIES_ID[series], race: nid })
-        } catch (e) { say(`  SKIP ${label}: feed ${e.message}`); tally.skipped++; continue }
-
-        const { data: ours } = await supabase.from('loop_data').select('*').eq('race_id', race.id)
-        if (!ours || !ours.length) { say(`  SKIP ${label}: no loop_data rows`); tally.skipped++; continue }
-
-        const mapped = mapRace(payload, {
-          series, year: parseInt(year, 10), raceNumber: race.race_number,
-          trackName: race.track_name, resolve,
-        })
-
-        // POSITION MATCH, with a name cross-check as the real guard.
-        //
-        // Finish position is unique within a race on both sides, so it is an exact
-        // key. It does NOT have to be a bijection: 10 of 436 races are missing a
-        // driver from loop_data (n=38 rows but positions running to 39). Those gaps
-        // are PRESERVED rather than renumbered - which is exactly what proves the
-        // two sides still refer to the same positions - so requiring set equality
-        // would skip ten repairable races for no gain.
-        //
-        // What is required: our positions unique, and a subset of the feed's. Then
-        // every row is checked by NAME before anything is written. A renumbering
-        // would show up immediately as a wall of name mismatches, and any single
-        // row that disagrees is left untouched rather than overwritten.
-        const ourPos = new Set(ours.map(r => r.finish_position))
-        const feedByPos = new Map(mapped.rows.map(r => [r.finish_position, r]))
-        if (ourPos.size !== ours.length) {
-          say(`  SKIP ${label}: duplicate finish positions in loop_data`); tally.skipped++; continue
-        }
-        const missing = [...ourPos].filter(p => !feedByPos.has(p))
-        if (missing.length) {
-          say(`  SKIP ${label}: ${missing.length} stored position(s) absent from the feed (${missing.slice(0, 6).join(', ')})`)
-          tally.skipped++; continue
-        }
-        if (ourPos.size !== feedByPos.size) {
-          say(`    note ${label}: feed has ${feedByPos.size} drivers, loop_data has ${ourPos.size} — enriching the ${ourPos.size} we hold`)
-        }
-
-        // The name check is a test of ALIGNMENT, not of spelling.
-        //
-        // First pass over the real data settled what these disagreements are: all
-        // 51 were five drivers whose names we simply store differently - "Andres
-        // Perez" for NASCAR's "Andres Perez De Lara" (40 rows), "Garrett Mitchell"
-        // and "Cleetus McFarland" for the same person NASCAR itself files under
-        // both "Cleetus McFarland" and "Cleetus Mitchell", and so on. NASCAR's own
-        // feed is inconsistent here too; pit_stops holds "Andes Perez De Lara #",
-        // a NASCAR typo, against the same driver id.
-        //
-        // Refusing those rows was the wrong response. When 38 of 39 rows agree,
-        // the positions are DEMONSTRABLY aligned, and a lone disagreement is a
-        // spelling variant rather than a misalignment. So above the threshold the
-        // race is skipped (a renumbering would misalign most rows, which is the
-        // thing actually worth catching); below it, every row is enriched and each
-        // variant is printed.
-        //
-        // Our stored driver_name is never changed. Only the id and the new columns
-        // are attached, and the id is the more trustworthy identifier of the two.
-        // Without a weekend feed there are no names to compare, so alignment is
-        // checked against the ids already stored from other races instead: the
-        // resolver's first rung maps a NASCAR id to the name we hold for it.
-        // Rows whose id we have never seen are simply not evidence either way.
-        const wkOk = mapped.race.weekendAvailable !== false
-        if (!wkOk) {
-          say(`    ${label}: NASCAR published no weekend feed for this race — enriching from loopstats only (ids, closing_ps, precision, laps); car numbers, teams, finish status and stage results left as they are`)
-        }
-        const comparable = ours.filter(row => {
-          const f = feedByPos.get(row.finish_position)
-          return f.__how === 'id' || (wkOk && f.driver_name)
-        })
-        if (!wkOk && comparable.length < ours.length * 0.5) {
-          say(`  SKIP ${label}: no weekend feed and only ${comparable.length}/${ours.length} drivers have a known id — cannot confirm the rows line up`)
-          tally.skipped++; continue
-        }
-        const nameMismatch = comparable.filter(row =>
-          fold(row.driver_name) !== fold(feedByPos.get(row.finish_position).driver_name))
-        if (nameMismatch.length > Math.max(2, ours.length * 0.2)) {
-          say(`  SKIP ${label}: ${nameMismatch.length}/${ours.length} names disagree at the same finish position — positions are not comparable`)
-          tally.skipped++; continue
-        }
-        if (nameMismatch.length) {
-          say(`    ${label}: ${ours.length - nameMismatch.length}/${ours.length} names agree, so positions are aligned; enriching the ${nameMismatch.length} variant(s) too`)
-        }
-
-        const merged = ours.map(row => {
-          const f = feedByPos.get(row.finish_position)
-          if (fold(row.driver_name) !== fold(f.driver_name)) {
-            say(`    variant P${row.finish_position}: keeping "${row.driver_name}", NASCAR calls id ${f.nascar_driver_id} "${f.driver_name}"`)
-            tally.nameConflict++
-          }
-          if (f.__how === 'new') tally.newNames++
-          if (row.car_number && f.car_number && String(row.car_number) !== String(f.car_number)) {
-            tally.carMismatch++
-            say(`    car# ${row.driver_name}: stored #${row.car_number}, feed #${f.car_number} — feed wins`)
-          }
-          // Only count a change that will actually happen. Where there is no
-          // weekend feed f.finish_status is undefined and the merge preserves
-          // the stored value, so counting it made every re-run report dozens of
-          // status changes it was not making.
-          if (f.finish_status !== undefined && (row.finish_status || '') !== f.finish_status) tally.statusFixed++
-          // `?? row.x` on every weekend-sourced field. mapRace leaves those
-          // UNDEFINED when NASCAR published no weekend feed, so a race missing
-          // one can never blank a value we already hold. The loopstats-sourced
-          // fields below it are always present and always win.
-          return {
-            ...row,                       // every existing column preserved
-            nascar_driver_id: f.nascar_driver_id,
-            closing_ps: f.closing_ps,
-            team_name: f.team_name ?? row.team_name,
-            car_number: f.car_number ?? row.car_number,
-            stage1_finish: f.stage1_finish ?? row.stage1_finish,
-            stage2_finish: f.stage2_finish ?? row.stage2_finish,
-            finish_status: f.finish_status ?? row.finish_status,
-            // Precision the paste threw away.
-            avg_position: f.avg_position,
-            driver_rating: f.driver_rating,
-            mid_race_position: f.mid_race_position ?? row.mid_race_position,
-            laps_completed: f.laps_completed ?? row.laps_completed,
-          }
-        })
-
-        const lapsWrong = race.total_laps !== mapped.race.total_laps
-        if (lapsWrong) {
-          say(`    laps ${label}: stored ${race.total_laps}, actually ran ${mapped.race.total_laps}`)
-          tally.lapsFixed++
-        }
-
-        if (!dryRun) {
-          const { error: e1 } = await supabase.from('loop_data').upsert(merged, { onConflict: 'id' })
-          if (e1) { say(`  FAIL ${label}: loop_data ${e1.message}`); tally.skipped++; continue }
-          // Same rule at race level: send only the keys that are actually known.
-          // Laps and green-flag passes survive a missing weekend feed (loopstats
-          // carries sch_laps/act_laps, and the passes total is the sum of the
-          // driver rows), so the scheduled-vs-actual fix still lands.
-          const raceUpdate = {
-            nascar_race_id: mapped.race.nascar_race_id,
-            total_laps: mapped.race.total_laps,
-            scheduled_laps: mapped.race.scheduled_laps,
-            green_flag_passes: mapped.race.green_flag_passes,
-            total_cautions: mapped.race.total_cautions,
-            total_caution_laps: mapped.race.total_caution_laps,
-            lead_changes: mapped.race.lead_changes,
-            avg_speed: mapped.race.avg_speed,
-            margin_of_victory: mapped.race.margin_of_victory,
-            margin_of_victory_text: mapped.race.margin_of_victory_text,
-            // Stage boundaries. These were added to mapRace but missed here on the
-            // first pass, because this update names its keys explicitly while the
-            // one-race loader spreads the whole race object — so the loader wrote
-            // them and the backfill silently did not. If you add a race-level field
-            // to mapRace, add it HERE too.
-            stage_1_laps: mapped.race.stage_1_laps,
-            stage_2_laps: mapped.race.stage_2_laps,
-            stage_3_laps: mapped.race.stage_3_laps,
-            stage_4_laps: mapped.race.stage_4_laps,
-          }
-          Object.keys(raceUpdate).forEach(k => {
-            if (raceUpdate[k] === undefined) delete raceUpdate[k]
-          })
-          const { error: e2 } = await supabase.from('races').update(raceUpdate).eq('id', race.id)
-          if (e2) { say(`  FAIL ${label}: races ${e2.message}`); tally.skipped++; continue }
-
-          // Caution timing: the restart lap is what the wreck model has never had.
-          const cautions = (mapped.cautions || []).map(c =>
-            ({ ...c, race_id: race.id, nascar_race_id: mapped.race.nascar_race_id }))
-          await supabase.from('caution_segments').delete().eq('race_id', race.id)
-          if (cautions.length) {
-            const { error: e3 } = await supabase.from('caution_segments').insert(cautions)
-            if (e3) say(`    caution segments failed for ${label}: ${e3.message}`)
-            else tally.cautions += cautions.length
-          }
-          if (raceUpdate.stage_1_laps != null) tally.stageLaps++
-        }
-
-        tally.races++; tally.rows += merged.length
-        say(`  ok   ${label}: ${merged.length} rows`)
-      }
-    }
-  }
-
-  return (
-    <div className="card" style={card}>
-      <h3 style={{ margin: '0 0 4px', fontSize: '1rem' }}>Feed Backfill (existing races)</h3>
-      <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0 0 14px' }}>
-        Adds <code>nascar_driver_id</code>, <code>closing_ps</code>, <code>team_name</code> and
-        stage finishes to races already loaded, repairs <code>total_laps</code> (which has been
-        holding scheduled laps) and <code>finish_status</code> (which was a laps&lt;90% guess), and
-        captures <strong>caution timing</strong> — every caution's start and end lap, so the restart
-        lap exists in the database for the first time.
-        Rows are matched on finish position, cross-checked by name. A race where names disagree at
-        more than 20% of positions is skipped entirely — that is what a renumbering looks like.
-        Below that the positions are demonstrably aligned, so spelling variants are enriched too and
-        printed; your stored driver names are never changed. Run it dry first.
-      </p>
-
-      <div style={grid}>
-        <div><label style={labelStyle}>Series</label>
-          <select value={series} onChange={e => setSeries(e.target.value)} style={inputStyle} disabled={running}>
-            <option value="all">All three</option>
-            {SERIES_OPTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-          </select></div>
-        <div><label style={labelStyle}>Year</label>
-          <select value={year} onChange={e => setYear(e.target.value)} style={inputStyle} disabled={running}>
-            <option value="all">All seasons (2022-26)</option>
-            {ALL_YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-          </select></div>
-        <div><label style={labelStyle}>Mode</label>
-          <select value={dryRun ? 'dry' : 'write'} onChange={e => setDryRun(e.target.value === 'dry')} style={inputStyle} disabled={running}>
-            <option value="dry">Dry run</option>
-            <option value="write">Write</option>
-          </select></div>
-      </div>
-
-      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-        <button className={dryRun ? 'btn btn-secondary' : 'btn'} disabled={running} onClick={run}>
-          {running ? 'Running…' : dryRun
-            ? `Dry run ${series === 'all' ? 'all series' : series} ${year === 'all' ? '2022-26' : year}`
-            : `Write ${series === 'all' ? 'all series' : series} ${year === 'all' ? '2022-26' : year}`}
-        </button>
-        {running && <button className="btn btn-secondary" onClick={() => { stop.current = true }}>Stop</button>}
-      </div>
-
-      {summary && (
-        <div style={{ ...mono, padding: '8px 10px', borderRadius: 6, marginBottom: 10, background: 'rgba(34,197,94,0.12)', color: '#86efac' }}>
-          {summary.races} races, {summary.rows} rows · total_laps corrected on {summary.lapsFixed} ·
-          finish_status changed on {summary.statusFixed} · car# disagreements {summary.carMismatch} ·
-          unmatched names {summary.newNames} · name variants kept {summary.nameConflict} · exhibitions excluded {summary.exhibitions} · caution segments {summary.cautions} · stage laps {summary.stageLaps} · skipped {summary.skipped}
-        </div>
-      )}
-
-      {log.length > 0 && (
-        <pre style={{ ...mono, maxHeight: 320, overflow: 'auto', background: 'var(--bg-elevated)', padding: 10, borderRadius: 6, margin: 0 }}>
-          {log.join('\n')}
-        </pre>
-      )}
-    </div>
-  )
-}
-
-// ===========================================================================
-// FASTEST LAPS FROM THE LAP ARCHIVE (2026-09-26)
-// ===========================================================================
-//
-// Operator: "with our loop data the fastest lap data is loaded via Lap Raptor but can't we just load
-// it with the data we already have?" Yes: cf.nascar.com's per-lap archive (lap-times.json, every lap
-// of every car, created when the race runs and permanent afterwards) is what the O'Reilly / Trucks
-// fastest_laps backfill used on 2026-09-02. Cup was the only series still going through the Lap
-// Raptor paste. This panel builds the same fastest_laps rows for any series from the archive:
-// fastest lap number / time / speed, rank, P50 / P95 lap time and speed, ARP (mean running
-// position), start / finish / status from the weekend feed, driver spelling resolved to loop_data
-// through the same resolver Load Race uses. cPOMS / LSP are Lap Raptor-only metrics and are left
-// null (cPOMS stopped at the gate 2026-08-29; neither feeds the sim or a page).
-//
-// JUNK-LAP FILTER (same rule as the backfill and race_watch): a lap under 75% of the driver's median
-// lap is a timing-line glitch (2-second "laps" on pit road), not a fastest lap. P50 / P95 are taken
-// over flying laps only (75% - 120% of the driver's median) so caution laps do not define the
-// distribution. The write goes through /api/load-fastest-laps exactly like the paste loader
-// (delete the race's rows, insert the new set) so the two paths cannot drift.
-
-const FL_TYPES = ['Short Track', 'Intermediate', 'Superspeedway', 'Road Course', 'Other']
 const stripMarkers = n => (n || '').replace(/\(\s*[A-Za-z]\s*\)/g, ' ').replace(/[#*]/g, ' ').replace(/\s+/g, ' ').trim()
 const pctile = (sorted, p) => sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(p * (sorted.length - 1)))] : null
 const mdy = iso => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ''); return m ? `${m[2]}/${m[3]}/${m[1]}` : '' }
@@ -794,160 +471,6 @@ export function buildFastestLapRows(payload, resolve, opts = {}) {
   return { rows, skipped }
 }
 
-export function FastestLapsFromArchive() {
-  const [series, setSeries] = useState('cup')
-  const [year, setYear] = useState(String(new Date().getFullYear()))
-  const [candidates, setCandidates] = useState([])
-  const [nascarId, setNascarId] = useState('')
-  const [tracks, setTracks] = useState([])
-  const [trackName, setTrackName] = useState('')
-  const [trackType, setTrackType] = useState('Other')
-  const [raceName, setRaceName] = useState('')
-  const [raceDate, setRaceDate] = useState('')
-  const [preview, setPreview] = useState(null)
-  const [existing, setExisting] = useState(null)
-  const [busy, setBusy] = useState(false)
-  const [status, setStatus] = useState(null)
-  const [lrRule, setLrRule] = useState(true)
-  const [resolver, setResolver] = useState(null)
-
-  useEffect(() => {
-    supabase.from('tracks').select('name').order('name').then(({ data }) => setTracks((data || []).map(t => t.name)))
-  }, [])
-
-  // Re-derive the preview when the rule toggle changes (no refetch).
-  useEffect(() => {
-    if (!preview || !resolver) return
-    const built = buildFastestLapRows(preview.payload, resolver, { lapRaptorRule: lrRule })
-    setPreview(p => ({ ...p, ...built }))
-  }, [lrRule]) // eslint-disable-line
-
-  async function listRaces() {
-    setBusy(true); setStatus(null); setPreview(null); setExisting(null)
-    try {
-      const j = await feed({ type: 'schedule', year, series: SERIES_ID[series] })
-      const today = new Date().toISOString().slice(0, 10)
-      const run = (j.races || []).filter(r => r.race_date && r.race_date <= today).reverse()
-      setCandidates(run)
-      if (run.length) setNascarId(String(run[0].nascar_race_id))
-      setStatus({ ok: `${run.length} ${series} races run in ${year} - newest first.` })
-    } catch (e) { setStatus({ err: e.message }) } finally { setBusy(false) }
-  }
-
-  async function fetchLaps() {
-    setBusy(true); setStatus(null); setPreview(null); setExisting(null)
-    try {
-      const payload = await feed({ type: 'laps', year, series: SERIES_ID[series], race: nascarId })
-      const { data: known } = await fetchAllRows(() => supabase.from('loop_data')
-        .select('driver_name, nascar_driver_id').eq('series', series))
-      const resolve = makeResolver(known || [])
-      setResolver(() => resolve)
-      const built = buildFastestLapRows(payload, resolve, { lapRaptorRule: lrRule })
-      const race = payload.race || {}
-      const sched = candidates.find(c => String(c.nascar_race_id) === String(nascarId)) || {}
-      const rn = race.race_name || sched.race_name || ''
-      const rd = mdy(race.race_date || race.date_scheduled || sched.race_date)
-      const feedTrack = race.track_name || sched.track_name || ''
-      const canon = tracks.find(t => t === feedTrack) || tracks.find(t => fold(t) === fold(feedTrack))
-        || tracks.find(t => fold(feedTrack).includes(fold(t).split(' ')[0]) && fold(t).split(' ')[0].length > 4) || ''
-      setRaceName(rn); setRaceDate(rd); setTrackName(canon); setTrackType(guessType(race))
-      setPreview({ ...built, payload, feedTrack })
-      if (rn && rd) {
-        const { data: ex } = await supabase.from('fastest_laps').select('driver, rank, fastest_lap_num, fastest_time, fastest_speed')
-          .eq('series', series).eq('race_name', rn).eq('race_date', rd).order('rank').limit(5)
-        setExisting(ex || [])
-      }
-      const nw = built.rows.filter(r => r.__how === 'new')
-      setStatus({ ok: `${built.rows.length} drivers from ${payload.lapsTotal.toLocaleString()} laps, ${(payload.cautions || []).length} caution windows` + (built.skipped.length ? `, skipped ${built.skipped.join(', ')}` : '')
-        + (nw.length ? `. ${nw.length} name(s) not in loop_data: ${nw.map(r => r.__feedName).join(', ')}` : '. Every name matched loop_data.')
-        + (canon ? '' : ` Track "${feedTrack}" is not in the tracks table - pick it below.`) })
-    } catch (e) { setStatus({ err: e.message }) } finally { setBusy(false) }
-  }
-
-  async function write() {
-    if (!preview || !raceName || !raceDate || !trackName) { setStatus({ err: 'Race name, date and a canonical track are required.' }); return }
-    setBusy(true); setStatus(null)
-    try {
-      const rows = preview.rows.map(({ __how, __feedName, __laps, __junk, __caution, ...r }) => r)
-      const res = await fetch('/api/load-fastest-laps', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ series, year: parseInt(year, 10), track_type: trackType, race_name: raceName, race_date: raceDate, track: trackName, rows }),
-      })
-      const j = await res.json()
-      if (!res.ok) throw new Error(j.error || `HTTP ${res.status}`)
-      setStatus({ ok: `${j.message} Fastest: ${j.topDriver} ${j.topSpeed ? j.topSpeed + ' mph' : ''}.` })
-      setExisting(null)
-    } catch (e) { setStatus({ err: e.message }) } finally { setBusy(false) }
-  }
-
-  const top = preview ? preview.rows.slice(0, 5) : []
-  return (
-    <div className="card" style={card}>
-      <h3 style={{ margin: '0 0 4px', fontSize: '1rem' }}>Fastest Laps from the Lap Archive</h3>
-      <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0 0 14px' }}>
-        Builds the <code>fastest_laps</code> rows for a race from NASCAR's per-lap archive (every lap of every car -
-        the source the O'Reilly / Trucks history came from) instead of the Lap Raptor paste. Fastest lap, rank,
-        P50 / P95 pace and average running position; start / finish / status from the weekend feed. The archive
-        exists only once the race has run. Loading a race that is already stored replaces its rows.
-      </p>
-      <div style={grid}>
-        <div><label style={labelStyle}>Series</label>
-          <select value={series} onChange={e => { setSeries(e.target.value); setCandidates([]); setPreview(null) }} style={inputStyle}>
-            {SERIES_OPTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-          </select></div>
-        <div><label style={labelStyle}>Year</label>
-          <input value={year} onChange={e => setYear(e.target.value)} style={inputStyle} /></div>
-        <div style={{ gridColumn: 'span 2' }}><label style={labelStyle}>Race</label>
-          <select value={nascarId} onChange={e => setNascarId(e.target.value)} style={inputStyle} disabled={!candidates.length}>
-            {!candidates.length && <option value="">— list races first —</option>}
-            {candidates.map(c => <option key={c.nascar_race_id} value={c.nascar_race_id}>{c.race_date} · {c.race_name} · {c.track_name}</option>)}
-          </select></div>
-      </div>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
-        <button className="btn btn-secondary" disabled={busy} onClick={listRaces}>List races</button>
-        <button className="btn btn-secondary" disabled={busy || !nascarId} onClick={fetchLaps}>{busy ? 'Working…' : 'Fetch laps'}</button>
-        {preview && <button className="btn" disabled={busy} onClick={write}>Load {preview.rows.length} drivers into fastest_laps</button>}
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', color: 'var(--text-muted)', marginLeft: 'auto' }} title="Lap Raptor drops every lap numbered inside a caution window. For lap-down cars that discards real green laps (their lap N runs while the leaders are on N+1), but it is the rule the stored history was built on. Off = the raw archive.">
-          <input type="checkbox" checked={lrRule} onChange={e => setLrRule(e.target.checked)} /> Lap Raptor-compatible (drop laps numbered under caution)
-        </label>
-      </div>
-      {preview && (
-        <div style={grid}>
-          <div><label style={labelStyle}>Race name</label><input value={raceName} onChange={e => setRaceName(e.target.value)} style={inputStyle} /></div>
-          <div><label style={labelStyle}>Race date (MM/DD/YYYY)</label><input value={raceDate} onChange={e => setRaceDate(e.target.value)} style={inputStyle} /></div>
-          <div><label style={labelStyle}>Track (canonical)</label>
-            <select value={trackName} onChange={e => setTrackName(e.target.value)} style={inputStyle}>
-              <option value="">-- select track --</option>{tracks.map(t => <option key={t} value={t}>{t}</option>)}
-            </select></div>
-          <div><label style={labelStyle}>Track type</label>
-            <select value={trackType} onChange={e => setTrackType(e.target.value)} style={inputStyle}>
-              {FL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-            </select></div>
-        </div>
-      )}
-      {status && status.ok && <div style={{ ...mono, padding: '8px 10px', borderRadius: 6, marginBottom: 10, background: 'rgba(34,197,94,0.12)', color: '#86efac' }}>{status.ok}</div>}
-      {status && status.err && <div style={{ ...mono, padding: '8px 10px', borderRadius: 6, marginBottom: 10, background: 'rgba(239,68,68,0.12)', color: '#fca5a5' }}>{status.err}</div>}
-      {preview && (
-        <div style={{ display: 'grid', gridTemplateColumns: existing && existing.length ? '1fr 1fr' : '1fr', gap: 14 }}>
-          <div>
-            <div style={labelStyle}>From the archive (top 5 of {preview.rows.length})</div>
-            <pre style={{ ...mono, background: 'var(--bg-elevated)', padding: 10, borderRadius: 6, margin: 0, overflow: 'auto' }}>
-              {top.map(r => `${String(r.rank).padStart(2)}  ${r.driver.padEnd(22)} #${String(r.car).padEnd(3)} lap ${String(r.fastest_lap_num).padStart(3)}  ${r.fastest_time}s${r.fastest_speed ? '  ' + r.fastest_speed + ' mph' : ''}  P50 ${r.p50_time}  ARP ${r.arp}  ${r.start_pos != null ? 'P' + r.start_pos + '->' + r.finish_pos : ''}${r.__junk ? '  (' + r.__junk + ' junk laps dropped)' : ''}`).join('\n')}
-            </pre>
-          </div>
-          {existing && existing.length > 0 && (
-            <div>
-              <div style={labelStyle}>Already stored for this race (will be replaced)</div>
-              <pre style={{ ...mono, background: 'var(--bg-elevated)', padding: 10, borderRadius: 6, margin: 0, overflow: 'auto' }}>
-                {existing.map(r => `${String(r.rank).padStart(2)}  ${(r.driver || '').padEnd(22)} lap ${String(r.fastest_lap_num).padStart(3)}  ${r.fastest_time}s${r.fastest_speed ? '  ' + r.fastest_speed + ' mph' : ''}`).join('\n')}
-              </pre>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
 
 // ---------------------------------------------------------------------------------------------------
 // WEEKEND FROM NASCAR FEED (2026-10-03). Operator: "automate the website so I don't have to manually
