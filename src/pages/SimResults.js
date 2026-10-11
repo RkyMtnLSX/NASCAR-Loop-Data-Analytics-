@@ -2,6 +2,8 @@ import XScroll from '../components/XScroll'
 import React, { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { useSearchParams } from 'react-router-dom'
+import * as __K from '../lib/kalshiMarkets'
+import { normDriver } from '../lib/oddsSectionParser'
 
 const SERIES_TABS = [
   { value: 'cup',     label: 'Cup Series' },
@@ -195,6 +197,32 @@ export default function SimResults() {
   const [mvUnits, setMvUnits] = useState('odds')
   const [mvSort, setMvSort] = useState('edge')
   const [mvQual, setMvQual] = useState(false)
+  // KALSHI LIVE (2026-10-11): current asks for this race, refreshed every 2 minutes while the market
+  // value tab is open. Stamped mv (publish-time prices, Best / Edge) is the record and is not
+  // recomputed here - the live column is for shopping. Matched by series + the board's weekend.
+  const [kLive, setKLive] = useState(null)
+  useEffect(() => {
+    if (!data) return
+    let on = true
+    const go = async () => {
+      try {
+        const all = []
+        for (const tk of __K.TICKERS) {
+          if (tk === 'KXNASCARTOP20') continue
+          const r = await fetch('/api/nascar-feed?type=kalshi&ks=' + tk + '&limit=1000')
+          if (!r.ok) continue
+          const j = await r.json()
+          ;(j.markets || []).forEach(m => all.push({ ...m, event_ticker: m.event, __mk: __K.MARKET_OF[tk] }))
+        }
+        const mine = __K.pickRaceMarkets(all, data.series, data.config && data.config.raceStartUtc)
+        const { book, raw } = __K.bookMap(mine, normDriver)
+        if (on) setKLive({ book, raw, at: new Date(), event: mine.length ? __K.eventKey(mine[0]) : null })
+      } catch (e) { if (on) setKLive(null) }
+    }
+    go()
+    const t = setInterval(go, 120000)
+    return () => { on = false; clearInterval(t) }
+  }, [data])
   const [data, setData]           = useState(null)
   const [loading, setLoading]     = useState(true)
   const [error, setError]         = useState(null)
@@ -437,7 +465,7 @@ export default function SimResults() {
   var fairOdds = function (p) { if (p <= 0) return null; if (p >= 1) return -100000; return p >= 0.5 ? Math.round(-100 * p / (1 - p)) : Math.round(100 * (1 - p) / p); };
   var fo = function (a) { return a == null ? '-' : (a > 0 ? '+' + a : '' + a); };
   var MINP = { win: 2, t3: 5, t5: 8, t10: 12, win_pct: 2, top3_pct: 5, top5_pct: 8, top10_pct: 12 }; // tail guard 2026-07-09 (see SimulationCenter __marketValue)
-  var rows = withMv.map(function (d) { var m = d.mv[key]; if (!m) return null; var p = (d[SF[mvMkt]] || 0) / 100; return { name: d.driver_name, dk: m.dk, fd: m.fd, hr: m.hr, best: m.best, bb: (m.bb || '').toUpperCase(), modelPct: d[SF[mvMkt]] || 0, fair: fairOdds(p), ev: m.ev, mev: m.mev, medge: (m.medge == null ? null : m.medge) }; }).filter(function (r) { return r && r.best != null && r.modelPct >= (MINP[key] != null ? MINP[key] : 0); });
+  var rows = withMv.map(function (d) { var m = d.mv[key]; if (!m) return null; var p = (d[SF[mvMkt]] || 0) / 100; var kl = kLive && kLive.book && kLive.book[key] ? kLive.book[key][normDriver(d.driver_name)] : null; var kr = kLive && kLive.raw ? kLive.raw[key + '|' + normDriver(d.driver_name)] : null; return { name: d.driver_name, dk: m.dk, fd: m.fd, hr: m.hr, kalshi: (m.kalshi == null ? null : m.kalshi), kLive: (kl == null ? null : kl), kRaw: kr, best: m.best, bb: (m.bb || '').toUpperCase(), modelPct: d[SF[mvMkt]] || 0, fair: fairOdds(p), ev: m.ev, mev: m.mev, medge: (m.medge == null ? null : m.medge) }; }).filter(function (r) { return r && r.best != null && r.modelPct >= (MINP[key] != null ? MINP[key] : 0); });
   // TAIL FIX (2026-08-29, from the 08-24 flag sweep - BACKTEST_LOG): the fabricated tail
   // (sim_prob<10% went 0-for-72; odds >= +1000 went 0-for-99) is killed DETERMINISTICALLY by the
   // backstop below: no suggestion badge under 10% model probability or at prices longer than
@@ -456,7 +484,7 @@ export default function SimResults() {
   var oc = function (o, best) { return <span style={{ color: (o != null && o === best) ? '#3fb950' : '#9a9a9a', fontWeight: (o != null && o === best) ? 500 : 400 }}>{fo(o)}</span>; };
   return (
     <div style={{ marginTop: 28 }}>
-      <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>Market value - best line across DK / FD / Hard Rock</div>
+      <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>Market value - best line across DK / FD / Hard Rock / Kalshi</div>
       <div style={{ fontSize: 12, color: '#888', marginBottom: 10 }}>Edge = model EV at the best available price. The mkt tag means the best price also beats the no-vig consensus - model and market agree.</div>
       <div style={{ marginBottom: 10 }}>{['Win', 'Top 3', 'Top 5', 'Top 10'].map(function (k) { return <button key={k} onClick={function () { setMvMkt(k); }} style={{ padding: '6px 14px', borderRadius: 999, border: '0.5px solid ' + (mvMkt === k ? '#e8c766' : '#333'), background: mvMkt === k ? '#262626' : 'transparent', color: mvMkt === k ? '#f5c518' : '#9a9a9a', fontSize: 13, cursor: 'pointer', marginRight: 4 }}>{k}</button>; })}</div>
       <div style={{ display: 'flex', gap: 16, alignItems: 'center', fontSize: 12, color: '#888', marginBottom: 10 }}>
@@ -470,6 +498,7 @@ export default function SimResults() {
           <th style={{ ...thc, textAlign: 'right' }}><img src="/book-dk.png" alt="DK" style={{ maxHeight: 34, maxWidth: 78, verticalAlign: 'middle' }} /></th>
           <th style={{ ...thc, textAlign: 'right' }}><img src="/book-fd.png" alt="FD" style={{ maxHeight: 34, maxWidth: 78, verticalAlign: 'middle' }} /></th>
           <th style={{ ...thc, textAlign: 'right' }}><img src="/book-hr.png" alt="HR" style={{ maxHeight: 34, maxWidth: 78, verticalAlign: 'middle' }} /></th>
+          <th style={{ ...thc, textAlign: 'right' }} title={kLive && kLive.at ? 'Kalshi ask to buy YES, live (updated ' + kLive.at.toLocaleTimeString() + '). Small grey = the price when this board was published.' : 'Kalshi ask to buy YES, as of publish'}>Kalshi{kLive && kLive.at ? <span style={{ display: 'block', fontSize: 9, color: '#3fb950' }}>live</span> : null}</th>
           <th style={{ ...thc, textAlign: 'right' }}>Best</th>
           <th style={{ ...thc, textAlign: 'right' }}>{odds ? 'Fair' : 'Model %'}</th>
           <th style={{ ...thc, textAlign: 'right' }}>Edge</th>
@@ -483,7 +512,8 @@ export default function SimResults() {
               <td style={{ padding: '7px 6px', textAlign: 'right' }}>{oc(r.dk, r.best)}</td>
               <td style={{ padding: '7px 6px', textAlign: 'right' }}>{oc(r.fd, r.best)}</td>
               <td style={{ padding: '7px 6px', textAlign: 'right' }}>{oc(r.hr, r.best)}</td>
-              <td style={{ padding: '7px 6px', textAlign: 'right', color: '#3fb950', fontWeight: 500 }}>{fo(r.best)}<img src={'/book-' + r.bb.toLowerCase() + '.png'} alt={r.bb} style={{ maxHeight: 26, maxWidth: 60, verticalAlign: 'middle', marginLeft: 3 }} /></td>
+              <td style={{ padding: '7px 6px', textAlign: 'right', whiteSpace: 'nowrap' }} title={r.kRaw ? ('Kalshi bid ' + r.kRaw.bid + 'c / ask ' + r.kRaw.ask + 'c') : ''}>{r.kLive != null ? <span style={{ color: '#79c0ff' }}>{fo(r.kLive)}</span> : oc(r.kalshi, r.best)}{r.kLive != null && r.kalshi != null && r.kalshi !== r.kLive ? <span style={{ color: '#666', fontSize: 10, marginLeft: 4 }}>{fo(r.kalshi)}</span> : null}</td>
+              <td style={{ padding: '7px 6px', textAlign: 'right', color: '#3fb950', fontWeight: 500 }}>{fo(r.best)}{r.bb === 'KALSHI' ? <span style={{ fontSize: 10, color: '#79c0ff', marginLeft: 3, verticalAlign: 'middle' }}>Kalshi</span> : <img src={'/book-' + r.bb.toLowerCase() + '.png'} alt={r.bb} style={{ maxHeight: 26, maxWidth: 60, verticalAlign: 'middle', marginLeft: 3 }} />}</td>
               <td style={{ padding: '7px 6px', textAlign: 'right' }}>{mod}</td>
               <td style={{ padding: '7px 6px', textAlign: 'right' }}>{(r.ev != null && r.ev >= 10 && r.mev != null && r.mev > 0 && TAIL_OK(r) && !(r.best < 0 && r.best < -150)) ? <span><span style={{ background: '#123d24', color: '#3fb950', padding: '2px 6px', borderRadius: 999, fontWeight: 500 }}>+{r.ev}%</span><span style={{ fontSize: 9, color: '#3fb950', marginLeft: 3 }}>mkt</span>{(r.medge != null) ? <span style={{ fontSize: 9, color: r.medge >= 5 ? '#3fb950' : '#8b949e', marginLeft: 3 }}>m{r.medge > 0 ? '+' : ''}{r.medge}</span> : null}</span> : <span style={{ color: '#555' }}>-</span>}</td>
             </tr>;

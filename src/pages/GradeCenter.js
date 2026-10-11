@@ -166,10 +166,43 @@ function ClvPanel({ series, stage }) {
     const { data } = await supabase.from('sim_results').select('*').eq('series',series).eq('stage',stage).order('published_at',{ ascending:false }).limit(1);
     const row=(data||[])[0];
     if(!row||!row.results){ setSim(null); setMsg('No published '+stage+' sim for '+series+'.'); return; }
-    setSim(row); setRows(null); setMsg('Loaded '+row.track_name+' ('+stage+' sim, '+row.results.length+' drivers). Paste closing odds, then Compute.');
+    setSim(row); setRows(null); setMsg('Loaded '+row.track_name+' ('+stage+' sim, '+row.results.length+' drivers). Close from snapshots, or paste closing odds and compute.');
+  }
+  // CLOSE FROM SNAPSHOTS (2026-10-11): no paste needed. Each book's close = its own last odds_snapshots
+  // row before the green (Kalshi ticks to green+15 on its own; DK/FD/HR = the last paste). The close used
+  // per play is the BEST across books (the operator shops every bet); the same-book close is kept too.
+  async function closeFromSnaps(){
+    if(!sim){ setMsg('Load a sim first.'); return; }
+    let q=supabase.from('odds_snapshots').select('driver_name, market, book, odds, captured_at').eq('series',sim.series).eq('track_name',sim.track_name).eq('race_year',sim.race_year);
+    if(sim.race_number!=null) q=q.eq('race_number',sim.race_number);
+    const { data:snaps }=await q.order('captured_at',{ ascending:false }).limit(5000);
+    if(!snaps||!snaps.length){ setMsg('No odds snapshots for this race.'); return; }
+    const green=sim.config&&sim.config.raceStartUtc?new Date(sim.config.raceStartUtc).getTime():null;
+    const close={}, at={};
+    snaps.forEach(s2=>{ if(green!=null&&new Date(s2.captured_at).getTime()>green+20*60*1000)return; const k=s2.driver_name.toLowerCase()+'|'+s2.market+'|'+s2.book; if(!(k in close)){ close[k]=s2.odds; at[k]=s2.captured_at; } });
+    const dec=a=>a>0?a/100+1:100/Math.abs(a)+1;
+    const out=[]; const ages=[];
+    (sim.results||[]).forEach(d=>{
+      const bet=d.mv||{};
+      __CLV_MKTS.forEach(([mk,lbl,pf])=>{
+        const b=bet[mk]; if(!b||b.best==null||b.ev==null||b.ev<=0)return;
+        let best=null, bk=null, bat=null; ['dk','fd','hr','kalshi'].forEach(x=>{ const k=d.driver_name.toLowerCase()+'|'+mk+'|'+x; if(close[k]!=null&&(best==null||dec(close[k])>dec(best))){ best=close[k]; bk=x; bat=at[k]; } });
+        const same=close[d.driver_name.toLowerCase()+'|'+mk+'|'+b.bb];
+        const bi=__impl(b.best), ci=__impl(best);
+        const clv=(bi!=null&&ci!=null)?(ci-bi)*100:null;
+        if(green!=null&&bat) ages.push((green-new Date(bat).getTime())/60000);
+        out.push({ driver:d.driver_name, market:lbl, mk, simProb:d[pf], betOdds:b.best, betBook:b.bb, closeOdds:best, closeBook:bk, closeSame:(same==null?null:same), clv, ev:b.ev });
+      });
+    });
+    out.sort((a,b)=>((b.clv==null?-999:b.clv)-(a.clv==null?-999:a.clv)));
+    setRows(out);
+    const graded=out.filter(x=>x.clv!=null);
+    const med=ages.length?ages.slice().sort((a,b)=>a-b)[Math.floor(ages.length/2)]:null;
+    setMsg(graded.length?('Close from snapshots: '+graded.length+' bets, positive CLV '+graded.filter(x=>x.clv>0).length+'/'+graded.length+(med!=null?(' - median close '+Math.round(med)+' min before green'):' - no green time on this board')):'No closing snapshots matched the flagged +EV bets.');
   }
   function compute(){
     if(!sim){ setMsg('Load a sim first.'); return; }
+    if(!(win||t10||fd||hr).trim()){ closeFromSnaps(); return; }
     const mapped=(sim.results||[]).map(d=>({ name:d.driver_name, winPct:d.win_pct, top3Pct:d.top3_pct, top5Pct:d.top5_pct, top10Pct:d.top10_pct }));
     const closeMv=__marketValue(win,t10,fd,hr,mapped);
     const out=[];
@@ -219,7 +252,8 @@ function ClvPanel({ series, stage }) {
             <div style={{ flex:1, minWidth:210 }}><div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:3 }}>Hard Rock</div><textarea style={ta} value={hr} onChange={e=>setHr(e.target.value)} /></div>
           </div>
           <div style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap' }}>
-            <button onClick={compute} style={btn}>Compute CLV</button>
+            <button onClick={closeFromSnaps} style={btn} title="Each book's last snapshot before the green; best close across books per play">Close from snapshots</button>
+            <button onClick={compute} style={{ ...btn, background:'transparent', color:'var(--text)', border:'1px solid var(--border)' }}>Compute from paste</button>
             {rows ? <button onClick={logSeason} style={{ ...btn, background:'transparent', color:'var(--text)', border:'1px solid var(--border)' }}>Log to season CLV</button> : null}
             <span style={{ fontSize:'0.8rem', color:'var(--text-muted)' }}>{msg}</span>
           </div>
@@ -234,8 +268,8 @@ function ClvPanel({ series, stage }) {
                 <td style={{ ...td, textAlign:'left' }}>{r.driver}</td>
                 <td style={{ ...td, textAlign:'left' }}>{r.market}</td>
                 <td style={td}>{r.simProb!=null?(+r.simProb).toFixed(1)+'%':'-'}</td>
-                <td style={td}>{__amFmt(r.betOdds)}</td>
-                <td style={td}>{__amFmt(r.closeOdds)}</td>
+                <td style={td}>{__amFmt(r.betOdds)}{r.betBook?<span style={{ fontSize:'0.68rem', color:'var(--text-muted)', marginLeft:4 }}>{String(r.betBook).toUpperCase()}</span>:null}</td>
+                <td style={td} title={r.closeSame!=null&&r.closeBook!==r.betBook?('Same-book close '+__amFmt(r.closeSame)):''}>{__amFmt(r.closeOdds)}{r.closeBook?<span style={{ fontSize:'0.68rem', color:r.closeBook==='kalshi'?'#79c0ff':'var(--text-muted)', marginLeft:4 }}>{String(r.closeBook).toUpperCase()}</span>:null}</td>
                 <td style={{ ...td, fontWeight:600, color:r.clv==null?'var(--text-muted)':(r.clv>0?'#22c55e':'#ef4444') }}>{r.clv==null?'-':(r.clv>0?'+':'')+r.clv.toFixed(1)}</td>
               </tr>
             ))}
@@ -335,36 +369,49 @@ export default function GradeCenter() {
     const { data: __tf2 } = await supabase.from('flagged_bets').select('driver_name,market,best_price,ev,mev,medge,sim_prob,book,group_drivers,created_at').eq('series', series).eq('race_year', row.race_year).eq('race_number', row.race_number).eq('stage', gradeStage).is('voided_at', null).order('created_at', { ascending: true })
     const g = __gradeRace(row.results, actualMap, __preOwned2, dkActMap, __tf2 || [])
     // CLV (2026-07-18): closing line = last odds snapshot cluster for this race; CLV compares the
-    // odds stamped on the published board (bettable at publish) vs the close, same book per play.
+    // odds stamped on the published board (bettable at publish) vs the close.
+    // CLOSE FROM SNAPSHOTS (2026-10-11): each book's close is ITS OWN last snapshot before the green
+    // (Kalshi ticks every 10 min until green+15 via pg_cron; DK/FD/HR are whatever was pasted last), so
+    // clusters no longer apply. Two numbers per play: clvSame (the book the flag was priced at) and clv
+    // (the BEST close across books - the operator shops every bet, so that is the line he would have
+    // closed against). The age of each close vs the green is kept so a stale paste is visible.
     try {
       let __sq = supabase.from('odds_snapshots').select('driver_name, market, book, odds, captured_at')
         .eq('series', series).eq('track_name', row.track_name).eq('race_year', row.race_year)
       if (row.race_number != null) __sq = __sq.eq('race_number', row.race_number)
-      const { data: __snaps } = await __sq.order('captured_at', { ascending: false }).limit(2000)
+      const { data: __snaps } = await __sq.order('captured_at', { ascending: false }).limit(5000)
       if (__snaps && __snaps.length) {
-        const __cut = new Date(new Date(__snaps[0].captured_at).getTime() - 10 * 60 * 1000)
-        const __close = {}
-        __snaps.filter(s2 => new Date(s2.captured_at) >= __cut).forEach(s2 => {
+        const __green = row.config && row.config.raceStartUtc ? new Date(row.config.raceStartUtc).getTime() : null
+        const __close = {}, __closeAt = {}
+        __snaps.forEach(s2 => {
+          if (__green != null && new Date(s2.captured_at).getTime() > __green + 20 * 60 * 1000) return   // nothing after the green counts as a close
           const k = nrm(s2.driver_name) + '|' + s2.market + '|' + s2.book
-          if (!(k in __close)) __close[k] = s2.odds
+          if (!(k in __close)) { __close[k] = s2.odds; __closeAt[k] = s2.captured_at }
         })
         const __dec = a => a > 0 ? a / 100 + 1 : 100 / Math.abs(a) + 1
-        const __plays = [], __field = []
+        const __bestClose = (dn, mk) => { let b = null, bk = null, at = null; ['dk', 'fd', 'hr', 'kalshi'].forEach(x => { const c = __close[nrm(dn) + '|' + mk + '|' + x]; if (c != null && (b == null || __dec(c) > __dec(b))) { b = c; bk = x; at = __closeAt[nrm(dn) + '|' + mk + '|' + x] } }); return { odds: b, book: bk, at } }
+        const __plays = [], __field = [], __playsSame = [], __ages = []
         row.results.forEach(d => {
           const mvv = d.mv || {}
           ;['win', 't3', 't5', 't10'].forEach(mk => {
             const m = mvv[mk]
             if (!m || !m.bb || m.best == null) return
-            const c = __close[nrm(d.driver_name) + '|' + mk + '|' + m.bb]
-            if (c == null) return
-            const clvPct = +(((__dec(m.best) / __dec(c)) - 1) * 100).toFixed(2)
+            const bc = __bestClose(d.driver_name, mk)
+            if (bc.odds == null) return
+            const clvPct = +(((__dec(m.best) / __dec(bc.odds)) - 1) * 100).toFixed(2)
             __field.push(clvPct)
-            if (m.ev != null && m.ev > 0) __plays.push(clvPct)
+            if (__green != null && bc.at) __ages.push((__green - new Date(bc.at).getTime()) / 60000)
+            if (m.ev != null && m.ev > 0) {
+              __plays.push(clvPct)
+              const cs = __close[nrm(d.driver_name) + '|' + mk + '|' + m.bb]
+              if (cs != null) __playsSame.push(+(((__dec(m.best) / __dec(cs)) - 1) * 100).toFixed(2))
+            }
           })
         })
         if (__field.length >= 10 && g && g.metrics) {
           const __avg = a => a.reduce((x, y) => x + y, 0) / a.length
-          g.metrics.clv = { plays: __plays.length, playsAvgPct: __plays.length ? +__avg(__plays).toFixed(2) : null, playsPosPct: __plays.length ? +((__plays.filter(v => v > 0).length / __plays.length) * 100).toFixed(1) : null, fieldAvgPct: +__avg(__field).toFixed(2), fieldN: __field.length }
+          g.metrics.clv = { plays: __plays.length, playsAvgPct: __plays.length ? +__avg(__plays).toFixed(2) : null, playsPosPct: __plays.length ? +((__plays.filter(v => v > 0).length / __plays.length) * 100).toFixed(1) : null, fieldAvgPct: +__avg(__field).toFixed(2), fieldN: __field.length,
+            closeBasis: 'best-of-books', playsSameBookAvgPct: __playsSame.length ? +__avg(__playsSame).toFixed(2) : null, playsSameBookN: __playsSame.length, closeAgeMinMedian: __ages.length ? +__ages.slice().sort((a, b) => a - b)[Math.floor(__ages.length / 2)].toFixed(0) : null }
         }
       }
     } catch (e) {}

@@ -16,15 +16,12 @@
 // Operator (2026-10-11): "we really only need it to fire when we run the simulation and we know what
 // time the race is supposed to start" - the publish opens the window, the schedule closes it.
 const { createClient } = require('@supabase/supabase-js')
-const { american } = require('./_kalshi')
+// Event / driver / price shaping is shared with the pages: src/lib/kalshiMarkets.js.
+const K = require('../src/lib/kalshiMarkets')
+const { american, cents, MARKET_OF: MARKETS } = K
 
 const KALSHI = 'https://api.elections.kalshi.com/trade-api/v2'
-const MARKETS = { KXNASCARRACE: 'win', KXNASCARTOP3: 't3', KXNASCARTOP5: 't5', KXNASCARTOP10: 't10', KXNASCARTOP20: 't20' }
-// Kalshi titles: "Cup Series: Kyle Larson wins", "Auto Parts: ..." (O'Reilly Auto Parts Series), trucks TBC.
-const SERIES_PAT = { cup: /\bcup\b/i, oreilly: /auto parts|o'?reilly|xfinity/i, trucks: /truck|craftsman/i }
-
-const nrm = x => String(x || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '')
-const cents = (m, k) => { const d = m[k + '_dollars']; if (d != null && d !== '') return Math.round(parseFloat(d) * 100); const c = m[k]; return (c == null || c === '') ? null : Number(c) }
+const nrm = x => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '')
 
 async function fetchMarkets(seriesTicker) {
   const out = []; let cursor = null
@@ -68,14 +65,7 @@ module.exports = async function handler(req, res) {
           try { (await fetchMarkets(tk)).forEach(m => markets.push({ ...m, __mk: mk })) } catch (e) { r.err = (r.err || '') + e.message + '; ' }
         }
       }
-      // this race's event: series named in the title; Kalshi's close_time is the SETTLEMENT deadline,
-      // about a week after the green (Charlotte R32 2026-10-11 -> close 10-19), so accept
-      // [green - 1d, green + 9d] and, if two events of the series fall in it, keep the earliest close.
-      const lo = start.getTime() - 86400e3, hi = start.getTime() + 9 * 86400e3
-      const cand = markets.filter(m => SERIES_PAT[c.series] && SERIES_PAT[c.series].test(m.title || '') && (() => { const t = new Date(m.close_time).getTime(); return t >= lo && t <= hi })())
-      const evClose = {}; cand.forEach(m => { const ev = (m.event_ticker || '').replace(/^(KXNASCAR\w+?)-/, ''); const t = new Date(m.close_time).getTime(); if (!(ev in evClose) || t < evClose[ev]) evClose[ev] = t })
-      const firstEv = Object.keys(evClose).sort((a, b) => evClose[a] - evClose[b])[0]
-      const mine = cand.filter(m => (m.event_ticker || '').replace(/^(KXNASCAR\w+?)-/, '') === firstEv)
+      const mine = K.pickRaceMarkets(markets, c.series, start)
       if (!mine.length) { r.skip = 'no Kalshi markets matched this race'; continue }
       const { data: ent } = await sb.from('entry_list').select('driver_name').eq('series', c.series).eq('race_year', year).eq('track_name', c.track_name)
       const byN = {}; (ent || []).forEach(e => { byN[nrm(e.driver_name)] = e.driver_name })
@@ -85,7 +75,7 @@ module.exports = async function handler(req, res) {
       const match = who => { const d = byN[nrm(who)]; if (d) return d; const t = String(who || '').trim().split(/\s+/); const c = byLast[nrm(t[t.length - 1]) + '|' + nrm(t[0]).slice(0, 1)]; return c && c.length === 1 ? c[0] : null }
       const rows = [], unmatched = new Set(), ts = now.toISOString()
       mine.forEach(m => {
-        const who = m.yes_sub_title || m.subtitle || String(m.title || '').replace(/^.*?:\s*/, '').replace(/\s+(wins|finishes.*)$/i, '')
+        const who = K.driverOf(m)
         const name = match(who)
         if (!name) { unmatched.add(who); return }
         const bid = cents(m, 'yes_bid'), ask = cents(m, 'yes_ask')

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { parseSect, parseDkPages, FD_HEADERS, HR_HEADERS, normDriver } from '../lib/oddsSectionParser'
+import * as __K from '../lib/kalshiMarkets'
 import { supabase } from '../lib/supabase'
 import { fetchAllRows } from '../lib/fetchAllRows'
 import useSubscriber from '../lib/useSubscriber'
@@ -32,7 +33,9 @@ import {
 // to EV and needs the odds parser, __teamCutoff is a page-level history filter. The
 // engine has to stay importable from a plain node script, so odds parsing does not
 // belong in it. Same code, unchanged - only the file it lives in was decided.
-export function __marketValue(winTxt, t10Txt, fdTxt, hrTxt, drivers) {
+// kalshi (2026-10-11, optional): { win:{<norm>:americanAsk}, t3:{}, t5:{}, t10:{} } from
+// src/lib/kalshiMarkets bookMap - Kalshi's ASK is the buyer's price, treated as a fourth book.
+export function __marketValue(winTxt, t10Txt, fdTxt, hrTxt, drivers, kalshi) {
   try {
     var norm = normDriver; // shared with oddsSectionParser - maps are keyed and looked up with the same normalizer
     var amer = function (l) { var m = l.trim().replace(/[\u2212\u2013\u2014]/g, '-'); return /^[+\-]\d{2,6}$/.test(m) ? parseInt(m, 10) : null; };
@@ -50,6 +53,7 @@ export function __marketValue(winTxt, t10Txt, fdTxt, hrTxt, drivers) {
     var dk10 = parseDkPages(t10Txt, ['t10']);
     Object.keys(dk10).forEach(function (mk) { Object.keys(dk10[mk]).forEach(function (k) { dk[mk][k] = dk10[mk][k]; }); });
     var books = { dk: dk, fd: parseSect(fdTxt, FDh), hr: parseSect(hrTxt, HRh) };
+    if (kalshi && kalshi.win) books.kalshi = { win: kalshi.win || {}, t3: kalshi.t3 || {}, t5: kalshi.t5 || {}, t10: kalshi.t10 || {} };
     var MKS = [['win', 1, 'winPct'], ['t3', 3, 'top3Pct'], ['t5', 5, 'top5Pct'], ['t10', 10, 'top10Pct']];
     // Tail guard (2026-07-09): below these model probabilities the sim has no calibrated
     // resolution -- MC noise puts backmarkers at ~1pct top3, and longshot odds amplify that
@@ -82,7 +86,7 @@ export function __marketValue(winTxt, t10Txt, fdTxt, hrTxt, drivers) {
           return null;
         };
         var px = {}; Object.keys(books).forEach(function (bk) { var kk = fk(books[bk][key]); px[bk] = kk != null ? books[bk][key][kk] : null; });
-        if (px.dk == null && px.fd == null && px.hr == null) return;
+        if (px.dk == null && px.fd == null && px.hr == null && px.kalshi == null) return;
         var best = null, bb = ''; Object.keys(px).forEach(function (bk) { if (px[bk] != null && (best == null || dec(px[bk]) > dec(best))) { best = px[bk]; bb = bk; } });
         // LEAVE-ONE-OUT consensus (2026-07-12). The book we would BET (bb) is excluded: a soft
         // outlier implies a LOW probability, so leaving it in drags the consensus toward itself and
@@ -97,7 +101,7 @@ export function __marketValue(winTxt, t10Txt, fdTxt, hrTxt, drivers) {
         // medge = OUR prob minus the SHARP consensus prob, in probability POINTS -> do we actually beat
         //         the market? This is the ONLY one of the three that isolates model alpha. A model with
         //         zero edge still prints a fat ev whenever one book hangs a bad number.
-        res[d.name][key] = { dk: px.dk, fd: px.fd, hr: px.hr, best: best, bb: bb, ev: (p >= MINP[key] && ((d.nCorrRaces === undefined && d.practiceScore === undefined) || (d.nCorrRaces || 0) >= 5 || d.practiceScore != null)) ? +((p * dec(best) - 1) * 100).toFixed(0) : null /* EDGE gate 2026-07-22: no flags on data-thin drivers */, mev: consP != null ? +((consP * dec(best) - 1) * 100).toFixed(0) : null, medge: (consP != null && p >= MINP[key] && ((d.nCorrRaces === undefined && d.practiceScore === undefined) || (d.nCorrRaces || 0) >= 5 || d.practiceScore != null)) ? +(((p - consP) * 100).toFixed(2)) : null };
+        res[d.name][key] = { dk: px.dk, fd: px.fd, hr: px.hr, kalshi: (px.kalshi == null ? null : px.kalshi), best: best, bb: bb, ev: (p >= MINP[key] && ((d.nCorrRaces === undefined && d.practiceScore === undefined) || (d.nCorrRaces || 0) >= 5 || d.practiceScore != null)) ? +((p * dec(best) - 1) * 100).toFixed(0) : null /* EDGE gate 2026-07-22: no flags on data-thin drivers */, mev: consP != null ? +((consP * dec(best) - 1) * 100).toFixed(0) : null, medge: (consP != null && p >= MINP[key] && ((d.nCorrRaces === undefined && d.practiceScore === undefined) || (d.nCorrRaces || 0) >= 5 || d.practiceScore != null)) ? +(((p - consP) * 100).toFixed(2)) : null };
       });
     });
     return res;
@@ -208,6 +212,29 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
   const [showBreakdown, setShowBreakdown]   = useState(false)
   const [published,     setPublished]       = useState(false)
   const [runNote, setRunNote] = useState('') // operator note stored with published board (2026-08-08)
+  // KALSHI (2026-10-11): the one price feed that updates itself. Fetched through the site's proxy,
+  // matched to this race by series + scheduled green (featured_weekend.race_start_utc), keyed like the
+  // pasted books, and passed to __marketValue as a fourth book (its ASK = the buyer's price).
+  const [kalshiBook, setKalshiBook] = useState(null)
+  const [kalshiMeta, setKalshiMeta] = useState(null)
+  const loadKalshi = React.useCallback(async (cfg) => {
+    try {
+      const all = []
+      for (const tk of __K.TICKERS) {
+        if (tk === 'KXNASCARTOP20') continue
+        const r = await fetch('/api/nascar-feed?type=kalshi&ks=' + tk + '&limit=1000')
+        if (!r.ok) continue
+        const j = await r.json()
+        ;(j.markets || []).forEach(m => all.push({ ...m, event_ticker: m.event, __mk: __K.MARKET_OF[tk] }))
+      }
+      const mine = __K.pickRaceMarkets(all, series, cfg && cfg.race_start_utc)
+      const { book, raw } = __K.bookMap(mine, normDriver)
+      const n = Object.keys(book.win).length + Object.keys(book.t3).length + Object.keys(book.t5).length + Object.keys(book.t10).length
+      setKalshiBook(n ? book : null)
+      setKalshiMeta({ at: new Date().toISOString(), n, markets: mine.length, raw, event: mine.length ? __K.eventKey(mine[0]) : null })
+    } catch (e) { setKalshiBook(null); setKalshiMeta({ at: new Date().toISOString(), n: 0, err: e.message }) }
+  }, [series])
+  useEffect(() => { if (config) loadKalshi(config) }, [config, loadKalshi])
   const [oddsWinTxt, setOddsWinTxt] = useState('')
   const [oddsT10Txt, setOddsT10Txt] = useState('')
   const [oddsFdTxt, setOddsFdTxt] = useState('')
@@ -940,6 +967,8 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
       // markets a driver is priced in. Semantics = finish-rank space (what the salary-proxy
       // backtest validated). DO NOT re-derive again by reasoning — next revision must come
       // from the odds_snapshots archive (~15 races).
+      // Kalshi is NOT an anchor source (2026-10-11): it reaches market value / flags / snapshots only.
+      // Letting it in here changes engine output - that is a registration (candidate: Kalshi anchor).
       const mv = __marketValue(oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt, rawDrivers)
       const dec = a => a > 0 ? a / 100 + 1 : 100 / Math.abs(a) + 1
       const acc = {}
@@ -1001,26 +1030,26 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
   useEffect(() => {
     if (!rawDrivers.length || !config) return
     const txts = [oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt]
-    if (!txts.some(x => (x || '').trim())) return
-    const h = series + '|' + ((simResults && simResults.length) ? 'S' : 'N') + '|' + txts.map(x => (x || '').length + ':' + (x || '').slice(0, 60)).join('|')
+    if (!txts.some(x => (x || '').trim()) && !(kalshiBook && kalshiBook.win)) return
+    const h = series + '|' + ((simResults && simResults.length) ? 'S' : 'N') + '|' + txts.map(x => (x || '').length + ':' + (x || '').slice(0, 60)).join('|') + '|k' + (kalshiMeta ? kalshiMeta.at : '')
     if (h === __snapHash.current) return
     const tmr = setTimeout(async () => {
       try {
         const __mvSrc = (simResults && simResults.length) ? simResults : rawDrivers
-        const mvSnap = __marketValue(oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt, __mvSrc)
+        const mvSnap = __marketValue(oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt, __mvSrc, kalshiBook)
         const rows = []
         Object.keys(mvSnap || {}).forEach(nm => {
           ;['win', 't3', 't5', 't10'].forEach(mk => {
             const m = mvSnap[nm] && mvSnap[nm][mk]
             if (!m) return
-            ;['dk', 'fd', 'hr'].forEach(bk => { if (m[bk] != null) rows.push({ series: series, track_name: config.track_name, race_year: config.race_year || new Date().getFullYear(), race_number: raceNumMap[series] ? parseInt(raceNumMap[series]) : null, driver_name: nm, market: mk, book: bk, odds: m[bk], ev: m.ev, mev: m.mev, medge: m.medge, best_price: m.best, best_book: m.bb }) })
+            ;['dk', 'fd', 'hr', 'kalshi'].forEach(bk => { if (m[bk] != null) rows.push({ series: series, track_name: config.track_name, race_year: config.race_year || new Date().getFullYear(), race_number: raceNumMap[series] ? parseInt(raceNumMap[series]) : null, driver_name: nm, market: mk, book: bk, odds: m[bk], ev: m.ev, mev: m.mev, medge: m.medge, best_price: m.best, best_book: m.bb }) })
           })
         })
         if (rows.length >= 10) { { const { error: __oe } = await supabase.from('odds_snapshots').insert(rows); if (__oe) { await supabase.from('odds_snapshots').insert(rows.map(({ ev, mev, medge, best_price, best_book, ...__r }) => __r)) } }; __snapHash.current = h }
       } catch (e) {}
     }, 4000)
     return () => clearTimeout(tmr)
-  }, [oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt, rawDrivers, simResults, series, config, raceNumMap]) // eslint-disable-line
+  }, [oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt, rawDrivers, simResults, series, config, raceNumMap, kalshiBook, kalshiMeta]) // eslint-disable-line
 
   const handleRun = () => {
     __runOddsHash.current = [oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt].map(x => (x || '').length + ':' + (x || '').slice(0, 40)).join('|')
@@ -1102,11 +1131,11 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
     const __oddsTxts = [oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt]
     const __oddsHashNow = __oddsTxts.map(x => (x || '').length + ':' + (x || '').slice(0, 40)).join('|')
     if (!__oddsTxts.some(x => (x || '').trim())) {
-      if (!window.confirm('No odds are pasted. Market Value will be BLANK and no bets will be flagged or logged. Publish anyway?')) return
+      if (!window.confirm(kalshiBook ? 'No sportsbook odds are pasted - Market Value will carry Kalshi only. Publish anyway?' : 'No odds are pasted. Market Value will be BLANK and no bets will be flagged or logged. Publish anyway?')) return
     } else if (__runOddsHash.current !== __oddsHashNow) {
       if (!window.confirm('Odds changed since the last Run - market anchors and EV flags reflect the OLD odds. OK = publish anyway, Cancel = go re-run first.')) return
     }
-    const __mv = __marketValue(oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt, simResults)
+    const __mv = __marketValue(oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt, simResults, kalshiBook)
     let __mtxB64 = null, __mtxN = 0, __mtxOrder = null
     if (simResults.posMatrix && simResults.simN) {
       const __nD = simResults.length
@@ -1127,7 +1156,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
       race_year:  config.race_year || new Date().getFullYear(),
       race_number: raceNumMap[series] ? parseInt(raceNumMap[series]) : null,
       stage: simStage,
-      config: { lapFeature: series !== 'cup' ? 'v1-0.15' : 'off', carCeilFloor: 'v1-0.70', carDnf: series === 'trucks' ? 'v1-k32' : 'off', lapTraffic: series === 'oreilly' ? 'v2-k1.5' : 'off', ringer: series !== 'cup' ? 'v1-b12' : 'off', topLift: series === 'trucks' ? 'v1-k2-b12' : 'off', projShade: series === 'cup' ? 'v1-0.7' : 'v2-1.0', emptyPractice: series === 'oreilly' ? 'corrHistory' : 'prorata', domBoot: domPoolFor(series, __trackGroup(config && config.track_name)) ? 'v1-' + __trackGroup(config && config.track_name) : 'off', asymNoise: (series !== 'cup' && ['INT', 'SHORT'].indexOf(__trackGroup(config && config.track_name)) !== -1) ? 'v1-upside-0.5' : 'off', practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'car-auto-v2', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06-fenced', domCurves: (__trackGroup(config && config.track_name) === 'INT' ? 'int-dom-v2' : __trackGroup(config && config.track_name) === 'SS' ? 'ss-flbudget-v1' : 'gxc-v3.1-dnfLL'), domSpeed: 'mult-v1', startProj: ((series === 'cup' || series === 'oreilly') ? 'trail10-v4-form' : 'trail10-v3.5-eqStart'), flagGuard: 'conf-v1', dnfModel: 'wreck-v1.1-cb', marketAnchor: 'v1.4-multimkt', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), runNote: (runNote.trim() ? runNote.trim() : null), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
+      config: { lapFeature: series !== 'cup' ? 'v1-0.15' : 'off', carCeilFloor: 'v1-0.70', carDnf: series === 'trucks' ? 'v1-k32' : 'off', lapTraffic: series === 'oreilly' ? 'v2-k1.5' : 'off', ringer: series !== 'cup' ? 'v1-b12' : 'off', topLift: series === 'trucks' ? 'v1-k2-b12' : 'off', projShade: series === 'cup' ? 'v1-0.7' : 'v2-1.0', emptyPractice: series === 'oreilly' ? 'corrHistory' : 'prorata', domBoot: domPoolFor(series, __trackGroup(config && config.track_name)) ? 'v1-' + __trackGroup(config && config.track_name) : 'off', asymNoise: (series !== 'cup' && ['INT', 'SHORT'].indexOf(__trackGroup(config && config.track_name)) !== -1) ? 'v1-upside-0.5' : 'off', practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'car-auto-v2', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06-fenced', domCurves: (__trackGroup(config && config.track_name) === 'INT' ? 'int-dom-v2' : __trackGroup(config && config.track_name) === 'SS' ? 'ss-flbudget-v1' : 'gxc-v3.1-dnfLL'), domSpeed: 'mult-v1', startProj: ((series === 'cup' || series === 'oreilly') ? 'trail10-v4-form' : 'trail10-v3.5-eqStart'), flagGuard: 'conf-v1', dnfModel: 'wreck-v1.1-cb', marketAnchor: 'v1.4-multimkt', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, raceStartUtc: (config && config.race_start_utc) || null, kalshi: kalshiMeta && kalshiMeta.n ? { event: kalshiMeta.event, n: kalshiMeta.n, at: kalshiMeta.at } : null, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), runNote: (runNote.trim() ? runNote.trim() : null), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
       results: simResults.map(d => ({
         driver_name:  d.name,
         car_number:   d.carNumber,
@@ -1227,14 +1256,14 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
     const oddsCounts = useMemo(() => {
       const __ocSrc = (simResults && simResults.length ? simResults : rawDrivers)
       if (!__ocSrc || !__ocSrc.length) return null
-      const mv = __marketValue(oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt, __ocSrc)
+      const mv = __marketValue(oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt, __ocSrc, kalshiBook)
       const c = { dk: 0, fd: 0, hr: 0 }
       Object.keys(mv || {}).forEach(k => { const w = mv[k] && mv[k].win; if (w) { if (w.dk != null) c.dk++; if (w.fd != null) c.fd++; if (w.hr != null) c.hr++ } })
       return c
-    }, [simResults, rawDrivers, oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt])
+    }, [simResults, rawDrivers, oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt, kalshiBook])
   const shadeRows = useMemo(() => {
     if (!simResults || (!oddsWinTxt && !oddsT10Txt && !oddsFdTxt && !oddsHrTxt)) return null
-    const mvMap = __marketValue(oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt, simResults)
+    const mvMap = __marketValue(oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt, simResults, kalshiBook)
     const dec = a => a > 0 ? a / 100 + 1 : 100 / Math.abs(a) + 1
     const T = 18
     const out = []
@@ -1251,7 +1280,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
     })
     out.sort((a, b) => b.pRaw - a.pRaw)
     return out
-  }, [simResults, oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt, shadeLambda])
+  }, [simResults, oddsWinTxt, oddsT10Txt, oddsFdTxt, oddsHrTxt, shadeLambda, kalshiBook])
 
   const handleSort = (key) => {
     const defaultsAsc = ['projFinish', 'startPos', 'finishP50']
@@ -1572,6 +1601,10 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
         {[['DK', oddsWinTxt, oddsCounts.dk], ['FD', oddsFdTxt, oddsCounts.fd], ['HR', oddsHrTxt, oddsCounts.hr]].map(bc => (
           <span key={bc[0]} style={{ color: (bc[1] && bc[1].trim() && !bc[2]) ? '#ef4444' : 'var(--text-muted)' }}>{bc[0]}: {bc[2]} parsed{(bc[1] && bc[1].trim() && !bc[2]) ? ' \u26a0' : ''}</span>
         ))}
+        <span title={kalshiMeta && kalshiMeta.event ? 'Kalshi event ' + kalshiMeta.event + ' - asks, matched by series + scheduled green' : 'No Kalshi markets matched this race yet'} style={{ color: (kalshiBook ? '#79c0ff' : 'var(--text-muted)') }}>
+          Kalshi: {kalshiMeta ? (kalshiMeta.n + ' prices' + (kalshiMeta.err ? ' \u26a0' : '')) : 'loading'}
+          <button onClick={() => loadKalshi(config)} style={{ marginLeft: 6, padding: '1px 7px', fontSize: '0.72rem', border: '1px solid var(--border)', borderRadius: 999, background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer' }}>refresh</button>
+        </span>
       </div> : null}
 </div>
             )}
