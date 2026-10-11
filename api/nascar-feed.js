@@ -418,6 +418,25 @@ module.exports = async function handler(req, res) {
       if (series === undefined || raceId === undefined) return res.status(400).json({ error: 'type=cleanpace needs series and race' })
       return await cleanPace(res, year, series, raceId)
     }
+    if (q.type === 'runs') {
+      // 2026-10-11: did a qualifying session actually run? One line per timed session in the weekend
+      // feed (run_type 2 = qualifying): name, cars classified, cars with a best lap > 0. A metric
+      // weekend can still carry a placeholder run (Auto Club 2023: "Round 1 Group A" with all 36
+      // cars and no laps) and a real session in old seasons can lack laps (Atlanta 2022), so the
+      // verdict is read from the shape, not from any one field. Used to audit lineup_source.
+      if (series === undefined || raceId === undefined) return res.status(400).json({ error: 'type=runs needs series and race' })
+      const wk = await getJson(`${NASCAR}/cacher/${year}/${series}/${raceId}/weekend-feed.json`)
+      const race = (wk && wk.weekend_race && wk.weekend_race[0]) || {}
+      const results = race.results || []
+      const runs = ((wk && wk.weekend_runs) || []).map(r => ({
+        run_type: r.run_type, name: r.run_name, cars: (r.results || []).length,
+        timed: (r.results || []).filter(x => +x.best_lap_time > 0).length,
+        classified: (r.results || []).filter(x => +x.finishing_position > 0).length,
+      }))
+      return res.status(200).json({ type: 'runs', year, series_id: series, nascar_race_id: raceId, race_name: race.race_name, track_name: race.track_name,
+        entries: results.length, with_qual_pos: results.filter(r => +r.qualifying_position > 0).length, with_qual_speed: results.filter(r => +r.qualifying_speed > 0).length,
+        with_start_pos: results.filter(r => +r.starting_position > 0).length, runs })
+    }
     if (q.type === 'bundle') {
       // 2026-10-03: entry list / draw / qualifying for one race, shaped only (src/lib/weekendBundle).
       // The Load Data panel writes it through the operator's session; the cron writes the same shape.
