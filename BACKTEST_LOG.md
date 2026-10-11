@@ -10031,3 +10031,25 @@ idempotent; the save message reports distinct lineups / entries / most-duplicate
 created on the live project (sql/dfs_field_lineups.sql). The 31 historical contests are NOT backfilled into the table
 (9 MB of SQL through the MCP channel is not sensible); they live gzipped in scripts/backtest-data/field with INDEX.md
 and the harnesses read them from there. Lint / build green.
+
+## 2026-10-11 — TRUCKS CHARLOTTE R21 replay against the real field (1,881 entries, operator's standings export) — what the week's work looks like on one race
+Built from the stored post-board draws through the product's own exports (same code as DFS Replay), graded on DK's official
+FPTS and the real field's scores. Sim grade (operator, Grade Center): MAE 7.77 post / 7.99 pre.
+  GPP 20 (E[max]): best lineup 286.4 = 42nd of 1,881 (97.8th pct), three lineups inside the top 60, cash line 236.9 = 366th.
+  At 150 the set's best is the contest winner's score band (100th pct). Our 20 lineups are 0-2 copies each in the field
+  (one at 6): at a 1,881-entry trucks GPP the duplication worry is small - the field's own most-copied lineup is x9.
+  OPERATOR'S 18 real entries: best 263.1 = 129th; 3 inside the top 400. The product's set beat the operator's hand build
+  this week on best-of-N (42nd vs 129th) and on depth (three top-60 vs none).
+  FIELD CHALK: Ruggiero 66% owned (we projected 38%), scored 26 - the field's bust; we held him in 9 of 20. Riggs 46% / 86 pts
+  and Honeycutt 33% / 72 pts were the chalk that hit; we held Riggs 10/20, Honeycutt 13/20.
+  WHAT SANK OUR BACK HALF: three ~35-point projections wrecked - Caruth 37.9 -> -14.8 (7 of our 20), Friesen 37.4 -> -2.5
+  (11 of 20), Garcia 34.3 -> 2.0 (9 of 20). Nothing systematic; that is trucks.
+  INPUT FINDING (same as the grader bug above): Andres Perez De Lara sat in 15 of our 20 lineups at a 24% PROJECTED
+  ownership - the field had him at 3%. His board projection (32.7) was built off 4 loop rows + the market fill because the
+  entry-sheet spelling split his history; he scored 37 so it cost nothing this week, but one mis-keyed thin driver
+  dominating 75% of a build is the exposure problem in miniature. Fixed by the alias (bd7a150); worth a 'max share of the
+  set for a thin-history driver' guard - UNREGISTERED, noted.
+  OWNERSHIP MODEL (v3) vs actual: fine on the expensive end (Riggs 48/46, Honeycutt 44/33, Majeski 25/23), systematically
+  LOW on the cheap post-practice value plays the field chases (Ankrum 16/30, Queen 14/29, LaJoie 11/23) and HIGH on
+  Perez De Lara (24/3) and Eckes (35/20). Direction is consistent with the 09-06 v3 note (top-end term only).
+  No ledger row written from here - the DFS Replay page's Run button is the ledger; this entry is the read.
