@@ -26,6 +26,25 @@ async function kalshi(req, res) {
       if (!r.ok) return res.status(502).json({ error: `kalshi ${r.status}` })
       return res.status(200).json(await r.json())
     }
+    if (q.trades) {
+      // Public trade tape for one market (2026-10-11): price, count, taker side, time. Up to 1000/page.
+      if (!TICKER_OK.test(q.trades)) return res.status(400).json({ error: 'bad ticker' })
+      const lim = Math.min(Math.max(parseInt(q.limit) || 1000, 1), 1000)
+      const r = await fetch(`${KALSHI}/markets/trades?ticker=${q.trades}&limit=${lim}${q.cursor ? '&cursor=' + encodeURIComponent(q.cursor) : ''}${q.min_ts ? '&min_ts=' + parseInt(q.min_ts) : ''}${q.max_ts ? '&max_ts=' + parseInt(q.max_ts) : ''}`, { headers: { Accept: 'application/json' } })
+      if (!r.ok) return res.status(502).json({ error: `kalshi ${r.status}` })
+      return res.status(200).json(await r.json())
+    }
+    if (q.candles) {
+      // Hourly / minute candlesticks for one market: /series/{series}/markets/{ticker}/candlesticks.
+      if (!TICKER_OK.test(q.candles)) return res.status(400).json({ error: 'bad ticker' })
+      const ser = String(q.ks || q.candles.split('-')[0]).toUpperCase()
+      if (!SERIES_OK.test(ser)) return res.status(400).json({ error: 'bad series' })
+      const pi = [1, 60, 1440].includes(parseInt(q.period)) ? parseInt(q.period) : 60
+      const end = parseInt(q.end_ts) || Math.floor(Date.now() / 1000), start = parseInt(q.start_ts) || end - 7 * 86400
+      const r = await fetch(`${KALSHI}/series/${ser}/markets/${q.candles}/candlesticks?start_ts=${start}&end_ts=${end}&period_interval=${pi}`, { headers: { Accept: 'application/json' } })
+      if (!r.ok) return res.status(502).json({ error: `kalshi ${r.status}`, body: (await r.text()).slice(0, 200) })
+      return res.status(200).json(await r.json())
+    }
     const series = String(q.ks || 'KXNASCARRACE').toUpperCase()
     if (!SERIES_OK.test(series)) return res.status(400).json({ error: 'bad series' })
     const status = ['open', 'closed', 'settled'].includes(q.status) ? q.status : 'open'
@@ -36,7 +55,8 @@ async function kalshi(req, res) {
     // Kalshi moved prices from integer cents (yes_bid) to dollar strings (yes_bid_dollars, 2026);
     // read either, in cents.
     const cents = (m, k) => { const d = m[k + '_dollars']; if (d != null && d !== '') return Math.round(parseFloat(d) * 100); const c = m[k]; return (c == null || c === '') ? null : Number(c) }
-    const markets = (j.markets || []).map(m => {
+    const evF = q.ev ? String(q.ev).toUpperCase() : null
+    const markets = (j.markets || []).filter(m => !evF || String(m.event_ticker || '').toUpperCase() === evF).map(m => {
       const bid = cents(m, 'yes_bid'), ask = cents(m, 'yes_ask'), last = cents(m, 'last_price')
       return {
         ticker: m.ticker, event: m.event_ticker, title: m.title, subtitle: m.yes_sub_title || m.subtitle || null,
