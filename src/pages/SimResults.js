@@ -197,6 +197,9 @@ export default function SimResults() {
   const [mvUnits, setMvUnits] = useState('odds')
   const [mvSort, setMvSort] = useState('edge')
   const [mvQual, setMvQual] = useState(false)
+  const [data, setData]           = useState(null)
+  const [loading, setLoading]     = useState(true)
+  const [error, setError]         = useState(null)
   // KALSHI LIVE (2026-10-11): current asks for this race, refreshed every 2 minutes while the market
   // value tab is open. Stamped mv (publish-time prices, Best / Edge) is the record and is not
   // recomputed here - the live column is for shopping. Matched by series + the board's weekend.
@@ -223,9 +226,6 @@ export default function SimResults() {
     const t = setInterval(go, 120000)
     return () => { on = false; clearInterval(t) }
   }, [data])
-  const [data, setData]           = useState(null)
-  const [loading, setLoading]     = useState(true)
-  const [error, setError]         = useState(null)
   const [sortAsc, setSortAsc]     = useState(true)
   const [tab, setTab] = useState('proj')
   const [sel, setSel] = useState([])
