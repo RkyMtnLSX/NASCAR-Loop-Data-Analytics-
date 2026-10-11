@@ -9852,3 +9852,32 @@ users; quality: unscaled E[max] >= D - 0.5% at N 20 and N 150; realised percenti
 Ship the SMALLEST tau that clears both. If none clears quality, the product keeps D and the duplication is disclosed to
 patrons as a known property; if none clears uniqueness at tau .15, the next form is exposure-side (per-user random
 caps), registered separately. Same 17 races, same harness (scripts/backtest-dfs-seed.js STAGE=2). PUSH before the run.
+
+## 2026-10-11 — PER-USER BUILDS, STAGES 1 AND 2 EXECUTED AS REGISTERED: NO ARM CLEARS BOTH RAILS. Nothing ships; the trade-off is now measured.
+17 replay races, 30 simulated users, 20 seeds for quality, N 20 and N 150, default GPP build (no caps). Means over races:
+  STAGE 1 (seeded 2,500-draw subset; S2 / S4 add projection jitter)
+     N20   shared 13.0 / 20   top lineup held by 22.6 of 30 users   D's #1 in 20.2 sets   E[max] vs D +0.05%   realised pct 91.0 vs 91.0
+     N150  shared 112 / 150   held by 24.5 / 30   E[max] +0.07%   realised 96.4 vs 96.9.   Jitter changes nothing (candidates come from draws).
+     QUALITY rail passes everywhere; UNIQUENESS fails everywhere. A random draw sample ranks the same lineups on top because
+     the best-of-N lineups are a property of the distribution, not the sample.
+  STAGE 2 (per-user driver-level draw scaling, tau)
+     N20   J5  shared 10.2 / 20  held 14.3 / 30  E[max] -0.35%  realised 90.8
+           J10 shared  7.3 / 20  held  9.9 / 30  E[max] -1.33%  realised 89.8
+           J15 shared  4.9 / 20  held  6.9 / 30  E[max] -2.54%  realised 88.2
+     N150  J5  shared 90 / 150  held 20.4  -0.21%  96.8 | J10 69 / 150  16.5  -0.93%  96.4 | J15 53 / 150  11.7  -1.89%  95.6
+     Reproducibility assert held on every build. By the registered rule: no tau clears uniqueness (<= 2 shared, <= 20%
+     holding one lineup) and only J5 clears quality (>= -0.5%). NOT SHIPPED as registered.
+WHAT THIS MEASURES. Uniqueness has a price, and it is now a number: roughly 1% of expected best-of-20 score per 3 lineups
+of overlap removed. The deterministic build IS the E[max] optimum for the sim, so every way of making users differ moves
+them off it; the subset form was free because it did not move them, and the scaling form moved them in proportion to
+what it cost. The 17-race realised percentile moves the same direction (91.0 -> 88.2 at J15) though inside its noise.
+WHAT IT MEANS FOR THE PRODUCT (operator decision, not mine). Prize-splitting among subscribers is the other side of the
+ledger: at D every subscriber holds the same #1 lineup, so the night it wins it pays 1/n. A 1-2.5% cut in expected best
+score against a 1/n split on the winning night is a trade whose sign depends on n and on how often the shared lineup is
+the one that hits - neither of which the harness can see. Options on the table: (1) keep D (max expected quality,
+duplication disclosed to patrons); (2) ship tau as a user dial - "Uniqueness: off / low / medium / high" = D / J5 / J10 /
+J15, default OFF, each step labelled with its measured cost - so the 150-max player who knows what dupes cost him can
+buy uniqueness and the casual player keeps the optimum; (3) the exposure-side form (per-user random caps), a new
+registration, likely the same trade-off in different clothes. Recommendation: (2). It is honest about the trade, costs
+nothing to the default user, and puts the decision with the one person who knows his contest.
+Logs: scripts/backtest-data/dfs-seed-stage1.log / stage2.log; per-race tables in dfs-seed-result.json / result2.json.
