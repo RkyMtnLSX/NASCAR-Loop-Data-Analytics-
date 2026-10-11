@@ -352,3 +352,8 @@ What remains configurable in `simConfig` is the shipped mechanism set and its ca
   interim rule is manual (PITBOARD_MANUAL).
 - Season-end refits queued: trucks favourite clip family, INT / SHORT dominance curves, strength order outside INT,
   finer shading grid.
+- **Kalshi as a market-anchor source (10-11).** Kalshi asks now enter market value, flags and snapshots as a
+  fourth book, but `__mktFill` (the anchor the engine shades from, section 3.x) still reads DK / FD / HR only -
+  letting Kalshi in changes engine output and is a registration, not a default. Case for it: it is the one price
+  feed live at publish and liquid pre-race on Cup winner markets; case against: top-N books are 5-12c wide. Fit
+  on 2022-24 is impossible (no Kalshi history) - judge forward on 2027 boards, pre-registered.
