@@ -856,6 +856,28 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
     return () => clearTimeout(h)
   }, [eqOverrides, series]) // eslint-disable-line
 
+  // LINEUP SOURCE toggle (2026-10-11): the badge is the operator's switch between a qualifying
+  // session that ran and a metric-set grid. Charlotte Roval Cup R32 had no practice and no
+  // qualifying; the feed filled qualifying_position with the metric order and the auto-load labelled
+  // it 'qualifying'. The bundle now infers 'metric' when no session ran and no speeds exist, and this
+  // toggle covers the case it still gets wrong (rain-out after a session was on the card). Writes
+  // lineup_source on this race's qualifying_results rows; the board config stamps it at publish.
+  const [lineupBusy, setLineupBusy] = useState(false)
+  async function setLineupSource(src) {
+    if (!config || lineupBusy) return
+    setLineupBusy(true)
+    try {
+      let q = supabase.from('qualifying_results').update({ lineup_source: src })
+        .eq('series', series).eq('track_name', config.track_name).eq('year', config.race_year || new Date().getFullYear())
+        .not('qualifying_position', 'is', null)
+      if (config.race_number) q = q.eq('race_number', config.race_number)
+      const { error } = await q
+      if (error) throw error
+      setLineupState(src)
+    } catch (e) { setError('lineup source: ' + e.message) }
+    setLineupBusy(false)
+  }
+
   // TO-THE-REAR overrides (2026-07-11): drivers forfeiting their qualifying spot (backup
   // car, unapproved adjustments, driver change). Sim scores them as starting at field size.
   // Persisted per series in featured_weekend.rear_overrides, same pattern as eq_overrides.
@@ -1626,9 +1648,20 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
 
           {simResults && (
             <div style={{ margin: '10px 0 6px', fontSize: '0.8rem' }}>
-              <span title="Where the Start column came from when this sim ran" style={{ padding: '3px 10px', borderRadius: 999, border: '1px solid var(--border)', background: 'var(--bg-surface)', color: lineupState === 'none' ? '#dd8844' : (lineupState.indexOf('partial') === 0 || lineupState === 'practice fallback') ? '#e8c766' : '#3fb950' }}>
+              <span title="Where the Start column came from when this sim ran" style={{ padding: '3px 10px', borderRadius: 999, border: '1px solid var(--border)', background: 'var(--bg-surface)', color: lineupState === 'none' ? '#dd8844' : (lineupState.indexOf('partial') === 0 || lineupState === 'practice fallback') ? '#e8c766' : lineupState === 'metric' ? '#79c0ff' : '#3fb950' }}>
                 lineup: {lineupState}
               </span>
+              {['qualifying', 'metric', 'rain'].indexOf(lineupState) !== -1 && (
+                <span style={{ marginLeft: 8, color: 'var(--text-muted)' }}>
+                  grid set by{' '}
+                  {[['qualifying', 'qualifying session'], ['metric', 'metric (no qualifying)']].map(([v, lbl]) => (
+                    <button key={v} disabled={lineupBusy || lineupState === v} onClick={() => setLineupSource(v)} title={v === 'metric' ? 'Qualifying was not run (rain / no session on the card); NASCAR set the grid by the metric. Stored on this race and stamped into the published board.' : 'A qualifying session ran and set the grid.'}
+                      style={{ marginLeft: 4, padding: '2px 8px', borderRadius: 999, border: '1px solid var(--border)', background: lineupState === v ? 'var(--bg-elevated)' : 'transparent', color: lineupState === v ? 'var(--text-primary)' : 'var(--text-secondary)', fontSize: '0.75rem', cursor: lineupState === v ? 'default' : 'pointer', opacity: lineupBusy ? 0.6 : 1 }}>
+                      {lbl}
+                    </button>
+                  ))}
+                </span>
+              )}
             </div>
           )}
           {simResults && (

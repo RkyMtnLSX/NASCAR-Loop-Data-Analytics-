@@ -45,7 +45,11 @@ function shapeBundle(wk) {
     const byPos = results.filter(r => +r.qualifying_position > 0)
     if (byPos.length >= MIN_FIELD) {
       qualifying = byPos.map(r => ({ driver_name: String(r.driver_fullname).trim(), car_number: String(r.car_number).trim(), qualifying_position: +r.qualifying_position, lap_time: null, qualifying_speed: +r.qualifying_speed > 0 ? +r.qualifying_speed : null }))
-      lineup_source = 'qualifying'
+      // Charlotte Roval Cup 2026 R32 (no practice, no qualifying): the feed filled qualifying_position
+      // with the metric order and no timed run, and this branch labelled it 'qualifying'. A session
+      // that ran always carries qualifying_speed; a metric grid never does. No run + no speeds = metric.
+      // The Simulation Center badge is a toggle for the case this still gets wrong (2026-10-11).
+      lineup_source = qualifying.some(q => q.qualifying_speed != null) ? 'qualifying' : 'metric'
     } else {
       // No timed session and no qualifying positions, but a grid: the field was set by metric.
       const byStart = results.filter(r => +r.starting_position > 0 && !(+r.finishing_position > 0))
