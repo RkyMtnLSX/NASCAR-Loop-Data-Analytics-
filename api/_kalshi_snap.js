@@ -79,10 +79,14 @@ module.exports = async function handler(req, res) {
       if (!mine.length) { r.skip = 'no Kalshi markets matched this race'; continue }
       const { data: ent } = await sb.from('entry_list').select('driver_name').eq('series', c.series).eq('race_year', year).eq('track_name', c.track_name)
       const byN = {}; (ent || []).forEach(e => { byN[nrm(e.driver_name)] = e.driver_name })
+      // Fallback (Kalshi "John Hunter Nemechek" vs entry list "John H. Nemechek"): same last name and
+      // same first initial, and only one entry fits.
+      const byLast = {}; (ent || []).forEach(e => { const t = String(e.driver_name || '').trim().split(/\s+/); const k = nrm(t[t.length - 1]) + '|' + nrm(t[0]).slice(0, 1); (byLast[k] = byLast[k] || []).push(e.driver_name) })
+      const match = who => { const d = byN[nrm(who)]; if (d) return d; const t = String(who || '').trim().split(/\s+/); const c = byLast[nrm(t[t.length - 1]) + '|' + nrm(t[0]).slice(0, 1)]; return c && c.length === 1 ? c[0] : null }
       const rows = [], unmatched = new Set(), ts = now.toISOString()
       mine.forEach(m => {
         const who = m.yes_sub_title || m.subtitle || String(m.title || '').replace(/^.*?:\s*/, '').replace(/\s+(wins|finishes.*)$/i, '')
-        const name = byN[nrm(who)]
+        const name = match(who)
         if (!name) { unmatched.add(who); return }
         const bid = cents(m, 'yes_bid'), ask = cents(m, 'yes_ask')
         const odds = american(ask)
