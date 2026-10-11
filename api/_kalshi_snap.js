@@ -83,12 +83,27 @@ module.exports = async function handler(req, res) {
         if (odds == null) return
         rows.push({ series: c.series, track_name: c.track_name, race_year: year, race_number: c.race_number, driver_name: name, market: m.__mk, book: 'kalshi', odds, captured_at: ts, kalshi_bid: bid, kalshi_ask: ask })
       })
+      // CHANGE-ONLY (2026-10-11): 55% of a race's ticks repeat the previous bid/ask exactly (Cup R32:
+      // 2,131 of 3,856 rows). Write a row only when the price moved - except on the final pre-green
+      // ticks (<= 15 min), which always write so the close carries an honest timestamp. The close
+      // lookup takes each book's LAST row, so an unchanged price is still represented by its earlier row.
+      let skippedSame = 0
+      if (rows.length && minsToGreen > 15) {
+        const { data: prevRows } = await sb.from('odds_snapshots').select('driver_name, market, kalshi_bid, kalshi_ask, captured_at')
+          .eq('series', c.series).eq('race_year', year).eq('race_number', c.race_number).eq('book', 'kalshi')
+          .order('captured_at', { ascending: false }).limit(1500)
+        const last = {}
+        ;(prevRows || []).forEach(p => { const k = p.driver_name + '|' + p.market; if (!(k in last)) last[k] = p })
+        const keep = rows.filter(r => { const p = last[r.driver_name + '|' + r.market]; return !(p && p.kalshi_bid === r.kalshi_bid && p.kalshi_ask === r.kalshi_ask) })
+        skippedSame = rows.length - keep.length
+        rows.length = 0; rows.push(...keep)
+      }
       if (rows.length) {
         let { error } = await sb.from('odds_snapshots').insert(rows)
         if (error && /kalshi_bid|kalshi_ask/.test(error.message)) ({ error } = await sb.from('odds_snapshots').insert(rows.map(({ kalshi_bid, kalshi_ask, ...x }) => x)))
         if (error) r.err = (r.err || '') + error.message
       }
-      r.written = rows.length; r.markets = mine.length; r.minsToGreen = Math.round(minsToGreen)
+      r.written = rows.length; r.unchanged = skippedSame; r.markets = mine.length; r.minsToGreen = Math.round(minsToGreen)
       if (unmatched.size) r.unmatched = [...unmatched].slice(0, 12)
     }
     return res.status(200).json({ at: now.toISOString(), force, result })
