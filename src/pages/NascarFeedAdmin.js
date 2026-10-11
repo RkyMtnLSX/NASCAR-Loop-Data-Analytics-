@@ -37,6 +37,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { fetchAllRows } from '../lib/fetchAllRows'
 import { SERIES_ID, SERIES_OPTS, fold, makeResolver, feed, mapRace } from '../lib/nascarFeedMap'
+import { autoGradeRace } from '../lib/gradeRace'
 import { shapeBundle, applyBundle } from '../lib/weekendBundle'
 
 const card = { marginBottom: 20 }
@@ -203,7 +204,8 @@ export function LoadRaceFromFeed() {
       const nid = row.nascar_race_id || parseInt(nascarId, 10)
       if (row.nascar_race_id !== nid) await supabase.from('races').update({ nascar_race_id: nid }).eq('id', row.id)
       const msg = await loadPitData(row.id, nid, parseInt(year, 10), series, row.track_name, parseInt(raceNum, 10))
-      setStatus({ ok: `${row.track_name} ${year} R${raceNum}: ${msg}` })
+      const g = await autoGradeRace(series, parseInt(year, 10), parseInt(raceNum, 10))
+      setStatus({ ok: `${row.track_name} ${year} R${raceNum}: ${msg}. Boards — ${g}` })
     } catch (e) { setStatus({ err: e.message }) } finally { setBusy(false) }
   }
 
@@ -256,7 +258,10 @@ export function LoadRaceFromFeed() {
       }
 
       const __pit = await loadPitData(raceRow.id, race.nascar_race_id, parseInt(year, 10), series, race.track_name, parseInt(raceNum, 10))
-      setStatus({ ok: `Loaded ${insertRows.length} drivers for ${race.track_name} ${year} — ${race.total_laps} actual laps (${race.scheduled_laps} scheduled), ${race.total_cautions} cautions. ${__pit}` })
+      // ONE CLICK (2026-10-11): grade every published board for this race and log season CLV.
+      setStatus({ ok: `Loaded ${insertRows.length} drivers. ${__pit}. Grading boards...` })
+      const __grade = await autoGradeRace(series, parseInt(year, 10), parseInt(raceNum, 10))
+      setStatus({ ok: `Loaded ${insertRows.length} drivers for ${race.track_name} ${year} — ${race.total_laps} actual laps (${race.scheduled_laps} scheduled), ${race.total_cautions} cautions. ${__pit}. Boards — ${__grade}` })
       setPreview(null); setLoadedTick(t => t + 1)
     } catch (e) { setStatus({ err: e.message }) } finally { setBusy(false) }
   }
@@ -294,7 +299,7 @@ export function LoadRaceFromFeed() {
         <button className="btn btn-secondary" disabled={busy || !year} onClick={findRace}>1. Find race</button>
         <button className="btn btn-secondary" disabled={busy || !nascarId || !raceNum} onClick={fetchRace}>2. Fetch &amp; preview</button>
         <button className="btn" disabled={busy || !preview} onClick={load}>3. Load</button>
-        <button className="btn btn-secondary" disabled={busy || !nascarId || !raceNum} onClick={pitOnly} title="Pit stops + penalties for a race already in the registry (loaded before 2026-10-11, or whose pit feed was not published at load time)">Pit data only</button>
+        <button className="btn btn-secondary" disabled={busy || !nascarId || !raceNum} onClick={pitOnly} title="Pit stops + penalties for a race already in the registry (loaded before 2026-10-11, or whose pit feed was not published at load time)">Pit data + grade</button>
       </div>
 
       {candidates.length > 0 && !preview && (

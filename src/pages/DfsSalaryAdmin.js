@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
+import { runReplay, saveReplay } from '../lib/dfsReplayRun'
 
 const SERIES = [{ v: 'cup', label: 'Cup' }, { v: 'oreilly', label: "O'Reilly" }, { v: 'trucks', label: 'Trucks' }]
 const OPERATOR_DK_USER = 'atmmstrs2'   // the operator's DraftKings username (2026-09-14); entries under it are captured to dfs_operator_entries
@@ -260,9 +261,23 @@ export default function DfsSalaryAdmin() {
     } catch (e7) { fieldMsg = ' Field lineups failed: ' + (e7.message || e7) }
     const { error } = await supabase.from('dfs_ownership')
       .upsert(rows2, { onConflict: 'series,race_year,race_number,driver_name,contest_type' })
-    setOwnMsg((error
+    const __base = (error
       ? 'Save failed: ' + error.message + (error.message.includes('does not exist') ? ' - run dfs_ownership_schema.sql in Supabase first.' : '')
-      : 'Saved ownership + FPTS for ' + n + ' drivers (' + ownType.toUpperCase() + ', ' + sel.year + ' R' + sel.race_number + ' ' + sel.track_name + ').') + opMsgPre + opMsg + fieldMsg)
+      : 'Saved ownership + FPTS for ' + n + ' drivers (' + ownType.toUpperCase() + ', ' + sel.year + ' R' + sel.race_number + ' ' + sel.track_name + ').') + opMsgPre + opMsg + fieldMsg
+    setOwnMsg(__base)
+    // ONE ACTION (2026-10-11, operator: "I still need to load DFS results manually before doing that"): the
+    // standings file is the only post-race input the site cannot fetch itself, so the replay runs the
+    // moment it lands - ownership + field + replay + ledger row, one upload. The page's own Run button
+    // stays for re-runs.
+    if (!error) {
+      try {
+        setOwnMsg(__base + ' Running the replay...')
+        const r = await runReplay({ series, year: sel.year, race: sel.race_number, entries: 20, onProgress: p => setOwnMsg(__base + ' Replay: ' + p) })
+        const { legacy } = await saveReplay(r)
+        const pct = v => (v == null ? '-' : (+v).toFixed(1) + '%')
+        setOwnMsg(__base + ' Replay saved: cash ' + (r.cash && r.cash.rank != null ? '#' + r.cash.rank : pct(r.cash && r.cash.pct)) + ', GPP best ' + (r.gpp && r.gpp.rank != null ? '#' + r.gpp.rank : pct(r.gpp && r.gpp.pct)) + (r.contest && r.contest.entries ? ' of ' + r.contest.entries : '') + ', verdict ' + (r.verdict || '-') + (legacy ? ' (operator columns not saved)' : '') + '.')
+      } catch (e8) { setOwnMsg(__base + ' Replay did not run: ' + (e8.message || e8)) }
+    }
   }
   const doOwnFile = (e) => {
     const file = e.target.files && e.target.files[0]
