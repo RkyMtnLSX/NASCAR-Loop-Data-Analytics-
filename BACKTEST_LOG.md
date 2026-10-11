@@ -10005,3 +10005,21 @@ rule: a candidate at rank r with k real copies in the field is paid mean(prize(r
 average. k = copies in the contest file (our own entry would make it k + 1 ties; the +1 is included). Everything else
 identical. Arm PT. Same 12 races, same control D, same rails as the first registration (prize sum better at N 20 AND N
 150 with W/L >= 7-5; best-of-N percentile not worse by > 2 points). PUSH before the run.
+
+## 2026-10-11 — CONTEST-AWARE STAGE 3 (DK tie rule) EXECUTED AS REGISTERED: FAILS (W/L 4-8 at N 20, 4-8 at N 150). CLOSED. D stays.
+12 real-field races, PT = E[max] on tied-block-average prize: N 20 realised 279 vs D 106 but W/L 4-8 (trucks R19 alone is
+219 of the 279); N 150 1,250 vs 1,370, W/L 4-8; best-of-N percentile 83.3 vs 90.4 (fails (b) at N 20), 96.4 vs 96.9. The
+tie rule let PT keep a duplicated lineup twice (cup Richmond #1 at 3 copies, O'Reilly Las Vegas at 3) and it still lost
+the races where D's heavily-duplicated #1 cashed (O'Reilly Las Vegas 49.9 vs 13.9, cup Kansas 66 vs 32).
+WHAT THREE FORMS SAY TOGETHER. On the races we can grade, a build that knows the field and prices duplication does not
+beat the build that maximises expected best-of-N score and ignores the field - not with a sampled field, not with the
+real one, not with the dupe rule corrected. The real fields confirmed the cost is real (our #1 lineup is the contest's
+most-duplicated on several nights) and ALSO that the duplicated lineup is usually still worth holding: a 22-copy chalk
+lineup that finishes 5th pays more than a clean lineup that finishes 300th, and the raw-score E[max] set keeps landing in
+the top decile of real fields (90th / 97th percentile best-of-N). Twelve races and a synthetic payout curve are the
+limits of what this can prove; within them, D is the better product. CLOSED. The contest-aware family waits for (a)
+the real payout tables and (b) a season of real fields, both of which the ingest change below will accumulate.
+QUEUED (product, not model): extend the DfsSalaryAdmin standings ingest to keep every entry's lineup de-duplicated with
+counts (dfs_field_lineups), anonymised, so the field corpus grows weekly without the operator doing anything new; the
+build card can then show "copies of this lineup in last week's field" as information, which costs nothing and is true.
+Logs: scripts/backtest-data/dfs-prize-real3.log. Contest-aware registrations: 3 run, 0 shipped.
