@@ -9927,3 +9927,30 @@ DECISION RULE. Ship P (as the GPP objective, D retained as "max score" mode) if,
 a pass here is "the contest-aware set did not cost us on the races we have"; the forward judge is the Portfolio ledger.
 If (a) passes only at one N, the form ships for that N range only. Builds are deterministic; the subscriber-uniqueness
 dial remains a separate decision. Validation read: this is DFS data, not the sim holdout; no count. PUSH before the run.
+
+## 2026-10-11 — CONTEST-AWARE SELECTION EXECUTED AS REGISTERED: FAILS, and the failure says what is missing. NOT SHIPPED.
+17 races, realised prize on the real ladders (synthetic curve), D = today's E[max] set, P = top-N by expected prize vs an
+ownership-sampled field (projected ownership), PA = the same with actual ownership:
+  N20   D 138.1 | P 166.8 (W/L 5-11) | PA 152.2 (W/L 1-15)   best-of-N percentile D 91.0 | P 76.3 | PA 75.5
+  N150  D 1684.8 | P 997.8 (W/L 5-12) | PA 883.7 (W/L 1-16)  best-of-N percentile D 96.4 | P 91.8 | PA 88.0
+  P's N20 prize sum is above D's on ONE race (trucks R19: 103.6 vs 19.7); it loses 11 of the other 16. Rail (a) fails on
+  W/L at both N; rail (b) fails by 15 points at N 20. The oracle arm with DK's actual ownership is WORSE than the
+  projected-ownership arm - so ownership accuracy is not the issue.
+WHY. Two things, both visible in the per-race lines. (1) The DUPE term never fired: an independent ownership-product field
+of 5,000 lineups contains exact copies of a 6-driver candidate almost never (dupe#1 0.0 on 15 of 17 races; 1.9 and 3.0 on
+the other two), so the "duped lineups return less" mechanism the industry tools run on was inert here - as the
+registration warned, but worse than warned. (2) Without a dupe cost, "expected prize against the field" collapses into
+"beat a weak synthetic field on mean", and top-N by that expectation picks N near-copies of the chalkiest high-mean lineup
+(P sets are 1-5 of 20 in common with D, and MORE chalky: mean projected ownership 28-34% vs D's 24-31%). The within-set
+correlation the registration chose not to model is exactly what the E[max] selector handles, and it is why D's
+best-of-N lands at the 91st-96th percentile while P's lands at the 76th-92nd.
+WHAT THIS MEANS. SaberSim / Stokastic's edge is not the objective, it is the FIELD: they have a corpus of real contest
+lineups, and real fields are full of optimizer-built, heavily duplicated chalk lineups that an independent-ownership
+sampler cannot produce. We do not have that corpus and cannot sample it. Until we do (dfs_contests stores score ladders,
+not lineups; DK contest exports would), a contest-aware objective is building on a field model that is wrong in the one
+place it matters. CLOSED. D stays the GPP objective. The subscriber-uniqueness question returns to where it was: the
+measured dial (10-11), with its measured cost, or disclosure.
+NEXT, if the operator wants to pursue the field: ingest DK contest result exports (every entered lineup with its score)
+for a season of races into a dfs_field_lineups table; a field sampler drawn from REAL lineups makes the dupe term real and
+makes this registration re-runnable with the same rails. That is a data project, not a model one.
+Logs: scripts/backtest-data/dfs-prize.log; per-race JSON dfs-prize-result.json.
