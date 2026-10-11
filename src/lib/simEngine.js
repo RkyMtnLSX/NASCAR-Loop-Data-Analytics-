@@ -327,7 +327,7 @@ function normalizeArr(values, lowerIsBetter = false) {
   })
 }
 
-const NAME_ALIASES = { 'nicholas sanchez': 'nick sanchez' } // entry-sheet name -> loop-data name. 2026-08-03 audit: only cross-source mismatch across all three series' current entries.
+const NAME_ALIASES = { 'nicholas sanchez': 'nick sanchez', 'andres perez de lara': 'andres perez' } // entry-sheet name -> loop-data name. 2026-08-03 audit: only cross-source mismatch then; 2026-10-11: Perez De Lara (entry sheet) vs 'Andres Perez' (44 loop rows) found grading trucks Charlotte - his sim profile had been built off the 4 rows under the long name.
 function normalizeName(s) {
   if (!s) return ''
   // Roster markers (i)/(P)/(C)/(R) never distinguish drivers (2026-09-05). BUG FIXED 2026-09-12: that

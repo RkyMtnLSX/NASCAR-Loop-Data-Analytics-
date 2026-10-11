@@ -4552,3 +4552,12 @@ unchanged). RULE: api/ is at the 12-function cap - any new endpoint goes INSIDE 
 (a ?type= / ?job= branch) or as an _underscore helper, never a new api/*.js file.
 CRON_SECRET set 2026-10-03 (Vercel production env, sensitive; value lives only in Vercel) + redeploy;
 authorized ?dry=1 verified. Cron is armed; first firing Mon 2026-10-05 12:00 UTC. Build clean, api files load.
+
+## 2026-10-11 — Grade Center imported 34 of 36 trucks Charlotte finishes: two name splits, one data error
+Operator caught it grading trucks R21. (1) loop_data had the #42 row as 'Conner Dean' (start P11 = Conner Jones per entry list
+and qualifying; Dean's other rows are 2023 in the #66) - corrected in the database. (2) The board names him 'Andres Perez De
+Lara' (entry sheet); loop_data carries 44 rows as 'Andres Perez' and only 4 under the long name - so every sim he was on was
+rating him from 4 rows. NAME_ALIASES now maps the long form to the loop-data name (simEngine.js; same mechanism as Sanchez).
+(3) Grade Center's loop-data import falls back to the car number when a name does not match, so a name split can never drop a
+finish from a grade again. Re-click 'Import from loop data' on trucks R21: 36 finishes. Trucks boards that had Perez De Lara
+(any 2026 trucks board) were rating him thin; next trucks board picks up the alias automatically.

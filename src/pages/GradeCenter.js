@@ -311,18 +311,23 @@ export default function GradeCenter() {
       if (!target) { setPrev(null); setMsg('Multiple races at this track/year (R' + raceRows.map(r => r.race_number).join(', R') + ') and none match the board R' + row.race_number + '. Fix the race # first.'); return }
     }
     if (!target) { setPrev(null); setMsg('No race row found for ' + row.track_name + ' ' + row.race_year + ' (' + series + '). Load the race in Admin first.'); return }
-    const res = await supabase.from('loop_data').select('driver_name, finish_position, start_position, laps_led, fastest_laps').eq('race_id', target.id)
+    const res = await supabase.from('loop_data').select('driver_name, car_number, finish_position, start_position, laps_led, fastest_laps').eq('race_id', target.id)
     let laps = res.data || []
     if (!laps.length) { setPrev(null); setMsg('No loop data found for ' + row.track_name + ' ' + row.race_year + ' (' + series + '). Load it in Admin, or paste the finish above.'); return }
     const nrm = s => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '') // 2026-08-09: strip punctuation ENTIRELY - 'A.J. Allmendinger' (loop data) vs 'AJ Allmendinger' (board) became 'a j ...' vs 'aj ...' and silently dropped his P8 t10 +1400 HIT from grading
     const byName = {}
     row.results.forEach(d => { byName[nrm(d.driver_name)] = String(d.car_number) })
+    // 2026-10-11: fall back to the CAR NUMBER when the loop-data name does not match the board (trucks Charlotte: 'Andres
+    // Perez De Lara' on the board vs 'Andres Perez' in loop data, and a mislabelled #42 row - 34 of 36 imported). The car is
+    // the race fact; a name split must not drop a finish from the grade.
+    const boardCars = new Set(row.results.map(d => String(d.car_number)))
+    const carOf = l => byName[nrm(l.driver_name)] || (l.car_number != null && boardCars.has(String(l.car_number).trim()) ? String(l.car_number).trim() : null)
     const actualMap = {}
-    laps.forEach(l => { const car = byName[nrm(l.driver_name)]; if (car && l.finish_position != null) actualMap[car] = l.finish_position })
+    laps.forEach(l => { const car = carOf(l); if (car && l.finish_position != null) actualMap[car] = l.finish_position })
     // DK ACTUALS (2026-07-18): same scoring as the sim's proj_dk — finish pts + place diff + led*0.25 + fastest*0.45
     const __dkTbl = [0,45,42,41,40,39,38,37,36,35,34,32,31,30,29,28,27,26,25,24,23,21,20,19,18,17,16,15,14,13,12,10,9,8,7,6,5,4,3,2,1]
     const dkActMap = {}
-    laps.forEach(l => { const car = byName[nrm(l.driver_name)]; if (!car || l.finish_position == null) return
+    laps.forEach(l => { const car = carOf(l); if (!car || l.finish_position == null) return
       const fin = parseFloat(l.finish_position); const st = parseFloat(l.start_position) || fin
       dkActMap[car] = (fin <= 40 ? __dkTbl[fin] : 0) + (st - fin) + (parseFloat(l.laps_led) || 0) * 0.25 + (parseFloat(l.fastest_laps) || 0) * 0.45 })
     if (Object.keys(actualMap).length < 3) { setPrev(null); setMsg('Could not match loop-data drivers to the published sim.'); return }
