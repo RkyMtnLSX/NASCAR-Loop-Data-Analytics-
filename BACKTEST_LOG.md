@@ -9802,3 +9802,35 @@ pass series from this commit. SS_SERIES_NOISE_MULT is now one definition in one 
   belongs at 12 or nearer 18; that refit is 2022-26 -> judge 2027, not a third 2025-26 read.
   PRODUCT NOTE for the operator: the trucks board's top two regulars now carry the win share the data says they earn; the
   interim manual rule ("no win FADE on the top-rated truck") can be retired once two trucks weekends of 2027 confirm.
+
+## 2026-10-11 — PRE-REGISTERED: PER-USER LINEUP BUILDS (duplication across subscribers). Written before any build is run. DO NOT MODIFY.
+TRIGGER. A prospective patron: "if we are all using the same optimizer won't it always create the same lineups?" Checked
+the code: yes. optimize() is a deterministic branch-and-bound; the GPP build takes the stored draws at a fixed stride
+(2,500 of 10,000), solves each draw's optimal lineup as the candidate pool, and the E[max] selector picks the set. Same
+board, same settings -> the same set for every subscriber. Exposure caps only bind once a driver has been used; the head
+of every user's build is shared. Cash contests are unaffected (no head-to-head); GPPs split the prize on every duplicate.
+FORM. A per-user seed (derived from the user id; a re-run by the same user reproduces the same build):
+  (a) DRAW SUBSET: the user's 2,500 draws are a seeded random subset of the 10,000 stored draws instead of the fixed
+      stride; candidates and the E[max] matrix are built on that subset. Each user's candidate pool and selection come
+      from the same distribution as today's, realised differently.
+  (b) PROJECTION JITTER (optional, on top of a): projDK x (1 + e), e ~ N(0, sigma) per driver per user, applied to the
+      candidate-pool projection ranking and to the cash optimizer's objective. sigma in {0, 0.02, 0.04}.
+  Arms: S0 = subset only (sigma 0), S2 = subset + 2%, S4 = subset + 4%. Control D = today's deterministic build.
+DATA. The 17 graded replay races in dfs_replays (2026 trucks R17-20, cup R23-31, O'Reilly R23-28): stored post-board
+draws (10,000 x field), DK salaries, official FPTS (dfs_ownership.fpts, loop-data DK formula where missing), the largest
+contest's ladder (dfs_contests scores_sample / scores_top / entries). Built in node through the SAME exported functions
+the page runs (DFSPage optimize / bestLineup / makeEmaxSelector), as DfsReplay does.
+MEASUREMENTS, per race, GPP default build (no locks, no exposure caps, N = 20 and N = 150):
+  UNIQUENESS (30 seeded users): mean number of a user's lineups that appear in any other user's set; the largest number
+  of users holding any one lineup; the share of users holding D's lineup #1. D scores 20 / 30 / 100% by construction.
+  QUALITY: (i) E[max] of the chosen set over the FULL 10,000 draws (the sim's own expected best-of-N; low noise) - D vs
+  the mean over 20 seeds; (ii) realised best-of-N field percentile on the contest ladder, D vs the seed mean and spread -
+  REPORTED, not a rail (17 races cannot separate methods that differ by a few percent).
+  REPRODUCIBILITY: the same seed twice gives the same set (assert).
+DECISION RULE. Ship the LOWEST-variance arm (S0 before S2 before S4) that satisfies BOTH: (1) full-draw E[max] of the
+seeded set >= D's minus 0.5% on average across the 17 races at N = 20 AND at N = 150; (2) mean shared lineups <= 2 of
+20 at N = 20, and no single lineup held by more than 20% of users. If no arm clears (1), the subset is too small for
+the selector: re-register with a larger subset before touching sigma. Cash builds stay deterministic regardless (no
+duplication cost; sigma applies to cash only if the operator later asks). Ship = seed derived from the signed-in user id
+in DFSPage (and threaded through dfsPortfolio so a user's contests use one seed), a "uniqueness" line on the build card,
+and the build stamped with the arm. PUSH before any build.
