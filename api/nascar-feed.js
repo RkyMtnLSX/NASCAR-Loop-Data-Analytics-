@@ -384,6 +384,7 @@ module.exports = async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' })
 
   const q = req.query || {}
+  if (q.type === 'kalshi') return require('./_kalshi').kalshi(req, res)   // 2026-10-11: Kalshi public prices (param ks=series ticker), before the integer checks
   const year = intInRange(q.year, 2015, 2030)
   const series = intInRange(q.series, 1, 3)
   const raceId = intInRange(q.race, 1, 999999)
@@ -395,7 +396,6 @@ module.exports = async function handler(req, res) {
   if (q.date && !date) {
     return res.status(400).json({ error: 'date must be YYYY-MM-DD' })
   }
-  if (q.type === 'kalshi') return require('./_kalshi').kalshi(req, res)   // 2026-10-11: Kalshi public prices, see api/_kalshi.js
   if (year === undefined) return res.status(400).json({ error: 'year is required' })
 
   try {

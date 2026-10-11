@@ -3,7 +3,7 @@
 // No key, no account, no writes: /markets and /markets/{ticker}/orderbook are public for reads.
 // Fixed URL templates with validated parameters - not an open proxy.
 //
-//   ?type=kalshi&series=KXNASCARRACE[&status=open][&limit=200]   markets in a series (cents)
+//   ?type=kalshi&ks=KXNASCARRACE[&status=open][&limit=200]   markets in a Kalshi series (cents)
 //   ?type=kalshi&ticker=KXNASCARRACE-...                           one market's order book
 //
 // American odds from a cents price p: p >= 50 ? -100*p/(100-p) : 100*(100-p)/p.
@@ -26,7 +26,7 @@ async function kalshi(req, res) {
       if (!r.ok) return res.status(502).json({ error: `kalshi ${r.status}` })
       return res.status(200).json(await r.json())
     }
-    const series = String(q.series || 'KXNASCARRACE').toUpperCase()
+    const series = String(q.ks || 'KXNASCARRACE').toUpperCase()
     if (!SERIES_OK.test(series)) return res.status(400).json({ error: 'bad series' })
     const status = ['open', 'closed', 'settled'].includes(q.status) ? q.status : 'open'
     const limit = Math.min(Math.max(parseInt(q.limit) || 200, 1), 1000)
