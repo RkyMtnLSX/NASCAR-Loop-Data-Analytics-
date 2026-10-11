@@ -288,7 +288,11 @@ const otherDrivers = effectiveRows.filter(r => r.driver !== cardDriver.driver &&
 
 // Which of a compare driver's races lines up with a race column (same year + track; real race_number when both
 // sides have one, else the nth occurrence). Shared by the cells and the AVG column (2026-09-27).
-const compareRaceFor = (cd, rc) => { var __l = (compareRacesMap[cd.driver] || []).filter(function(r){ return parseInt(r.year) === rc.year && (r.track_name || '') === rc.track_name; }); if (__l.length === 0) return null; var __haveRn = __l.some(function(r){ return r.race_number != null; }); if (rc.realRn != null && __haveRn) { return __l.find(function(r){ return r.race_number != null && parseInt(r.race_number) === rc.realRn; }) || null; } if (__l.length === 1) return __l[0]; var __s = __l.slice().sort(function(a,b){ return (parseInt(a.race_number)||0) - (parseInt(b.race_number)||0); }); return __s[rc.occIdx] || null; }
+// BUG FIX 2026-10-11 (operator: SVG showed the Kansas spring row under both Kansas columns): the primary
+// driver's rows carry no race_number, so the real-race-number branch never ran and the occurrence fallback
+// counted by race_number too - index 0 for both visits. Both sides are tagged _occ (nth visit by race date
+// from the races table), so match on that when the real race number is not on both sides.
+const compareRaceFor = (cd, rc) => { var __l = (compareRacesMap[cd.driver] || []).filter(function(r){ return parseInt(r.year) === rc.year && (r.track_name || '') === rc.track_name; }); if (__l.length === 0) return null; var __haveRn = __l.some(function(r){ return r.race_number != null; }); if (rc.realRn != null && __haveRn) { return __l.find(function(r){ return r.race_number != null && parseInt(r.race_number) === rc.realRn; }) || null; } if (__l.length === 1) return __l[0]; if (rc.raceNum != null && __l.some(function(r){ return r._occ != null; })) { return __l.find(function(r){ return r._occ === rc.raceNum; }) || null; } var __s = __l.slice().sort(function(a,b){ return (parseInt(a.race_number)||0) - (parseInt(b.race_number)||0); }); return __s[rc.occIdx] || null; }
 const primaryRaceFor = rc => primaryRaces.find(r => parseInt(r.year) === rc.year && (r.track_name || '') === rc.track_name && (r._occ || r.race_number || 1) === rc.raceNum)
 // AVG column (operator 2026-09-27: "overall averages for each stat type to the right of the stat column"):
 // the mean of the values shown in the row, per driver, over the races that have a value.
