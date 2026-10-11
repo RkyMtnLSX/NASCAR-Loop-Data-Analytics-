@@ -23,7 +23,8 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "sim:smoke": "node scripts/sim-smoke.js",
-    "lint:undef": "eslint --no-eslintrc -c scripts/eslint-no-undef.json --ext .js src/"
+    "lint:undef": "eslint --no-eslintrc -c scripts/eslint-no-undef.json --ext .js src/",
+    "test:penalties": "node scripts/test-penalties.js"
   },
   "eslintConfig": {
     "extends": [

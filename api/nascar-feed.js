@@ -438,6 +438,25 @@ module.exports = async function handler(req, res) {
         entries: results.length, with_qual_pos: results.filter(r => +r.qualifying_position > 0).length, with_qual_speed: results.filter(r => +r.qualifying_speed > 0).length,
         with_start_pos: results.filter(r => +r.starting_position > 0).length, runs })
     }
+    if (q.type === 'pits' || q.type === 'penalties') {
+      // 2026-10-11 (operator: "streamline ... do that when we load loop data through the api"): the
+      // post-race pit jobs move off POST_RACE_UPDATE.bat onto the Load Race button. Shape only - the
+      // browser writes pit_stops / pit_penalties through the operator's session (src/lib/pitFeeds.js).
+      if (series === undefined || raceId === undefined) return res.status(400).json({ error: `type=${q.type} needs series and race` })
+      const P = require('../src/lib/pitFeeds')
+      if (q.type === 'pits') {
+        const [pits, wk] = await Promise.all([
+          getJson(`${NASCAR}/cacher/live/series_${series}/${raceId}/live-pit-data.json`).catch(() => null),
+          getJson(`${NASCAR}/cacher/${year}/${series}/${raceId}/weekend-feed.json`).catch(() => null),
+        ])
+        if (!pits) return res.status(200).json({ type: 'pits', nascar_race_id: raceId, available: false, rows: [] })
+        const shaped = P.shapePitStops(pits, wk)
+        return res.status(200).json({ type: 'pits', nascar_race_id: raceId, available: true, cars: shaped.cars, dropped: shaped.dropped, rows: shaped.rows })
+      }
+      const notes = await getJson(`${NASCAR}/cacher/${year}/${series}/${raceId}/lap-notes.json`).catch(() => null)
+      const shaped = P.shapePenalties(notes)
+      return res.status(200).json({ type: 'penalties', nascar_race_id: raceId, available: shaped.hasNotes, totals: shaped.totals, unparsed: shaped.unparsed.slice(0, 40), rows: shaped.rows })
+    }
     if (q.type === 'bundle') {
       // 2026-10-03: entry list / draw / qualifying for one race, shaped only (src/lib/weekendBundle).
       // The Load Data panel writes it through the operator's session; the cron writes the same shape.

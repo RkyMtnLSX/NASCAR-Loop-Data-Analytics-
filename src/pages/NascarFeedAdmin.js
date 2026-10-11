@@ -159,6 +159,54 @@ export function LoadRaceFromFeed() {
     } catch (e) { setStatus({ err: e.message }) } finally { setBusy(false) }
   }
 
+  // PIT DATA (2026-10-11): pit stops + pit-road penalties from NASCAR's feeds, written through the
+  // operator's session. Replaces POST_RACE_UPDATE.bat steps 1-2 (pitboard_pit_backfill.py /
+  // pitboard_penalties_backfill_v3.py); shaping and the parser live in src/lib/pitFeeds.js. Delete-
+  // then-insert per race so a re-run never duplicates. Returns a one-line summary.
+  async function loadPitData(raceRowId, nascarRaceId, yr, seriesKey, trackName, raceNumber) {
+    const reg = { race_id: raceRowId, nascar_race_id: nascarRaceId, series: seriesKey, year: yr, track_name: trackName, race_number: raceNumber }
+    const parts = []
+    try {
+      const pj = await feed({ type: 'pits', year: yr, series: SERIES_ID[seriesKey], race: nascarRaceId })
+      if (!pj.available) parts.push('pit stops: feed not published yet')
+      else {
+        await supabase.from('pit_stops').delete().eq('race_id', raceRowId)
+        const rows = (pj.rows || []).map(r => ({ ...reg, ...r }))
+        for (let i = 0; i < rows.length; i += 500) {
+          const { error } = await supabase.from('pit_stops').insert(rows.slice(i, i + 500))
+          if (error) throw new Error('pit_stops: ' + error.message)
+        }
+        parts.push(`pit stops: ${rows.length} (${pj.cars} cars${pj.dropped ? ', ' + pj.dropped + ' dupes dropped' : ''})`)
+      }
+    } catch (e) { parts.push('pit stops FAILED: ' + e.message) }
+    try {
+      const nj = await feed({ type: 'penalties', year: yr, series: SERIES_ID[seriesKey], race: nascarRaceId })
+      if (!nj.available) parts.push('penalties: no lap notes yet')
+      else {
+        await supabase.from('pit_penalties').delete().eq('race_id', raceRowId)
+        const rows = (nj.rows || []).map(r => ({ ...reg, ...r }))
+        if (rows.length) { const { error } = await supabase.from('pit_penalties').insert(rows); if (error) throw new Error('pit_penalties: ' + error.message) }
+        const t = nj.totals || {}
+        parts.push(`penalties: ${rows.length} (crew ${t.crew || 0}, driver ${t.driver || 0}, grid ${t.grid || 0}, other ${t.other || 0}${(nj.unparsed || []).length ? ', ' + nj.unparsed.length + ' unparsed' : ''})`)
+      }
+    } catch (e) { parts.push('penalties FAILED: ' + e.message) }
+    return parts.join(' · ')
+  }
+
+  // Pit data for an already-loaded race: find its registry row by series / year / race number.
+  async function pitOnly() {
+    setBusy(true); setStatus(null)
+    try {
+      const { data: rr } = await supabase.from('races').select('id, track_name, nascar_race_id').eq('series', series).eq('year', parseInt(year, 10)).eq('race_number', parseInt(raceNum, 10)).not('total_laps', 'is', null).order('id', { ascending: true }).limit(1)
+      const row = rr && rr[0]
+      if (!row) { setStatus({ err: `No loaded race for ${series} ${year} R${raceNum} - load the race first (step 3).` }); return }
+      const nid = row.nascar_race_id || parseInt(nascarId, 10)
+      if (row.nascar_race_id !== nid) await supabase.from('races').update({ nascar_race_id: nid }).eq('id', row.id)
+      const msg = await loadPitData(row.id, nid, parseInt(year, 10), series, row.track_name, parseInt(raceNum, 10))
+      setStatus({ ok: `${row.track_name} ${year} R${raceNum}: ${msg}` })
+    } catch (e) { setStatus({ err: e.message }) } finally { setBusy(false) }
+  }
+
   async function load() {
     if (!preview) return
     setBusy(true); setStatus(null)
@@ -207,7 +255,8 @@ export function LoadRaceFromFeed() {
         if (cErr) setStatus({ err: `loop_data loaded, but caution segments failed: ${cErr.message}` })
       }
 
-      setStatus({ ok: `Loaded ${insertRows.length} drivers for ${race.track_name} ${year} — ${race.total_laps} actual laps (${race.scheduled_laps} scheduled), ${race.total_cautions} cautions.` })
+      const __pit = await loadPitData(raceRow.id, race.nascar_race_id, parseInt(year, 10), series, race.track_name, parseInt(raceNum, 10))
+      setStatus({ ok: `Loaded ${insertRows.length} drivers for ${race.track_name} ${year} — ${race.total_laps} actual laps (${race.scheduled_laps} scheduled), ${race.total_cautions} cautions. ${__pit}` })
       setPreview(null); setLoadedTick(t => t + 1)
     } catch (e) { setStatus({ err: e.message }) } finally { setBusy(false) }
   }
@@ -245,6 +294,7 @@ export function LoadRaceFromFeed() {
         <button className="btn btn-secondary" disabled={busy || !year} onClick={findRace}>1. Find race</button>
         <button className="btn btn-secondary" disabled={busy || !nascarId || !raceNum} onClick={fetchRace}>2. Fetch &amp; preview</button>
         <button className="btn" disabled={busy || !preview} onClick={load}>3. Load</button>
+        <button className="btn btn-secondary" disabled={busy || !nascarId || !raceNum} onClick={pitOnly} title="Pit stops + penalties for a race already in the registry (loaded before 2026-10-11, or whose pit feed was not published at load time)">Pit data only</button>
       </div>
 
       {candidates.length > 0 && !preview && (
