@@ -78,6 +78,9 @@ function propose(schedule, tracks, now) {
     if (!pick) { out[series] = { ok: false, series, reason: 'no upcoming race on the schedule' }; continue }
     const track = canonTrack(pick, names)
     const s1 = Number(pick.stage_1_laps) || null, s2 = Number(pick.stage_2_laps) || null
+    // 2026-10-11: scheduled green (UTC) from the race event; the Kalshi snapshot job closes its window on it.
+    const raceEv = (pick.schedule || []).find(e => +e.run_type === 3 || /^race\b/i.test(e.event_name || ''))
+    const raceStart = raceEv && raceEv.start_time_utc ? raceEv.start_time_utc + 'Z' : null
     out[series] = {
       ok: !!track && pick.race_type_id === 1,
       series, nascar_race_id: pick.race_id, race_name: pick.race_name,
@@ -86,6 +89,7 @@ function propose(schedule, tracks, now) {
       track_name: track, track_label: track ? trackLabel(track) : null,
       correlation_label: track ? (corr[track] || '') : null,
       race_number: pickN, total_laps: Number(pick.scheduled_laps) || null,
+      race_start_utc: raceStart,
       stage1_laps: s1, stage2_laps: s1 && s2 ? s1 + s2 : null,
       reason: !track ? `track "${pick.track_name}" is not in the tracks table` : pick.race_type_id !== 1 ? 'exhibition race (not a points round)' : null,
     }

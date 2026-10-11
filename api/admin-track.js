@@ -7,6 +7,7 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end()
   // Monday weekend-config cron lives here (function-count cap); see api/_weekend_sync.js.
   if (req.method === 'GET' && (req.query || {}).job === 'weekend-sync') return require('./_weekend_sync')(req, res)
+  if (req.method === 'GET' && (req.query || {}).job === 'kalshi-snap') return require('./_kalshi_snap')(req, res)   // 2026-10-11, pg_cron every 10 min
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' })
 
   const { name, correlation_group_label } = req.body || {}

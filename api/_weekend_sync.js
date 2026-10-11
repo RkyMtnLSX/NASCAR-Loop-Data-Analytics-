@@ -38,13 +38,14 @@ module.exports = async function handler(req, res) {
     for (const series of Object.keys(proposed)) {
       const p = proposed[series], c = cur[series] || {}
       if (!p.ok) { result[series] = { action: 'skipped', reason: p.reason }; continue }
-      const same = c.track_name === p.track_name && c.race_number === p.race_number && c.total_laps === p.total_laps && c.stage1_laps === p.stage1_laps && c.stage2_laps === p.stage2_laps
+      const same = c.track_name === p.track_name && c.race_number === p.race_number && c.total_laps === p.total_laps && c.stage1_laps === p.stage1_laps && c.stage2_laps === p.stage2_laps && (!p.race_start_utc || (c.race_start_utc && new Date(c.race_start_utc).getTime() === new Date(p.race_start_utc).getTime()))
       if (same) { result[series] = { action: 'unchanged', race: `${p.track_label} R${p.race_number}` }; continue }
       const raceChanged = c.track_name !== p.track_name || c.race_number !== p.race_number
       const row = {
         series, track_name: p.track_name, track_label: p.track_label, correlation_label: p.correlation_label,
         correlation_year: year, race_number: p.race_number, total_laps: p.total_laps,
         stage1_laps: p.stage1_laps, stage2_laps: p.stage2_laps,
+        race_start_utc: p.race_start_utc || null, nascar_race_id: p.nascar_race_id || null,
         track_years: (c.track_years && c.track_years.length) ? c.track_years : [2022, 2023, 2024, 2025, year].filter((v, i, a) => a.indexOf(v) === i),
         updated_at: new Date().toISOString(),
         ...(raceChanged ? { eq_overrides: {}, rear_overrides: {} } : {}),
