@@ -9834,3 +9834,21 @@ the selector: re-register with a larger subset before touching sigma. Cash build
 duplication cost; sigma applies to cash only if the operator later asks). Ship = seed derived from the signed-in user id
 in DFSPage (and threaded through dfsPortfolio so a user's contests use one seed), a "uniqueness" line on the build card,
 and the build stamped with the arm. PUSH before any build.
+
+## 2026-10-11 — PRE-REGISTERED: PER-USER BUILDS, STAGE 2 — driver-level draw scaling. Written while stage 1 is still running (2 of 17 races seen). DO NOT MODIFY.
+DISCLOSED. The first two stage-1 races (trucks R17 / R18, 30 users) show the subset form keeps quality (full-draw E[max]
+within 0.1% of D) and FAILS uniqueness by a wide margin: 9-14 of 20 lineups shared, D's top lineup held by 21-30 of 30
+users, at N 150 ~117 of 150 shared. Projection jitter (S2 / S4) changes nothing because the GPP candidates come from the
+draws, not the projections. Reason: the best-of-N lineups are a property of the DISTRIBUTION; a random 2,500-draw
+sample still ranks them the same. Stage 1 runs to completion and is logged as registered; its rail (2) is expected to
+fail on every race.
+FORM (stage 2). Per user, each DRIVER's draw scores are scaled by one factor (1 + e_i), e_i ~ N(0, tau), drawn from the
+user's seed - the user's build sees "his" version of the sim, with every driver's whole distribution nudged up or down a
+few percent. Candidates (per-draw optimals) and the E[max] matrix are built on the scaled draws; the draw subset of
+stage 1 stays. Arms tau in {0.05, 0.10, 0.15} = J5 / J10 / J15. Control D unchanged. QUALITY is judged on the UNSCALED
+draws (the sim's own E[max] of the user's chosen set), so a tau that chases noise shows up as a loss there.
+MEASUREMENTS and DECISION RULE: identical to stage 1 (uniqueness: mean shared <= 2 of 20, no lineup held by > 20% of 30
+users; quality: unscaled E[max] >= D - 0.5% at N 20 and N 150; realised percentile reported; reproducibility assert).
+Ship the SMALLEST tau that clears both. If none clears quality, the product keeps D and the duplication is disclosed to
+patrons as a known property; if none clears uniqueness at tau .15, the next form is exposure-side (per-user random
+caps), registered separately. Same 17 races, same harness (scripts/backtest-dfs-seed.js STAGE=2). PUSH before the run.
