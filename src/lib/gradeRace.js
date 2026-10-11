@@ -233,7 +233,8 @@ export async function saveGradeRow({ row, g, actualMap, series, stage, raceNumbe
   const rowData = { sim_id: row.id, series, track_name: row.track_name, race_year: row.race_year, race_number: rn, actual: actualArr, metrics: g.metrics, ev_flags: g.evFlags, roi: g.roi, shade_on: false, stage, config: row.config }
   let existing = []
   if (rn != null) { const q = await supabase.from('sim_grades').select('id').eq('series', series).eq('race_year', row.race_year).eq('race_number', rn).eq('stage', stage); existing = q.data || [] }
-  const resp = existing.length ? await supabase.from('sim_grades').update(rowData).eq('id', existing[0].id) : await supabase.from('sim_grades').insert(rowData)
+  // graded_at moves on a re-grade (2026-10-11): a stale timestamp on an updated row made the one-click path look like it had not run.
+  const resp = existing.length ? await supabase.from('sim_grades').update({ ...rowData, graded_at: new Date().toISOString() }).eq('id', existing[0].id) : await supabase.from('sim_grades').insert(rowData)
   if (resp.error) throw new Error('sim_grades: ' + resp.error.message)
   return existing.length ? 'updated' : 'saved'
 }
