@@ -307,7 +307,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
             // Double-header guard (2026-07-10): scope lineup to the configured Race # so a
             // spring lineup at the same track/year cannot leak into the fall sim
             let q = supabase.from('qualifying_results')
-              .select('driver_name, qualifying_position, lap_time, lineup_source, draw_order')
+              .select('driver_name, qualifying_position, lap_time, qualifying_speed, lineup_source, draw_order')
               .eq('series', s)
               .eq('track_name', cfg.track_name)
               .eq('year', cfg.race_year || new Date().getFullYear())
@@ -812,9 +812,13 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
         const __lnProj = drivers.filter(d => d.__startProjected).length
         let __lnSrc = 'none'
         if (__lnQ >= Math.max(3, drivers.length * 0.5)) {
+          // Operator rule (2026-10-11, audited against NASCAR's feed on 13 races): no lap time and no
+          // speed on any row = no session ran = metric, unless a hand label says otherwise (heats, rain).
+          const __timed = (qualData || []).some(q => q.qualifying_position && ((q.lap_time != null && +q.lap_time > 0) || (q.qualifying_speed != null && +q.qualifying_speed > 0)))
           const __srcCnt = {}
           ;(qualData || []).forEach(q => { const sv = q.lineup_source || 'qualifying'; __srcCnt[sv] = (__srcCnt[sv] || 0) + 1 })
           __lnSrc = Object.keys(__srcCnt).sort((a, b) => __srcCnt[b] - __srcCnt[a])[0] || 'qualifying'
+          if (!__timed && __lnSrc === 'qualifying') __lnSrc = 'metric'
         } else if (__lnPrac >= Math.max(3, drivers.length * 0.5)) {
           __lnSrc = 'practice fallback'
         } else if (__lnProj >= Math.max(3, drivers.length * 0.5)) {
@@ -1651,7 +1655,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
               <span title="Where the Start column came from when this sim ran" style={{ padding: '3px 10px', borderRadius: 999, border: '1px solid var(--border)', background: 'var(--bg-surface)', color: lineupState === 'none' ? '#dd8844' : (lineupState.indexOf('partial') === 0 || lineupState === 'practice fallback') ? '#e8c766' : lineupState === 'metric' ? '#79c0ff' : '#3fb950' }}>
                 lineup: {lineupState}
               </span>
-              {['qualifying', 'metric', 'rain'].indexOf(lineupState) !== -1 && (
+              {['qualifying', 'metric', 'rain', 'heats'].indexOf(lineupState) !== -1 && (
                 <span style={{ marginLeft: 8, color: 'var(--text-muted)' }}>
                   grid set by{' '}
                   {[['qualifying', 'qualifying session'], ['metric', 'metric (no qualifying)']].map(([v, lbl]) => (

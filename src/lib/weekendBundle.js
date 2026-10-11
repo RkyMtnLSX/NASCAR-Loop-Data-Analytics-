@@ -40,7 +40,11 @@ function shapeBundle(wk) {
       qualifying_position: +r.finishing_position, lap_time: +r.best_lap_time > 0 ? +r.best_lap_time : null,
       qualifying_speed: +r.best_lap_speed > 0 ? +r.best_lap_speed : null,
     }))
-    lineup_source = 'qualifying'
+    // Audited 2026-10-11 on 13 untimed grids 2022-26: NASCAR writes a qualifying "run" around the
+    // metric order when the session is rained out (37 cars in a "Round 1 Group A", best_lap_time 0 on
+    // every car, while the same weekend's practice is fully timed). A run with no timed lap is that
+    // placeholder, not a session. (Bristol dirt heats also show as an untimed run - label by hand.)
+    lineup_source = qualifying.some(q => q.lap_time != null) ? 'qualifying' : 'metric'
   } else {
     const byPos = results.filter(r => +r.qualifying_position > 0)
     if (byPos.length >= MIN_FIELD) {

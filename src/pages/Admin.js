@@ -1437,6 +1437,10 @@ function LoadQualifying() {
       const racingRefId   = trackName.toLowerCase().replace(/\s+/g, '_') + '_' + year + '_' + (raceNumber || '0')
       // Delete existing for this race
       await supabase.from('qualifying_results').delete().eq('racing_reference_id', racingRefId)
+      // Operator rule (2026-10-11): a pasted grid with no speed and no lap time on any row is a metric
+      // grid - no session ran - unless the dropdown names another untimed source (heats / rain).
+      const __timed = preview.some(d => d.speed || d.lapTime)
+      const __src = (!__timed && lineupSource === 'qualifying') ? 'metric' : lineupSource
       const rows = preview.map(d => ({
         series,
         year:               parseInt(year),
@@ -1446,14 +1450,14 @@ function LoadQualifying() {
         driver_name:        d.driverName,
         car_number:         d.carNumber || null,
         qualifying_position: d.rank,
-        lineup_source: lineupSource,
+        lineup_source: __src,
         qualifying_speed:   d.speed || null,
         lap_time:           d.lapTime || null,
       }))
       const { error } = await supabase.from('qualifying_results').upsert(rows, { onConflict: 'series,year,track_name,race_number,driver_name' })
       if (error) throw error
       const pole = preview[0]
-      setStatus({ type: 'success', msg: 'Loaded ' + rows.length + ' drivers for ' + trackName + ' ' + year + '. Pole: ' + pole.driverName + ' (' + (pole.speed || pole.lapTime) + ')' })
+      setStatus({ type: 'success', msg: 'Loaded ' + rows.length + ' drivers for ' + trackName + ' ' + year + '. Pole: ' + pole.driverName + ' (' + (pole.speed || pole.lapTime || 'no time') + ')' + (__src !== lineupSource ? ' - no times on any row, stored as METRIC (no session ran)' : '') })
       setPreview(null)
       setPastedText('')
     } catch (err) {
@@ -1493,7 +1497,7 @@ function LoadQualifying() {
         </div>
         <div>
           <label style={{ color: 'var(--text-secondary)', fontSize: 12 }}>Lineup source</label>
-          <select value={lineupSource} onChange={e => setLineupSource(e.target.value)} style={inputStyle}><option value="qualifying">Qualifying (on-track)</option><option value="metric">Metric / owner points</option><option value="rain">Rain (no qualifying)</option><option value="practice">Practice-set</option></select>
+          <select value={lineupSource} onChange={e => setLineupSource(e.target.value)} style={inputStyle}><option value="qualifying">Qualifying (on-track)</option><option value="metric">Metric / owner points</option><option value="rain">Rain (no qualifying)</option><option value="heats">Heat races (untimed, on-track)</option><option value="practice">Practice-set</option></select>
         </div>
       </div>
 
