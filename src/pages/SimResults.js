@@ -135,10 +135,9 @@ function normTeam(s) {
 }
 function MarketTables({ results, config, kLive }) {
   // MFR & TEAM (rebuilt 2026-10-12, operator: "they are kind of ass"). Every manufacturer and team from the
-  // board is a row whether or not a book priced it; each row expands to its drivers; "any top 5 / top 10"
-  // are JOINT probabilities from the stored draws (at least one car of the group), which is not the sum of
-  // the drivers' marginals - the thing a correlated sim knows and a spreadsheet does not. mev only when a
-  // second book priced the row (one book against itself printed the same number on every line).
+  // board is a row whether or not a book priced it; each row expands to its drivers. The joint "any top
+  // 5 / any top 10" columns were cut 2026-10-12 (operator: "pretty much pointless" - no book prices them).
+  // mev only when a second book priced the row (one book against itself printed the same number on every line).
   const [open, setOpen] = useState({})
   const fo = (a) => (a == null ? '-' : (a > 0 ? '+' + a : '' + a))
   const mut = 'var(--text-muted)'
@@ -147,15 +146,6 @@ function MarketTables({ results, config, kLive }) {
   const M = __decodeMtx(config)
   const idxOf = {}
   if (M) M.order.forEach((n, c) => { idxOf[nrm(n)] = c })
-  // joint "at least one member finishes <= N" over the stored draws
-  const anyTopN = (members, N) => {
-    if (!M) return null
-    const cols = members.map(d => idxOf[nrm(d.driver_name)]).filter(c => c != null)
-    if (!cols.length) return null
-    let hit = 0
-    for (let sIdx = 0; sIdx < M.simN; sIdx++) { const base = sIdx * M.nD; for (let k = 0; k < cols.length; k++) { if (M.mtx[base + cols[k]] <= N) { hit++; break } } }
-    return 100 * hit / M.simN
-  }
   // P(this driver is the best finisher of the group) over the draws - the "Top Toyota" market
   const bestOfGroup = (members) => {
     const out = {}
@@ -173,7 +163,7 @@ function MarketTables({ results, config, kLive }) {
     return Object.keys(g).map(name => {
       const mem = g[name]
       const win = mem.reduce((a, r) => a + (r.win_pct || 0), 0)
-      return { name, members: mem.slice().sort((a, b) => (a.proj_finish ?? 99) - (b.proj_finish ?? 99)), win, t5: anyTopN(mem, 5), t10: anyTopN(mem, 10), fair: fmvAmerican(win / 100) }
+      return { name, members: mem.slice().sort((a, b) => (a.proj_finish ?? 99) - (b.proj_finish ?? 99)), win, fair: fmvAmerican(win / 100) }
     }).sort((a, b) => b.win - a.win)
   }
   const priceOf = (mk, name) => { const rows = gmv[mk] || []; const key = mk === 'team' || mk === 'mfr' ? normTeam : nrm; return rows.find(r => key(r.name) === key(name)) || null }
@@ -190,8 +180,6 @@ function MarketTables({ results, config, kLive }) {
   const pct = (v) => v == null ? '-' : v.toFixed(1) + '%'
   const TIP = {
     mev: 'EV at the best price against the OTHER books\' no-vig consensus. Blank when only one book has priced the row - a book cannot be its own consensus.',
-    t5: 'Probability that AT LEAST ONE car of the group finishes top 5, counted across the stored sim draws. Not the sum of the drivers (they can both make it, or both miss).',
-    t10: 'Probability that AT LEAST ONE car of the group finishes top 10, counted across the stored sim draws.',
     kalshi: 'Kalshi ask to buy YES on the team-wins market (KXNASCARTOPTEAM), live while this tab is open. Hover a price for bid / ask in cents.',
   }
   const noPrices = (books) => <div style={{ fontSize: 11, color: mut, margin: '2px 0 6px' }}>{books.length ? '' : 'No book prices stamped for this market - paste group odds in the Simulation Center before publishing to compare.'}</div>
@@ -200,13 +188,13 @@ function MarketTables({ results, config, kLive }) {
     const kTeam = (kLive && kLive.team) || {}
     const kFor = (name) => kTeam[normTeam(name)] || null
     const showK = kalshiCol && Object.keys(kTeam).length > 0
-    const nCols = 5 + books.length + (showK ? 1 : 0) + 2
+    const nCols = 3 + books.length + (showK ? 1 : 0) + 2
     return (
       <div>
         {noPrices(books)}
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', tableLayout: 'auto' }}>
           <thead><tr>
-            {[[col1], ['Model'], ['Fair'], ['Any top 5', TIP.t5], ['Any top 10', TIP.t10]].map((h, i) => th(h[0], i, h[1]))}
+            {[[col1], ['Model'], ['Fair']].map((h, i) => th(h[0], i, h[1]))}
             {books.map((b, i) => logoTh(b, i))}
             {showK ? logoTh('kalshi', 0, TIP.kalshi) : null}
             {th('Best', 90)}{th('mev', 91, TIP.mev)}
@@ -222,8 +210,6 @@ function MarketTables({ results, config, kLive }) {
                   {nameTd(<span><span style={{ display: 'inline-block', width: 14, color: '#8a8a8a' }}>{isOpen ? '▾' : '▸'}</span>{r.name}<span style={{ color: mut, marginLeft: 6, fontSize: 11 }}>{r.members.length} car{r.members.length === 1 ? '' : 's'}</span></span>)}
                   {td(pct(r.win))}
                   {td(r.fair || '-', { color: mut })}
-                  {td(pct(r.t5))}
-                  {td(pct(r.t10))}
                   {books.map(b => <td key={b} style={{ padding: '7px 6px', textAlign: 'right', whiteSpace: 'nowrap', color: pr && pr.bb === b ? '#3fb950' : mut }}>{fo(pr && pr[b])}</td>)}
                   {showK ? <td style={{ padding: '7px 6px', textAlign: 'right', whiteSpace: 'nowrap', color: kq ? '#79c0ff' : mut }} title={kq ? ('Kalshi bid ' + kq.bid + 'c / ask ' + kq.ask + 'c') : 'Not listed on Kalshi'}>{kq ? fo(kq.american) : '-'}</td> : null}
                   {td(fo(pr && pr.best), { fontWeight: 700 })}
@@ -286,7 +272,7 @@ function MarketTables({ results, config, kLive }) {
   const H = ({ t, first }) => <h2 style={{ fontSize: '1rem', fontWeight: 700, margin: first ? '4px 0 6px' : '26px 0 6px', textAlign: 'left' }}>{t}</h2>
   return (
     <div style={{ textAlign: 'left' }}>
-      <div style={{ fontSize: 12, color: '#888', marginBottom: 6, textAlign: 'left' }}>Group markets are informational: model odds beside the books' prices, no edge flags. Click a manufacturer or team for its drivers. Kalshi's team-wins market shows live on the Winning Team table when it is listed.{M ? '' : ' (This board has no stored draws, so the joint top-5 / top-10 columns are blank.)'}</div>
+      <div style={{ fontSize: 12, color: '#888', marginBottom: 6, textAlign: 'left' }}>Group markets are informational: model odds beside the books' prices, no edge flags. Click a manufacturer or team for its drivers. Kalshi's team-wins market shows live on the Winning Team table when it is listed.</div>
       <H t="Winning Manufacturer" first /><GroupTable mk="mfr" col1="Manufacturer" rows={groups('manufacturer')} />
       <H t="Winning Team" /><GroupTable mk="team" col1="Team" rows={groups('organization')} kalshiCol />
       <H t="Top Chevrolet" /><TopMakeTable mk="topChevrolet" make="Chevrolet" />
