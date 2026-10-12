@@ -193,7 +193,7 @@ function MarketTables({ results, config }) {
               <tr key={k} onClick={() => setOpen(o => ({ ...o, [k]: !o[k] }))} style={{ cursor: 'pointer' }} title="Click for the drivers behind this number">
                 <td style={{ padding: '7px 6px', whiteSpace: 'nowrap' }}><span style={{ display: 'inline-block', width: 12, color: '#8a8a8a' }}>{isOpen ? '\u25BE' : '\u25B8'}</span>{r.name}<span style={{ color: mut, marginLeft: 6, fontSize: 11 }}>{r.members.length} car{r.members.length === 1 ? '' : 's'}</span></td>
                 {td(pct(r.win))}
-                {td(fo(r.fair), { color: mut })}
+                {td(r.fair || '-', { color: mut })}
                 {td(pct(r.t5))}
                 {td(pct(r.t10))}
                 {td(fo(pr && pr.dk), { color: pr && pr.bb === 'dk' ? '#3fb950' : mut })}
@@ -208,7 +208,7 @@ function MarketTables({ results, config }) {
                     <thead><tr>{['Driver', 'Start', 'Proj', 'Win', 'Top 5', 'Top 10'].map((h, i) => <th key={i} style={{ padding: '3px 10px 3px 0', color: '#8a8a8a', fontWeight: 500, textAlign: i === 0 ? 'left' : 'right' }}>{h}</th>)}</tr></thead>
                     <tbody>{r.members.map(d => <tr key={d.driver_name}>
                       <td style={{ padding: '3px 10px 3px 0' }}>{d.driver_name}</td>
-                      <td style={{ padding: '3px 10px 3px 0', textAlign: 'right', color: mut }}>{d.start_position != null ? 'P' + d.start_position : '-'}</td>
+                      <td style={{ padding: '3px 10px 3px 0', textAlign: 'right', color: mut }}>{d.start_pos != null ? 'P' + d.start_pos : '-'}</td>
                       <td style={{ padding: '3px 10px 3px 0', textAlign: 'right' }}>{d.proj_finish != null ? (+d.proj_finish).toFixed(1) : '-'}</td>
                       <td style={{ padding: '3px 10px 3px 0', textAlign: 'right' }}>{pct(d.win_pct)}</td>
                       <td style={{ padding: '3px 10px 3px 0', textAlign: 'right' }}>{pct(d.top5_pct)}</td>
@@ -237,7 +237,7 @@ function MarketTables({ results, config }) {
           return <tr key={d.driver_name}>
             <td style={{ padding: '7px 6px' }}>{d.driver_name}</td>
             {td(pct(p))}
-            {td(fo(p > 0 ? fmvAmerican(p / 100) : null), { color: mut })}
+            {td(p > 0 ? fmvAmerican(p / 100) : '-', { color: mut })}
             {td(d.proj_finish != null ? (+d.proj_finish).toFixed(1) : '-')}
             {td(fo(pr && pr.dk), { color: pr && pr.bb === 'dk' ? '#3fb950' : mut })}
             {td(fo(pr && pr.fd), { color: pr && pr.bb === 'fd' ? '#3fb950' : mut })}
