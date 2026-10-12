@@ -328,21 +328,34 @@ export default function SimResults() {
         const ev = mine.length ? __K.eventKey(mine[0]) : null
         // Winning team (KXNASCARTOPTEAM, 2026-10-12): same event code as the winner market (BANOA26)
         // but it settles ~15 days after the green, outside pickRaceMarkets' window - so match by code.
+        // After the race the winner markets settle and drop off the list while the team market stays open
+        // (verified 2026-10-12, the morning after R32): fall back to series title + a [green-1d, green+20d]
+        // close window, earliest event, so the column survives the week.
         const team = {}
-        if (ev) {
-          try {
-            const r = await fetch('/api/nascar-feed?type=kalshi&ks=KXNASCARTOPTEAM&limit=1000')
-            if (r.ok) {
-              const j = await r.json()
-              ;(j.markets || []).forEach(m => {
-                if (__K.eventKey({ event_ticker: m.event }) !== ev) return
+        try {
+          const r = await fetch('/api/nascar-feed?type=kalshi&ks=KXNASCARTOPTEAM&limit=1000')
+          if (r.ok) {
+            const j = await r.json()
+            const tm = (j.markets || []).map(m => ({ ...m, event_ticker: m.event }))
+            let tev = ev
+            if (!tev) {
+              const pat = __K.SERIES_PAT[data.series]
+              const start = data.config && data.config.raceStartUtc ? new Date(data.config.raceStartUtc).getTime() : null
+              const ok = tm.filter(m => pat && pat.test(m.title || '') && (start == null || (() => { const t = new Date(m.close_time).getTime(); return t >= start - 86400e3 && t <= start + 20 * 86400e3 })()))
+              const evClose = {}
+              ok.forEach(m => { const k = __K.eventKey(m); const t = new Date(m.close_time).getTime(); if (!(k in evClose) || t < evClose[k]) evClose[k] = t })
+              tev = Object.keys(evClose).sort((a, b) => evClose[a] - evClose[b])[0] || null
+            }
+            if (tev) {
+              tm.forEach(m => {
+                if (__K.eventKey(m) !== tev) return
                 const bid = __K.cents(m, 'yes_bid'), ask = __K.cents(m, 'yes_ask'), a = __K.american(ask)
                 if (a == null) return
                 team[normTeam(m.subtitle || m.title)] = { bid, ask, american: a, ticker: m.ticker }
               })
             }
-          } catch (e) { /* team column is optional */ }
-        }
+          }
+        } catch (e) { /* team column is optional */ }
         if (on) setKLive({ book, raw, team, at: new Date(), event: ev })
       } catch (e) { if (on) setKLive(null) }
     }
