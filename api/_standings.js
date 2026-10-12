@@ -39,13 +39,29 @@ function scoreRace(wk) {
   if (!race || !(race.results || []).length) return null
   const stage = {}
   ;(race.stage_results || []).forEach(s => (s.results || []).forEach(x => { stage[x.driver_id] = (stage[x.driver_id] || 0) + (+x.stage_points || 0) }))
-  const rows = race.results.filter(r => +r.finishing_position > 0).map(r => ({
-    driver_id: r.driver_id, name: String(r.driver_fullname || '').trim(), car: String(r.car_number || '').trim(),
-    team: r.team_name || null, make: r.car_make || null,
-    finish: +r.finishing_position, status: r.finishing_status || null,
-    points: +r.points_earned || 0, stage: stage[r.driver_id] || 0, laps_led: +r.laps_led || 0,
-  }))
-  return { race_id: race.race_id, name: race.race_name, track: race.track_name, date: String(race.race_date || '').slice(0, 10), rows }
+  const finished = race.results.filter(r => +r.finishing_position > 0)
+  // Trucks Rockingham 2026 (5673): a complete race whose feed never got points - points_earned 0 on
+  // every truck and stage_points 0 on every stage row. Score it from the rulebook instead (win 55,
+  // then 37 - position down to 2 for P35, 1 after; stage 10..1; a DQ'd driver keeps last-place
+  // points and loses stage points) and flag the race `scored: 'rulebook'`. Drivers not declared
+  // for points are resolved by the caller (computeStandings) from their other races.
+  const unscored = finished.length >= 10 && !finished.some(r => +r.points_earned > 0)
+  if (unscored) {
+    ;(race.stage_results || []).forEach(s => (s.results || []).forEach(x => { const p = +x.finishing_position; if (p >= 1 && p <= 10) stage[x.driver_id] = (stage[x.driver_id] || 0) + (11 - p) }))
+  }
+  const rows = finished.map(r => {
+    const f = +r.finishing_position
+    const dq = !!r.disqualified
+    const rb = f === 1 ? 55 : f <= 35 ? 37 - f : 1
+    const st = dq ? 0 : (stage[r.driver_id] || 0)
+    return {
+      driver_id: r.driver_id, name: String(r.driver_fullname || '').trim(), car: String(r.car_number || '').trim(),
+      team: r.team_name || null, make: r.car_make || null,
+      finish: f, status: r.finishing_status || null, dq,
+      points: unscored ? rb + st : (+r.points_earned || 0), stage: st, laps_led: +r.laps_led || 0,
+    }
+  })
+  return { race_id: race.race_id, name: race.race_name, track: race.track_name, date: String(race.race_date || '').slice(0, 10), scored: unscored ? 'rulebook' : 'feed', rows }
 }
 
 // Compare two drivers for the tiebreak: wins, then 2nds, 3rds ... (higher count wins)
@@ -61,6 +77,12 @@ function computeStandings(seriesKey, races, totalPointsRaces, adjustments) {
   const R = RULES[seriesKey]
   // If the schedule feed is short (early January, or a bad read) every race counts as regular season.
   const regularRaces = totalPointsRaces > R.chaseRaces ? totalPointsRaces - R.chaseRaces : Infinity
+  // A driver who scored 0 in a feed-scored race while finishing is not declared for points in this
+  // series (Cup regulars in trucks, etc.). Strip their rulebook-scored points so a Rockingham-type
+  // race does not credit them.
+  const undeclared = new Set()
+  races.forEach(rc => { if (rc.scored === 'feed') rc.rows.forEach(r => { if (r.finish <= 30 && r.points === 0) undeclared.add(r.name) }) })
+  races.forEach(rc => { if (rc.scored === 'rulebook') rc.rows.forEach(r => { if (undeclared.has(r.name)) { r.points = 0; r.stage = 0 } }) })
   const drivers = {}
   const get = (r) => drivers[r.name] || (drivers[r.name] = { name: r.name, car: r.car, team: r.team, make: r.make, driver_id: r.driver_id,
     regular: 0, chase: 0, season: 0, stagePts: 0, starts: 0, wins: 0, top5: 0, top10: 0, dnf: 0, lapsLed: 0, finishes: [], perRace: [], adj: 0 })
@@ -112,7 +134,7 @@ function computeStandings(seriesKey, races, totalPointsRaces, adjustments) {
   return {
     series: seriesKey, rules: { ...R, regularRaces: isFinite(regularRaces) ? regularRaces : null, ladder: LADDER.slice(0, R.chaseDrivers) },
     phase: regularDone ? 'chase' : 'regular', racesRun: races.length, totalPointsRaces,
-    races: races.map(r => ({ race_id: r.race_id, name: r.name, track: r.track, date: r.date })),
+    races: races.map(r => ({ race_id: r.race_id, name: r.name, track: r.track, date: r.date, scored: r.scored })),
     rows,
   }
 }
@@ -131,7 +153,7 @@ async function standings(seriesKey, year, sb) {
   const scored = await mapLimit(past, 8, async r => {
     try { return scoreRace(await getJson(`${NASCAR}/cacher/${year}/${R.seriesId}/${r.race_id}/weekend-feed.json`)) } catch (e) { return null }
   })
-  const races = scored.filter(r => r && r.rows.some(x => x.points > 0))
+  const races = scored.filter(r => r && r.rows.some(x => x.points > 0))   // a race still being scored has no points yet
   let adjustments = []
   if (sb) {
     const { data } = await sb.from('points_adjustments').select('driver_name,nascar_race_id,delta,reason').eq('series', seriesKey).eq('year', year)

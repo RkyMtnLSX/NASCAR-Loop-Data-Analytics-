@@ -124,6 +124,7 @@ export default function Standings() {
             Points are NASCAR&rsquo;s own scoring from each race feed; drivers not declared for points in this series score zero and are not listed.
             {data.adjustments && data.adjustments.length ? ' ' + data.adjustments.length + ' post-race adjustment' + (data.adjustments.length === 1 ? '' : 's') + ' applied (marked beside the driver).' : ' No post-race penalties recorded this season.'}
             {data.skipped ? ' ' + data.skipped + ' race' + (data.skipped === 1 ? '' : 's') + ' not yet scored by NASCAR.' : ''}
+            {(() => { const rb = (data.races || []).filter(r => r.scored === 'rulebook'); return rb.length ? ' NASCAR never published points for ' + rb.map(r => r.track.replace(/ (Motor )?Speedway| Raceway| Superspeedway/g, '') + ' (' + r.date + ')').join(', ') + ' - scored here from the finishing order by the rulebook.' : '' })()}
           </div>
         </div>
       ) : null}
