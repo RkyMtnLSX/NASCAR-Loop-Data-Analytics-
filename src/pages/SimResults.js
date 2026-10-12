@@ -128,64 +128,136 @@ function CompareTray({ sel, config, results, meta, onToggle, onClear }) {
   )
 }
 function MarketTables({ results, config }) {
-  function aggBy(key) {
-    const m = {}
-    ;(results || []).forEach((r) => { const g = ((r[key] || "Unknown") + "").trim() || "Unknown"; m[g] = (m[g] || 0) + (r.win_pct || 0) })
-    return Object.entries(m).map(([k, v]) => ({ name: k, winPct: v, fmv: fmvAmerican(v / 100) })).sort((a, b) => b.winPct - a.winPct)
+  // MFR & TEAM (rebuilt 2026-10-12, operator: "they are kind of ass"). Every manufacturer and team from the
+  // board is a row whether or not a book priced it; each row expands to its drivers; "any top 5 / top 10"
+  // are JOINT probabilities from the stored draws (at least one car of the group), which is not the sum of
+  // the drivers' marginals - the thing a correlated sim knows and a spreadsheet does not. mev only when a
+  // second book priced the row (one book against itself printed the same number on every line).
+  const [open, setOpen] = useState({})
+  const fo = (a) => (a == null ? '-' : (a > 0 ? '+' + a : '' + a))
+  const mut = 'var(--text-muted)'
+  const nrm = (x) => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[.']/g, '').replace(/\s+/g, ' ').trim()
+  const gmv = (config && config.gmv) || {}
+  const M = __decodeMtx(config)
+  const idxOf = {}
+  if (M) M.order.forEach((n, c) => { idxOf[nrm(n)] = c })
+  // joint "at least one member finishes <= N" over the stored draws
+  const anyTopN = (members, N) => {
+    if (!M) return null
+    const cols = members.map(d => idxOf[nrm(d.driver_name)]).filter(c => c != null)
+    if (!cols.length) return null
+    let hit = 0
+    for (let sIdx = 0; sIdx < M.simN; sIdx++) { const base = sIdx * M.nD; for (let k = 0; k < cols.length; k++) { if (M.mtx[base + cols[k]] <= N) { hit++; break } } }
+    return 100 * hit / M.simN
   }
-  const gmv = config && config.gmv
-  const fo = (a) => (a == null ? "-" : (a > 0 ? "+" + a : "" + a))
-  const mut = "var(--text-muted)"
+  // P(this driver is the best finisher of the group) over the draws - the "Top Toyota" market
+  const bestOfGroup = (members) => {
+    const out = {}
+    if (!M) return out
+    const cols = members.map(d => [d.driver_name, idxOf[nrm(d.driver_name)]]).filter(x => x[1] != null)
+    if (!cols.length) return out
+    const wins = cols.map(() => 0)
+    for (let sIdx = 0; sIdx < M.simN; sIdx++) { const base = sIdx * M.nD; let b = 1e9, bi = -1; for (let k = 0; k < cols.length; k++) { const v = M.mtx[base + cols[k][1]]; if (v < b) { b = v; bi = k } } if (bi >= 0) wins[bi]++ }
+    cols.forEach((c, k) => { out[c[0]] = 100 * wins[k] / M.simN })
+    return out
+  }
+  const groups = (key) => {
+    const g = {}
+    ;(results || []).forEach(r => { const name = ((r[key] || 'Unknown') + '').trim() || 'Unknown'; (g[name] = g[name] || []).push(r) })
+    return Object.keys(g).map(name => {
+      const mem = g[name]
+      const win = mem.reduce((a, r) => a + (r.win_pct || 0), 0)
+      return { name, members: mem.slice().sort((a, b) => (a.proj_finish ?? 99) - (b.proj_finish ?? 99)), win, t5: anyTopN(mem, 5), t10: anyTopN(mem, 10), fair: fmvAmerican(win / 100) }
+    }).sort((a, b) => b.win - a.win)
+  }
+  const priceOf = (mk, name) => { const rows = gmv[mk] || []; return rows.find(r => nrm(r.name) === nrm(name)) || null }
+  const booksPriced = (pr) => pr ? ['dk', 'fd', 'hr'].filter(b => pr[b] != null).length : 0
+  const th = (t, i, tip) => <th key={i} title={tip || ''} style={{ padding: '7px 6px', color: '#8a8a8a', fontSize: 11, fontWeight: 500, textAlign: i === 0 ? 'left' : 'right', borderBottom: '0.5px solid #333', cursor: tip ? 'help' : 'default' }}>{t}</th>
+  const td = (v, extra) => <td style={{ padding: '7px 6px', textAlign: 'right', ...(extra || {}) }}>{v}</td>
+  const pct = (v) => v == null ? '-' : v.toFixed(1) + '%'
   const TIP = {
-    Edge: "Model EV at the best available price. NOTE this blends model edge with line-shopping: a soft book inflates it.",
-    mev: "EV at the best price using the SHARP (leave-one-out) consensus - i.e. is this line soft vs the other books?",
-    medge: "Model prob minus the sharp consensus, in points. The ONLY column that isolates model edge from line-shopping."
+    mev: 'EV at the best price against the OTHER books\' no-vig consensus. Blank when only one book has priced the row - a book cannot be its own consensus.',
+    t5: 'Probability that AT LEAST ONE car of the group finishes top 5, counted across the stored sim draws. Not the sum of the drivers (they can both make it, or both miss).',
+    t10: 'Probability that AT LEAST ONE car of the group finishes top 10, counted across the stored sim draws.',
   }
-  function GmTable({ rows, col1 }) {
-    const list = (rows || []).filter((r) => r.best != null).slice().sort((a, b) => (b.p || 0) - (a.p || 0)) // group markets: informational, sorted by model prob (2026-07-15)
-    if (!list.length) return null
+  function GroupTable({ mk, col1, rows }) {
     return (
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem" }}>
-        <thead><tr>
-          {[col1, "Model", "Fair", "DK", "FD", "HR", "Best", "mev"].map((h, i) => (
-            <th key={i} title={TIP[h] || ""} style={{ padding: "7px 6px", color: "#8a8a8a", fontSize: 11, fontWeight: 500, textAlign: i === 0 ? "left" : "right", borderBottom: "0.5px solid #333", cursor: TIP[h] ? "help" : "default" }}>{h}</th>
-          ))}
-        </tr></thead>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+        <thead><tr>{[[col1], ['Model'], ['Fair'], ['Any top 5', TIP.t5], ['Any top 10', TIP.t10], ['DK'], ['FD'], ['HR'], ['Best'], ['mev', TIP.mev]].map((h, i) => th(h[0], i, h[1]))}</tr></thead>
         <tbody>
-          {list.map((r) => (
-            <tr key={r.name}>
-              <td style={{ padding: "7px 6px" }}>{r.name}</td>
-              <td style={{ padding: "7px 6px", textAlign: "right" }}>{r.p}%</td>
-              <td style={{ padding: "7px 6px", textAlign: "right", color: mut }}>{fo(r.fair)}</td>
-              <td style={{ padding: "7px 6px", textAlign: "right", color: r.bb === "dk" ? "#3fb950" : mut }}>{fo(r.dk)}</td>
-              <td style={{ padding: "7px 6px", textAlign: "right", color: r.bb === "fd" ? "#3fb950" : mut }}>{fo(r.fd)}</td>
-              <td style={{ padding: "7px 6px", textAlign: "right", color: r.bb === "hr" ? "#3fb950" : mut }}>{fo(r.hr)}</td>
-              <td style={{ padding: "7px 6px", textAlign: "right", fontWeight: 700 }}>{fo(r.best)}</td>
-              <td style={{ padding: "7px 6px", textAlign: "right", color: (r.mev != null && r.mev > 0) ? "#3fb950" : mut }}>{r.mev == null ? "-" : (r.mev > 0 ? "+" : "") + r.mev + "%"}</td>
-            </tr>
-          ))}
+          {rows.map(r => {
+            const pr = priceOf(mk, r.name)
+            const k = mk + '|' + r.name, isOpen = !!open[k]
+            const twoBooks = booksPriced(pr) >= 2
+            return [
+              <tr key={k} onClick={() => setOpen(o => ({ ...o, [k]: !o[k] }))} style={{ cursor: 'pointer' }} title="Click for the drivers behind this number">
+                <td style={{ padding: '7px 6px', whiteSpace: 'nowrap' }}><span style={{ display: 'inline-block', width: 12, color: '#8a8a8a' }}>{isOpen ? '\u25BE' : '\u25B8'}</span>{r.name}<span style={{ color: mut, marginLeft: 6, fontSize: 11 }}>{r.members.length} car{r.members.length === 1 ? '' : 's'}</span></td>
+                {td(pct(r.win))}
+                {td(fo(r.fair), { color: mut })}
+                {td(pct(r.t5))}
+                {td(pct(r.t10))}
+                {td(fo(pr && pr.dk), { color: pr && pr.bb === 'dk' ? '#3fb950' : mut })}
+                {td(fo(pr && pr.fd), { color: pr && pr.bb === 'fd' ? '#3fb950' : mut })}
+                {td(fo(pr && pr.hr), { color: pr && pr.bb === 'hr' ? '#3fb950' : mut })}
+                {td(fo(pr && pr.best), { fontWeight: 700 })}
+                {td(twoBooks && pr.mev != null ? ((pr.mev > 0 ? '+' : '') + pr.mev + '%') : '-', { color: twoBooks && pr.mev > 0 ? '#3fb950' : mut })}
+              </tr>,
+              isOpen ? (
+                <tr key={k + '|d'}><td colSpan={10} style={{ padding: '2px 6px 10px 24px', background: 'rgba(255,255,255,0.02)' }}>
+                  <table style={{ borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+                    <thead><tr>{['Driver', 'Start', 'Proj', 'Win', 'Top 5', 'Top 10'].map((h, i) => <th key={i} style={{ padding: '3px 10px 3px 0', color: '#8a8a8a', fontWeight: 500, textAlign: i === 0 ? 'left' : 'right' }}>{h}</th>)}</tr></thead>
+                    <tbody>{r.members.map(d => <tr key={d.driver_name}>
+                      <td style={{ padding: '3px 10px 3px 0' }}>{d.driver_name}</td>
+                      <td style={{ padding: '3px 10px 3px 0', textAlign: 'right', color: mut }}>{d.start_position != null ? 'P' + d.start_position : '-'}</td>
+                      <td style={{ padding: '3px 10px 3px 0', textAlign: 'right' }}>{d.proj_finish != null ? (+d.proj_finish).toFixed(1) : '-'}</td>
+                      <td style={{ padding: '3px 10px 3px 0', textAlign: 'right' }}>{pct(d.win_pct)}</td>
+                      <td style={{ padding: '3px 10px 3px 0', textAlign: 'right' }}>{pct(d.top5_pct)}</td>
+                      <td style={{ padding: '3px 10px 3px 0', textAlign: 'right' }}>{pct(d.top10_pct)}</td>
+                    </tr>)}</tbody>
+                  </table>
+                </td></tr>
+              ) : null,
+            ]
+          })}
         </tbody>
       </table>
     )
   }
-  const MK = [["mfr", "Winning Manufacturer", "Manufacturer"], ["team", "Winning Team", "Team"], ["topChevrolet", "Top Chevrolet", "Driver"], ["topFord", "Top Ford", "Driver"], ["topToyota", "Top Toyota", "Driver"]]
+  function TopMakeTable({ mk, make }) {
+    const mem = (results || []).filter(r => ((r.manufacturer || '') + '').trim() === make)
+    if (!mem.length) return null
+    const best = bestOfGroup(mem)
+    const rows = mem.map(d => { const pr = priceOf(mk, d.driver_name); const p = best[d.driver_name] != null ? best[d.driver_name] : (pr ? pr.p : null); return { d, pr, p } })
+      .sort((a, b) => (b.p || 0) - (a.p || 0))
+    return (
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+        <thead><tr>{[['Driver'], ['Model'], ['Fair'], ['Proj'], ['DK'], ['FD'], ['HR'], ['Best'], ['mev', TIP.mev]].map((h, i) => th(h[0], i, h[1]))}</tr></thead>
+        <tbody>{rows.map(({ d, pr, p }) => {
+          const twoBooks = booksPriced(pr) >= 2
+          return <tr key={d.driver_name}>
+            <td style={{ padding: '7px 6px' }}>{d.driver_name}</td>
+            {td(pct(p))}
+            {td(fo(p > 0 ? fmvAmerican(p / 100) : null), { color: mut })}
+            {td(d.proj_finish != null ? (+d.proj_finish).toFixed(1) : '-')}
+            {td(fo(pr && pr.dk), { color: pr && pr.bb === 'dk' ? '#3fb950' : mut })}
+            {td(fo(pr && pr.fd), { color: pr && pr.bb === 'fd' ? '#3fb950' : mut })}
+            {td(fo(pr && pr.hr), { color: pr && pr.bb === 'hr' ? '#3fb950' : mut })}
+            {td(fo(pr && pr.best), { fontWeight: 700 })}
+            {td(twoBooks && pr.mev != null ? ((pr.mev > 0 ? '+' : '') + pr.mev + '%') : '-', { color: twoBooks && pr.mev > 0 ? '#3fb950' : mut })}
+          </tr>
+        })}</tbody>
+      </table>
+    )
+  }
+  const H = ({ t, first }) => <h2 style={{ fontSize: '1rem', fontWeight: 700, margin: first ? '4px 0' : '22px 0 4px' }}>{t}</h2>
   return (
     <div>
-      {MK.map((m, mi) => {
-        const rows = gmv && gmv[m[0]]
-        const hasOdds = rows && rows.some((r) => r.best != null)
-        if (hasOdds) {
-          return (
-            <div key={m[0]}>
-              <h2 style={{ fontSize: "1rem", fontWeight: 700, margin: mi === 0 ? "4px 0" : "22px 0 4px" }}>{m[1]}</h2>
-              <GmTable rows={rows} col1={m[2]} />
-            </div>
-          )
-        }
-        if (m[0] === "mfr") return (<div key={m[0]}><h2 style={{ fontSize: "1rem", fontWeight: 700, margin: "4px 0" }}>Winning Manufacturer</h2><SrTable data={aggBy("manufacturer")} col1="Manufacturer" /></div>)
-        if (m[0] === "team") return (<div key={m[0]}><h2 style={{ fontSize: "1rem", fontWeight: 700, margin: "22px 0 4px" }}>Winning Team</h2><SrTable data={aggBy("organization")} col1="Team" /></div>)
-        return null
-      })}
+      <div style={{ fontSize: 12, color: '#888', marginBottom: 6 }}>Group markets are informational: model odds beside the books' prices, no edge flags. Click a manufacturer or team for its drivers.{M ? '' : ' (This board has no stored draws, so the joint top-5 / top-10 columns are blank.)'}</div>
+      <H t="Winning Manufacturer" first /><GroupTable mk="mfr" col1="Manufacturer" rows={groups('manufacturer')} />
+      <H t="Winning Team" /><GroupTable mk="team" col1="Team" rows={groups('organization')} />
+      <H t="Top Chevrolet" /><TopMakeTable mk="topChevrolet" make="Chevrolet" />
+      <H t="Top Ford" /><TopMakeTable mk="topFord" make="Ford" />
+      <H t="Top Toyota" /><TopMakeTable mk="topToyota" make="Toyota" />
     </div>
   )
 }

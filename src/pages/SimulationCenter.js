@@ -1156,7 +1156,7 @@ export default function SimulationCenter({ isSubscriber, embedded }) {
       race_year:  config.race_year || new Date().getFullYear(),
       race_number: raceNumMap[series] ? parseInt(raceNumMap[series]) : null,
       stage: simStage,
-      config: { lapFeature: series !== 'cup' ? 'v1-0.15' : 'off', carCeilFloor: 'v1-0.70', carDnf: series === 'trucks' ? 'v1-k32' : 'off', lapTraffic: series === 'oreilly' ? 'v2-k1.5' : 'off', ringer: series !== 'cup' ? 'v1-b12' : 'off', topLift: series === 'trucks' ? 'v1-k2-b12' : 'off', projShade: series === 'cup' ? 'v1-0.7' : 'v2-1.0', emptyPractice: series === 'oreilly' ? 'corrHistory' : 'prorata', domBoot: domPoolFor(series, __trackGroup(config && config.track_name)) ? 'v1-' + __trackGroup(config && config.track_name) : 'off', asymNoise: (series !== 'cup' && ['INT', 'SHORT'].indexOf(__trackGroup(config && config.track_name)) !== -1) ? 'v1-upside-0.5' : 'off', practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'car-auto-v2', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06-fenced', domCurves: (__trackGroup(config && config.track_name) === 'INT' ? 'int-dom-v2' : __trackGroup(config && config.track_name) === 'SS' ? 'ss-flbudget-v1' : 'gxc-v3.1-dnfLL'), domSpeed: 'mult-v1', startProj: ((series === 'cup' || series === 'oreilly') ? 'trail10-v4-form' : 'trail10-v3.5-eqStart'), flagGuard: 'conf-v1', dnfModel: 'wreck-v1.1-cb', marketAnchor: 'v1.4-multimkt', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, raceStartUtc: (config && config.race_start_utc) || null, kalshi: kalshiMeta && kalshiMeta.n ? { event: kalshiMeta.event, n: kalshiMeta.n, at: kalshiMeta.at } : null, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), runNote: (runNote.trim() ? runNote.trim() : null), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
+      config: { lapFeature: series !== 'cup' ? 'v1-0.15' : 'off', carCeilFloor: 'v1-0.70', carDnf: series === 'trucks' ? 'v1-k32' : 'off', lapTraffic: series === 'oreilly' ? 'v2-k1.5' : 'off', ringer: series !== 'cup' ? 'v1-b12' : 'off', topLift: series === 'trucks' ? 'v1-k2-b12' : 'off', projShade: series === 'cup' ? 'v1-0.7' : 'v2-1.0', emptyPractice: series === 'oreilly' ? 'corrHistory' : 'prorata', domBoot: domPoolFor(series, __trackGroup(config && config.track_name)) ? 'v1-' + __trackGroup(config && config.track_name) : 'off', asymNoise: (series !== 'cup' && ['INT', 'SHORT'].indexOf(__trackGroup(config && config.track_name)) !== -1) ? 'v1-upside-0.5' : 'off', practiceMetric: (series === 'oreilly' ? 'overall_avg' : 'best5'), poolScope: 'series-only', borrowMode: 'car-auto-v2', recencyCw: (series === 'cup' ? 2 : 3), pitCrew: 'v1-0.06-fenced', domCurves: (__trackGroup(config && config.track_name) === 'INT' ? 'int-dom-v2' : __trackGroup(config && config.track_name) === 'SS' ? 'ss-flbudget-v1' : 'gxc-v3.1-dnfLL'), domSpeed: 'mult-v1', startProj: ((series === 'cup' || series === 'oreilly') ? 'trail10-v4-form' : 'trail10-v3.5-eqStart'), flagGuard: 'conf-v1', dnfModel: 'wreck-v1.1-cb', marketAnchor: 'v1.4-multimkt', gmv: __groupMarketValue(gDk, gFd, gHr, simResults, simResults && simResults.posMatrix, (simResults && simResults.simN) || 0), lineup: lineupState, groupOddsRaw: { dk: (gDk || '').slice(0, 6000) || null, fd: (gFd || '').slice(0, 6000) || null, hr: (gHr || '').slice(0, 6000) || null }, raceStartUtc: (config && config.race_start_utc) || null, kalshi: kalshiMeta && kalshiMeta.n ? { event: kalshiMeta.event, n: kalshiMeta.n, at: kalshiMeta.at } : null, rearToStart: Object.keys(rearOverrides).filter(n => rearOverrides[n]), runNote: (runNote.trim() ? runNote.trim() : null), eqOverrides: eqOverrides, weights: weights, caution: cautionPreset, dnf: dnfPreset, rainOut: rainOut, numSims: numSims, totalLaps: totalRaceLaps, stage1Laps: stage1Laps, stage2Laps: stage2Laps, simMatrix: __mtxB64, simMatrixN: __mtxN, simOrder: __mtxOrder },
       results: simResults.map(d => ({
         driver_name:  d.name,
         car_number:   d.carNumber,
@@ -1956,6 +1956,10 @@ export function __groupMarketValue(dkTxt, fdTxt, hrTxt, drivers, posMatrix, simN
         var a = amer(line);
         if (a != null) { if (pend) { out[cur][pend] = a; pend = null; } return; }
         if (NOISE.test(line)) { pend = null; return; }
+        // 2026-10-12 (FD dropped Toyota from Winning Manufacturer): a book can put the odds on the SAME line
+        // as the name, either order - "Toyota +330" / "+330 Toyota". Split it instead of waiting for a next line.
+        var inl = /^(.*?)\s+([+\-\u2212\u2013\u2014]\d{2,6})\s*$/.exec(line) || (function () { var m = /^([+\-\u2212\u2013\u2014]\d{2,6})\s+(.+)$/.exec(line); return m ? [m[0], m[2], m[1]] : null; })();
+        if (inl) { var ia = amer(inl[2]); var nm = (inl[1] || "").trim(); if (ia != null && nm && !NOISE.test(nm)) { out[cur][nm] = ia; pend = null; return; } }
         pend = line;
       });
       return out;
@@ -2011,12 +2015,14 @@ export function __groupMarketValue(dkTxt, fdTxt, hrTxt, drivers, posMatrix, simN
           px[bk] = found;
         });
         var p = model[mk][name];
-        if (px.dk == null && px.fd == null && px.hr == null) return;
+        // 2026-10-12: every model row is kept whether or not a book priced it (Toyota vanished from a
+        // three-row market because FD's line did not parse). The page shows '-' for missing prices.
         var best = null, bb = "";
         Object.keys(px).forEach(function (bk) { if (px[bk] != null && (best == null || dec(px[bk]) > dec(best))) { best = px[bk]; bb = bk; } });
         var cons = [];
         Object.keys(books).forEach(function (bk) { if (bk === bb) return; if (dvg[mk][bk] && dvg[mk][bk][key] != null) cons.push(dvg[mk][bk][key]); });
-        if (!cons.length) Object.keys(books).forEach(function (bk) { if (dvg[mk][bk] && dvg[mk][bk][key] != null) cons.push(dvg[mk][bk][key]); });
+        // 2026-10-12: no self-consensus. With one book priced, "mev" was that book's own de-vigged number
+        // against its own price - every row printed the same +77% / +21%. Needs a SECOND book, else null.
         var consP = cons.length ? cons.reduce(function (a, b) { return a + b; }, 0) / cons.length : null;
         res[mk].push({
           name: name, dk: px.dk, fd: px.fd, hr: px.hr, best: best, bb: bb,
