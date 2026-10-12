@@ -15,6 +15,7 @@ import { DEFAULT_WEIGHTS, ROAD_COURSE_WEIGHTS, SUPERSPEEDWAY_WEIGHTS, TRUCK_ROAD
 import GradeCenter from './GradeCenter'
 import DfsReplay from './DfsReplay'
 import { LoadRaceFromFeed, WeekendFromFeed } from './NascarFeedAdmin'
+import PointsAdjustmentsAdmin from './PointsAdjustmentsAdmin'
 
 
 // Strip NASCAR roster markers that ride along with scraped driver names:
@@ -1596,6 +1597,7 @@ export default function Admin() {
       {adminTab === 'load' && (<>
       <WeekendFromFeed />
       <LoadRaceFromFeed />
+      <PointsAdjustmentsAdmin />
       <div className="card" style={{ marginBottom: 20 }}>
         <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: 8 }}>Data Audit</h2>
         <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 12 }}>

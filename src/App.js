@@ -15,6 +15,7 @@ import FastestLap         from './pages/FastestLap'
 import FastestLapSurvival from './pages/FastestLapSurvival'
 import GreenFlagSpeed     from './pages/GreenFlagSpeed'
 import PitCrewRankings   from './pages/PitCrewRankings'
+import Standings          from './pages/Standings'
 import QualifyingCenter   from './pages/QualifyingCenter'
 import SimulationCenter   from './pages/SimulationCenter'
 import GradeCenter        from './pages/GradeCenter'
@@ -82,6 +83,7 @@ export default function App() {
         <Route path="/fastest-lap-survival" element={<FastestLapSurvival />} />
             <Route path="/green-flag-speed"   element={<GreenFlagSpeed />} />
           <Route path="/pit-crew-rankings"  element={<PitCrewRankings />} />
+        <Route path="/standings"          element={<Standings />} />
         <Route path="/qualifying"         element={<QualifyingCenter isSubscriber={isSubscriber} />} />
         <Route path="/simulation-center"  element={isAdmin ? <SimulationCenter isSubscriber={isSubscriber} /> : <AdminGate />} />
         <Route path="/grade-center"     element={isAdmin ? <GradeCenter /> : <AdminGate />} />

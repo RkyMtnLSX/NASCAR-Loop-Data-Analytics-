@@ -385,6 +385,21 @@ module.exports = async function handler(req, res) {
 
   const q = req.query || {}
   if (q.type === 'kalshi') return require('./_kalshi').kalshi(req, res)   // 2026-10-11: Kalshi public prices (param ks=series ticker), before the integer checks
+  if (q.type === 'standings') {
+    // 2026-10-12: season standings computed from the race feeds + points_adjustments (api/_standings.js).
+    // Param sk = cup | oreilly | trucks (the integer `series` check below would reject it). Edge-cached
+    // 30 min: 30-odd weekend-feed reads per miss.
+    const sk = String(q.sk || '').toLowerCase()
+    const yr = intInRange(q.year, 2015, 2030)
+    if (!['cup', 'oreilly', 'trucks'].includes(sk) || !yr) return res.status(400).json({ error: 'type=standings needs sk=cup|oreilly|trucks and year' })
+    try {
+      const { createClient } = require('@supabase/supabase-js')
+      const sbc = createClient(process.env.REACT_APP_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY)
+      const out = await require('./_standings').standings(sk, yr, sbc)
+      res.setHeader('Cache-Control', q.fresh ? 'no-store' : 'public, s-maxage=1800, stale-while-revalidate=86400')
+      return res.status(200).json({ type: 'standings', fetched_at: new Date().toISOString(), ...out })
+    } catch (e) { return res.status(502).json({ error: e.message }) }
+  }
   const year = intInRange(q.year, 2015, 2030)
   const series = intInRange(q.series, 1, 3)
   const raceId = intInRange(q.race, 1, 999999)

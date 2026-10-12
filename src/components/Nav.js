@@ -16,6 +16,7 @@ const LOOP_LINKS = [
   { path: '/fastest-lap-survival', label: 'Fastest Lap Survival' },
   { path: '/qualifying',        label: 'Qualifying' },
   { path: '/pit-crew-rankings', label: 'Pit Crew Rankings' },
+  { path: '/standings',         label: 'Standings' },          // 2026-10-12: computed from the race feeds
 ]
 
 const DFS_LINKS = [
