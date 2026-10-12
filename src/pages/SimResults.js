@@ -127,7 +127,13 @@ function CompareTray({ sel, config, results, meta, onToggle, onClear }) {
     </div>
   )
 }
-function MarketTables({ results, config }) {
+// Team / make names as the books and Kalshi spell them vs the entry list: case, punctuation and
+// "Racing"/"Motorsports"/"Inc" are noise ("JOE GIBBS RACING" = "Joe Gibbs Racing"; "RFK" = "RFK Racing").
+function normTeam(s) {
+  return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]/g, ' ')
+    .replace(/\b(racing|motorsports|motorsport|motor club|inc|team|enterprises)\b/g, ' ').replace(/\s+/g, ' ').trim()
+}
+function MarketTables({ results, config, kLive }) {
   // MFR & TEAM (rebuilt 2026-10-12, operator: "they are kind of ass"). Every manufacturer and team from the
   // board is a row whether or not a book priced it; each row expands to its drivers; "any top 5 / top 10"
   // are JOINT probabilities from the stored draws (at least one car of the group), which is not the sum of
@@ -170,57 +176,79 @@ function MarketTables({ results, config }) {
       return { name, members: mem.slice().sort((a, b) => (a.proj_finish ?? 99) - (b.proj_finish ?? 99)), win, t5: anyTopN(mem, 5), t10: anyTopN(mem, 10), fair: fmvAmerican(win / 100) }
     }).sort((a, b) => b.win - a.win)
   }
-  const priceOf = (mk, name) => { const rows = gmv[mk] || []; return rows.find(r => nrm(r.name) === nrm(name)) || null }
+  const priceOf = (mk, name) => { const rows = gmv[mk] || []; const key = mk === 'team' || mk === 'mfr' ? normTeam : nrm; return rows.find(r => key(r.name) === key(name)) || null }
   const booksPriced = (pr) => pr ? ['dk', 'fd', 'hr'].filter(b => pr[b] != null).length : 0
-  const th = (t, i, tip) => <th key={i} title={tip || ''} style={{ padding: '7px 6px', color: '#8a8a8a', fontSize: 11, fontWeight: 500, textAlign: i === 0 ? 'left' : 'right', borderBottom: '0.5px solid #333', cursor: tip ? 'help' : 'default' }}>{t}</th>
-  const td = (v, extra) => <td style={{ padding: '7px 6px', textAlign: 'right', ...(extra || {}) }}>{v}</td>
+  // Only the books that priced something in this table get a column: a wall of "-" under DK and HR
+  // told the reader nothing except that the operator pasted one book (operator, 2026-10-12: "the page
+  // looks a little off"). Headers are the book logos, as on the Market Value tab.
+  const booksIn = (mk, names) => ['dk', 'fd', 'hr'].filter(b => names.some(n => { const pr = priceOf(mk, n); return pr && pr[b] != null }))
+  const LOGO = { dk: 'DK', fd: 'FD', hr: 'HR', kalshi: 'Kalshi' }
+  const logoTh = (b, i, tip) => <th key={'b' + b} title={tip || ''} style={{ padding: '4px 6px', textAlign: 'right', borderBottom: '0.5px solid #333' }}><img src={'/book-' + b + '.png'} alt={LOGO[b]} style={{ maxHeight: 26, maxWidth: 64, verticalAlign: 'middle' }} />{b === 'kalshi' && kLive && kLive.at ? <span style={{ display: 'block', fontSize: 9, color: '#3fb950', fontWeight: 500 }}>live</span> : null}</th>
+  const th = (t, i, tip) => <th key={i} title={tip || ''} style={{ padding: '7px 6px', color: '#8a8a8a', fontSize: 11, fontWeight: 500, textAlign: i === 0 ? 'left' : 'right', borderBottom: '0.5px solid #333', cursor: tip ? 'help' : 'default', whiteSpace: 'nowrap' }}>{t}</th>
+  const td = (v, extra) => <td style={{ padding: '7px 6px', textAlign: 'right', whiteSpace: 'nowrap', ...(extra || {}) }}>{v}</td>
+  const nameTd = (v, extra) => <td style={{ padding: '7px 6px', textAlign: 'left', whiteSpace: 'nowrap', ...(extra || {}) }}>{v}</td>
   const pct = (v) => v == null ? '-' : v.toFixed(1) + '%'
   const TIP = {
     mev: 'EV at the best price against the OTHER books\' no-vig consensus. Blank when only one book has priced the row - a book cannot be its own consensus.',
     t5: 'Probability that AT LEAST ONE car of the group finishes top 5, counted across the stored sim draws. Not the sum of the drivers (they can both make it, or both miss).',
     t10: 'Probability that AT LEAST ONE car of the group finishes top 10, counted across the stored sim draws.',
+    kalshi: 'Kalshi ask to buy YES on the team-wins market (KXNASCARTOPTEAM), live while this tab is open. Hover a price for bid / ask in cents.',
   }
-  function GroupTable({ mk, col1, rows }) {
+  const noPrices = (books) => <div style={{ fontSize: 11, color: mut, margin: '2px 0 6px' }}>{books.length ? '' : 'No book prices stamped for this market - paste group odds in the Simulation Center before publishing to compare.'}</div>
+  function GroupTable({ mk, col1, rows, kalshiCol }) {
+    const books = booksIn(mk, rows.map(r => r.name))
+    const kTeam = (kLive && kLive.team) || {}
+    const kFor = (name) => kTeam[normTeam(name)] || null
+    const showK = kalshiCol && Object.keys(kTeam).length > 0
+    const nCols = 5 + books.length + (showK ? 1 : 0) + 2
     return (
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
-        <thead><tr>{[[col1], ['Model'], ['Fair'], ['Any top 5', TIP.t5], ['Any top 10', TIP.t10], ['DK'], ['FD'], ['HR'], ['Best'], ['mev', TIP.mev]].map((h, i) => th(h[0], i, h[1]))}</tr></thead>
-        <tbody>
-          {rows.map(r => {
-            const pr = priceOf(mk, r.name)
-            const k = mk + '|' + r.name, isOpen = !!open[k]
-            const twoBooks = booksPriced(pr) >= 2
-            return [
-              <tr key={k} onClick={() => setOpen(o => ({ ...o, [k]: !o[k] }))} style={{ cursor: 'pointer' }} title="Click for the drivers behind this number">
-                <td style={{ padding: '7px 6px', whiteSpace: 'nowrap' }}><span style={{ display: 'inline-block', width: 12, color: '#8a8a8a' }}>{isOpen ? '\u25BE' : '\u25B8'}</span>{r.name}<span style={{ color: mut, marginLeft: 6, fontSize: 11 }}>{r.members.length} car{r.members.length === 1 ? '' : 's'}</span></td>
-                {td(pct(r.win))}
-                {td(r.fair || '-', { color: mut })}
-                {td(pct(r.t5))}
-                {td(pct(r.t10))}
-                {td(fo(pr && pr.dk), { color: pr && pr.bb === 'dk' ? '#3fb950' : mut })}
-                {td(fo(pr && pr.fd), { color: pr && pr.bb === 'fd' ? '#3fb950' : mut })}
-                {td(fo(pr && pr.hr), { color: pr && pr.bb === 'hr' ? '#3fb950' : mut })}
-                {td(fo(pr && pr.best), { fontWeight: 700 })}
-                {td(twoBooks && pr.mev != null ? ((pr.mev > 0 ? '+' : '') + pr.mev + '%') : '-', { color: twoBooks && pr.mev > 0 ? '#3fb950' : mut })}
-              </tr>,
-              isOpen ? (
-                <tr key={k + '|d'}><td colSpan={10} style={{ padding: '2px 6px 10px 24px', background: 'rgba(255,255,255,0.02)' }}>
-                  <table style={{ borderCollapse: 'collapse', fontSize: '0.78rem' }}>
-                    <thead><tr>{['Driver', 'Start', 'Proj', 'Win', 'Top 5', 'Top 10'].map((h, i) => <th key={i} style={{ padding: '3px 10px 3px 0', color: '#8a8a8a', fontWeight: 500, textAlign: i === 0 ? 'left' : 'right' }}>{h}</th>)}</tr></thead>
-                    <tbody>{r.members.map(d => <tr key={d.driver_name}>
-                      <td style={{ padding: '3px 10px 3px 0' }}>{d.driver_name}</td>
-                      <td style={{ padding: '3px 10px 3px 0', textAlign: 'right', color: mut }}>{d.start_pos != null ? 'P' + d.start_pos : '-'}</td>
-                      <td style={{ padding: '3px 10px 3px 0', textAlign: 'right' }}>{d.proj_finish != null ? (+d.proj_finish).toFixed(1) : '-'}</td>
-                      <td style={{ padding: '3px 10px 3px 0', textAlign: 'right' }}>{pct(d.win_pct)}</td>
-                      <td style={{ padding: '3px 10px 3px 0', textAlign: 'right' }}>{pct(d.top5_pct)}</td>
-                      <td style={{ padding: '3px 10px 3px 0', textAlign: 'right' }}>{pct(d.top10_pct)}</td>
-                    </tr>)}</tbody>
-                  </table>
-                </td></tr>
-              ) : null,
-            ]
-          })}
-        </tbody>
-      </table>
+      <div>
+        {noPrices(books)}
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', tableLayout: 'auto' }}>
+          <thead><tr>
+            {[[col1], ['Model'], ['Fair'], ['Any top 5', TIP.t5], ['Any top 10', TIP.t10]].map((h, i) => th(h[0], i, h[1]))}
+            {books.map((b, i) => logoTh(b, i))}
+            {showK ? logoTh('kalshi', 0, TIP.kalshi) : null}
+            {th('Best', 90)}{th('mev', 91, TIP.mev)}
+          </tr></thead>
+          <tbody>
+            {rows.map(r => {
+              const pr = priceOf(mk, r.name)
+              const k = mk + '|' + r.name, isOpen = !!open[k]
+              const twoBooks = booksPriced(pr) >= 2
+              const kq = showK ? kFor(r.name) : null
+              return [
+                <tr key={k} onClick={() => setOpen(o => ({ ...o, [k]: !o[k] }))} style={{ cursor: 'pointer', borderBottom: '0.5px solid #222' }} title="Click for the drivers behind this number">
+                  {nameTd(<span><span style={{ display: 'inline-block', width: 14, color: '#8a8a8a' }}>{isOpen ? '▾' : '▸'}</span>{r.name}<span style={{ color: mut, marginLeft: 6, fontSize: 11 }}>{r.members.length} car{r.members.length === 1 ? '' : 's'}</span></span>)}
+                  {td(pct(r.win))}
+                  {td(r.fair || '-', { color: mut })}
+                  {td(pct(r.t5))}
+                  {td(pct(r.t10))}
+                  {books.map(b => <td key={b} style={{ padding: '7px 6px', textAlign: 'right', whiteSpace: 'nowrap', color: pr && pr.bb === b ? '#3fb950' : mut }}>{fo(pr && pr[b])}</td>)}
+                  {showK ? <td style={{ padding: '7px 6px', textAlign: 'right', whiteSpace: 'nowrap', color: kq ? '#79c0ff' : mut }} title={kq ? ('Kalshi bid ' + kq.bid + 'c / ask ' + kq.ask + 'c') : 'Not listed on Kalshi'}>{kq ? fo(kq.american) : '-'}</td> : null}
+                  {td(fo(pr && pr.best), { fontWeight: 700 })}
+                  {td(twoBooks && pr.mev != null ? ((pr.mev > 0 ? '+' : '') + pr.mev + '%') : '-', { color: twoBooks && pr.mev > 0 ? '#3fb950' : mut })}
+                </tr>,
+                isOpen ? (
+                  <tr key={k + '|d'}><td colSpan={nCols} style={{ padding: '2px 6px 10px 26px', background: 'rgba(255,255,255,0.02)', textAlign: 'left' }}>
+                    <table style={{ borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+                      <thead><tr>{['Driver', 'Start', 'Proj', 'Win', 'Top 5', 'Top 10'].map((h, i) => <th key={i} style={{ padding: '3px 12px 3px 0', color: '#8a8a8a', fontWeight: 500, textAlign: i === 0 ? 'left' : 'right' }}>{h}</th>)}</tr></thead>
+                      <tbody>{r.members.map(d => <tr key={d.driver_name}>
+                        <td style={{ padding: '3px 12px 3px 0', textAlign: 'left' }}>{d.driver_name}</td>
+                        <td style={{ padding: '3px 12px 3px 0', textAlign: 'right', color: mut }}>{d.start_pos != null ? 'P' + d.start_pos : '-'}</td>
+                        <td style={{ padding: '3px 12px 3px 0', textAlign: 'right' }}>{d.proj_finish != null ? (+d.proj_finish).toFixed(1) : '-'}</td>
+                        <td style={{ padding: '3px 12px 3px 0', textAlign: 'right' }}>{pct(d.win_pct)}</td>
+                        <td style={{ padding: '3px 12px 3px 0', textAlign: 'right' }}>{pct(d.top5_pct)}</td>
+                        <td style={{ padding: '3px 12px 3px 0', textAlign: 'right' }}>{pct(d.top10_pct)}</td>
+                      </tr>)}</tbody>
+                    </table>
+                  </td></tr>
+                ) : null,
+              ]
+            })}
+          </tbody>
+        </table>
+      </div>
     )
   }
   function TopMakeTable({ mk, make }) {
@@ -229,32 +257,38 @@ function MarketTables({ results, config }) {
     const best = bestOfGroup(mem)
     const rows = mem.map(d => { const pr = priceOf(mk, d.driver_name); const p = best[d.driver_name] != null ? best[d.driver_name] : (pr ? pr.p : null); return { d, pr, p } })
       .sort((a, b) => (b.p || 0) - (a.p || 0))
+    const books = booksIn(mk, mem.map(d => d.driver_name))
     return (
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
-        <thead><tr>{[['Driver'], ['Model'], ['Fair'], ['Proj'], ['DK'], ['FD'], ['HR'], ['Best'], ['mev', TIP.mev]].map((h, i) => th(h[0], i, h[1]))}</tr></thead>
-        <tbody>{rows.map(({ d, pr, p }) => {
-          const twoBooks = booksPriced(pr) >= 2
-          return <tr key={d.driver_name}>
-            <td style={{ padding: '7px 6px' }}>{d.driver_name}</td>
-            {td(pct(p))}
-            {td(p > 0 ? fmvAmerican(p / 100) : '-', { color: mut })}
-            {td(d.proj_finish != null ? (+d.proj_finish).toFixed(1) : '-')}
-            {td(fo(pr && pr.dk), { color: pr && pr.bb === 'dk' ? '#3fb950' : mut })}
-            {td(fo(pr && pr.fd), { color: pr && pr.bb === 'fd' ? '#3fb950' : mut })}
-            {td(fo(pr && pr.hr), { color: pr && pr.bb === 'hr' ? '#3fb950' : mut })}
-            {td(fo(pr && pr.best), { fontWeight: 700 })}
-            {td(twoBooks && pr.mev != null ? ((pr.mev > 0 ? '+' : '') + pr.mev + '%') : '-', { color: twoBooks && pr.mev > 0 ? '#3fb950' : mut })}
-          </tr>
-        })}</tbody>
-      </table>
+      <div>
+        {noPrices(books)}
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+          <thead><tr>
+            {[['Driver'], ['Model'], ['Fair'], ['Proj']].map((h, i) => th(h[0], i, h[1]))}
+            {books.map((b, i) => logoTh(b, i))}
+            {th('Best', 90)}{th('mev', 91, TIP.mev)}
+          </tr></thead>
+          <tbody>{rows.map(({ d, pr, p }) => {
+            const twoBooks = booksPriced(pr) >= 2
+            return <tr key={d.driver_name} style={{ borderBottom: '0.5px solid #222' }}>
+              {nameTd(d.driver_name)}
+              {td(pct(p))}
+              {td(p > 0 ? fmvAmerican(p / 100) : '-', { color: mut })}
+              {td(d.proj_finish != null ? (+d.proj_finish).toFixed(1) : '-')}
+              {books.map(b => <td key={b} style={{ padding: '7px 6px', textAlign: 'right', whiteSpace: 'nowrap', color: pr && pr.bb === b ? '#3fb950' : mut }}>{fo(pr && pr[b])}</td>)}
+              {td(fo(pr && pr.best), { fontWeight: 700 })}
+              {td(twoBooks && pr.mev != null ? ((pr.mev > 0 ? '+' : '') + pr.mev + '%') : '-', { color: twoBooks && pr.mev > 0 ? '#3fb950' : mut })}
+            </tr>
+          })}</tbody>
+        </table>
+      </div>
     )
   }
-  const H = ({ t, first }) => <h2 style={{ fontSize: '1rem', fontWeight: 700, margin: first ? '4px 0' : '22px 0 4px' }}>{t}</h2>
+  const H = ({ t, first }) => <h2 style={{ fontSize: '1rem', fontWeight: 700, margin: first ? '4px 0 6px' : '26px 0 6px', textAlign: 'left' }}>{t}</h2>
   return (
-    <div>
-      <div style={{ fontSize: 12, color: '#888', marginBottom: 6 }}>Group markets are informational: model odds beside the books' prices, no edge flags. Click a manufacturer or team for its drivers.{M ? '' : ' (This board has no stored draws, so the joint top-5 / top-10 columns are blank.)'}</div>
+    <div style={{ textAlign: 'left' }}>
+      <div style={{ fontSize: 12, color: '#888', marginBottom: 6, textAlign: 'left' }}>Group markets are informational: model odds beside the books' prices, no edge flags. Click a manufacturer or team for its drivers. Kalshi's team-wins market shows live on the Winning Team table when it is listed.{M ? '' : ' (This board has no stored draws, so the joint top-5 / top-10 columns are blank.)'}</div>
       <H t="Winning Manufacturer" first /><GroupTable mk="mfr" col1="Manufacturer" rows={groups('manufacturer')} />
-      <H t="Winning Team" /><GroupTable mk="team" col1="Team" rows={groups('organization')} />
+      <H t="Winning Team" /><GroupTable mk="team" col1="Team" rows={groups('organization')} kalshiCol />
       <H t="Top Chevrolet" /><TopMakeTable mk="topChevrolet" make="Chevrolet" />
       <H t="Top Ford" /><TopMakeTable mk="topFord" make="Ford" />
       <H t="Top Toyota" /><TopMakeTable mk="topToyota" make="Toyota" />
@@ -291,7 +325,25 @@ export default function SimResults() {
         }
         const mine = __K.pickRaceMarkets(all, data.series, data.config && data.config.raceStartUtc)
         const { book, raw } = __K.bookMap(mine, normDriver)
-        if (on) setKLive({ book, raw, at: new Date(), event: mine.length ? __K.eventKey(mine[0]) : null })
+        const ev = mine.length ? __K.eventKey(mine[0]) : null
+        // Winning team (KXNASCARTOPTEAM, 2026-10-12): same event code as the winner market (BANOA26)
+        // but it settles ~15 days after the green, outside pickRaceMarkets' window - so match by code.
+        const team = {}
+        if (ev) {
+          try {
+            const r = await fetch('/api/nascar-feed?type=kalshi&ks=KXNASCARTOPTEAM&limit=1000')
+            if (r.ok) {
+              const j = await r.json()
+              ;(j.markets || []).forEach(m => {
+                if (__K.eventKey({ event_ticker: m.event }) !== ev) return
+                const bid = __K.cents(m, 'yes_bid'), ask = __K.cents(m, 'yes_ask'), a = __K.american(ask)
+                if (a == null) return
+                team[normTeam(m.subtitle || m.title)] = { bid, ask, american: a, ticker: m.ticker }
+              })
+            }
+          } catch (e) { /* team column is optional */ }
+        }
+        if (on) setKLive({ book, raw, team, at: new Date(), event: ev })
       } catch (e) { if (on) setKLive(null) }
     }
     go()
@@ -597,7 +649,7 @@ export default function SimResults() {
 })()}
             </XScroll>
           )}
-          {tab === 'markets' && <MarketTables results={results} config={data && data.config} />}
+          {tab === 'markets' && <MarketTables results={results} config={data && data.config} kLive={kLive} />}
         </>
       )}
     </div>
