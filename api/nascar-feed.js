@@ -453,6 +453,26 @@ module.exports = async function handler(req, res) {
         entries: results.length, with_qual_pos: results.filter(r => +r.qualifying_position > 0).length, with_qual_speed: results.filter(r => +r.qualifying_speed > 0).length,
         with_start_pos: results.filter(r => +r.starting_position > 0).length, runs })
     }
+    if (q.type === 'practice') {
+      // 2026-10-16 (operator: practice sheet from the live-results page): nascar.com's LAP TIMES tab
+      // reads cacher/live/series_S/ID/lap-times-practice.json (full-precision lap times per car,
+      // RunningPos per lap) and lap-averages.json (overall / best-5..30 consecutive averages). Live
+      // path only - present for the current weekend; the season archive does not keep practice laps.
+      if (series === undefined || raceId === undefined) return res.status(400).json({ error: 'type=practice needs series and race' })
+      const [laps, averages] = await Promise.all([
+        getJson(`${NASCAR}/cacher/live/series_${series}/${raceId}/lap-times-practice.json`).catch(() => null),
+        getJson(`${NASCAR}/cacher/live/series_${series}/${raceId}/lap-averages.json`).catch(() => null),
+      ])
+      if (!laps) return res.status(200).json({ type: 'practice', nascar_race_id: raceId, available: false })
+      const drivers = (laps.laps || []).map(d => ({
+        car: d.Number, name: String(d.FullName || '').replace(/\s*\([A-Z]\)\s*/g, ' ').replace(/\s*\(i\)\s*/gi, ' ').trim(),
+        name_raw: d.FullName, nascar_driver_id: d.NASCARDriverID, make: d.Manufacturer, pos: d.RunningPos,
+        laps: (d.Laps || []).filter(x => x.Lap > 0).map(x => ({ lap: x.Lap, time: x.LapTime, pos: x.RunningPos })),
+      }))
+      const avg = {}
+      ;((averages && averages[0] && averages[0].Items) || []).forEach(a => { avg[a.Number] = { overall: a.OverAllAvg, best: a.BestLapTime, con5: a.Con5Lap, con10: a.Con10Lap, con15: a.Con15Lap, con20: a.Con20Lap, con25: a.Con25Lap, con30: a.Con30Lap } })
+      return res.status(200).json({ type: 'practice', nascar_race_id: raceId, available: true, session: averages && averages[0] ? averages[0].Title : null, flags: laps.flags || null, drivers, averages: avg })
+    }
     if (q.type === 'pits' || q.type === 'penalties') {
       // 2026-10-11 (operator: "streamline ... do that when we load loop data through the api"): the
       // post-race pit jobs move off POST_RACE_UPDATE.bat onto the Load Race button. Shape only - the
