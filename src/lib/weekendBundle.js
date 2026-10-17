@@ -77,6 +77,9 @@ function shapeBundle(wk) {
 // decides). Never deletes. Returns per-piece counts; dry = report only.
 async function applyBundle(sb, ctx, b, opts = {}) {
   const dry = !!opts.dry
+  // opts.pieces (2026-10-17, qualifying backfill): restrict to a subset of 'entries' | 'draw' | 'qualifying'.
+  // The backfill writes qualifying only - it must not touch a Jayski draw order already stored.
+  const want = (piece) => !opts.pieces || opts.pieces.indexOf(piece) >= 0
   const out = { entries: 0, draw: 0, qualifying: 0, lineup_source: b.lineup_source, skipped: [] }
   const { series, year, race_number, track_name } = ctx
   if (!series || !year || !track_name) throw new Error('applyBundle: series/year/track_name required')
@@ -91,7 +94,8 @@ async function applyBundle(sb, ctx, b, opts = {}) {
   const nameOf = (name, car) => byCar[String(car).trim()] || name
   // Entry list. Team spelling: reuse the spelling already stored for this series (this + last season)
   // so the feed's "23XI Racing" and a PDF's "23XI Racing" stay one organization.
-  if (b.entries.length >= MIN_FIELD) {
+  if (!want('entries')) out.skipped.push('entries not requested')
+  else if (b.entries.length >= MIN_FIELD) {
     const { data: known } = await sb.from('entry_list').select('organization').eq('series', series).in('race_year', [year - 1, year])
     const spell = {}; (known || []).forEach(r => { if (r.organization && !spell[alnum(r.organization)]) spell[alnum(r.organization)] = r.organization })
     const rows = b.entries.map(e => ({
@@ -106,7 +110,8 @@ async function applyBundle(sb, ctx, b, opts = {}) {
   } else out.skipped.push('entry list not published yet (' + b.entries.length + ' rows)')
 
   const key = { series, year, track_name, race_number: race_number || 0 }
-  if (b.draw.length >= MIN_FIELD) {
+  if (!want('draw')) out.skipped.push('draw not requested')
+  else if (b.draw.length >= MIN_FIELD) {
     const rows = b.draw.map(d => ({ ...key, driver_name: nameOf(d.driver_name, d.car_number), car_number: d.car_number, draw_order: d.draw_order }))
     if (!dry) {
       const { error } = await sb.from('qualifying_results').upsert(rows, { onConflict: 'series,year,track_name,race_number,driver_name' })
