@@ -107,6 +107,7 @@ export default function DfsReplay() {
   // need to upload a contest file for"). One line per published post board this season: salary file,
   // loop data, contests uploaded (every DK contest id), replay saved - and what is still owed.
   const [cov, setCov] = useState(null)
+  const [covSeries, setCovSeries] = useState('all')   // 2026-10-17 (operator: "it's just all mashed together")
   const loadCoverage = async () => {
     const yr = new Date().getFullYear()
     const key = r => r.series + '|' + r.race_year + '|' + (r.race_number == null ? '' : r.race_number)
@@ -123,7 +124,7 @@ export default function DfsReplay() {
     const repBy = {}; (rep.data || []).forEach(r => { repBy[key(r)] = r })
     const seen = new Set()
     const rows = (b.data || []).filter(r => { const k = key(r); if (seen.has(k)) return false; seen.add(k); return true })
-      .sort((a, b2) => (b2.race_number || 0) - (a.race_number || 0) || a.series.localeCompare(b2.series))
+      .sort((a, b2) => { const o = { cup: 0, oreilly: 1, trucks: 2 }; return (o[a.series] ?? 9) - (o[b2.series] ?? 9) || (b2.race_number || 0) - (a.race_number || 0) })
       .map(r => {
         const k = key(r), cons = (conBy[k] || []).sort((a, b2) => (b2.entries || 0) - (a.entries || 0)), rp = repBy[k]
         const miss = []
@@ -151,20 +152,30 @@ export default function DfsReplay() {
         Post-race coverage {cov ? <span style={{ ...lbl, fontWeight: 400 }}>— {cov.filter(r => r.miss.length).length} of {cov.length} boards still owed something</span> : null}
       </h3>
       {cov && (
+        <div style={{ display: 'inline-flex', gap: 4, marginBottom: 8, padding: 3, borderRadius: 8, background: 'var(--bg, #0e0f13)', border: '1px solid var(--border, #22252b)' }}>
+          {[['all', 'All'], ['cup', 'Cup'], ['oreilly', "O'Reilly"], ['trucks', 'Trucks']].map(([v, l]) => {
+            const n = v === 'all' ? cov.filter(r => r.miss.length).length : cov.filter(r => r.series === v && r.miss.length).length
+            return <button key={v} onClick={() => setCovSeries(v)} style={{ padding: '5px 12px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: covSeries === v ? 700 : 500, background: covSeries === v ? 'var(--bg-elevated, #1b1e25)' : 'transparent', color: covSeries === v ? 'var(--text-primary, #e8eaed)' : 'var(--text-secondary, #9aa0aa)' }}>{l}{n ? <span style={{ marginLeft: 6, color: '#f85149' }}>{n}</span> : null}</button>
+          })}
+        </div>
+      )}
+      {cov && (
         <div style={{ overflowX: 'auto', marginBottom: 16 }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
             <thead><tr>{['Race', 'Salaries', 'Loop data', 'Contests uploaded', 'Replay', 'Still needed'].map((h, i) => <th key={h} style={{ textAlign: i === 0 ? 'left' : 'center', padding: '6px 8px', color: 'var(--text-secondary, #9aa0aa)', fontWeight: 500, borderBottom: '1px solid var(--border, #22252b)' }}>{h}</th>)}</tr></thead>
-            <tbody>{cov.map(r => {
+            <tbody>{cov.filter(r => covSeries === 'all' || r.series === covSeries).map((r, i, arr) => {
               const s = SERIES.find(x => x.v === r.series)
+              const firstOfSeries = covSeries === 'all' && (i === 0 || arr[i - 1].series !== r.series)
+              const sep = firstOfSeries ? <tr key={r.k + '|h'}><td colSpan={6} style={{ padding: '10px 8px 4px', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary, #9aa0aa)' }}>{s ? s.label : r.series}</td></tr> : null
               const ok = v => <span style={{ color: v ? '#3fb950' : '#f85149' }}>{v ? '\u2713' : '\u2717'}</span>
-              return <tr key={r.k} style={{ borderBottom: '1px solid var(--border, #22252b)', background: r.miss.length ? 'rgba(248,81,73,0.06)' : 'transparent' }}>
+              return [sep, <tr key={r.k} style={{ borderBottom: '1px solid var(--border, #22252b)', background: r.miss.length ? 'rgba(248,81,73,0.06)' : 'transparent' }}>
                 <td style={{ padding: '6px 8px', whiteSpace: 'nowrap' }}>{(s ? s.label : r.series) + ' R' + r.race_number + ' \u00b7 ' + (r.track_name || '?')}</td>
                 <td style={{ padding: '6px 8px', textAlign: 'center' }}>{ok(r.sal)}</td>
                 <td style={{ padding: '6px 8px', textAlign: 'center' }}>{ok(r.loop)}</td>
                 <td style={{ padding: '6px 8px', textAlign: 'center', color: 'var(--text-secondary, #9aa0aa)' }}>{r.cons.length ? r.cons.map(c => <div key={c.contest_id} title={c.contest_name || c.contest_id}>{(c.contest_type || '').toUpperCase()} {c.contest_id}{' · '}{(c.entries || 0).toLocaleString()} entries</div>) : ok(false)}</td>
                 <td style={{ padding: '6px 8px', textAlign: 'center', color: 'var(--text-secondary, #9aa0aa)' }}>{r.rep ? (r.rep.contest_entries != null ? <span>{ok(true)} #{r.rep.gpp_rank} of {(+r.rep.contest_entries).toLocaleString()}</span> : <span style={{ color: '#e8b923' }}>no contest</span>) : ok(false)}</td>
                 <td style={{ padding: '6px 8px', textAlign: 'center', color: r.miss.length ? '#f85149' : '#3fb950', whiteSpace: 'nowrap' }}>{r.miss.length ? r.miss.join(', ') : 'complete'}</td>
-              </tr>
+              </tr>]
             })}</tbody>
           </table>
         </div>
