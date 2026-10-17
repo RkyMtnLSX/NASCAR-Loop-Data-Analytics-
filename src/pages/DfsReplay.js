@@ -96,12 +96,47 @@ export default function DfsReplay() {
 
   const save = async () => {
     if (!res) return
-    try { const { legacy } = await saveReplay(res); setSaved(true); setMsg('Saved to the replay ledger.' + (legacy ? ' (Operator columns not saved - run sql/dfs_operator_entries.sql, then re-save.)' : '')); loadLedger() }
+    try { const { legacy } = await saveReplay(res); setSaved(true); setMsg('Saved to the replay ledger.' + (legacy ? ' (Operator columns not saved - run sql/dfs_operator_entries.sql, then re-save.)' : '')); loadLedger(); loadCoverage() }
     catch (e) { setMsg(e.message) }
   }
 
 
   const tally = ledger.reduce((a, r) => { if (r.verdict) a[r.verdict] = (a[r.verdict] || 0) + 1; return a }, {})
+
+  // POST-RACE COVERAGE (2026-10-17, operator: "there's no log so I can see what replays are missing that I
+  // need to upload a contest file for"). One line per published post board this season: salary file,
+  // loop data, contests uploaded (every DK contest id), replay saved - and what is still owed.
+  const [cov, setCov] = useState(null)
+  const loadCoverage = async () => {
+    const yr = new Date().getFullYear()
+    const key = r => r.series + '|' + r.race_year + '|' + (r.race_number == null ? '' : r.race_number)
+    const [b, sal, ld, con, rep] = await Promise.all([
+      supabase.from('dfs_sim_samples').select('series,race_year,race_number,track_name,created_at').eq('stage', 'post').eq('race_year', yr),
+      supabase.from('dfs_salaries').select('series,race_year,race_number'),
+      supabase.from('loop_data').select('series,race_number').eq('year', yr),
+      supabase.from('dfs_contests').select('series,race_year,race_number,contest_id,contest_type,entries,contest_name').eq('race_year', yr),
+      supabase.from('dfs_replays').select('series,race_year,race_number,contest_entries,gpp_rank,created_at').eq('race_year', yr),
+    ])
+    const salS = new Set((sal.data || []).map(key))
+    const ldS = new Set((ld.data || []).map(r => r.series + '|' + yr + '|' + r.race_number))
+    const conBy = {}; (con.data || []).forEach(c => { (conBy[key(c)] = conBy[key(c)] || []).push(c) })
+    const repBy = {}; (rep.data || []).forEach(r => { repBy[key(r)] = r })
+    const seen = new Set()
+    const rows = (b.data || []).filter(r => { const k = key(r); if (seen.has(k)) return false; seen.add(k); return true })
+      .sort((a, b2) => (b2.race_number || 0) - (a.race_number || 0) || a.series.localeCompare(b2.series))
+      .map(r => {
+        const k = key(r), cons = (conBy[k] || []).sort((a, b2) => (b2.entries || 0) - (a.entries || 0)), rp = repBy[k]
+        const miss = []
+        if (!salS.has(k)) miss.push('salary file')
+        if (!ldS.has(k)) miss.push('loop data')
+        if (!cons.length) miss.push('contest upload')
+        else if (!rp) miss.push('replay')
+        else if (rp.contest_entries == null) miss.push('replay ran without a contest - re-run')
+        return { ...r, k, sal: salS.has(k), loop: ldS.has(k), cons, rep: rp, miss }
+      })
+    setCov(rows)
+  }
+  useEffect(() => { loadCoverage() }, [])
 
   return (
     <div style={card}>
@@ -111,6 +146,29 @@ export default function DfsReplay() {
         finish and places them in the contest you uploaded. Needs: a published board with samples,
         the DK salary file, loop data loaded, and the contest + ownership upload.
       </p>
+
+      <h3 style={{ color: 'var(--text-primary, #e8eaed)', fontSize: 15, margin: '4px 0 6px' }}>
+        Post-race coverage {cov ? <span style={{ ...lbl, fontWeight: 400 }}>— {cov.filter(r => r.miss.length).length} of {cov.length} boards still owed something</span> : null}
+      </h3>
+      {cov && (
+        <div style={{ overflowX: 'auto', marginBottom: 16 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
+            <thead><tr>{['Race', 'Salaries', 'Loop data', 'Contests uploaded', 'Replay', 'Still needed'].map((h, i) => <th key={h} style={{ textAlign: i === 0 ? 'left' : 'center', padding: '6px 8px', color: 'var(--text-secondary, #9aa0aa)', fontWeight: 500, borderBottom: '1px solid var(--border, #22252b)' }}>{h}</th>)}</tr></thead>
+            <tbody>{cov.map(r => {
+              const s = SERIES.find(x => x.v === r.series)
+              const ok = v => <span style={{ color: v ? '#3fb950' : '#f85149' }}>{v ? '\u2713' : '\u2717'}</span>
+              return <tr key={r.k} style={{ borderBottom: '1px solid var(--border, #22252b)', background: r.miss.length ? 'rgba(248,81,73,0.06)' : 'transparent' }}>
+                <td style={{ padding: '6px 8px', whiteSpace: 'nowrap' }}>{(s ? s.label : r.series) + ' R' + r.race_number + ' \u00b7 ' + (r.track_name || '?')}</td>
+                <td style={{ padding: '6px 8px', textAlign: 'center' }}>{ok(r.sal)}</td>
+                <td style={{ padding: '6px 8px', textAlign: 'center' }}>{ok(r.loop)}</td>
+                <td style={{ padding: '6px 8px', textAlign: 'center', color: 'var(--text-secondary, #9aa0aa)' }}>{r.cons.length ? r.cons.map(c => <div key={c.contest_id} title={c.contest_name || c.contest_id}>{(c.contest_type || '').toUpperCase()} {c.contest_id} \u00b7 {(c.entries || 0).toLocaleString()} entries</div>) : ok(false)}</td>
+                <td style={{ padding: '6px 8px', textAlign: 'center', color: 'var(--text-secondary, #9aa0aa)' }}>{r.rep ? (r.rep.contest_entries != null ? <span>{ok(true)} #{r.rep.gpp_rank} of {(+r.rep.contest_entries).toLocaleString()}</span> : <span style={{ color: '#e8b923' }}>no contest</span>) : ok(false)}</td>
+                <td style={{ padding: '6px 8px', textAlign: 'center', color: r.miss.length ? '#f85149' : '#3fb950', whiteSpace: 'nowrap' }}>{r.miss.length ? r.miss.join(', ') : 'complete'}</td>
+              </tr>
+            })}</tbody>
+          </table>
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 }}>
         <select value={pick} onChange={e => { setPick(e.target.value); setRes(null); setMsg('') }}
