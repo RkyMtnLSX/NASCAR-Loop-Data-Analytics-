@@ -19,9 +19,11 @@ const SID = { cup: 1, oreilly: 2, trucks: 3 }
 
 module.exports = async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store')
-  const secret = process.env.CRON_SECRET
+  // Either operator secret: CRON_SECRET (the Monday sync) or SNAP_SECRET (the pg_cron Kalshi job) - the
+  // backfill is driven from Supabase pg_net, which carries the latter.
   const auth = req.headers['authorization'] || ''
-  if (!secret || auth !== `Bearer ${secret}`) return res.status(401).json({ error: 'unauthorized' })
+  const okAuth = [process.env.CRON_SECRET, process.env.SNAP_SECRET].filter(Boolean).some(sec => auth === `Bearer ${sec}`)
+  if (!okAuth) return res.status(401).json({ error: 'unauthorized' })
   const q = req.query || {}
   const series = String(q.series || '')
   const year = Number(q.year)
