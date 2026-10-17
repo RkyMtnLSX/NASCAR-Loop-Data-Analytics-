@@ -177,20 +177,24 @@ export async function runReplay({ series, year: yearIn, race: raceIn, entries: e
       })
 
       // ---- contest + ownership (post-race, operator uploads)
-      const __conQ = (cols) => eqRace(supabase.from('dfs_contests').select(cols).eq('series', sr).eq('race_year', year)).order('entriesWanted', { ascending: false }).limit(1)
-      let { data: conRows, error: conErr } = await __conQ('entriesWanted,winner_score,median_score,scores_sample,scores_top,contest_type')
-      if (__missingCol(conErr)) ({ data: conRows } = await __conQ('entriesWanted,winner_score,median_score,scores_sample,contest_type'))   // pre-migration schema
+      const __conQ = (cols) => eqRace(supabase.from('dfs_contests').select(cols).eq('series', sr).eq('race_year', year)).order('entries', { ascending: false }).limit(1)
+      let { data: conRows, error: conErr } = await __conQ('entries,winner_score,median_score,scores_sample,scores_top,contest_type,contest_id')
+      if (__missingCol(conErr)) ({ data: conRows } = await __conQ('entries,winner_score,median_score,scores_sample,contest_type'))   // pre-migration schema
       const contest = conRows && conRows[0]
+      // 2026-10-17: contests are one row per DK contest id; the biggest field is graded (the ORDER BY above)
+      // and ownership is taken from that same contest.
       // 2026-09-05 review fix: (a) ownership rows carry contest_type and both GPP and cash can be
       // banked for one race - the join used to take whichever arrived last, so rho(ownership) could
       // be against the wrong contest. Filter to the contest being graded when it has a type.
       // (b) dfs_ownership.fpts is DK's OFFICIAL score per driver (stored since ingest v2, 08-14) and
       // was never read; grading used the hand DK formula off loop_data, which the manual itself
       // notes runs ~1pt/driver hot. Official FPTS now wins wherever it exists.
-      const { data: ownRows } = await eqRace(supabase.from('dfs_ownership').select('driver_name,own_pct,fpts,contest_type').eq('series', sr).eq('race_year', year))
-      const __ct = contest && contest.contest_type
+      let { data: ownRows, error: ownErr } = await eqRace(supabase.from('dfs_ownership').select('driver_name,own_pct,fpts,contest_type,contest_id').eq('series', sr).eq('race_year', year))
+      if (__missingCol(ownErr)) ({ data: ownRows } = await eqRace(supabase.from('dfs_ownership').select('driver_name,own_pct,fpts,contest_type').eq('series', sr).eq('race_year', year)))
+      const __ct = contest && contest.contest_type, __cidG = contest && contest.contest_id
       const __ownAll = ownRows || []
-      const __ownTyped = __ct ? __ownAll.filter(o => o.contest_type === __ct) : __ownAll
+      const __ownById = __cidG ? __ownAll.filter(o => o.contest_id === __cidG) : []
+      const __ownTyped = __ownById.length ? __ownById : (__ct ? __ownAll.filter(o => o.contest_type === __ct) : __ownAll)
       const __ownUse = __ownTyped.length ? __ownTyped : __ownAll
       const ownByN = {}, fptsByN = {}
       __ownUse.forEach(o => { ownByN[o.driver_name] = +o.own_pct; if (o.fpts != null && isFinite(+o.fpts)) fptsByN[o.driver_name] = +o.fpts })
@@ -225,7 +229,7 @@ export async function runReplay({ series, year: yearIn, race: raceIn, entries: e
       const sumP = (ds) => ds.reduce((s, d) => s + d.projDK, 0)
       const ladder = contest && Array.isArray(contest.scores_sample) ? contest.scores_sample : null
       const topScores = contest && Array.isArray(contest.scores_top) && contest.scores_top.length ? contest.scores_top : null
-      const ent = contest ? contest.entriesWanted : null
+      const ent = contest ? contest.entries : null
       const decorate = (ds, ceil) => {
         const actual = sumA(ds)
         const p = placeIn(ladder, ent, actual, topScores)
@@ -344,7 +348,7 @@ export async function runReplay({ series, year: yearIn, race: raceIn, entries: e
         const __fillPrize = __fillLegs.reduce((s, lus) => s + __score(lus), 0)
         portfolio = { legs: __legs, n: __N, rulesOn: __rulesOn, prize: __pfPrize, basePrize: __basePrize, bestPct: __pfBest, entries: __pf.total,
           filled: __pf.legs.reduce((a, l) => a + (l.filled || 0), 0), fillPrize: +__fillPrize.toFixed(3), legSizes: __pf.legs.map(l => l.lineups.length + (l.filled ? '(' + l.filled + 'f)' : '')).join('/'),
-          exposure: Object.entriesWanted(__pf.exposure).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([n, c]) => ({ name: n, pct: Math.round(100 * c / Math.max(1, __pf.total)) })), chalk: __pf.cls.chalk, t2: __pf.cls.t2 }
+          exposure: Object.entries(__pf.exposure).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([n, c]) => ({ name: n, pct: Math.round(100 * c / Math.max(1, __pf.total)) })), chalk: __pf.cls.chalk, t2: __pf.cls.t2 }
         // ---- OPERATOR PRESET arm (registered 2026-09-13, BACKTEST_LOG): rules ON + OPERATOR_PRESET
         // (floor 0%, mid punts only if projected own <= 12%, >= 1 punt per lineup), scored exactly like the
         // Portfolio row. Reference = the Portfolio row above with rules FORCED ON (so trucks compare
@@ -366,31 +370,31 @@ export async function runReplay({ series, year: yearIn, race: raceIn, entries: e
         } catch (e) { portfolio.operator = { error: String((e && e.message) || e) } }
       } catch (e) { portfolio = { error: String((e && e.message) || e) } }
 
-      // ---- OPERATOR ROW (2026-09-14): the operator's real entriesWanted for this race, captured by the
+      // ---- OPERATOR ROW (2026-09-14): the operator's real entries for this race, captured by the
       // ownership ingest into dfs_operator_entries (his DK username only). Scored on the same ladder
       // and curve as the product rows, so the ledger finally carries the construction that beat both
       // solvers at Darlington 09-05 as a weekly number instead of a hand computation.
       let operator = null
       try {
-        const { data: opRows } = await eqRace(supabase.from('dfs_operator_entries').select('contest_id,contest_type,entriesWanted,contest_entries,lineups,exposure,best_rank,best_points,mean_pct,above_median,prize').eq('series', sr).eq('race_year', year))
+        const { data: opRows } = await eqRace(supabase.from('dfs_operator_entries').select('contest_id,contest_type,entries,contest_entries,lineups,exposure,best_rank,best_points,mean_pct,above_median,prize').eq('series', sr).eq('race_year', year))
         if (opRows && opRows.length) {
-          const tot = opRows.reduce((a, r) => a + (r.entriesWanted || 0), 0)
+          const tot = opRows.reduce((a, r) => a + (r.entries || 0), 0)
           const prize = opRows.reduce((a, r) => a + (+r.prize || 0), 0)
           const exAll = {}; opRows.forEach(r => r.lineups.forEach(l => l.drivers.forEach(d => { exAll[d] = (exAll[d] || 0) + 1 })))
           const bestRow = opRows.slice().sort((a, b) => (a.best_rank || 1e9) - (b.best_rank || 1e9))[0]
           // per-entry prize is the comparable unit: product rows are 3 x N (portfolio) or N (E[max] set)
           const perEntry = tot ? prize / tot : null
-          const pfPer = portfolio && !portfolio.error && portfolio.entriesWanted ? portfolio.prize / portfolio.entriesWanted : null
+          const pfPer = portfolio && !portfolio.error && portfolio.entries ? portfolio.prize / portfolio.entries : null
           const basePer = portfolio && !portfolio.error && portfolio.legs && selN ? portfolio.basePrize / (portfolio.legs * selN) : null
           // PRODUCT AT THE OPERATOR'S N (2026-09-14, measurement fix 2): per-entry prize falls with N on a
-          // top-heavy curve, so a 120-entry Portfolio row is not comparable to 20 real entriesWanted. Build the
+          // top-heavy curve, so a 120-entry Portfolio row is not comparable to 20 real entries. Build the
           // product at exactly the operator's entry counts - one Portfolio leg per operator GPP contest
-          // sized to its entriesWanted, and the plain E[max] set at the same sizes - and score on the same ladder.
+          // sized to its entries, and the plain E[max] set at the same sizes - and score on the same ladder.
           let atN = null
           try {
-            const gppRows = opRows.filter(r => (r.contest_type || 'gpp') === 'gpp' && r.entriesWanted > 0)
+            const gppRows = opRows.filter(r => (r.contest_type || 'gpp') === 'gpp' && r.entries > 0)
             if (gppRows.length && gppRows.length <= 6) {
-              const wantsN = gppRows.map(r => Math.max(1, Math.min(150, r.entriesWanted)))
+              const wantsN = gppRows.map(r => Math.max(1, Math.min(150, r.entries)))
               const __E2 = ent || 0
               const __prize2 = (() => { const R = Math.floor(0.2 * __E2); let Z = 0; for (let r = 1; r <= R; r++) Z += Math.pow(r, -0.75); return r => (__E2 && r >= 1 && r <= R) ? __E2 * Math.pow(r, -0.75) / Z : 0 })()
               const __score2 = (lus) => lus.reduce((s2, ns) => { const a = ns.reduce((t, n) => t + byName[n].actual, 0); const p = placeIn(ladder, __E2, a, topScores); return s2 + (p.rank ? __prize2(p.rank) : 0) }, 0)
@@ -403,7 +407,7 @@ export async function runReplay({ series, year: yearIn, race: raceIn, entries: e
               // plain E[max] set at each contest's N (fresh selector each, same candidates)
               let emaxPrize = 0, emaxEntries = 0
               wantsN.forEach(nk => { const selK = makeEmaxSelector(nC2, nD2, Smat, nk, cands, () => Infinity, DFS_ROSTER); selK.step(0); emaxPrize += __score2(selK.chosen.map(c2 => cands[c2])); emaxEntries += selK.chosen.length })
-              const opGppEntries = gppRows.reduce((a, r) => a + r.entriesWanted, 0), opGppPrize = gppRows.reduce((a, r) => a + (+r.prize || 0), 0)
+              const opGppEntries = gppRows.reduce((a, r) => a + r.entries, 0), opGppPrize = gppRows.reduce((a, r) => a + (+r.prize || 0), 0)
               atN = { wants: wantsN, pfEntries: pfN.total, pfPrize: +pfNPrize.toFixed(3), pfPer: pfN.total ? +(pfNPrize / pfN.total).toFixed(4) : null,
                 emaxEntries, emaxPrize: +emaxPrize.toFixed(3), emaxPer: emaxEntries ? +(emaxPrize / emaxEntries).toFixed(4) : null,
                 opEntries: opGppEntries, opPrize: +opGppPrize.toFixed(3), opPer: opGppEntries ? +(opGppPrize / opGppEntries).toFixed(4) : null,
@@ -411,10 +415,10 @@ export async function runReplay({ series, year: yearIn, race: raceIn, entries: e
             }
           } catch (e2) { atN = { error: String((e2 && e2.message) || e2) } }
           operator = { atN, contests: opRows.length, entries: tot, prize: +prize.toFixed(3), perEntry: perEntry != null ? +perEntry.toFixed(4) : null, pfPer: pfPer != null ? +pfPer.toFixed(4) : null, basePer: basePer != null ? +basePer.toFixed(4) : null,
-            bestRank: bestRow.best_rank, bestPoints: bestRow.best_points, bestOf: bestRow.contest_entries, meanPct: opRows.length === 1 ? opRows[0].mean_pct : +(opRows.reduce((a, r) => a + (+r.mean_pct || 0) * r.entriesWanted, 0) / Math.max(1, tot)).toFixed(1),
+            bestRank: bestRow.best_rank, bestPoints: bestRow.best_points, bestOf: bestRow.contest_entries, meanPct: opRows.length === 1 ? opRows[0].mean_pct : +(opRows.reduce((a, r) => a + (+r.mean_pct || 0) * r.entries, 0) / Math.max(1, tot)).toFixed(1),
             aboveMedian: opRows.reduce((a, r) => a + (r.above_median || 0), 0),
-            exposure: Object.entriesWanted(exAll).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([n, c]) => ({ name: n, pct: Math.round(100 * c / Math.max(1, tot)) })),
-            byContest: opRows.map(r => ({ id: r.contest_id, type: r.contest_type, entries: r.entriesWanted, of: r.contest_entries, best: r.best_rank, meanPct: r.mean_pct, prize: +(+r.prize).toFixed(2) })) }
+            exposure: Object.entries(exAll).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([n, c]) => ({ name: n, pct: Math.round(100 * c / Math.max(1, tot)) })),
+            byContest: opRows.map(r => ({ id: r.contest_id, type: r.contest_type, entries: r.entries, of: r.contest_entries, best: r.best_rank, meanPct: r.mean_pct, prize: +(+r.prize).toFixed(2) })) }
         }
       } catch (e) { operator = { error: String((e && e.message) || e) } }
 
@@ -453,7 +457,7 @@ export async function runReplay({ series, year: yearIn, race: raceIn, entries: e
           for (let c2 = 0; c2 < nC2; c2++) { const off = c2 * nD2
             for (let d2 = 0; d2 < nD2; d2++) { const z = (Smat[off + d2] - F[d2]) / Math.sqrt(V[d2] + 1); const rk = Math.max(1, Math.round((1 - Phi(z)) * __E4)); Pmat[off + d2] = __prize4(rk) } }
           const meanOwn = (lus) => lus.length ? lus.reduce((s2, ns) => s2 + ns.reduce((t, n) => t + (+__ownP[n] || 0), 0) / ns.length, 0) / lus.length : null
-          const topExpo = (lus) => { const ex = {}; lus.forEach(ns => ns.forEach(n => { ex[n] = (ex[n] || 0) + 1 })); return Object.entriesWanted(ex).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([n, c]) => n.split(' ').pop() + ' ' + Math.round(100 * c / lus.length)).join(', ') }
+          const topExpo = (lus) => { const ex = {}; lus.forEach(ns => ns.forEach(n => { ex[n] = (ex[n] || 0) + 1 })); return Object.entries(ex).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([n, c]) => n.split(' ').pop() + ' ' + Math.round(100 * c / lus.length)).join(', ') }
           ownership = { byN: {} }
           ;[20, 70].forEach(N => {
             const sA = makeEmaxSelector(nC2, nD2, Smat, N, cands, () => Infinity, DFS_ROSTER); sA.step(0)

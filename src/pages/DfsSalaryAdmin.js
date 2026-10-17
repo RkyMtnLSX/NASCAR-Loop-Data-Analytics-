@@ -136,10 +136,16 @@ export default function DfsSalaryAdmin() {
     const found = parseOwnership(text, extra)
     const n = Object.keys(found).length
     if (!n) { setOwnMsg('No driver ownership rows recognized in that paste/file.'); return }
+    // ONE ROW PER CONTEST (2026-10-17, operator plays several GPPs a race and used to upload "the contest that
+    // produced the best lineup" - a selection the replay would have flattered). Keyed on DK's contest id from
+    // the file name (contest-standings-<id>.csv); every contest is kept, the replay grades against the biggest
+    // field, the ledger sums the operator's real entries across all of them.
+    const __cid = (() => { const m = (ownFileName || '').match(/(\d{6,})/); if (m) return m[1]; const hdrL = (text || '').split(/\r?\n/).filter(l => /^\d+,\d{6,},/.test(l)); return 'file-' + hdrL.length + '-' + (hdrL[0] || '').split(',')[4] })()
+    const __cname = (ownFileName || '').replace(/\.csv$/i, '') || null
     const rows2 = Object.keys(found).map(name => ({
       series, race_year: sel.year, race_number: sel.race_number,
       track_name: sel.track_name, driver_name: name,
-      own_pct: found[name].pct, fpts: found[name].fpts, contest_type: ownType,
+      own_pct: found[name].pct, fpts: found[name].fpts, contest_type: ownType, contest_id: __cid,
     }))
     let opMsgPre = ''
     // Contest field distribution (2026-08-14): entry rows carry Rank/EntryId/Points.
@@ -157,19 +163,15 @@ export default function DfsSalaryAdmin() {
         const dec = []; for (let k2 = 0; k2 <= 10; k2++) dec.push(pick(k2 / 10))
         const __cRow = {
           series, race_year: sel.year, race_number: sel.race_number, track_name: sel.track_name,
-          contest_type: ownType, entries: scores.length, winner_score: scores[0],
+          contest_type: ownType, contest_id: __cid, contest_name: __cname, entries: scores.length, winner_score: scores[0],
           median_score: pick(0.5), pct90: pick(0.1), pct75: pick(0.25), pct25: pick(0.75),
           scores_sample: dec,
           // 2026-09-14: top 1,000 scores for exact placement at the top of the field (the deciles put a
           // 300.0 at ~506th when it was 129th of 7,324; prize is r^-0.75, so that error is the money)
           scores_top: scores.slice(0, 1000).map(v => +v.toFixed(2)),
         }
-        const { error: cErr } = await supabase.from('dfs_contests').upsert(__cRow, { onConflict: 'series,race_year,race_number,contest_type' })
-        if (cErr && /scores_top/.test(cErr.message)) {   // column not added yet (sql/dfs_operator_entries.sql) - keep the old shape working
-          const { scores_top: __drop, ...__legacy } = __cRow
-          await supabase.from('dfs_contests').upsert(__legacy, { onConflict: 'series,race_year,race_number,contest_type' })
-          opMsgPre = ' (contest ladder saved WITHOUT scores_top - run sql/dfs_operator_entries.sql for exact placement)'
-        }
+        const { error: cErr } = await supabase.from('dfs_contests').upsert(__cRow, { onConflict: 'series,race_year,race_number,contest_id' })
+        if (cErr) opMsgPre = ' Contest ladder NOT saved: ' + cErr.message
       }
     } catch (e4) {}
     // OPERATOR ENTRIES (2026-09-14): the same standings file carries the operator's own lineups -
@@ -209,10 +211,9 @@ export default function DfsSalaryAdmin() {
         const ranks = mine.map(l => l.rank || rankOf(l.points || 0))
         const pcts = ranks.map(r => E ? 100 * (1 - (r - 1) / Math.max(1, E - 1)) : null)
         const med = scoresAll[Math.floor((E - 1) / 2)]
-        const cidM = (ownFileName || '').match(/(\d{6,})/)
         const row = {
           series, race_year: sel.year, race_number: sel.race_number, track_name: sel.track_name, contest_type: ownType,
-          contest_id: cidM ? cidM[1] : 'unknown', dk_user: OPERATOR_DK_USER, entries: mine.length, contest_entries: E,
+          contest_id: __cid, dk_user: OPERATOR_DK_USER, entries: mine.length, contest_entries: E,
           lineups: mine, exposure: expo, best_rank: Math.min.apply(null, ranks), best_points: Math.max.apply(null, mine.map(l => l.points || 0)),
           mean_pct: pcts.length ? +(pcts.reduce((a, b) => a + b, 0) / pcts.length).toFixed(2) : null,
           above_median: mine.filter(l => (l.points || 0) > med).length,
@@ -249,7 +250,7 @@ export default function DfsSalaryAdmin() {
           const a = agg[k] || (agg[k] = { lineup: key, copies: 0, points: null, best_rank: null })
           a.copies++; if (isFinite(pts)) a.points = pts; if (isFinite(rk)) a.best_rank = a.best_rank == null ? rk : Math.min(a.best_rank, rk)
         }
-        const cid3 = ((ownFileName || '').match(/(\d{6,})/) || [])[1] || 'unknown'
+        const cid3 = __cid
         const rowsF = Object.values(agg).map(a => ({ series, race_year: sel.year, race_number: sel.race_number, track_name: sel.track_name, contest_type: ownType, contest_id: cid3, contest_entries: nEnt, lineup: a.lineup, copies: a.copies, points: a.points, best_rank: a.best_rank }))
         if (rowsF.length >= 20) {
           let fErr = null
@@ -260,10 +261,10 @@ export default function DfsSalaryAdmin() {
       }
     } catch (e7) { fieldMsg = ' Field lineups failed: ' + (e7.message || e7) }
     const { error } = await supabase.from('dfs_ownership')
-      .upsert(rows2, { onConflict: 'series,race_year,race_number,driver_name,contest_type' })
+      .upsert(rows2, { onConflict: 'series,race_year,race_number,contest_id,driver_name' })
     const __base = (error
       ? 'Save failed: ' + error.message + (error.message.includes('does not exist') ? ' - run dfs_ownership_schema.sql in Supabase first.' : '')
-      : 'Saved ownership + FPTS for ' + n + ' drivers (' + ownType.toUpperCase() + ', ' + sel.year + ' R' + sel.race_number + ' ' + sel.track_name + ').') + opMsgPre + opMsg + fieldMsg
+      : 'Saved ownership + FPTS for ' + n + ' drivers (' + ownType.toUpperCase() + ' contest ' + __cid + ', ' + sel.year + ' R' + sel.race_number + ' ' + sel.track_name + ').') + opMsgPre + opMsg + fieldMsg
     setOwnMsg(__base)
     // ONE ACTION (2026-10-11, operator: "I still need to load DFS results manually before doing that"): the
     // standings file is the only post-race input the site cannot fetch itself, so the replay runs the
