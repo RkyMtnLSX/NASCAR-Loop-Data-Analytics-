@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { fetchAllRows } from '../lib/fetchAllRows'
-import { gradeColor, parseStints } from '../lib/practiceGrader'
+import { gradeColor, parseStints, percentileGrade } from '../lib/practiceGrader'
 
 const SERIES_COLOR = { cup: 'var(--series-cup)', xfinity: 'var(--series-oreilly)', trucks: 'var(--series-trucks)' }
 const SERIES_TABS = [
@@ -16,6 +16,132 @@ const GROUP_COLORS = {
   B: { bg: '#6E2F8D', text: '#ffffff' },
 }
 
+// ── REPORT CARDS (2026-10-17, operator: "what if they actually looked like report cards?") ──────────
+// One paper card per driver: the session grade as a red-ink stamp, four "subjects" graded by rank in
+// the field (same percentile ladder as the overall grade), a one-line comment built from those marks,
+// laps / runs / tyre sets as the attendance line. The table stays one click away for the numbers.
+const SUBJECTS = [
+  { key: 'best_lap',  label: 'Raw speed',  tip: 'Single fastest lap', fmt: v => v.toFixed(3) },
+  { key: 'avg_pace',  label: 'Run pace',   tip: 'Average of each run\'s average lap', fmt: v => v.toFixed(3) },
+  { key: '__long',    label: 'Long run',   tip: 'Best 20-lap average (15 / 10 when no 20-lap run)', fmt: (v, r) => v.toFixed(2) + (r.__longN ? ' (' + r.__longN + ')' : '') },
+  { key: '__falloff', label: 'Tire life',  tip: 'Seconds lost from the best 5-lap run to the best 20-lap run - less is better', fmt: v => '+' + v.toFixed(2) + 's' },
+]
+function subjectRows(rows) {
+  const out = rows.map(r => {
+    const longN = r.best20 != null ? 20 : r.best15 != null ? 15 : r.best10 != null ? 10 : null
+    const long = longN ? r['best' + longN] : null
+    const fall = r.best5 != null && r.best20 != null ? Math.max(0, r.best20 - r.best5) : null
+    return { ...r, __long: long, __longN: longN, __falloff: fall }
+  })
+  SUBJECTS.forEach(sub => {
+    const vals = out.map(r => r[sub.key]).filter(v => v != null)
+    const n = vals.length
+    out.forEach(r => {
+      const v = r[sub.key]
+      if (v == null || n < 3) { r['__g_' + sub.key] = null; return }
+      const rank = vals.filter(x => x < v).length + 1
+      r['__g_' + sub.key] = percentileGrade(rank, n)
+      r['__r_' + sub.key] = rank
+    })
+  })
+  return out
+}
+const GRADE_RANK = { 'A+': 0, 'A': 1, 'A-': 2, 'B+': 3, 'B': 4, 'B-': 5, 'C+': 6, 'C': 7, 'C-': 8, 'D': 9, 'F': 10 }
+function commentFor(r, pos, n) {
+  const g = k => r['__g_' + k]; const rk = k => GRADE_RANK[g(k)]
+  const parts = []
+  if (pos === 1) parts.push('Top of the class.')
+  else if (pos <= 3) parts.push('Honor roll.')
+  if (g('best_lap') != null && g('__long') != null) {
+    if (rk('best_lap') <= 2 && rk('__long') >= 6) parts.push('Flashes on new tires, fades over a run.')
+    else if (rk('best_lap') >= 6 && rk('__long') <= 2) parts.push('Quiet one-lap speed, strong over the long run.')
+    else if (rk('best_lap') <= 2 && rk('__long') <= 2) parts.push('Fast everywhere - speed and stamina.')
+  }
+  if (g('__falloff') != null && rk('__falloff') >= 8) parts.push('Tire fall-off is the worry.')
+  else if (g('__falloff') != null && rk('__falloff') <= 1) parts.push('Takes care of the tires.')
+  if (r.__long == null) parts.push('No long run - unknown on tire life.')
+  if ((r.num_stints || 0) <= 1 && (r.total_laps || 0) < 10) parts.push('Barely on track.')
+  if (!parts.length) parts.push(pos > n * 0.7 ? 'Needs to find speed before Sunday.' : 'Solid, unremarkable session.')
+  return parts.slice(0, 2).join(' ')
+}
+function ReportCards({ rows, series, session, isSubscriber }) {
+  const graded = subjectRows(rows)
+  const n = graded.length
+  const visible = isSubscriber ? graded : graded.slice(0, 10)
+  const carDir = series === 'cup' ? '/car-numbers/' : series === 'trucks' ? '/car-numbers-trucks/' : '/car-numbers-oreilly/'
+  const stripe = SERIES_COLOR[series]
+  const label = SERIES_TABS.find(t => t.value === series)?.label || ''
+  return (
+    <div>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Special+Elite&display=swap');
+        .rc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; }
+        .rc-card { position: relative; background: linear-gradient(180deg, #f7f2e4 0%, #efe7d2 100%); color: #2a241c; border-radius: 6px; box-shadow: 0 10px 28px rgba(0,0,0,0.45), inset 0 0 0 1px rgba(0,0,0,0.08); overflow: hidden; font-family: 'Special Elite', 'DM Mono', monospace; transition: transform .15s ease, box-shadow .15s ease; }
+        .rc-card:hover { transform: translateY(-3px) rotate(-0.3deg); box-shadow: 0 16px 36px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(0,0,0,0.08); }
+        .rc-card::before { content: ''; position: absolute; left: 34px; top: 0; bottom: 0; width: 1px; background: rgba(200,60,60,0.35); }
+        .rc-card::after { content: ''; position: absolute; inset: 0; background-image: repeating-linear-gradient(180deg, transparent 0 27px, rgba(70,110,170,0.13) 27px 28px); background-position: 0 92px; pointer-events: none; }
+        .rc-head { padding: 10px 14px 8px 44px; border-bottom: 2px solid rgba(0,0,0,0.12); display: flex; align-items: center; gap: 10px; position: relative; z-index: 1; }
+        .rc-stripe { position: absolute; left: 0; top: 0; bottom: 0; width: 6px; }
+        .rc-name { font-size: 1.15rem; font-weight: 700; letter-spacing: 0.01em; line-height: 1.1; }
+        .rc-sub { font-size: 0.72rem; color: #6b6052; letter-spacing: 0.06em; text-transform: uppercase; margin-top: 2px; }
+        .rc-stamp { position: absolute; right: 12px; top: 10px; width: 64px; height: 64px; border: 3px solid; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Caveat', cursive; font-weight: 700; font-size: 2.1rem; transform: rotate(-12deg); opacity: 0.92; mix-blend-mode: multiply; z-index: 2; box-shadow: inset 0 0 0 1.5px rgba(255,255,255,0.35); }
+        .rc-stamp small { position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%) rotate(0deg); font-family: 'DM Mono', monospace; font-size: 0.62rem; color: #6b6052; letter-spacing: 0.04em; white-space: nowrap; }
+        .rc-body { padding: 10px 14px 12px 44px; position: relative; z-index: 1; }
+        .rc-row { display: flex; align-items: baseline; justify-content: space-between; height: 28px; font-size: 0.86rem; }
+        .rc-row .k { color: #4a4036; }
+        .rc-row .v { font-family: 'DM Mono', monospace; font-size: 0.78rem; color: #6b6052; margin-left: auto; margin-right: 10px; }
+        .rc-row .g { font-family: 'Caveat', cursive; font-weight: 700; font-size: 1.45rem; width: 34px; text-align: center; line-height: 1; }
+        .rc-comment { margin-top: 8px; font-family: 'Caveat', cursive; font-size: 1.22rem; line-height: 1.15; color: #1d3e8a; min-height: 2.3em; }
+        .rc-foot { display: flex; justify-content: space-between; font-family: 'DM Mono', monospace; font-size: 0.68rem; color: #7a6f60; padding: 6px 14px 10px 44px; border-top: 1px dashed rgba(0,0,0,0.18); position: relative; z-index: 1; }
+        .rc-rank { position: absolute; left: 8px; top: 10px; width: 20px; text-align: center; font-family: 'DM Mono', monospace; font-size: 0.72rem; color: #9a8f80; z-index: 1; }
+        .rc-start { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: #6b6052; }
+      `}</style>
+      <div className="rc-grid">
+        {visible.map((r, i) => {
+          const ink = r.practice_grade && /^A/.test(r.practice_grade) ? '#1e7a3c' : r.practice_grade && /^B/.test(r.practice_grade) ? '#1d4f8a' : r.practice_grade && /^C/.test(r.practice_grade) ? '#8a6a0f' : '#b3261e'
+          let notes = null; try { notes = JSON.parse(r.notes || 'null') } catch (e) { notes = null }
+          return (
+            <div className="rc-card" key={r.id}>
+              <div className="rc-stripe" style={{ background: stripe }} />
+              <div className="rc-rank">{i + 1}</div>
+              <div className="rc-head">
+                {r.car_number ? <img src={carDir + r.car_number + '.png'} alt={'#' + r.car_number} style={{ height: 34 }} onError={e => { e.target.style.display = 'none' }} /> : null}
+                <div style={{ minWidth: 0, paddingRight: 70 }}>
+                  <div className="rc-name">{r.driver_name}</div>
+                  <div className="rc-sub">{label} &middot; {session.track_name}{r.practice_group ? ' · Group ' + r.practice_group : ''}</div>
+                  <div className="rc-start">{r.qualifying_position == null ? '' : r.qualifying_position < 0 ? 'DNQ' : 'Starts P' + r.qualifying_position}</div>
+                </div>
+              </div>
+              <div className="rc-stamp" style={{ color: ink, borderColor: ink }} title={'Practice score ' + (r.practice_score != null ? r.practice_score.toFixed(1) : '-')}>
+                {r.practice_grade || '-'}
+                <small>{r.practice_score != null ? r.practice_score.toFixed(1) + ' / 100' : ''}</small>
+              </div>
+              <div className="rc-body">
+                {SUBJECTS.map(sub => {
+                  const g = r['__g_' + sub.key], v = r[sub.key]
+                  const c = g ? gradeColor(g) : null
+                  return (
+                    <div className="rc-row" key={sub.key} title={sub.tip + (r['__r_' + sub.key] ? ' · ranked ' + r['__r_' + sub.key] + ' of ' + n : '')}>
+                      <span className="k">{sub.label}</span>
+                      <span className="v">{v != null ? sub.fmt(v, r) : '—'}</span>
+                      <span className="g" style={{ color: c ? c.bg : '#9a8f80' }}>{g || '–'}</span>
+                    </div>
+                  )
+                })}
+                <div className="rc-comment">&ldquo;{commentFor(r, i + 1, n)}&rdquo;</div>
+              </div>
+              <div className="rc-foot">
+                <span>{r.total_laps != null ? r.total_laps + ' laps' : ''}{r.num_stints != null ? ' · ' + r.num_stints + ' run' + (r.num_stints === 1 ? '' : 's') : ''}{notes && notes.sets ? ' · sets ' + notes.sets : ''}</span>
+                <span>PitBoard</span>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 export default function PracticeReportCard({ isSubscriber }) {
   const [series, setSeries]     = useState('cup')
   const [sessions, setSessions] = useState([])
@@ -23,6 +149,7 @@ export default function PracticeReportCard({ isSubscriber }) {
   const [rows, setRows]         = useState([])
   const [loading, setLoading]   = useState(true)
   const [error, setError]       = useState(null)
+  const [view, setView] = useState('cards')   // 2026-10-17: report cards by default, table one click away
   const [sortKey, setSortKey] = useState(null)
   const [sortDir, setSortDir] = useState('asc')
   const sortBy = (k) => { if (k === sortKey) { setSortDir(d => d === 'asc' ? 'desc' : 'asc') } else { setSortKey(k); setSortDir('asc') } }
@@ -246,8 +373,29 @@ export default function PracticeReportCard({ isSubscriber }) {
         </div>
       )}
 
-      {/* Table */}
       {!loading && rows.length > 0 && (
+        <div style={{ display: 'inline-flex', gap: 4, marginBottom: 14, padding: 3, borderRadius: 8, background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
+          {[['cards', 'Report cards'], ['table', 'Table']].map(([v, l]) => (
+            <button key={v} onClick={() => setView(v)} style={{ padding: '5px 14px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: '0.82rem', fontWeight: view === v ? 700 : 500, background: view === v ? 'var(--bg-elevated)' : 'transparent', color: view === v ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{l}</button>
+          ))}
+        </div>
+      )}
+      {!loading && rows.length > 0 && view === 'cards' && (
+        <div style={{ position: 'relative' }}>
+          <ReportCards rows={_sorted} series={series} session={sessions.find(x => x.key === selected) || {}} isSubscriber={isSubscriber} />
+          {blurred && (
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 220, background: 'linear-gradient(to bottom, transparent, var(--bg-base) 75%)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 20 }}>
+              <div style={{ textAlign: 'center' }}>
+                <p style={{ fontSize: '0.96rem', color: 'var(--text-secondary)', marginBottom: 10 }}>Subscribe to see every driver&rsquo;s card</p>
+                <a href="/subscribe" className="btn btn-primary" style={{ fontSize: '0.89rem', padding: '6px 18px' }}>Get Full Access</a>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Table */}
+      {!loading && rows.length > 0 && view === 'table' && (
         <div style={{ position: 'relative' }}>
           <div className="table-wrap">
             <style>{`
