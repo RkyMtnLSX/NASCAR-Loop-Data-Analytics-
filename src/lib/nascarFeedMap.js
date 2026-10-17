@@ -43,8 +43,19 @@ export function makeResolver(existing) {
   const byFold = new Map()
   const byInitial = new Map()
   const initialDupes = new Set()
+  // By id: the MAJORITY spelling, not the first row seen (2026-10-17: trucks id 4459 had one 2023 row
+  // mislabelled "William Dean" among 27 "William Sawalich"; the unordered read handed the resolver
+  // the bad one and Sawalich's Phoenix P6 went in under the wrong name. Same for "Conner Dean" and
+  // "Andres Perez" vs "Andres Perez De Lara". Rows fixed in place; this stops a lone bad row winning.)
+  const idCounts = new Map()
   for (const r of existing) {
-    if (r.nascar_driver_id && !byId.has(r.nascar_driver_id)) byId.set(r.nascar_driver_id, r.driver_name)
+    if (!r.nascar_driver_id) continue
+    const m = idCounts.get(r.nascar_driver_id) || new Map()
+    m.set(r.driver_name, (m.get(r.driver_name) || 0) + 1)
+    idCounts.set(r.nascar_driver_id, m)
+  }
+  idCounts.forEach((m, id) => { let best = null, n = -1; m.forEach((c, name) => { if (c > n) { n = c; best = name } }); byId.set(id, best) })
+  for (const r of existing) {
     const f = fold(r.driver_name)
     if (f && !byFold.has(f)) byFold.set(f, r.driver_name)
     const k = initialSurname(r.driver_name)
