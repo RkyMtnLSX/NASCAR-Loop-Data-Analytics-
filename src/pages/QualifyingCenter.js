@@ -1,6 +1,15 @@
 import XScroll from '../components/XScroll'
 import React, { useState, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+
+// 2026-10-17 (operator: "examine qualifying center ... do all of your suggestions"): all three series
+// (?series=), history backfilled from NASCAR's feed archive, the home-grown BETA simulation replaced by
+// the engine's projected start off the latest pre-qualifying board, speed tooltips fixed (keyed per
+// race, not per year), and an in-browser PrizePicks line paste (never stored - product rule 2026-09-13).
+const SERIES_TABS = [{ v: 'cup', label: 'Cup' }, { v: 'oreilly', label: "O'Reilly" }, { v: 'trucks', label: 'Trucks' }]
+const SERIES_LABEL = { cup: 'Cup Series', oreilly: "O'Reilly Auto Parts Series", trucks: 'Craftsman Truck Series' }
+const CAR_DIR = { cup: '/car-numbers/', oreilly: '/car-numbers-oreilly/', trucks: '/car-numbers-trucks/' }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -123,51 +132,6 @@ function formatQualSpeed(speed, trackName) {
   return parseFloat(speed).toFixed(1) + ' mph'
 }
 
-function filterOutliers(positions) {
-  if (positions.length < 3) return positions
-  var sorted = positions.slice().sort(function(a, b) { return a - b })
-  var mid = Math.floor(sorted.length / 2)
-  var median = sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid]
-  var devs = positions.map(function(p) { return Math.abs(p - median) }).sort(function(a, b) { return a - b })
-  var dMid = Math.floor(devs.length / 2)
-  var mad = devs.length % 2 === 0 ? (devs[dMid - 1] + devs[dMid]) / 2 : devs[dMid]
-  if (mad === 0) return positions
-  return positions.filter(function(p) { return Math.abs(p - median) / (mad * 0.6745) <= 3.5 })
-}
-
-function runSimulation(drivers, numSims, nudge) {
-  if (numSims === undefined) numSims = 2000
-  if (nudge === undefined) nudge = 0
-  const results = drivers.map(function(driver) {
-    const rawPos = driver.historicalPositions.filter(function(p) { return p != null })
-    const positions = rawPos
-    if (positions.length === 0) return Object.assign({}, driver, { simMean: null, simP10: null, simP90: null })
-    const mean = positions.reduce(function(a, b) { return a + b }, 0) / positions.length
-    const variance = positions.reduce(function(s, p) { return s + (p - mean) * (p - mean) }, 0) / positions.length
-    const stdDev = Math.max(Math.sqrt(variance), nudge) || nudge || 1
-    const samples = []
-    for (let i = 0; i < numSims; i++) {
-      const u1 = Math.random(), u2 = Math.random()
-      const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2)
-      const sample = Math.round(Math.max(1, mean + z * stdDev))
-      samples.push(sample)
-    }
-    samples.sort(function(a, b) { return a - b })
-    return Object.assign({}, driver, {
-      simMean: mean,
-      simExpected: Math.round(samples[Math.floor(numSims * 0.5)]),
-      simP10: samples[Math.floor(numSims * 0.1)],
-      simP90: samples[Math.floor(numSims * 0.9)],
-      sampleCount: driver.rawCount || positions.length,
-    })
-  })
-  return results.sort(function(a, b) {
-    if (a.simMean == null) return 1
-    if (b.simMean == null) return -1
-    return a.simMean - b.simMean
-  })
-}
-
 // Paywall stub
 function SubscribePrompt() {
   return (
@@ -189,16 +153,19 @@ function SubscribePrompt() {
 }
 
 export default function QualifyingCenter({ isSubscriber }) {
+  const [sp, setSp] = useSearchParams()
+  const series = ['cup', 'oreilly', 'trucks'].includes(sp.get('series')) ? sp.get('series') : 'cup'
+  const setSeries = (v) => { const n = new URLSearchParams(sp); n.set('series', v); setSp(n) }
   const [config, setConfig] = useState(null)
-  const [simConfig, setSimConfig] = useState(null)
+  const [board, setBoard] = useState(null)        // latest published board for the series: engine projected starts
+  const [lines, setLines] = useState('')          // PrizePicks paste, in memory only
+  const [showLines, setShowLines] = useState(false)
   const [qualData, setQualData] = useState([])
   const [corrTracks, setCorrTracks] = useState([])
   const [dispLabel, setDispLabel] = useState(null)
   const [entryList, setEntryList] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [simResults, setSimResults] = useState(null)
-  const [simRunning, setSimRunning] = useState(false)
   const [show2025, setShow2025] = useState(false)
   const [showTrackHist, setShowTrackHist] = useState(true)  // LAYOUT 2026-08-27: toggle for the track-history block
   const [visitsByTY, setVisitsByTY] = useState({})  // track_year -> sorted race_numbers of ALL known visits (metric incl.) for labeling
@@ -212,17 +179,15 @@ export default function QualifyingCenter({ isSubscriber }) {
       const { data: cfg, error: cfgErr } = await supabase
         .from('featured_weekend')
         .select('*')
-        .eq('series', 'cup')
+        .eq('series', series)
         .single()
-      if (cfgErr || !cfg) throw new Error('No Cup Series weekend configured yet.')
+      if (cfgErr || !cfg) throw new Error('No ' + SERIES_LABEL[series] + ' weekend configured yet.')
       setConfig(cfg)
 
-      const { data: sc } = await supabase
-        .from('qual_sim_config')
-        .select('*')
-        .eq('series', 'cup')
-        .single()
-      setSimConfig(sc || null)
+      // Engine projected starts: the latest board for this series, if it is for this weekend's track
+      // and the grid was projected (lineup not yet set by a session or the metric).
+      const { data: brow } = await supabase.from('sim_results').select('track_name,config,results,published_at,stage').eq('series', series).order('published_at', { ascending: false }).limit(1).maybeSingle()
+      setBoard(brow && brow.track_name === cfg.track_name ? brow : null)
 
       const { data: trackRows } = await supabase
         .from('tracks')
@@ -258,7 +223,7 @@ export default function QualifyingCenter({ isSubscriber }) {
       const { data: rowsAll, error: rowErr } = await supabase
         .from('qualifying_results')
         .select('driver_name, car_number, track_name, year, qualifying_position, qualifying_speed, draw_order, race_number, lineup_source')
-        .eq('series', 'cup')
+        .eq('series', series)
         .in('track_name', allTrackNames)
         .order('qualifying_position')
       if (rowErr) throw rowErr
@@ -276,7 +241,7 @@ export default function QualifyingCenter({ isSubscriber }) {
       const { data: elRows } = await supabase
         .from('entry_list')
         .select('driver_name, car_number, organization')
-        .eq('series', 'cup')
+        .eq('series', series)
         .eq('race_year', cfg.correlation_year)
         .eq('track_name', cfg.track_name)
       setEntryList(elRows && elRows.length > 0
@@ -288,9 +253,9 @@ export default function QualifyingCenter({ isSubscriber }) {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [series])
 
-  useEffect(function() { loadData() }, [loadData])
+  useEffect(function() { setConfig(null); setQualData([]); setEntryList(null); loadData() }, [loadData])
 
   if (!isSubscriber) return <SubscribePrompt />
 
@@ -313,7 +278,6 @@ export default function QualifyingCenter({ isSubscriber }) {
 
   const trackYears = config.track_years || []
   const corrYear = config.correlation_year || new Date().getFullYear()
-  const simCorrYears = (simConfig && simConfig.sim_corr_years) ? simConfig.sim_corr_years : []
   const fmt = qualFormat(config.track_name, config.correlation_label)
 
   // Only show columns where qualifying data actually exists
@@ -414,26 +378,6 @@ export default function QualifyingCenter({ isSubscriber }) {
       ? corrYearPositions.reduce(function(a, b) { return a + b }, 0) / corrYearPositions.length
       : null
 
-    if (simCorrYears.length > 0) {
-      d.historicalPositions = []
-      d.rawCount = 0
-      const yrWeight = { 2022: 1, 2023: 1, 2024: 2, 2025: 4, 2026: 5 }
-      for (const yr of simCorrYears) {
-        const reps = yrWeight[yr] || 1
-        racesFor(config.track_name, yr).forEach(function(rn) {
-          const fp = d.positions[config.track_name + '_' + yr + '_' + rn]
-          if (fp != null) { for (let ri = 0; ri < reps; ri++) d.historicalPositions.push(fp); d.rawCount++ }
-        })
-        for (const ct of corrTracks.filter(function(tt) { return tt !== config.track_name })) {
-          racesFor(ct, yr).forEach(function(rn) {
-            const cp = d.positions[ct + '_' + yr + '_' + rn]
-            if (cp != null) { for (let ri = 0; ri < reps; ri++) d.historicalPositions.push(cp); d.rawCount++ }
-          })
-        }
-      }
-    } else {
-      d.historicalPositions = histPositions
-    }
   }
 
   const allPositions = qualData.map(function(r) { return r.qualifying_position }).filter(function(p) { return p != null })
@@ -483,7 +427,10 @@ export default function QualifyingCenter({ isSubscriber }) {
     if (sortBy === 'name') return mul * a.driver.localeCompare(b.driver)
     if (sortBy === 'trackAvg') { va = a.trackAvg; vb = b.trackAvg }
     else if (sortBy === 'corrYearAvg') { va = a.corrYearAvg; vb = b.corrYearAvg }
-  else if (sortBy === 'drawOrder') { va = a.drawOrder; vb = b.drawOrder }
+    else if (sortBy === 'drawOrder') { va = a.drawOrder; vb = b.drawOrder }
+    else if (sortBy === 'simStart') { va = a.simStart; vb = b.simStart }
+    else if (sortBy === 'line') { va = a.line; vb = b.line }
+    else if (sortBy === 'lineEdgeAvg') { va = a.lineEdgeAvg; vb = b.lineEdgeAvg }
     else { va = a.positions[sortBy]; vb = b.positions[sortBy] }
     if (va == null && vb == null) return a.driver.localeCompare(b.driver)
     if (va == null) return 1
@@ -493,22 +440,32 @@ export default function QualifyingCenter({ isSubscriber }) {
 
   const hasDrawOrder = rows.some(function(r) { return r.drawOrder != null })
 
-  const nudgeVal = simConfig
-    ? (fmt === 'oval' ? (simConfig.nudge_oval || 0)
-      : fmt === 'short-track' ? (simConfig.nudge_short_track || 0)
-      : fmt === 'superspeedway' ? (simConfig.nudge_superspeedway || 0)
-      : (simConfig.nudge_road || 0))
-    : 0
+  // Engine projected start (trail10-v4-form on the published pre board). Shown only while the grid is
+  // still projected - once qualifying runs the real result column carries it.
+  const lineupKind = board && board.config && board.config.lineup
+  const boardProjected = !!board && lineupKind !== 'qualifying' && lineupKind !== 'metric' && lineupKind !== 'heats'
+  const simStart = {}
+  if (boardProjected) (board.results || []).forEach(function(d) { if (d.start_pos != null) simStart[normalizeName(d.driver_name)] = +d.start_pos })
+  const hasSimStart = Object.keys(simStart).length > 0
+  // PrizePicks lines: one per line, "Driver 12.5" / "Driver O/U 12.5" / "Driver, 12.5". Matched by name.
+  const lineMap = {}
+  ;(lines || '').split(/\r?\n/).forEach(function(l) {
+    const m = l.trim().match(/^(.+?)[\s,:]+(?:o\/u|ou|line)?\s*(\d{1,2}(?:\.\d)?)\s*$/i)
+    if (m) lineMap[normalizeName(m[1])] = parseFloat(m[2])
+  })
+  const hasLines = Object.keys(lineMap).length > 0
+  rows.forEach(function(r) {
+    const k = normalizeName(r.driver)
+    r.simStart = simStart[k] != null ? simStart[k] : null
+    r.line = lineMap[k] != null ? lineMap[k] : null
+    const base = r.corrYearAvg != null ? r.corrYearAvg : r.trackAvg
+    r.lineEdgeAvg = r.line != null && base != null ? +(r.line - base).toFixed(1) : null
+    r.lineEdgeSim = r.line != null && r.simStart != null ? +(r.line - r.simStart).toFixed(1) : null
+  })
 
-  function handleRunSim() {
-    setSimRunning(true)
-    setTimeout(function() {
-      const simInput = rows.map(function(r) {
-        return { driver: r.driver, carNumber: r.carNumber, trackAvg: r.trackAvg, historicalPositions: r.historicalPositions }
-      })
-      setSimResults(runSimulation(simInput, 2000, nudgeVal))
-      setSimRunning(false)
-    }, 50)
+  if (sortBy === 'simStart' || sortBy === 'line' || sortBy === 'lineEdgeAvg') {
+    const mul2 = sortDir === 'asc' ? 1 : -1
+    rows.sort(function(a, b) { const va = a[sortBy], vb = b[sortBy]; if (va == null && vb == null) return a.driver.localeCompare(b.driver); if (va == null) return 1; if (vb == null) return -1; return mul2 * (va - vb) })
   }
 
   const thStyle = {
@@ -525,7 +482,6 @@ export default function QualifyingCenter({ isSubscriber }) {
   }
 
   const hasData = rows.length > 0 && allCols.length > 0
-  const showSimPanel = simConfig ? (simConfig.show_sim || false) : false
   const showCorrAvgCol = (corrCols.length + featuredCurrYear.length) > 1  // featured track's corr-year races count toward the avg (2026-08-27)
 
   return (
@@ -534,7 +490,7 @@ export default function QualifyingCenter({ isSubscriber }) {
         <div>
           <h1 className="page-title" style={{ margin: 0 }}>Qualifying Center</h1>
           <p className="page-subtitle" style={{ margin: '4px 0 0' }}>
-            Cup Series &middot; {config.track_name} &middot; {dispLabel || config.correlation_label}
+            {SERIES_LABEL[series]} &middot; {config.track_name} &middot; {dispLabel || config.correlation_label}
             {(function() {
               const fmtInfo = QUAL_FORMAT_LABELS[fmt]
               return (
@@ -549,10 +505,17 @@ export default function QualifyingCenter({ isSubscriber }) {
             })()}
           </p>
         </div>
-        <button className="btn btn-secondary" onClick={loadData} disabled={loading}
-          style={{ fontSize: '0.89rem', padding: '5px 14px' }}>
-          {loading ? 'Loading...' : 'Refresh'}
-        </button>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div style={{ display: 'inline-flex', gap: 4, padding: 4, borderRadius: 10, background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
+            {SERIES_TABS.map(function(t) { const active = series === t.v; return (
+              <button key={t.v} onClick={function() { setSeries(t.v) }} style={{ padding: '6px 16px', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: '0.85rem', fontWeight: active ? 700 : 500,
+                background: active ? 'var(--series-' + t.v + ')' : 'transparent', color: active ? (t.v === 'trucks' ? '#111' : '#fff') : 'var(--text-secondary)' }}>{t.label}</button>) })}
+          </div>
+          <button className="btn btn-secondary" onClick={loadData} disabled={loading}
+            style={{ fontSize: '0.89rem', padding: '5px 14px' }}>
+            {loading ? 'Loading...' : 'Refresh'}
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -571,7 +534,7 @@ export default function QualifyingCenter({ isSubscriber }) {
       {!loading && !hasData && (
         <div className="empty-state">
           <h3>No qualifying data loaded yet</h3>
-          <p>Use Admin to load qualifying results from Racing Reference.</p>
+          <p>Qualifying loads itself from NASCAR's feed once the session runs (Admin &rsaquo; Load Data &rsaquo; Weekend from NASCAR Feed to load it now).</p>
         </div>
       )}
 
@@ -634,6 +597,9 @@ export default function QualifyingCenter({ isSubscriber }) {
                   <th style={Object.assign({}, thStyle, { textAlign: 'center', width: 36 })}>#</th>
                   <th onClick={function() { handleSort('name') }} style={Object.assign({}, thStyle, { textAlign: 'left', paddingLeft: 14, minWidth: 170, position: 'sticky', left: 0, zIndex: 2, cursor: 'pointer', background: 'var(--bg-surface)', borderRight: '2px solid var(--border)', boxShadow: '4px 0 8px -2px rgba(0,0,0,0.6)' })}>Driver{sortArrow('name')}</th>
                   {hasDrawOrder && <th onClick={function() { handleSort('drawOrder') }} style={Object.assign({}, thStyle, { cursor: 'pointer', minWidth: 120, color: sortBy === 'drawOrder' ? 'var(--accent-text)' : 'var(--text-secondary)' })}>Qualifying Order{sortArrow('drawOrder')}</th>}
+                  {hasSimStart && <th onClick={function() { handleSort('simStart') }} title="The engine's projected starting position on the latest published board (same number as Sim Results)" style={Object.assign({}, thStyle, { cursor: 'pointer', minWidth: 72, color: sortBy === 'simStart' ? 'var(--accent-text)' : '#22c55e' })}>Sim<br />Start{sortArrow('simStart')}</th>}
+                  {hasLines && <th onClick={function() { handleSort('line') }} style={Object.assign({}, thStyle, { cursor: 'pointer', minWidth: 60, color: sortBy === 'line' ? 'var(--accent-text)' : 'var(--text-secondary)' })}>Line{sortArrow('line')}</th>}
+                  {hasLines && <th onClick={function() { handleSort('lineEdgeAvg') }} title="Line minus the season group average (positive = the line is higher than his average = lean under). Second number: line minus the sim's projected start." style={Object.assign({}, thStyle, { cursor: 'pointer', minWidth: 80, color: sortBy === 'lineEdgeAvg' ? 'var(--accent-text)' : 'var(--text-secondary)' })}>Line vs<br />Avg / Sim{sortArrow('lineEdgeAvg')}</th>}
                   {showCorrAvgCol && (
                     <th onClick={function() { handleSort('corrYearAvg') }} style={Object.assign({}, thStyle, { borderLeft: '2px solid var(--border)', cursor: 'pointer', color: sortBy === 'corrYearAvg' ? 'var(--accent-text)' : 'var(--text-secondary)' })}>
                       {show2025 ? '2026/2025' : '2026'}<br />Avg{sortArrow('corrYearAvg')}
@@ -659,6 +625,9 @@ export default function QualifyingCenter({ isSubscriber }) {
                   <th style={thStyle} />
                   <th style={Object.assign({}, thStyle, { textAlign: 'left', paddingLeft: 14, position: 'sticky', left: 0, zIndex: 2, background: 'var(--bg-surface)', borderRight: '2px solid var(--border)', boxShadow: '4px 0 8px -2px rgba(0,0,0,0.6)' })} />
                   {hasDrawOrder && <th style={thStyle} />}
+                  {hasSimStart && <th style={thStyle} />}
+                  {hasLines && <th style={thStyle} />}
+                  {hasLines && <th style={thStyle} />}
                   {showCorrAvgCol && <th style={Object.assign({}, thStyle, { borderLeft: '2px solid rgba(99,102,241,0.5)' })} />}
                   {featuredCurrYear.map(function(col, i) {
                     var pk = col.pk
@@ -689,7 +658,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                         position: 'sticky', left: 0, background: rowBg, zIndex: 1, borderRight: '2px solid var(--border)', boxShadow: '4px 0 8px -2px rgba(0,0,0,0.6)',
                       })}>
                         {row.carNumber && (
-                          <img src={'/car-numbers/' + row.carNumber + '.png'} alt={'#' + row.carNumber} style={{ height: 28, marginRight: 6, verticalAlign: 'middle' }} />
+                          <img src={CAR_DIR[series] + row.carNumber + '.png'} alt={'#' + row.carNumber} style={{ height: 28, marginRight: 6, verticalAlign: 'middle' }} />
                         )}
                         {row.driver}
                         {row.org && <div style={{ fontSize: '0.77rem', color: 'var(--text-muted)', fontWeight: 400 }}>{row.org}</div>}
@@ -699,6 +668,10 @@ export default function QualifyingCenter({ isSubscriber }) {
                           {row.drawOrder != null ? row.drawOrder : '–'}
                         </td>
                       )}
+                      {hasSimStart && (function() { const hc2 = row.simStart != null ? heatColor(row.simStart, totalDrivers) : null; return (
+                        <td style={Object.assign({}, tdBase, { background: hc2 ? hc2.bg : 'transparent', color: hc2 ? hc2.text : 'var(--text-muted)', fontWeight: 700 })}>{row.simStart != null ? 'P' + row.simStart : '-'}</td>) })()}
+                      {hasLines && <td style={Object.assign({}, tdBase, { fontWeight: 700, color: row.line != null ? 'var(--text-primary)' : 'var(--text-muted)' })}>{row.line != null ? row.line.toFixed(1) : '-'}</td>}
+                      {hasLines && <td style={Object.assign({}, tdBase, { fontSize: '0.85rem', color: 'var(--text-secondary)' })}>{row.lineEdgeAvg != null ? <span style={{ color: Math.abs(row.lineEdgeAvg) >= 2 ? (row.lineEdgeAvg > 0 ? '#22c55e' : '#ef4444') : 'var(--text-secondary)', fontWeight: Math.abs(row.lineEdgeAvg) >= 2 ? 700 : 400 }}>{(row.lineEdgeAvg > 0 ? '+' : '') + row.lineEdgeAvg}</span> : '-'}{row.lineEdgeSim != null ? <span style={{ color: 'var(--text-muted)' }}> / {(row.lineEdgeSim > 0 ? '+' : '') + row.lineEdgeSim}</span> : null}</td>}
                       {showCorrAvgCol && (
                         <td style={Object.assign({}, tdBase, {
                           borderLeft: '2px solid rgba(99,102,241,0.5)',
@@ -711,7 +684,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                       )}
                       {featuredCurrYear.map(function(col, i) {
                         const pos = row.positions[col.pk]
-                        const spd = row.speeds ? row.speeds[col.trackName + '_' + col.year] : null
+                        const spd = row.speeds ? row.speeds[col.pk] : null
                         const hc = heatColor(pos, totalDrivers)
                         const tip = pos != null ? ('P' + pos + (spd != null ? ' · ' + formatQualSpeed(spd, col.trackName) : '')) : undefined
                         return (
@@ -722,7 +695,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                       })}
                       {corrCols.map(function(col, i) {
                         const pos = row.positions[col.pk]
-                        const spd = row.speeds ? row.speeds[col.trackName + '_' + col.year] : null
+                        const spd = row.speeds ? row.speeds[col.pk] : null
                         const hc = heatColor(pos, totalDrivers)
                         const tip = pos != null ? ('P' + pos + (spd != null ? ' · ' + formatQualSpeed(spd, col.trackName) : '')) : undefined
                         return (
@@ -743,7 +716,7 @@ export default function QualifyingCenter({ isSubscriber }) {
                       )}
                       {showTrackHist && histCols.map(function(col, i) {
                         const pos = row.positions[col.pk]
-                        const spd = row.speeds ? row.speeds[col.trackName + '_' + col.year] : null
+                        const spd = row.speeds ? row.speeds[col.pk] : null
                         const hc = heatColor(pos, totalDrivers)
                         const tip = pos != null ? ('P' + pos + (spd != null ? ' · ' + formatQualSpeed(spd, col.trackName) : '')) : undefined
                         return (
@@ -759,67 +732,23 @@ export default function QualifyingCenter({ isSubscriber }) {
             </table>
           </XScroll>
 
+          <div style={{ marginBottom: 12 }}>
+            <button onClick={function() { setShowLines(!showLines) }} style={{ padding: '4px 12px', borderRadius: 20, fontSize: '0.85rem', border: '1px solid var(--border)', background: showLines || hasLines ? 'var(--accent)' : 'var(--bg-elevated)', color: showLines || hasLines ? '#fff' : 'var(--text-secondary)', cursor: 'pointer' }}>
+              {hasLines ? Object.keys(lineMap).length + ' lines pasted' : 'Paste PrizePicks lines'}
+            </button>
+            {showLines && (
+              <div style={{ marginTop: 8 }}>
+                <textarea value={lines} onChange={function(e) { setLines(e.target.value) }} rows={6} placeholder={'One per line, e.g.\nKyle Larson 9.5\nDenny Hamlin O/U 12.5'}
+                  style={{ width: '100%', maxWidth: 420, padding: 8, borderRadius: 8, background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', fontSize: '0.85rem' }} />
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4 }}>Stays in your browser; nothing is uploaded. Line vs Avg = line minus the {show2025 ? '2025/' : ''}{corrYear} group average (falls back to the track average); positive means the line sits above his usual qualifying spot.</div>
+              </div>
+            )}
+          </div>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 28, lineHeight: 1.6 }}>
-            Avg column = mean qualifying position at {config.track_name} across {trackYears.join(', ') || 'selected years'}.
-            Lower = better qualifier. Use as baseline for PrizePicks over/under picks.
+            Avg @ {trackAbbr(config.track_name)} = mean qualifying position at {config.track_name} across {trackYears.join(', ') || 'selected years'}; lower = better qualifier. Only sessions that actually ran count - metric and rain-set grids are excluded.
+            {hasSimStart ? ' Sim Start is the engine\'s projected starting spot on the published board' + (board && board.published_at ? ' (' + new Date(board.published_at).toLocaleString() + ')' : '') + '; it disappears once the real grid is set.' : ''}
           </p>
 
-          {showSimPanel && (
-            <div style={{ borderTop: '1px solid var(--border)', paddingTop: 24 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
-                <h2 style={{ fontSize: '1.11rem', fontWeight: 600, margin: 0 }}>Qualifying Simulation</h2>
-                <span style={{
-                  fontSize: '0.71rem', fontWeight: 700, letterSpacing: '0.08em', padding: '2px 7px', borderRadius: 20,
-                  background: 'rgba(99,102,241,0.12)', color: 'var(--accent-text)',
-                  border: '1px solid rgba(99,102,241,0.3)', textTransform: 'uppercase',
-                }}>BETA</span>
-                <button className="btn btn-secondary" onClick={handleRunSim} disabled={simRunning}
-                  style={{ fontSize: '0.89rem', padding: '5px 14px', marginLeft: 'auto' }}>
-                  {simRunning ? 'Running...' : simResults ? 'Re-run' : 'Run Simulation'}
-                </button>
-              </div>
-              <p style={{ fontSize: '0.94rem', color: 'var(--text-muted)', marginBottom: 16, lineHeight: 1.6 }}>
-                Monte Carlo simulation (2,000 runs) using historical qualifying positions.
-                {simCorrYears.length > 0 && (
-                  <span style={{ color: 'var(--text-secondary)' }}> Using {simCorrYears.join(', ')} data.</span>
-                )}
-                <span style={{ color: '#94a3b8', marginLeft: 4 }}>{QUAL_FORMAT_LABELS[fmt].label} · floor: {nudgeVal}</span>
-              </p>
-              {simResults && (
-                <XScroll style={{ borderRadius: 10, border: '1px solid var(--border)' }}>
-                  <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: '0.96rem' }}>
-                    <thead>
-                      <tr style={{ background: 'var(--bg-elevated)', borderBottom: '2px solid var(--border)' }}>
-                        <th style={Object.assign({}, thStyle, { textAlign: 'center', width: 36 })}>#</th>
-                        <th style={Object.assign({}, thStyle, { textAlign: 'left', paddingLeft: 14, minWidth: 160 })}>Driver</th>
-                        <th style={Object.assign({}, thStyle, { color: '#22c55e' })}>Projected</th>
-                        <th style={thStyle}>Range (P10-P90)</th>
-                        <th style=
-{thStyle}>Historical Avg</th>
-                        <th style={thStyle}>Data pts</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {simResults.map(function(r, ri) {
-                        if (r.simMean == null) return null
-                        const hc = heatColor(r.simExpected, totalDrivers)
-                        return (
-                          <tr key={r.driver} style={{ background: ri % 2 === 0 ? 'var(--bg-base)' : 'var(--bg-elevated)', borderBottom: '1px solid var(--border)' }}>
-                            <td style={Object.assign({}, tdBase, { color: 'var(--text-muted)', fontSize: '0.85rem' })}>{ri + 1}</td>
-                            <td style={Object.assign({}, tdBase, { textAlign: 'left', paddingLeft: 14, fontFamily: 'var(--font-sans)', fontWeight: ri < 5 ? 600 : 400 })}>{r.driver}</td>
-                            <td style={Object.assign({}, tdBase, { background: hc.bg, color: hc.text, fontWeight: 700 })}>P{r.simExpected}</td>
-                            <td style={Object.assign({}, tdBase, { color: 'var(--text-secondary)', fontSize: '0.89rem' })}>P{r.simP10} - P{r.simP90}</td>
-                            <td style={Object.assign({}, tdBase, { color: 'var(--text-muted)' })}>{r.simMean != null ? r.simMean.toFixed(1) : ''}</td>
-                            <td style={Object.assign({}, tdBase, { color: 'var(--text-muted)', fontSize: '0.85rem' })}>{r.sampleCount}</td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </XScroll>
-              )}
-            </div>
-          )}
         </div>
       )}
     </div>

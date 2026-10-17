@@ -91,7 +91,13 @@ async function applyBundle(sb, ctx, b, opts = {}) {
   // adding a second driver in the same car. Draw and qualifying rows use the same mapping.
   const { data: cur } = await sb.from('entry_list').select('driver_name,car_number').eq('series', series).eq('race_year', year).eq('track_name', track_name)
   const byCar = {}; (cur || []).forEach(r => { if (r.car_number != null) byCar[String(r.car_number).trim()] = r.driver_name })
-  const nameOf = (name, car) => byCar[String(car).trim()] || name
+  // Collision guard (2026-10-17 backfill): entry_list is keyed by track + year, not by visit, so at a
+  // track raced twice a season the same car can carry two drivers; mapping both onto the stored name
+  // made one upsert batch hit the same row twice ("ON CONFLICT DO UPDATE command cannot affect row a
+  // second time"). Map by car only when the feed name and the stored name are the same person
+  // (same last name); otherwise keep the feed's spelling.
+  const lastOf = (n) => String(n || '').toLowerCase().replace(/\s*\(.*?\)\s*/g, ' ').replace(/[^a-z\s]/g, '').trim().split(/\s+/).filter(w => !/^(jr|sr|ii|iii|iv)$/.test(w)).pop() || ''
+  const nameOf = (name, car) => { const st = byCar[String(car).trim()]; return st && lastOf(st) === lastOf(name) ? st : name }
   // Entry list. Team spelling: reuse the spelling already stored for this series (this + last season)
   // so the feed's "23XI Racing" and a PDF's "23XI Racing" stay one organization.
   if (!want('entries')) out.skipped.push('entries not requested')
