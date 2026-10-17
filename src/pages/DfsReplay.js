@@ -161,7 +161,7 @@ export default function DfsReplay() {
                 <td style={{ padding: '6px 8px', whiteSpace: 'nowrap' }}>{(s ? s.label : r.series) + ' R' + r.race_number + ' \u00b7 ' + (r.track_name || '?')}</td>
                 <td style={{ padding: '6px 8px', textAlign: 'center' }}>{ok(r.sal)}</td>
                 <td style={{ padding: '6px 8px', textAlign: 'center' }}>{ok(r.loop)}</td>
-                <td style={{ padding: '6px 8px', textAlign: 'center', color: 'var(--text-secondary, #9aa0aa)' }}>{r.cons.length ? r.cons.map(c => <div key={c.contest_id} title={c.contest_name || c.contest_id}>{(c.contest_type || '').toUpperCase()} {c.contest_id} \u00b7 {(c.entries || 0).toLocaleString()} entries</div>) : ok(false)}</td>
+                <td style={{ padding: '6px 8px', textAlign: 'center', color: 'var(--text-secondary, #9aa0aa)' }}>{r.cons.length ? r.cons.map(c => <div key={c.contest_id} title={c.contest_name || c.contest_id}>{(c.contest_type || '').toUpperCase()} {c.contest_id}{' · '}{(c.entries || 0).toLocaleString()} entries</div>) : ok(false)}</td>
                 <td style={{ padding: '6px 8px', textAlign: 'center', color: 'var(--text-secondary, #9aa0aa)' }}>{r.rep ? (r.rep.contest_entries != null ? <span>{ok(true)} #{r.rep.gpp_rank} of {(+r.rep.contest_entries).toLocaleString()}</span> : <span style={{ color: '#e8b923' }}>no contest</span>) : ok(false)}</td>
                 <td style={{ padding: '6px 8px', textAlign: 'center', color: r.miss.length ? '#f85149' : '#3fb950', whiteSpace: 'nowrap' }}>{r.miss.length ? r.miss.join(', ') : 'complete'}</td>
               </tr>
