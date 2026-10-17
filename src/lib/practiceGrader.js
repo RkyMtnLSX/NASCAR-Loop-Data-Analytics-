@@ -160,6 +160,17 @@ function _medianFill(scaledArr) {
 
 // ── Grade/color helpers ───────────────────────────────────────
 
+// PER-TRACK-GROUP WEIGHTS (v6.5, 2026-10-17; BACKTEST_LOG same date). Registered on 2025, held out on
+// 2026, run through this grader on stored practice_laps (96 sessions). Short & Flat: tire-corrected
+// pace alone is the signal - every point on the plateau pace .8-1.0 / long run 0 beats v6-tc in BOTH
+// seasons (2025 .469 -> .479, 2026 .423 -> .451, per-session W/L 13/8 and 16/4, Cup 10/4, Trucks 11/3).
+// Intermediate: v6-tc is at its optimum (fits flip between seasons) - unchanged. Road: 3 + 3 sessions,
+// no verdict. Superspeedway: no practice. Everything else falls back to v6-tc.
+export const PRACTICE_WEIGHTS_BY_GROUP = {
+  'Short & Flat Tracks': { pace: 0.80, speed: 0.20, longRun: 0.00, lrMissing: 25, tag: 'v6.5-short' },
+}
+export function weightsForGroup(label) { return (label && PRACTICE_WEIGHTS_BY_GROUP[label]) || null }
+
 export function percentileGrade(rank, total) {
   const pct = rank / total
   if (pct <= 0.03) return 'A+'
@@ -487,6 +498,10 @@ export function gradePracticeSession(drivers, priorRatings, opts) {
     gc = c1 || c2 || c3 || c4 || c5
   }
   const apS = rankScale(gc ? '__gcOverallAvg' : (__st ? 'overallSTC' : 'overallTC')) /* v6.1 2026-08-08: pace half = corrected ALL-clean-lap mean (lap-weighted). Equal-stint avgPace demoted Blaney (Iowa 91-lap grind vs short stints). 97-race backtest: statistical tie with avgPaceTC (rhoSpeed .637 both, W50/L47) - swap chosen on construct (no stint-count artifact). */, alS = rankScale(gc ? '__gcOverallAvg' : (__st ? 'overallSTC' : 'overallTC')), blS = rankScale(gc ? '__gcBestLap' : (__st ? 'bestLapST' : 'bestLap')) /* v6.2: RAW - actual laps only */, b5S = rankScale(gc ? '__gcBest5' : (__st ? 'best5ST' : 'best5')) /* v6.2 2026-08-08: speed half is RAW best5 - pure peak speed that actually happened, same input the sim uses. Tire-corrected laps are barred from the speed half (a corrected lap-40 could impersonate a flyer: Chastain Iowa 24.65 -> 24.02 'equivalent' beating Love's real 24.12). 97-race backtest: finish rho tie (.435/.436), race-speed .640 vs .637, winner rank 6.32 vs 6.50 - equal or slightly better everywhere. Pace + longRun halves stay tire-corrected. */, lrS = rankScale(gc ? '__gcLongRun' : (__st ? 'longRunSTC' : 'longRunTC'))
+  // WEIGHTS (2026-10-17): per-track-group registration (opts.weights); default = v6-tc. The scaled
+  // components ride along on the row (__cPace/__cSpeed/__cLong) so an offline harness can re-weight
+  // without re-grading.
+  const W = Object.assign({ pace: 0.40, speed: 0.40, longRun: 0.20, lrMissing: 25 }, (opts && opts.weights) || {})
   const scored = gradable.map(d => {
     const pace = apS.has(d) ? apS.get(d) : (alS.has(d) ? alS.get(d) : 50)
     // SHIPPED 2026-07-17: speed half is best5 (mean of 5 fastest laps; bestLap fallback).
@@ -494,8 +509,8 @@ export function gradePracticeSession(drivers, priorRatings, opts) {
     // trucks .482->.491; per-session W47/L23 vs bestLap half (see BACKTEST_LOG).
     const bl = b5S.has(d) ? b5S.get(d) : (blS.has(d) ? blS.get(d) : 50)
     // SHIPPED 2026-08-08 v5-lr20: third component longRun, missing = 25 (penalty).
-    const lr = lrS.has(d) ? lrS.get(d) : 25
-    return { ...d, composite: Math.round((pace * 0.40 + bl * 0.40 + lr * 0.20) * 10) / 10 }
+    const lr = lrS.has(d) ? lrS.get(d) : W.lrMissing
+    return { ...d, __cPace: pace, __cSpeed: bl, __cLong: lr, __cLongMissing: !lrS.has(d), composite: Math.round((pace * W.pace + bl * W.speed + lr * W.longRun) * 10) / 10 }
   })
   scored.sort((a, b) => b.composite - a.composite)
   const total = scored.length

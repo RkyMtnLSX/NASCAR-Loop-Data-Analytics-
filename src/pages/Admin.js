@@ -7,7 +7,7 @@ import useSubscriber from '../lib/useSubscriber'
 import LineMovementAdmin from './LineMovementAdmin'
 import FastestLapOddsAdmin from './FastestLapOddsAdmin'
 import { parsePracticeExcel } from '../lib/excelParser'
-import { gradePracticeSession } from '../lib/practiceGrader'
+import { gradePracticeSession, weightsForGroup } from '../lib/practiceGrader'
 import SimulationCenter from './SimulationCenter'
 // The weight tables moved to src/lib/simEngine.js on 2026-08-31 when the sim was
 // extracted from the page so it could be run from a script. Same values, new home.
@@ -1337,8 +1337,11 @@ export default function Admin() {
           }
         }
       } catch (gcErr) { gcPriors = null }
-      const graded = gradePracticeSession(parsed.drivers, gcPriors)
-      setPreview({ parsed, graded })
+      // v6.5 (2026-10-17): grade weights by the track's correlation group (practiceGrader.weightsForGroup).
+      let __w = null
+      try { const { data: __t } = await supabase.from('tracks').select('correlation_group_label').eq('name', trackName).single(); __w = weightsForGroup(__t && __t.correlation_group_label) } catch (e) { __w = null }
+      const graded = gradePracticeSession(parsed.drivers, gcPriors, { weights: __w || undefined })
+      setPreview({ parsed, graded, gradeWeights: __w ? __w.tag : 'v6-tc' })
     } catch (err) {
       setUploadStatus({ type: 'error', message: err.message })
       setPreview(null)
