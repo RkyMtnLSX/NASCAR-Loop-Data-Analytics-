@@ -357,16 +357,20 @@ export default function PracticeReportCard({ isSubscriber }) {
           const stints = parseStints(Object.fromEntries(laps.map(([n2, t2]) => [n2, t2])))
           const estOf = {}; laps.forEach(([n2, , e2]) => { if (e2) estOf[n2] = 1 })
           // NASCAR method: best (fastest) average over N consecutive laps within a single run.
-          // 2026-10-04: a window holding a watcher-ESTIMATED lap (feed skipped it; the lap is an even split
-          // of two) is a smoothed number. Prefer windows with no estimate; if none exists for this N, fall
-          // back to the best estimated window and mark it (best{N}Est = true -> shown with a ~).
+          // 2026-10-18 (operator: "how are so many drivers getting 0.00 for fall off"): the 10-04 rule preferred
+          // windows with NO watcher-estimated lap and fell back to an estimated window only when none existed.
+          // Phoenix Cup had 403 estimated laps of 2,313 (27 s laps, 33 s polls), so best-5 came from a slow
+          // all-real window and best-20 from a fast estimated one - Byron 10-lap 28.98 vs 20-lap 28.08, and
+          // fall-off clamped to 0.00 on a third of the cards. An estimated lap is an even split of two laps,
+          // so a window holding BOTH halves averages exactly; only an estimate at the window's edge is off,
+          // by a fraction of one lap. Use every lap; mark a window ~ only when an estimate sits at its edge.
           ;[5, 10, 15, 20, 25, 30].forEach(N => {
-            let best = null, bestAny = null
+            let best = null, bestEdge = false
             for (const s of stints) { if (s.length < N) continue
-              for (let i = 0; i + N <= s.length; i++) { let sum = 0, hasEst = false; for (let j = 0; j < N; j++) { sum += s[i + j][1]; if (estOf[s[i + j][0]]) hasEst = true }
-                const a = sum / N; if (bestAny === null || a < bestAny) bestAny = a; if (!hasEst && (best === null || a < best)) best = a } }
-            if (best !== null) res['best' + N] = best
-            else if (bestAny !== null) { res['best' + N] = bestAny; res['best' + N + 'Est'] = true }
+              for (let i = 0; i + N <= s.length; i++) { let sum = 0; for (let j = 0; j < N; j++) sum += s[i + j][1]
+                const a = sum / N
+                if (best === null || a < best) { best = a; bestEdge = !!(estOf[s[i][0]] || estOf[s[i + N - 1][0]]) } } }
+            if (best !== null) { res['best' + N] = best; if (bestEdge) res['best' + N + 'Est'] = true }
           })
           return res
         }
@@ -552,12 +556,12 @@ export default function PracticeReportCard({ isSubscriber }) {
                       <td style={{ fontFamily: 'var(--font-mono)' }}>{d.avg_pace?.toFixed(3) || '-'}</td>
                       <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>{d.overall_avg?.toFixed(3) || '-'}</td>
                       <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>{d.num_stints ?? '-'}</td>
-                      <td style={{ fontFamily: 'var(--font-mono)', color: '#f0f0f0', background: heatBg(d.best5, 'best5') }}>{d.best5 ? (d.best5Est ? <span title="Includes a watcher-estimated lap (feed skipped it) - no clean 5-lap run exists">~{d.best5.toFixed(2)}</span> : d.best5.toFixed(2)) : '-'}</td>
-                       <td style={{ fontFamily: 'var(--font-mono)', color: '#f0f0f0', background: heatBg(d.best10, 'best10') }}>{d.best10 ? (d.best10Est ? <span title="Includes a watcher-estimated lap (feed skipped it) - no clean 10-lap run exists">~{d.best10.toFixed(2)}</span> : d.best10.toFixed(2)) : '-'}</td>
-                       <td style={{ fontFamily: 'var(--font-mono)', color: '#f0f0f0', background: heatBg(d.best15, 'best15') }}>{d.best15 ? (d.best15Est ? <span title="Includes a watcher-estimated lap (feed skipped it) - no clean 15-lap run exists">~{d.best15.toFixed(2)}</span> : d.best15.toFixed(2)) : '-'}</td>
-                       <td style={{ fontFamily: 'var(--font-mono)', color: '#f0f0f0', background: heatBg(d.best20, 'best20') }}>{d.best20 ? (d.best20Est ? <span title="Includes a watcher-estimated lap (feed skipped it) - no clean 20-lap run exists">~{d.best20.toFixed(2)}</span> : d.best20.toFixed(2)) : '-'}</td>
-                       <td style={{ fontFamily: 'var(--font-mono)', color: '#f0f0f0', background: heatBg(d.best25, 'best25') }}>{d.best25 ? (d.best25Est ? <span title="Includes a watcher-estimated lap (feed skipped it) - no clean 25-lap run exists">~{d.best25.toFixed(2)}</span> : d.best25.toFixed(2)) : '-'}</td>
-                       <td style={{ fontFamily: 'var(--font-mono)', color: '#f0f0f0', background: heatBg(d.best30, 'best30') }}>{d.best30 ? (d.best30Est ? <span title="Includes a watcher-estimated lap (feed skipped it) - no clean 30-lap run exists">~{d.best30.toFixed(2)}</span> : d.best30.toFixed(2)) : '-'}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)', color: '#f0f0f0', background: heatBg(d.best5, 'best5') }}>{d.best5 ? (d.best5Est ? <span title="A watcher-estimated lap (feed skipped it) sits at the edge of this 5-lap window - off by a fraction of one lap">~{d.best5.toFixed(2)}</span> : d.best5.toFixed(2)) : '-'}</td>
+                       <td style={{ fontFamily: 'var(--font-mono)', color: '#f0f0f0', background: heatBg(d.best10, 'best10') }}>{d.best10 ? (d.best10Est ? <span title="A watcher-estimated lap (feed skipped it) sits at the edge of this 10-lap window - off by a fraction of one lap">~{d.best10.toFixed(2)}</span> : d.best10.toFixed(2)) : '-'}</td>
+                       <td style={{ fontFamily: 'var(--font-mono)', color: '#f0f0f0', background: heatBg(d.best15, 'best15') }}>{d.best15 ? (d.best15Est ? <span title="A watcher-estimated lap (feed skipped it) sits at the edge of this 15-lap window - off by a fraction of one lap">~{d.best15.toFixed(2)}</span> : d.best15.toFixed(2)) : '-'}</td>
+                       <td style={{ fontFamily: 'var(--font-mono)', color: '#f0f0f0', background: heatBg(d.best20, 'best20') }}>{d.best20 ? (d.best20Est ? <span title="A watcher-estimated lap (feed skipped it) sits at the edge of this 20-lap window - off by a fraction of one lap">~{d.best20.toFixed(2)}</span> : d.best20.toFixed(2)) : '-'}</td>
+                       <td style={{ fontFamily: 'var(--font-mono)', color: '#f0f0f0', background: heatBg(d.best25, 'best25') }}>{d.best25 ? (d.best25Est ? <span title="A watcher-estimated lap (feed skipped it) sits at the edge of this 25-lap window - off by a fraction of one lap">~{d.best25.toFixed(2)}</span> : d.best25.toFixed(2)) : '-'}</td>
+                       <td style={{ fontFamily: 'var(--font-mono)', color: '#f0f0f0', background: heatBg(d.best30, 'best30') }}>{d.best30 ? (d.best30Est ? <span title="A watcher-estimated lap (feed skipped it) sits at the edge of this 30-lap window - off by a fraction of one lap">~{d.best30.toFixed(2)}</span> : d.best30.toFixed(2)) : '-'}</td>
                       <td style={{ fontFamily: 'var(--font-mono)' }}>{(() => { let n = null; try { n = JSON.parse(d.notes || 'null') } catch (e) { n = null }
                         const gl = n && n.gl != null ? n.gl : null
                         return <span title={n && n.sets ? 'Runs by tire set: ' + n.sets : undefined}>{gl != null ? gl + '/' : ''}{d.total_laps ?? '-'}{n && n.sets ? <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', marginLeft: 4 }}>{n.sets}</span> : null}</span> })()}</td>
