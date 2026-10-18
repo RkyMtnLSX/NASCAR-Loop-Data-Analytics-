@@ -27,15 +27,28 @@ const SUBJECTS = [
   // the NASCAR-standard short-run number and is robust to how long anyone chose to run.
   { key: 'best10',    label: 'Short run',  tip: 'Best 10-lap average', fmt: v => v.toFixed(2) },
   { key: '__long',    label: 'Long run',   tip: 'Best 20-lap average (15 / 10 when no 20-lap run)', fmt: (v, r) => v.toFixed(2) + (r.__longN ? ' (' + r.__longN + ')' : '') },
-  { key: '__falloff', label: 'Tire life',  tip: 'Seconds lost from the best 5-lap run to the best 20-lap run - less is better', fmt: v => '+' + v.toFixed(2) + 's' },
+  // 2026-10-18 (operator: "make sure tire age is even useful"): raw best20 - best5 was noise against finishes
+  // (rho .04 over 58 sessions) AND it ran against speed - the fastest cars show the most fall-off (rho -.33
+  // with best5 within a session) because they bank the biggest sticker lap. Shown now as the driver's fall-off
+  // minus what the field's fall-off would be at his 5-lap speed (within-session fit), so it no longer dings
+  // the fast cars; rho .13 vs finish, right sign in 36 of 52 sessions. Weak, informative, not in the grade.
+  { key: '__falloff', label: 'Tire life',  tip: 'Fall-off from the best 5-lap run to the best 20-lap run, compared with what a car of this 5-lap speed usually loses in this session - negative is better than the field', fmt: v => (v > 0 ? '+' : '') + v.toFixed(2) + 's' },
 ]
 function subjectRows(rows) {
   const out = rows.map(r => {
     const longN = r.best20 != null ? 20 : r.best15 != null ? 15 : r.best10 != null ? 10 : null
     const long = longN ? r['best' + longN] : null
     const fall = r.best5 != null && r.best20 != null ? Math.max(0, r.best20 - r.best5) : null
-    return { ...r, __long: long, __longN: longN, __falloff: fall }
+    return { ...r, __long: long, __longN: longN, __fallRaw: fall, __falloff: null }
   })
+  // Speed-adjusted fall-off: residual of raw fall-off on best5 across the drivers with both windows.
+  const fr = out.filter(r => r.__fallRaw != null && r.best5 != null)
+  if (fr.length >= 6) {
+    const mx = fr.reduce((a, r) => a + r.best5, 0) / fr.length, my = fr.reduce((a, r) => a + r.__fallRaw, 0) / fr.length
+    let sxy = 0, sxx = 0; fr.forEach(r => { sxy += (r.best5 - mx) * (r.__fallRaw - my); sxx += (r.best5 - mx) ** 2 })
+    const b = sxx ? sxy / sxx : 0
+    fr.forEach(r => { r.__falloff = r.__fallRaw - (my + b * (r.best5 - mx)) })
+  }
   SUBJECTS.forEach(sub => {
     const vals = out.map(r => r[sub.key]).filter(v => v != null)
     const n = vals.length
@@ -68,16 +81,16 @@ function commentFor(r, pos, n) {
   const top = Math.max(3, Math.round(n * 0.25)), bottom = n - top
   const out = []
   const isFall = best && best.key === '__falloff'
-  const bestVal = best ? (isFall ? val(best) + ' over 20 laps' : val(best)) : ''
+  const bestVal = best ? val(best) : ''
   // Opener for the podium so the comment agrees with the stamp
   if (pos === 1) out.push(pick(['Top of the class.', 'Best sheet in the garage.', 'Head of the field.'], seed + 'o'))
   else if (pos <= 3) out.push(pick(['Honor roll.', 'One of the three cars to beat.', 'Podium on the sheet.'], seed + 'o'))
   // Sentence: the headline, from the driver's best subject (or the overall place when nothing stands out)
   if (best && rank(best.key) === 1) {
-    out.push(isFall ? pick([`Least fall-off in the field: ${bestVal}.`, `Nobody saved the tires better - ${bestVal}.`], seed + 'a')
+    out.push(isFall ? pick([`Best tire life in the field for his speed (${bestVal}).`, `Nobody saved the tires better - ${bestVal} against the field.`], seed + 'a')
       : pick([`Best ${SUBJ_NAME[best.key]} in the field (${bestVal}).`, `Nobody matched the ${SUBJ_NAME[best.key]} - ${bestVal}.`, `Led the session on ${SUBJ_NAME[best.key]} at ${bestVal}.`], seed + 'a'))
   } else if (best && rank(best.key) <= 3) {
-    out.push(isFall ? pick([`${ORD(rank(best.key))}-best at saving the tires: ${bestVal}.`, `Only ${bestVal} of fall-off, ${ORD(rank(best.key))} of ${n}.`], seed + 'a')
+    out.push(isFall ? pick([`${ORD(rank(best.key))}-best at saving the tires: ${bestVal} against the field.`, `Tire life ${bestVal} better than his speed predicts, ${ORD(rank(best.key))} of ${n}.`], seed + 'a')
       : pick([`${ORD(rank(best.key))}-best ${SUBJ_NAME[best.key]} of ${n} (${bestVal}).`, `Top three on ${SUBJ_NAME[best.key]} - ${bestVal}, ${ORD(rank(best.key))} in the field.`, `The ${SUBJ_NAME[best.key]} is the headline: ${bestVal}, ${ORD(rank(best.key))} of ${n}.`], seed + 'a'))
   } else if (best && rank(best.key) <= top) {
     out.push(pos <= top ? pick([
@@ -122,9 +135,9 @@ function commentFor(r, pos, n) {
   } else if (bk !== '__long' && rank('best_lap') != null && rank('__long') != null && rank('__long') <= 3 && rank('best_lap') > bottom) {
     out.push(pick([`${ORD(rank('best_lap'))} on a single lap but ${ORD(rank('__long'))} over 20 - a race car, not a qualifying car.`, `Quiet on one lap, ${ORD(rank('__long'))}-best long run. Watch him late in a stage.`], seed + 'b'))
   } else if (bk !== '__falloff' && rank('__falloff') != null && rank('__falloff') > bottom) {
-    out.push(pick([`Gave up ${fallVal()} from the best 5 to the best 20 - ${ORD(rank('__falloff'))} of ${n} on tire life.`, `Tire fall-off is the worry: ${fallVal()} over a run, ${ORD(rank('__falloff'))} in the field.`, `${fallVal()} of fall-off over 20 laps, ${ORD(rank('__falloff'))} of ${n} - the tires go away.`], seed + 'b'))
+    out.push(pick([`Fell off ${fallVal()} more than a car this fast should - ${ORD(rank('__falloff'))} of ${n} on tire life.`, `Tire fall-off is the worry: ${fallVal()} worse than the field for his speed, ${ORD(rank('__falloff'))} in the field.`, `The tires go away faster than his pace predicts (${fallVal()}), ${ORD(rank('__falloff'))} of ${n}.`], seed + 'b'))
   } else if (bk !== '__falloff' && rank('__falloff') != null && rank('__falloff') <= 3) {
-    out.push(pick([`Only ${fallVal()} of fall-off over 20 laps - ${ORD(rank('__falloff'))}-best at saving the tires.`, `Takes care of the tires: ${fallVal()} lost over a run, ${ORD(rank('__falloff'))} of ${n}.`], seed + 'b'))
+    out.push(pick([`Holds the tires ${fallVal().replace('-', '')} better than a car this fast usually does - ${ORD(rank('__falloff'))} of ${n}.`, `Takes care of the tires: ${fallVal()} against the field for his speed, ${ORD(rank('__falloff'))} of ${n}.`], seed + 'b'))
   } else if (spread >= Math.max(8, n / 3)) {
     out.push(pick([
       `${ORD(rank(best.key))} on ${SUBJ_NAME[best.key]} but ${ORD(rank(worst.key))} on ${SUBJ_NAME[worst.key]} - two different cars.`,
