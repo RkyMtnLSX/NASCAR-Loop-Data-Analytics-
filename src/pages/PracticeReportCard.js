@@ -22,7 +22,10 @@ const GROUP_COLORS = {
 // laps / runs / tyre sets as the attendance line. The table stays one click away for the numbers.
 const SUBJECTS = [
   { key: 'best_lap',  label: 'Raw speed',  tip: 'Single fastest lap', fmt: v => v.toFixed(3) },
-  { key: 'avg_pace',  label: 'Run pace',   tip: 'Average of each run\'s average lap', fmt: v => v.toFixed(3) },
+  // 2026-10-18: 'Run pace' (raw mean of each run) was dropped - it ranks by run LENGTH at a falloff track
+  // (Phoenix: the A+ car 31st, the 50-lap single-set car 36th) and contradicted the stamp. Best 10-lap is
+  // the NASCAR-standard short-run number and is robust to how long anyone chose to run.
+  { key: 'best10',    label: 'Short run',  tip: 'Best 10-lap average', fmt: v => v.toFixed(2) },
   { key: '__long',    label: 'Long run',   tip: 'Best 20-lap average (15 / 10 when no 20-lap run)', fmt: (v, r) => v.toFixed(2) + (r.__longN ? ' (' + r.__longN + ')' : '') },
   { key: '__falloff', label: 'Tire life',  tip: 'Seconds lost from the best 5-lap run to the best 20-lap run - less is better', fmt: v => '+' + v.toFixed(2) + 's' },
 ]
@@ -47,22 +50,99 @@ function subjectRows(rows) {
   return out
 }
 const GRADE_RANK = { 'A+': 0, 'A': 1, 'A-': 2, 'B+': 3, 'B': 4, 'B-': 5, 'C+': 6, 'C': 7, 'C-': 8, 'D': 9, 'F': 10 }
+// COMMENTS (2026-10-18, operator: "some of the comments repeat themselves a lot"). The first cut had ten
+// fixed sentences, so thirty cards shared three of them. Each comment is now built from the driver's own
+// numbers - the subject he ranks best and worst in, with the rank and the value - and the connective
+// phrasing is drawn from small pools keyed on the driver's name, so the wording is stable across reloads
+// but differs card to card. Two sentences at most; the numbers carry it.
+const ORD = n => { const s = ['th', 'st', 'nd', 'rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]) }
+const pick = (pool, seed) => { let h = 7; for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0; return pool[h % pool.length] }
+const SUBJ_NAME = { best_lap: 'raw speed', best10: '10-lap pace', __long: 'long-run pace', __falloff: 'tire life' }
 function commentFor(r, pos, n) {
-  const g = k => r['__g_' + k]; const rk = k => GRADE_RANK[g(k)]
-  const parts = []
-  if (pos === 1) parts.push('Top of the class.')
-  else if (pos <= 3) parts.push('Honor roll.')
-  if (g('best_lap') != null && g('__long') != null) {
-    if (rk('best_lap') <= 2 && rk('__long') >= 6) parts.push('Flashes on new tires, fades over a run.')
-    else if (rk('best_lap') >= 6 && rk('__long') <= 2) parts.push('Quiet one-lap speed, strong over the long run.')
-    else if (rk('best_lap') <= 2 && rk('__long') <= 2) parts.push('Fast everywhere - speed and stamina.')
+  const seed = String(r.driver_name || pos)
+  const rank = k => r['__r_' + k]
+  const subs = SUBJECTS.filter(s => rank(s.key) != null)
+  const best = subs.length ? subs.reduce((a, b) => rank(b.key) < rank(a.key) ? b : a) : null
+  const worst = subs.length ? subs.reduce((a, b) => rank(b.key) > rank(a.key) ? b : a) : null
+  const val = s => s ? s.fmt(r[s.key], r) : ''
+  const top = Math.max(3, Math.round(n * 0.25)), bottom = n - top
+  const out = []
+  const isFall = best && best.key === '__falloff'
+  const bestVal = best ? (isFall ? val(best) + ' over 20 laps' : val(best)) : ''
+  // Opener for the podium so the comment agrees with the stamp
+  if (pos === 1) out.push(pick(['Top of the class.', 'Best sheet in the garage.', 'Head of the field.'], seed + 'o'))
+  else if (pos <= 3) out.push(pick(['Honor roll.', 'One of the three cars to beat.', 'Podium on the sheet.'], seed + 'o'))
+  // Sentence: the headline, from the driver's best subject (or the overall place when nothing stands out)
+  if (best && rank(best.key) === 1) {
+    out.push(isFall ? pick([`Least fall-off in the field: ${bestVal}.`, `Nobody saved the tires better - ${bestVal}.`], seed + 'a')
+      : pick([`Best ${SUBJ_NAME[best.key]} in the field (${bestVal}).`, `Nobody matched the ${SUBJ_NAME[best.key]} - ${bestVal}.`, `Led the session on ${SUBJ_NAME[best.key]} at ${bestVal}.`], seed + 'a'))
+  } else if (best && rank(best.key) <= 3) {
+    out.push(isFall ? pick([`${ORD(rank(best.key))}-best at saving the tires: ${bestVal}.`, `Only ${bestVal} of fall-off, ${ORD(rank(best.key))} of ${n}.`], seed + 'a')
+      : pick([`${ORD(rank(best.key))}-best ${SUBJ_NAME[best.key]} of ${n} (${bestVal}).`, `Top three on ${SUBJ_NAME[best.key]} - ${bestVal}, ${ORD(rank(best.key))} in the field.`, `The ${SUBJ_NAME[best.key]} is the headline: ${bestVal}, ${ORD(rank(best.key))} of ${n}.`], seed + 'a'))
+  } else if (best && rank(best.key) <= top) {
+    out.push(pos <= top ? pick([
+      `Strongest mark is ${SUBJ_NAME[best.key]}, ${ORD(rank(best.key))} of ${n}.`,
+      `${ORD(rank(best.key))} on ${SUBJ_NAME[best.key]} is the bright spot.`,
+      `${SUBJ_NAME[best.key]} ${ORD(rank(best.key))} of ${n} carries the card.`,
+      `Top-quarter marks across the sheet, led by ${SUBJ_NAME[best.key]} (${ORD(rank(best.key))}).`,
+    ], seed + 'a') : pick([
+      `Top quarter on ${SUBJ_NAME[best.key]} (${bestVal}), middle of the pack elsewhere.`,
+      `${SUBJ_NAME[best.key]} ${ORD(rank(best.key))} of ${n} carries the card.`,
+      `Nothing flashy - ${ORD(rank(best.key))} on ${SUBJ_NAME[best.key]} is the best of it.`,
+      `${ORD(rank(best.key))} on ${SUBJ_NAME[best.key]} is the bright spot.`,
+    ], seed + 'a'))
+  } else if (pos > bottom) {
+    out.push(rank(best.key) > bottom ? pick([
+      `${ORD(pos)} of ${n} and nothing on the sheet argues otherwise.`,
+      `Bottom quarter in every column; best mark only ${ORD(rank(best.key))} on ${SUBJ_NAME[best.key]}.`,
+      `Never found it: ${ORD(rank(best.key))} on ${SUBJ_NAME[best.key]} was the high-water mark.`,
+    ], seed + 'a') : pick([
+      `No column better than ${ORD(rank(best.key))}. A long Sunday unless the setup moves.`,
+      `${ORD(pos)} of ${n}; ${SUBJ_NAME[best.key]} (${ORD(rank(best.key))}) is the only mark above the bottom quarter.`,
+      `Only ${SUBJ_NAME[best.key]} (${ORD(rank(best.key))}) keeps this off the back row.`,
+    ], seed + 'a'))
+  } else {
+    out.push(pick([
+      `Mid-pack across the board - best column ${ORD(rank(best.key))} (${SUBJ_NAME[best.key]}).`,
+      `${ORD(pos)} overall with no standout subject; ${SUBJ_NAME[best.key]} ${ORD(rank(best.key))} is the high.`,
+      `Even sheet, nothing above ${ORD(rank(best.key))}. Track position will decide more than speed.`,
+      `A ${ORD(pos)}-place car on paper, ${ORD(rank(best.key))} at best (${SUBJ_NAME[best.key]}).`,
+    ], seed + 'a'))
   }
-  if (g('__falloff') != null && rk('__falloff') >= 8) parts.push('Tire fall-off is the worry.')
-  else if (g('__falloff') != null && rk('__falloff') <= 1) parts.push('Takes care of the tires.')
-  if (r.__long == null) parts.push('No long run - unknown on tire life.')
-  if ((r.num_stints || 0) <= 1 && (r.total_laps || 0) < 10) parts.push('Barely on track.')
-  if (!parts.length) parts.push(pos > n * 0.7 ? 'Needs to find speed before Sunday.' : 'Solid, unremarkable session.')
-  return parts.slice(0, 2).join(' ')
+  // Sentence: the contrast or the caveat - never about the subject the headline already used
+  const spread = best && worst && best.key !== worst.key ? rank(worst.key) - rank(best.key) : 0
+  const bk = best ? best.key : null
+  const fallVal = () => val(SUBJECTS[3])
+  if (r.__long == null) {
+    out.push(pick([`No run of 10 laps or more - tire life is a blank.`, `Never ran long enough to grade tire life.`, `Short runs only; the long-run column is empty.`], seed + 'b'))
+  } else if ((r.num_stints || 0) <= 1 && (r.total_laps || 0) < 10) {
+    out.push(`Only ${r.total_laps || 0} laps - treat the marks as a sketch.`)
+  } else if (bk !== '__long' && rank('best_lap') != null && rank('__long') != null && rank('best_lap') <= 3 && rank('__long') > bottom) {
+    out.push(pick([`Fast for a lap, ${ORD(rank('__long'))} over 20 - the speed does not last.`, `One-lap car: ${ORD(rank('best_lap'))} on a flyer, ${ORD(rank('__long'))} on the long run.`], seed + 'b'))
+  } else if (bk !== '__long' && rank('best_lap') != null && rank('__long') != null && rank('__long') <= 3 && rank('best_lap') > bottom) {
+    out.push(pick([`${ORD(rank('best_lap'))} on a single lap but ${ORD(rank('__long'))} over 20 - a race car, not a qualifying car.`, `Quiet on one lap, ${ORD(rank('__long'))}-best long run. Watch him late in a stage.`], seed + 'b'))
+  } else if (bk !== '__falloff' && rank('__falloff') != null && rank('__falloff') > bottom) {
+    out.push(pick([`Gave up ${fallVal()} from the best 5 to the best 20 - ${ORD(rank('__falloff'))} of ${n} on tire life.`, `Tire fall-off is the worry: ${fallVal()} over a run, ${ORD(rank('__falloff'))} in the field.`, `${fallVal()} of fall-off over 20 laps, ${ORD(rank('__falloff'))} of ${n} - the tires go away.`], seed + 'b'))
+  } else if (bk !== '__falloff' && rank('__falloff') != null && rank('__falloff') <= 3) {
+    out.push(pick([`Only ${fallVal()} of fall-off over 20 laps - ${ORD(rank('__falloff'))}-best at saving the tires.`, `Takes care of the tires: ${fallVal()} lost over a run, ${ORD(rank('__falloff'))} of ${n}.`], seed + 'b'))
+  } else if (spread >= Math.max(8, n / 3)) {
+    out.push(pick([
+      `${ORD(rank(best.key))} on ${SUBJ_NAME[best.key]} but ${ORD(rank(worst.key))} on ${SUBJ_NAME[worst.key]} - two different cars.`,
+      `The gap between ${SUBJ_NAME[best.key]} (${ORD(rank(best.key))}) and ${SUBJ_NAME[worst.key]} (${ORD(rank(worst.key))}) is the story.`,
+      `${SUBJ_NAME[worst.key]} lets it down: ${ORD(rank(worst.key))} of ${n} against ${ORD(rank(best.key))} on ${SUBJ_NAME[best.key]}.`,
+      `Strong ${SUBJ_NAME[best.key]}, weak ${SUBJ_NAME[worst.key]} (${ORD(rank(worst.key))}) - which one shows up on Sunday?`,
+      `${ORD(rank(worst.key))} on ${SUBJ_NAME[worst.key]} is the number to fix before the race.`,
+    ], seed + 'b'))
+  } else if (r.qualifying_position > 0 && pos <= top && r.qualifying_position > bottom) {
+    out.push(`Starts ${ORD(r.qualifying_position)} with a top-${top} car - the kind of mismatch the sim rewards.`)
+  } else if (r.qualifying_position > 0 && pos > bottom && r.qualifying_position <= top) {
+    out.push(`Starts ${ORD(r.qualifying_position)}; the practice sheet says that is ahead of the car.`)
+  } else if (r.total_laps != null && r.total_laps >= 60) {
+    out.push(pick([`${r.total_laps} laps - more homework than most.`, `Ran ${r.total_laps} laps, among the busiest in the session.`], seed + 'b'))
+  } else if (worst && rank(worst.key) > bottom) {
+    out.push(`Weak spot is ${SUBJ_NAME[worst.key]}, ${ORD(rank(worst.key))} of ${n}.`)
+  }
+  return out.slice(0, 3).map(t => t.charAt(0).toUpperCase() + t.slice(1)).join(' ')
 }
 function ReportCards({ rows, series, session, isSubscriber }) {
   const graded = subjectRows(rows)
