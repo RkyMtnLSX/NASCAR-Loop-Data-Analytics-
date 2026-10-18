@@ -5,7 +5,7 @@
 // v6.1: pace half ranks overallTC (all corrected clean laps) - no stint-count artifact.
 // v6.2: speed half ranks RAW best5/bestLap - corrected laps barred from the speed half.
 // v6.4-sets (2026-09-05): tire age = cumulative laps across stints when the allotment is ONE set (validated); K>=2 keeps reset-per-stint (detector lost its gate).
-// Composite = pace*.40 + speed*.40 + longRun*.20
+// Composite = pace*.40 + speed*.40 + longRun*.20 (v6.5: .80/.20/0 at Short & Flat). Session clock OFF since v6.6 (2026-10-18).
 //   pace   : avgPace rank (per-stint cleaned averages; overallAvg fallback)
 //   speed  : best5 rank (5 fastest laps; bestLap fallback) — shipped 2026-07-17
 //   longRun: long_run rank (worn-tire pace, all stints); drivers with NO long
@@ -267,7 +267,16 @@ export function gradePracticeSession(drivers, priorRatings, opts) {
   // >=10 laps - historical sessions grade exactly as before. NO HISTORICAL BACKTEST
   // POSSIBLE (timestamps exist 2026-08-14 forward): shipped on construct validity,
   // PROSPECTIVE validation weekly vs race-day driver rating (BACKTEST_LOG 2026-08-14).
+  // v6.6 (2026-10-18): SESSION CLOCK OFF. Judged on the v6.3-st protocol target (race-day driver rating)
+  // at 7 of the 8-10 registered sessions: pooled delta -.005 +/- .013 (null), 2/4 on the six re-run; on
+  // finish it is 1/5. A null term that can double-credit a long single-set first run (Phoenix R33:
+  // Wallace 100, Hamlin 95 - the linear tire term under-corrects convex falloff and the clock then credits
+  // the same laps again) earns nothing for the reader. Operator decision 2026-10-18 ("yes do it").
+  // The code stays and the ledger continues OFFLINE (scripts: with/without from stored captured_at) to
+  // session 10; opts.sessionClock === true re-enables it for that harness. See BACKTEST_LOG 2026-10-18.
+  const SESSION_CLOCK = !!(opts && opts.sessionClock)
   const __stFx = (() => {
+    if (!SESSION_CLOCK) return null
     try {
       const g0 = {}
       let nTs = 0, nClean = 0
